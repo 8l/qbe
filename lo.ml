@@ -130,16 +130,18 @@ let liveness p =
 
 let parse src =
   let blocks = Hashtbl.create 31 in
-  let src = List.mapi (fun idx l ->
-      let l = String.trim l in
-      try
-        let il = String.index l ':' in
-        let lbl = String.sub l 0 il in
-        Hashtbl.add blocks lbl idx;
+  let rec addlbl idx l =
+    let l = String.trim l in
+    try
+      let il = String.index l ':' in
+      let lbl = String.sub l 0 il in
+      Hashtbl.add blocks lbl idx;
+      let l =
         String.sub l (il+1)
-          (String.length l -(il+1)) ^ " "
-      with Not_found -> l ^ " "
-    ) src in
+          (String.length l -(il+1)) in
+      addlbl idx l
+    with Not_found -> l ^ " " in
+  let src = List.mapi addlbl src in
   let p = Array.make (List.length src) INop in
   List.iteri (fun idx l ->
     let fail s =
@@ -201,14 +203,13 @@ let parse src =
   p
 
 let t_fact = parse
-  [ "start:"
-  ; "  ni: con 1234"
-  ; "  k1: con 1"
-  ; "loop:"
-  ; "  n0: phi [ back n1 ] [ k1 ni ] ."
-  ; "  n1: sub n0 k1"
-  ; "back: brz n1 pend loop"
-  ; "pend:"
+  [ "k0:  con 0"
+  ; "ni:  con 1234"
+  ; "k1:  con 1"
+  ; "n0:  phi [ jmp n1 ] [ k1 ni ] ."
+  ; "n1:  sub n0 k1"
+  ; "jmp: brz n1 end n0"
+  ; "end:"
   ]
 
 let _ =
