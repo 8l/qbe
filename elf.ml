@@ -100,7 +100,11 @@ let barebones_elf oc text =
     ] in
 
   let textoff = 64 + 7 * 64 in
-  let dataoff = textoff + String.length text in
+  let txtlen, txtpad =
+    let l = String.length text in
+    let p = (l + 7) land 7 in
+    (l + p, p) in
+  let dataoff = textoff + txtlen in
   let bssoff  = dataoff + 0 in
   let relaoff = bssoff + 0 in
   let symtoff = relaoff + 0 in
@@ -114,7 +118,7 @@ let barebones_elf oc text =
     ; le 8 (shf_ALLOC lor shf_EXECINSTR) (* sh_flags *)
     ; le 8 0                         (* sh_addr *)
     ; le 8 textoff                   (* sh_offset *)
-    ; le 8 (String.length text)      (* sh_size *)
+    ; le 8 txtlen                    (* sh_size *)
     ; le 4 0                         (* sh_link *)
     ; le 4 0                         (* sh_info *)
     ; le 8 1                         (* sh_addralign *)
@@ -150,7 +154,7 @@ let barebones_elf oc text =
     ; le 8 0                         (* sh_size *)
     ; le 4 5                         (* sh_link, symtab index *)
     ; le 4 1                         (* sh_info, text section *)
-    ; le 8 8                         (* sh_addralign *)
+    ; le 8 1                         (* sh_addralign *)
     ; le 8 0x18                      (* sh_entsize *)
     (* .symtab *)
     ; le 4 symtstr                   (* sh_name *)
@@ -161,7 +165,7 @@ let barebones_elf oc text =
     ; le 8 (String.length symtab)    (* sh_size *)
     ; le 4 6                         (* sh_link, strtab index *)
     ; le 4 1                         (* sh_info, first non-local symbol *)
-    ; le 8 8                         (* sh_addralign *)
+    ; le 8 1                         (* sh_addralign *)
     ; le 8 0x18                      (* sh_entsize *)
     (* .strtab *)
     ; le 4 strtstr                   (* sh_name *)
@@ -179,7 +183,7 @@ let barebones_elf oc text =
   List.iter (output_string oc)
     [ header
     ; sh
-    ; text
+    ; text; String.make txtpad '\x90'
     ; symtab
     ; strtab
     ]
@@ -190,6 +194,5 @@ let _ =
   let text = String.concat ""
     [ "\xb8\x2a\x00\x00\x00" (* mov 42, %eax *)
     ; "\xc3"                 (* retq *)
-    ; "\xc3\xc3"             (* padding *)
     ] in
   barebones_elf oc text
