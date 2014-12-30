@@ -100,23 +100,6 @@ let liveness p =
 
 
 
-(*
-
-  Non-reducible control flow graph, these
-  cfgs are problematic when implementing
-  the naive backwards liveness analysis.
-
-  +--i
-  |  |
-  y  x--+
-  |  |  |
-  +--a  |
-     |  |
-     b--+
-     |
-     c
-
-*)
 
 
 
@@ -212,9 +195,48 @@ let t_fact = parse
   ; "end:"
   ]
 
+(*
+  The following program has irreducible
+  control-flow.  The control flow is
+  pictured below.
+
+  +--b1      <- defs r0, r1
+  |  |
+  b2 b3
+  |  |
+  \  b4<-+   <- uses r0
+   \ |   |
+  +--b5  |   <- uses r1
+  |  |   |
+  b7 b6--+
+
+  A simple implementation (that work for non-
+  irreducible control flows) proceeds
+  backwards, it would successfully make r1
+  live in b2 and b3 but r0 would fail to be
+  live in b2. It would become live for the
+  loop b4-b5-b6 when reaching the loop header
+  b4, but the simple algorithm would not
+  propagate back to b2.
+*)
+
+let t_irred = parse
+  [ "k0:  con 0"
+  ; "r0:  con 1"
+  ; "r1:  con 2"
+  ; "b1:  brz k0 b2 b3"
+  ; "b2:  jmp b5"
+  ; "b3:"
+  ; "b4:  add r0 k0"
+  ; "b50: add r1 k0"
+  ; "b5:  brz k0 b6 b7"
+  ; "b6:  jmp b4"
+  ; "b7:"
+  ]
+
 let _ =
   let open Printf in
-  let s = liveness t_fact in
+  let s = liveness t_irred in
   for i = 0 to Array.length s-1 do
     printf "%04d:" i;
     ISet.iter (printf " %04d") s.(i);
