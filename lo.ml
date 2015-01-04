@@ -1,4 +1,3 @@
-type id = int
 module ISet = Set.Make
   (struct
     type t = int
@@ -10,16 +9,16 @@ type binop =
   | Add | Sub
   | Le | Ge | Lt | Gt | Eq | Ne
 
-type phi = { pjmp: id; pvar: int }
+type ('ref, 'loc) phi = { pjmp: 'loc; pvar: 'ref }
 
-type instr =
+type ('ref, 'loc) ir =
   | INop
   | ICon of int
-  | IUop of unop * id
-  | IBop of id * binop * id
-  | IBrz of id * id * id
-  | IJmp of id
-  | IPhi of phi list
+  | IUop of unop * 'ref
+  | IBop of 'ref * binop * 'ref
+  | IBrz of 'ref * 'loc * 'loc
+  | IJmp of 'loc
+  | IPhi of ('ref, 'loc) phi list
 
 (* Phi nodes must be at the join of branches
    in the control flow graph, if n branches
@@ -28,8 +27,6 @@ type instr =
    from each of the branches.
    The id given in each of
 *)
-
-type prog = instr array
 
 
 (* Here, we analyze a program backwards to
@@ -97,102 +94,180 @@ let liveness p =
   done;
   liveout
 
-type reginfo =
-  { mutable rreg: int
-  ; mutable rspill: int option
-  ; mutable rhint: int
-  }
+
+type loc =
+  | L0          (* No location. *)
+  | LCon of int (* Constant. *)
+  | LReg of int (* Machine register. *)
+  | LSpl of int (* Spill location. *)
+
+type spill = { sreg: int; soff: int }
+
+type regir =
+  | RIR of int * (loc, int ref) ir
+  | RSSave of spill (* Spill save. *)
+  | RSRest of spill (* Spill restore. *)
+
+(* The reg IR adds spill saves and restores to standard
+   IR instructions.  The register allocator below uses
+   these new instructions when the physical machine lacks
+   registers.
+*)
 
 let regalloc nr p l =
-  let regs = Array.init (Array.length p)
-    (fun _ ->
-      { rreg = -1
-      ; rspill = None
-      ; rhint = -1
-      }) in
+  (* The final reg IR is built here. *)
+  let rir = ref [] in
+  let emit r = rir := r :: !rir in
+  let ipos = Array.init (Array.length p) ref in
+  emit (RIR (-1, INop));
 
-  let ( |> ) a b = if a = -1 then b else a in
+  (* Hints help the allocator to know what register
+     to use.  They can be combined using the |>
+     operator below. *)
+  let hints = Array.make (Array.length p) (-1) in
+  let ( |> ) a b = if a < 0 then b else a in
 
-  (* Number of spilled registers. *)
+  (* Number of spill slots. *)
   let spill = ref 0 in
-  let rspill i =
-    if regs.(i).rspill = None then begin
-      regs.(i).rspill <- Some !spill;
-      incr spill;
-    end in
 
-  (* Associative list binding irrefs to registers,
-     it is ordered by freshness. *)
-  let used = ref [] in
-  let free = ref (
-      let rec m i = if i = nr then []  else i :: m (i+1)
-      in m 0
-    ) in
+  (* Associative list binding live ir to locations,
+     ordered by freshness. *)
+  let locs = ref [] in
+  let setloc i l = locs := (i, l) :: !locs in
+  let setspill i =
+    setloc i (LSpl !spill);
+    incr spill; !spill - 1 in
+
+  (* Get free registers. *)
+  let free () =
+    let rl = Array.to_list (Array.init nr (fun i -> i)) in
+    List.filter (fun r ->
+      not (List.mem (LReg r) (List.map snd !locs))
+    ) rl in
+
+  (* Allocate a register for an ir. *)
   let alloc hint i =
-    let r, fl =
-      let l, fl = List.partition ((=) hint) !free in
-      if l <> [] then (hint, fl) else
-      match !free with
-      | r :: fl -> (r, fl)
-      | [] ->
-        (* No more free registers, we need to spill. *)
-        let rec g = function
-          | [] -> assert false
-          | [r,i'] -> rspill i'; (r, [])
-          | x :: us ->
-            let (r, us) = g us in
-            (r, x :: us) in
-        let r, us = g !used in
-        used := us;
-        r, [] in
-    free := fl;
-    used := (r, i) :: !used;
+    let ret r = setloc i (LReg r); r in
+    let free = free () in
+    if List.mem hint free then ret hint
+    else match free with  r::_ -> ret r
+    | [] -> (* No more free registers, force spill. *)
+      let regof = function LReg r -> r | _ -> -1 in
+      let cmpf (a,_) (b,_) = compare a b in
+      let l = List.map (fun (i,l) -> (i,regof l)) !locs in
+      let l = List.filter (fun (_,r) -> r >= 0) l in
+      let sir, sreg = List.hd (List.sort cmpf l) in (* Take the oldest. *)
+      locs := snd (List.partition ((=) (sir, LReg sreg)) !locs);
+      let soff =
+        match try List.assoc sir !locs with _ -> L0 with
+        | LSpl n -> n
+        | _ -> setspill sir in
+      emit (RSRest {sreg; soff});
+      ret sreg in
+
+  (* Find a location for an operand. *)
+  let loc i =
+    try List.assoc i !locs
+    with Not_found ->
+      match p.(i) with
+      | ICon k -> setloc i (LCon k); LCon k
+      | _ -> LReg (alloc hints.(i) i) in
+
+  let loc2 i =
+    try List.assoc i !locs
+    with Not_found ->
+      if free () = [] then LSpl (setspill i)
+      else LReg (alloc hints.(i) i) in
+
+  (* Find a register for a destination. *)
+  let dst i =
+    let li =
+      try List.assoc i !locs
+      with Not_found -> L0 in
+    let r = match li with
+      | LReg r -> r
+      | _ -> alloc hints.(i) i in
+    begin match li with
+    | LSpl l -> emit (RSSave {sreg=r; soff=l})
+    | _ -> ()
+    end;
+    locs := snd (List.partition (fun (j,_) -> j=i) !locs);
     r in
 
-  for i = 0 to Array.length p -1 do
+  (* Going backwards. *)
+  for i = Array.length p -1 downto 0 do
 
-    (* Forget about all bindings that are not live
+    (* Forget about all bindings not live
        at the end of the instruction. *)
-    let used', free' = List.partition
-      (fun (_, i') -> ISet.mem i' l.(i)) !used in
-    used := used';
-    free := List.map fst free' @ !free;
+    locs := List.filter
+      (fun (i',_) -> ISet.mem i' l.(i)) !locs;
 
-    (* Bind a register to the current instruction
-       if its result is not discarded. *)
-    if ISet.mem i l.(i) then begin
-      match p.(i) with
-      | ICon _ | IBrz _ | IJmp _ | INop -> ()
-      | IPhi l ->
-        (* Try to ensure that variables merged by a phi
-           use the same register. *)
-        let f r {pvar;_} = regs.(pvar).rreg |> r in
-        let r = List.fold_left f (-1) l in
-        let r =
-          let h = regs.(i).rhint in
-          if r = -1 then alloc h i else r in
-        List.iter (fun {pvar;_} ->
-          regs.(pvar).rhint <- r
-        ) l;
-        regs.(i).rreg <- r
-      | IUop (_, i')
-      | IBop (i', _, _) ->
-        let h =
-          regs.(i).rhint |>
-          regs.(i').rreg |>
-          regs.(i').rhint in
-        regs.(i).rreg <- alloc h i
+    begin match p.(i) with
+    | ICon _ | INop -> ()
+    | IBrz (i', l1, l2) ->
+      let li' = loc i' in
+      emit (RIR (-1, IBrz (li', ipos.(l1), ipos.(l2))))
+    | IJmp l ->
+      emit (RIR (-1, IJmp (ipos.(l))))
+    | IPhi l ->
+      (* Try to ensure that variables merged by a phi
+         use the same register. *)
+      let f r {pvar;_} =
+        try match List.assoc pvar !locs with
+            | LReg r' -> r'
+            | _ -> r
+        with Not_found -> r in
+      let h = List.fold_left f (-1) l in
+      let _ = hints.(i) <- hints.(i) |> h in
+      let r = dst i in
+      emit (RIR (r, IPhi [])) (* FIXXXME *)
+    | IUop (op, i') ->
+      let r = dst i in
+      let li' = hints.(i') <- r; loc i' in
+      emit (RIR (r, IUop (op, li')))
+    | IBop (il, op, ir) ->
+      let r = dst i in
+      let lil = hints.(il) <- r; loc il in
+      let lir = loc2 ir in
+      emit (RIR (r, IBop (lil, op, lir)))
     end;
 
+    (* Update position of the current instruction. *)
+    ipos.(i) := List.length !rir;
   done;
-  (regs, !spill)
+
+  (* Reverse all positions. *)
+  let f = let l = List.length !rir in
+    fun r -> r := l - !r in
+  Array.iter f ipos;
+  (Array.of_list !rir, !spill)
 
 
+module type ARCH = sig
+  type label type reg
+  type brtype = Jump | NonZ of reg
 
+  (* Labels for branching. *)
+  val newlbl: unit -> label
+  val setlbl: label -> unit
 
+  (* Register creation. *)
+  val regk: int -> reg
+  val regn: int -> reg
 
+  (* Register spilling and restoration. *)
+  val spill: reg -> int -> unit
+  val resto: int -> reg -> unit
+  (* Boring instructions. *)
+  val mov: reg -> reg -> unit
+  val bop: binop -> reg -> reg -> reg -> unit
+  val uop: unop -> reg -> reg -> unit
+  val br: brtype -> label -> unit
 
-
+  (* Initialization finalization. *)
+  val reset: int -> unit
+  val code: unit -> string
+end
 
 
 
@@ -272,14 +347,14 @@ let parse src =
   ) src;
   p
 
-let t_pow = parse
+let t_sum =
   [ "k0:  con 0"
   ; "ni:  con 1234"
   ; "k1:  con 1"
   ; "n0:  phi [ jmp n1 ] [ k1 ni ] ."
   ; "f1:  phi [ jmp f2 ] [ k1 k1 ] ."
   ; "n1:  sub n0 k1"
-  ; "f2:  add f1 f1"
+  ; "f2:  add f1 n0"
   ; "jmp: brz n1 end n0"
   ; "end:"
   ]
@@ -309,7 +384,7 @@ let t_pow = parse
   propagate back to b2.
 *)
 
-let t_irred = parse
+let t_irred =
   [ "k0:  con 0"
   ; "r0:  con 1"
   ; "r1:  con 2"
@@ -324,8 +399,12 @@ let t_irred = parse
   ]
 
 let _ =
-  let p = t_pow in
+  let src = t_sum in
+  let p = parse src in
   let open Printf in
+
+  printf "** Program:\n";
+  List.iter (printf "%s\n") src;
 
   printf "\n** Liveness analysis:\n";
   let l = liveness p in
@@ -336,33 +415,37 @@ let _ =
   done;
 
   printf "\n** Register allocation:\n";
-  let regs = [| "rax"; "rbx"; "rcx" |] in
-  let r, s = regalloc (Array.length regs) p l in
-  if s <> 0 then printf "!! Needs spills !!\n";
+  let regs = [| "rax" |] in (* ; "rbx"; "rcx" |] in *)
+  let loc = function
+    | L0 -> assert false
+    | LReg r -> regs.(r)
+    | LCon k -> sprintf "$%d" k
+    | LSpl n -> sprintf "%d(sp)" n in
+  let r, _ = regalloc (Array.length regs) p l in
   let bop_str = function
     | Add -> "add" | Sub -> "sub"
-    | Le -> "cle" | Ge -> "cge" | Lt -> "clt" | Gt -> "cgt" | Eq -> "ceq" | Ne -> "cne" in
-  for i = 0 to Array.length p -1 do
-    let reg i =
-      if r.(i).rreg = -1 then sprintf "%03d" i else regs.(r.(i).rreg) in
-    if r.(i).rreg = -1
-    then printf "%03d:  " i
-    else printf "%s = " (reg i);
-    begin match p.(i) with
-    | ICon k -> printf "%d" k
-    | INop -> ()
-    | IUop (Not, i') -> printf "not %s" (reg i')
-    | IBop (i1, o, i2) ->
-      printf "%s %s %s" (bop_str o) (reg i1) (reg i2)
-    | IBrz (i1, i2, i3) ->
-      printf "brz %s %03d %03d" (reg i1) i2 i3
-    | IJmp i' ->
-      printf "jmp %s" (reg i')
-    | IPhi l ->
-      printf "phi ";
-      List.iter (fun {pjmp; pvar} ->
-        printf "[ %d %s ] " pjmp (reg pvar)
-      ) l
+    | Le -> "cle" | Ge -> "cge"
+    | Lt -> "clt" | Gt -> "cgt"
+    | Eq -> "ceq" | Ne -> "cne" in
+  for i = 0 to Array.length r -1 do
+    printf "%03d " i;
+    begin match r.(i) with
+    | RIR (r, IUop (Not, i')) ->
+      printf "%s = not %s" regs.(r) (loc i')
+    | RIR (r, IBop (i1, o, i2)) ->
+      printf "%s = %s %s %s"
+        regs.(r) (bop_str o) (loc i1) (loc i2)
+    | RIR (_, IBrz (i', l1, l2)) ->
+      printf "brz %s %03d %03d" (loc i') !l1 !l2
+    | RIR (_, IJmp l) ->
+      printf "jmp %03d" !l
+    | RIR (_, IPhi l) ->
+      printf "phi"
+    | RSSave {sreg; soff} ->
+      printf "%d(sp) = %s" soff regs.(sreg)
+    | RSRest {sreg; soff} ->
+      printf "%s = %d(sp)" regs.(sreg) soff
+    | _ -> ()
     end;
     printf "\n"
   done
