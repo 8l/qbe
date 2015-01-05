@@ -176,8 +176,14 @@ let regalloc nr p l =
   let loc2 i =
     try List.assoc i !locs
     with Not_found ->
-      if free () = [] then LSpl (setspill i)
-      else LReg (alloc hints.(i) i) in
+      match p.(i) with
+      | ICon k -> setloc i (LCon k); LCon k
+      | _ ->
+        (* Here, we just want to avoid using the
+           same register we used for the first
+           operand. *)
+        if free () = [] then LSpl (setspill i)
+        else LReg (alloc hints.(i) i) in
 
   (* Find a register for a destination. *)
   let dst i =
