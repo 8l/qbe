@@ -124,7 +124,7 @@ let regalloc nr p l =
      to use.  They can be combined using the |>
      operator below. *)
   let hints = Array.make (Array.length p) (-1) in
-  let ( |> ) a b = if a < 0 then b else a in
+  (* let ( |> ) a b = if a < 0 then b else a in *)
 
   (* Number of spill slots. *)
   let spill = ref 0 in
@@ -164,25 +164,6 @@ let regalloc nr p l =
       emit (RMove (LReg sreg, LSpl soff));
       ret sreg in
 
-  (* Find a location for an operand. *)
-  let loc i =
-    try List.assoc i !locs
-    with Not_found ->
-      match p.(i) with
-      | ICon k -> setloc i (LCon k); LCon k
-      | _ -> LReg (alloc hints.(i) i) in
-
-  let loc2 i =
-    try List.assoc i !locs with Not_found ->
-    match p.(i) with
-    | ICon k -> setloc i (LCon k); LCon k
-    | _ ->
-      (* Here, we just want to avoid using the
-         same register we used for the first
-         operand. *)
-      if free () = [] then LSpl (setspill i)
-      else LReg (alloc hints.(i) i) in
-
   (* Find a register for a destination. *)
   let dst i =
     let li =
@@ -198,6 +179,27 @@ let regalloc nr p l =
     r in
 
   let phis = ref [] in
+
+  (* Find a location for an operand. *)
+  let loc i =
+    try List.assoc i !locs with Not_found ->
+    try List.assoc i !phis with Not_found ->
+    match p.(i) with
+    | ICon k -> setloc i (LCon k); LCon k
+    | _ -> LReg (alloc hints.(i) i) in
+
+  let loc2 i =
+    try List.assoc i !locs with Not_found ->
+    try List.assoc i !phis with Not_found ->
+    match p.(i) with
+    | ICon k -> setloc i (LCon k); LCon k
+    | _ ->
+      (* Here, we just want to avoid using the
+         same register we used for the first
+         operand. *)
+      if free () = [] then LSpl (setspill i)
+      else LReg (alloc hints.(i) i) in
+
   let philoc i =
     match p.(i) with
     | IPhi pl ->
@@ -217,7 +219,8 @@ let regalloc nr p l =
       assert (List.length l = 1);
       let pl = philoc i in
       let v = (List.hd l).pvar in
-      emit (RMove (pl, List.assoc v !locs));          (* XXX problem here! the variables might not be allocated *)
+      let vl = loc2 v in
+      emit (RMove (pl, vl));
       movs jmp (i+1)
     | _ -> () in
 
@@ -236,8 +239,8 @@ let regalloc nr p l =
       let li' = loc i' in
       emit (RIR (-1, IBrz (li', ipos.(l1), ipos.(l2))))
     | IJmp l ->
-      movs i l;
-      emit (RIR (-1, IJmp (ipos.(l))))
+      emit (RIR (-1, IJmp (ipos.(l))));
+      movs i l
     | IPhi l -> ()
 
       (*
