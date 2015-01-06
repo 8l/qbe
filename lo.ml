@@ -105,8 +105,7 @@ type spill = { sreg: int; soff: int }
 
 type regir =
   | RIR of int * (loc, int ref) ir
-  | RSSave of spill (* Spill save. *)
-  | RSRest of spill (* Spill restore. *)
+  | RMove of loc * loc
 
 (* The reg IR adds spill saves and restores to standard
    IR instructions.  The register allocator below uses
@@ -162,7 +161,7 @@ let regalloc nr p l =
         match try List.assoc sir !locs with _ -> L0 with
         | LSpl n -> n
         | _ -> setspill sir in
-      emit (RSRest {sreg; soff});
+      emit (RMove (LReg sreg, LSpl soff));
       ret sreg in
 
   (* Find a location for an operand. *)
@@ -174,31 +173,54 @@ let regalloc nr p l =
       | _ -> LReg (alloc hints.(i) i) in
 
   let loc2 i =
-    try List.assoc i !locs
-    with Not_found ->
-      match p.(i) with
-      | ICon k -> setloc i (LCon k); LCon k
-      | _ ->
-        (* Here, we just want to avoid using the
-           same register we used for the first
-           operand. *)
-        if free () = [] then LSpl (setspill i)
-        else LReg (alloc hints.(i) i) in
+    try List.assoc i !locs with Not_found ->
+    match p.(i) with
+    | ICon k -> setloc i (LCon k); LCon k
+    | _ ->
+      (* Here, we just want to avoid using the
+         same register we used for the first
+         operand. *)
+      if free () = [] then LSpl (setspill i)
+      else LReg (alloc hints.(i) i) in
 
   (* Find a register for a destination. *)
   let dst i =
     let li =
-      try List.assoc i !locs
-      with Not_found -> L0 in
+      try List.assoc i !locs with Not_found -> L0 in
     let r = match li with
       | LReg r -> r
       | _ -> alloc hints.(i) i in
     begin match li with
-    | LSpl l -> emit (RSSave {sreg=r; soff=l})
+    | LSpl l -> emit (RMove (LSpl l, LReg r))
     | _ -> ()
     end;
     locs := snd (List.partition (fun (j,_) -> j=i) !locs);
     r in
+
+  let phis = ref [] in
+  let philoc i =
+    match p.(i) with
+    | IPhi pl ->
+      (try List.assoc i !phis with Not_found ->
+      let l = loc2 i in
+      phis := (i, l) :: !phis;
+      begin match l with
+      | LReg h -> List.iter (fun x -> hints.(x.pvar) <- h) pl;
+      | _ -> ()
+      end;
+      l)
+    | _ -> failwith "regalloc: invalid call to philoc" in
+  let rec movs jmp i =
+    match p.(i) with
+    | IPhi l ->
+      let l = List.filter (fun x -> x.pjmp = jmp) l in
+      assert (List.length l = 1);
+      let pl = philoc i in
+      let v = (List.hd l).pvar in
+      emit (RMove (pl, List.assoc v !locs));          (* XXX problem here! the variables might not be allocated *)
+      movs jmp (i+1)
+    | _ -> () in
+
 
   (* Going backwards. *)
   for i = Array.length p -1 downto 0 do
@@ -214,8 +236,11 @@ let regalloc nr p l =
       let li' = loc i' in
       emit (RIR (-1, IBrz (li', ipos.(l1), ipos.(l2))))
     | IJmp l ->
+      movs i l;
       emit (RIR (-1, IJmp (ipos.(l))))
-    | IPhi l ->
+    | IPhi l -> ()
+
+      (*
       (* Try to ensure that variables merged by a phi
          use the same register. *)
       let f r {pvar;_} =
@@ -224,9 +249,11 @@ let regalloc nr p l =
             | _ -> r
         with Not_found -> r in
       let h = List.fold_left f (-1) l in
-      let _ = hints.(i) <- hints.(i) |> h in
-      let r = dst i in
-      emit (RIR (r, IPhi [])) (* FIXXXME *)
+      List.iter (fun {pvar;_} -> hints.(pvar) <- h) l;
+      let l = try List.assoc i !locs with Not_found -> L0 in
+      phis := (i, l) :: !phis
+      *)
+
     | IUop (op, i') ->
       let r = dst i in
       let li' = hints.(i') <- r; loc i' in
@@ -361,7 +388,8 @@ let t_sum =
   ; "f1:  phi [ jmp f2 ] [ k1 k1 ] ."
   ; "n1:  sub n0 k1"
   ; "f2:  add f1 n0"
-  ; "jmp: brz n1 end n0"
+  (* ; "jmp: brz n1 end n0" *)
+  ; "jmp: jmp n0"
   ; "end:"
   ]
 
@@ -447,10 +475,8 @@ let _ =
       printf "jmp %03d" !l
     | RIR (_, IPhi l) ->
       printf "phi"
-    | RSSave {sreg; soff} ->
-      printf "%d(sp) = %s" soff regs.(sreg)
-    | RSRest {sreg; soff} ->
-      printf "%s = %d(sp)" regs.(sreg) soff
+    | RMove (t, f) ->
+      printf "%s = %s" (loc t) (loc f)
     | _ -> ()
     end;
     printf "\n"
