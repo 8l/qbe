@@ -213,6 +213,7 @@ let regalloc nr p l =
       l)
     | _ -> failwith "regalloc: invalid call to philoc" in
   let rec movs jmp i =
+    if i >= Array.length p then () else
     match p.(i) with
     | IPhi l ->
       let l = List.filter (fun x -> x.pjmp = jmp) l in
@@ -234,48 +235,36 @@ let regalloc nr p l =
       (fun (i',_) -> ISet.mem i' l.(i)) !locs;
 
     begin match p.(i) with
-    | ICon _ | INop -> ()
+    | IPhi _ -> ()
+    | ICon _ | INop ->
+      movs i (i+1)
     | IBrz (i', l1, l2) ->
+      emit (RIR (-1, IJmp ipos.(l2)));
+      movs i l2;
       let li' = loc i' in
-      emit (RIR (-1, IBrz (li', ipos.(l1), ipos.(l2))))
+      let p = List.length !rir in
+      emit (RIR (-1, IBrz (li', ipos.(l1), ref p)));
+      movs i l1
     | IJmp l ->
-      emit (RIR (-1, IJmp (ipos.(l))));
-      movs i l
-    | IPhi l -> ()
-
-      (*
-      (* Try to ensure that variables merged by a phi
-         use the same register. *)
-      let f r {pvar;_} =
-        try match List.assoc pvar !locs with
-            | LReg r' -> r'
-            | _ -> r
-        with Not_found -> r in
-      let h = List.fold_left f (-1) l in
-      List.iter (fun {pvar;_} -> hints.(pvar) <- h) l;
-      let l = try List.assoc i !locs with Not_found -> L0 in
-      phis := (i, l) :: !phis
-      *)
-
+      emit (RIR (-1, IJmp ipos.(l)));
+      movs i l;
     | IUop (op, i') ->
       let r = dst i in
       let li' = hints.(i') <- r; loc i' in
-      emit (RIR (r, IUop (op, li')))
+      emit (RIR (r, IUop (op, li')));
+      movs i (i+1)
     | IBop (il, op, ir) ->
       let r = dst i in
       let lil = hints.(il) <- r; loc il in
       let lir = loc2 ir in
-      emit (RIR (r, IBop (lil, op, lir)))
+      emit (RIR (r, IBop (lil, op, lir)));
+      movs i (i+1)
     end;
 
     (* Update position of the current instruction. *)
     ipos.(i) := List.length !rir;
   done;
 
-  (* Reverse all positions. *)
-  let f = let l = List.length !rir in
-    fun r -> r := l - !r in
-  Array.iter f ipos;
   (Array.of_list !rir, !spill)
 
 
@@ -391,8 +380,8 @@ let t_sum =
   ; "f1:  phi [ jmp f2 ] [ k1 k1 ] ."
   ; "n1:  sub n0 k1"
   ; "f2:  add f1 n0"
-  (* ; "jmp: brz n1 end n0" *)
-  ; "jmp: jmp n0"
+  ; "jmp: brz n1 end n0"
+  (* ; "jmp: jmp n0" *)
   ; "end:"
   ]
 
@@ -452,7 +441,7 @@ let _ =
   done;
 
   printf "\n** Register allocation:\n";
-  let regs = [| "rax" |] in (* ; "rbx"; "rcx" |] in *)
+  let regs = [| "rax"; "rbx" |] in (* ; "rbx"; "rcx" |] in *)
   let loc = function
     | L0 -> assert false
     | LReg r -> regs.(r)
@@ -464,7 +453,9 @@ let _ =
     | Le -> "cle" | Ge -> "cge"
     | Lt -> "clt" | Gt -> "cgt"
     | Eq -> "ceq" | Ne -> "cne" in
-  for i = 0 to Array.length r -1 do
+  let lr = Array.length r in
+  let inum l = lr - !l in
+  for i = 0 to lr -1 do
     printf "%03d " i;
     begin match r.(i) with
     | RIR (r, IUop (Not, i')) ->
@@ -473,9 +464,10 @@ let _ =
       printf "%s = %s %s %s"
         regs.(r) (bop_str o) (loc i1) (loc i2)
     | RIR (_, IBrz (i', l1, l2)) ->
-      printf "brz %s %03d %03d" (loc i') !l1 !l2
+      printf "brz %s %03d %03d" (loc i')
+        (inum l1) (inum l2)
     | RIR (_, IJmp l) ->
-      printf "jmp %03d" !l
+      printf "jmp %03d" (inum l)
     | RIR (_, IPhi l) ->
       printf "phi"
     | RMove (t, f) ->
