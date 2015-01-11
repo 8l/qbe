@@ -5,18 +5,17 @@ type bref = int (* Block references. *)
 type 'op seqi = [ `Nop | `Uop of uop * 'op | `Bop of 'op * bop * 'op ]
 type 'op jmpi = [ `Brz of 'op * bref * bref | `Jmp of bref ]
 
-type ('ins, 'op) bb =
-  { bb_phis: [ `Phi of 'op list ] array
+type ('ins, 'phi, 'jmp) bb =
+  { bb_name: string
+  ; bb_phis: [ `Phi of 'phi list ] array
   ; bb_inss: 'ins array
-  ; bb_jmp: 'op jmpi
+  ; bb_jmp: 'jmp
   }
-
-
 
 
 (* ** Liveness analysis. ** *)
 type iref = IRPhi of (bref * int) | IRIns of (bref * int)
-type iprog = ((iref seqi, iref) bb) array
+type iprog = (iref seqi, iref, iref jmpi) bb array
 
 module IRSet = Set.Make(
   struct type t = iref let compare = compare end
@@ -57,6 +56,11 @@ let liveness (p: iprog) =
     changed := false;
     for b = Array.length p - 1 downto 0 do
       let bb = p.(b) in
+      begin match bb.bb_jmp with
+      | `Brz (ir', _, _) ->
+        setlive ir' (b, Array.length bb.bb_inss - 1)
+      | `Jmp _ -> ()
+      end;
       for i = Array.length bb.bb_inss - 1 downto 0 do
         let ir = (b, i) in
         let live = List.fold_left (fun live ir' ->
@@ -77,5 +81,24 @@ let liveness (p: iprog) =
   done;
   lh (* Return the final hash table. *)
 
+
 (* ** Register allocation. ** *)
-type loc = LVoid | LReg of int | LSpill of int
+type loc = LVoid | LReg of int | LSpill of int | LCon of int
+type 'op regi = [ 'op seqi | `Mov of 'op ]
+type 'op rins =
+  { mutable ri_loc: 'op
+  ; mutable ri_ins: 'op regi
+  ; mutable ri_hint: int
+  }
+(* Register program, still has phi nodes. *)
+type rprog = (loc rins, (bref * loc), loc jmpi) bb array
+
+(*
+let regalloc nr (p: iprog) =
+  let liveh = liveness p in
+*)
+
+
+(* ** Phi resolution. ** *)
+(* Machine program, ready for code generation. *)
+type mprog = (loc rins, unit, loc jmpi) bb array
