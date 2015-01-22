@@ -96,7 +96,7 @@ type 'op rins = { ri_res: 'op; ri_ins: [ 'op seqi | `Mov of 'op ] }
 type 'op rphi = { rp_res: 'op; rp_list: (bref * loc) list }
 type rprog = (loc rins, loc rphi, loc jmpi) bb array
 
-let regalloc nr (p: iprog) =
+let regalloc (p: iprog) =
   let module H = struct
     include Hashtbl
     let find h ir = try find h ir with Not_found -> LVoid
@@ -116,7 +116,7 @@ let regalloc nr (p: iprog) =
   let bb = ref [] in (* Basic block in construction. *)
   let emiti l i = bb := {ri_res=l; ri_ins=i} :: !bb in
   let act = H.create 101 in (* The active list. *)
-  let free = ref [0;1;2;3;4;5;6;7;8;9] in (* Free registers. *)
+  let free = ref [0;1;2;3;4] in (* Free registers. *)
 
   let nspill = ref 0 in
   let newspill () = incr nspill; !nspill - 1 in
@@ -245,7 +245,7 @@ let regalloc nr (p: iprog) =
  *)
 
 
-(* Little tests. *)
+(* Little test programs. *)
 let pbasic: iprog =
   [| { bb_name = "start"
      ; bb_phis = [| |]
@@ -268,6 +268,30 @@ let pcount: iprog =
    ; { bb_name = "loop"
      ; bb_phis = [| `Phi [IRIns (0, 0); IRIns (1, 0)] |]
      ; bb_inss = [| `Bop (IRPhi (1, 0), Sub, IRIns (0, 1)) |]
+     ; bb_jmp = `Brz (IRIns (1, 0), 2, 1)
+     }
+   ; { bb_name = "end"
+     ; bb_phis = [||]
+     ; bb_inss = [| `Con 42 |]
+     ; bb_jmp = `Jmp (-1)
+     }
+  |]
+
+let psum: iprog =
+  [| { bb_name = "init"
+     ; bb_phis = [||]
+     ; bb_inss = [| `Con 100; `Con 1 |]
+     ; bb_jmp = `Jmp 1
+     }
+   ; { bb_name = "loop"
+     ; bb_phis =
+       [| `Phi [IRIns (0, 0); IRIns (1, 0)]       (* n  = phi(100, n1) *)
+        ; `Phi [IRIns (0, 1); IRIns (1, 1)]       (* s  = phi(1, s1) *)
+       |]
+     ; bb_inss =
+       [| `Bop (IRPhi (1, 0), Sub, IRIns (0, 1))  (* n1 = n - 1 *)
+        ; `Bop (IRPhi (1, 1), Add, IRPhi (1, 0))  (* s1 = s + n *)
+       |]
      ; bb_jmp = `Brz (IRIns (1, 0), 2, 1)
      }
    ; { bb_name = "end"
