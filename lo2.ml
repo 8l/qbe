@@ -128,7 +128,7 @@ let regalloc (p: iprog) =
   let kill ir =
     match H.find act ir with
     | LReg r -> H.remove act ir; free := r :: !free
-    | _ -> () in
+    | _ -> H.remove act ir in
 
   let loc ir =
     match H.find act ir with
