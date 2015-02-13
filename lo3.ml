@@ -56,28 +56,3 @@ end = struct
     bbldn cmp arr 1 len;
     t
 end
-
-let rec popall h =
-  match Heap.pop h with
-  | None -> []
-  | Some x -> x :: popall h
-
-let _ =
-  if true then
-  let rnd () =
-    (2047 land Random.bits ()) *
-    ((Random.bits () land 2) - 1) in
-  let rec f n = if n = 0 then [] else rnd () :: f (n-1) in
-  for n = 1 to 150 do
-    for i = 1 to 1_000 do
-      let l = f n in
-      (* List.iter (Printf.printf "%d, ") l; print_newline (); *)
-      let h = Heap.create compare in
-      List.iter (Heap.add h) l;
-      let l' = popall h in
-      assert (List.sort compare l = l');
-    done;
-    Printf.printf "... %d\n" n;
-    flush stdout;
-  done;
-  print_string "OK!\n"
