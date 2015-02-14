@@ -286,23 +286,37 @@ let reg_add r ir i =
   let c (_,a) (_,b) = ircmp a.lo b.lo in
   r.busy <- List.sort c ((ir, i) :: r.busy)
 
-(*
-let mkinters p =
+let mkinters (p: iprog) =
   let module H = Hashtbl in
   let lh = liveness p in
   let ih = H.create 1001 in
+  let n = ref 0 in      (* Fairly hashish. *)
   let setlive ir loc =
-    let rec f = function                            (* STUCK! How to know if an iref follows another? *)
-      | [] -> [{lo=loc; hi=loc}]
-      | ({lo,hi} :: l') as l ->
-        let c = ircmp loc lo in
-        if ircmp loc lo < 0
-        then {lo=loc; hi=loc} :: l
-        else if
+    let rec f = function
+      | [] -> [({lo=loc; hi=loc}, !n)]
+      | ({lo;_}, n') :: [] when n'+1 = !n -> [({lo; hi=loc}, !n)]
+      | x :: l' -> x :: f l' in
+    H.replace ih ir
+      (f (try H.find ih ir with Not_found -> [])) in
   for b = 0 to Array.length p - 1 do
-    for i = -1 to Array.length p.(b).inss do
-      x
+    for i = -1 to Array.length p.(b).bb_inss do
+      let loc = IRIns (b,i) in
+      IRSet.iter (fun ir -> setlive ir loc)
+        (liveout lh (b,i));
+      incr n;
+    done
+  done;
+  let hp = Heap.create (fun (_,a) (_,b) ->
+      match a, b with
+      | a::_, b::_ -> ircmp a.lo b.lo
+      | _ -> assert false
+    ) in
+  H.iter (fun ir il ->
+    Heap.add hp (ir, List.map fst il)
+  ) ih;
+  hp
 
+(*
 let regalloc2 (p: iprog) =
   let lh = liveness p in
   let nr = 4 in
