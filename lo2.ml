@@ -1,3 +1,5 @@
+#use "heap.ml";;
+
 type uop = Neg
 type bop = Add | Sub | CLe | CEq
 
@@ -244,6 +246,67 @@ let regalloc (p: iprog) =
  * There are little lifetime holes in SSA (caused by block ordering)
  *)
 
+
+(* ** NEW attempt at a more clever allocator. ** *)
+
+let ircmp a b =
+  let blk = function IRPhi (b,_) | IRIns (b,_) -> b in
+  let cb = compare (blk a) (blk b) in
+  if cb <> 0 then cb else
+  match a, b with
+  | IRPhi _, IRIns _ -> -1
+  | IRIns _, IRPhi _ -> +1
+  | IRPhi (_,x), IRPhi (_,y)
+  | IRIns (_,x), IRIns (_,y) -> compare x y
+
+(* An interval specifies a region of the program text (usually where
+ * a variable is live. It has two bounds, lo and hi, they are both
+ * inclusive.  (We cannot have an empty interval.)
+ *)
+type inter = { lo: iref; hi: iref }
+
+(* The register type is used to store the usage of a given register
+ * by the program.  The list of intervals it stores has to be non-
+ * overlapping.
+ * Invariant: Intervals are stored.
+ *)
+type reg = { mutable busy: (iref * inter) list }
+
+let reg_dispo {busy} i =
+  let rec f = function
+    | (_, {lo; hi}) :: l ->
+      if ircmp hi i.lo < 0 then f l else  (* [lo, hi] ... [i] *)
+      if ircmp lo i.hi < 0 then true else (* [i] ... [lo, hi] *)
+      false                               (* overlap *)
+    | [] -> true in
+  f busy
+
+let reg_add r ir i =
+  assert (reg_dispo r i);
+  let c (_,a) (_,b) = ircmp a.lo b.lo in
+  r.busy <- List.sort c ((ir, i) :: r.busy)
+
+(*
+let mkinters p =
+  let module H = Hashtbl in
+  let lh = liveness p in
+  let ih = H.create 1001 in
+  let setlive ir loc =
+    let rec f = function                            (* STUCK! How to know if an iref follows another? *)
+      | [] -> [{lo=loc; hi=loc}]
+      | ({lo,hi} :: l') as l ->
+        let c = ircmp loc lo in
+        if ircmp loc lo < 0
+        then {lo=loc; hi=loc} :: l
+        else if
+  for b = 0 to Array.length p - 1 do
+    for i = -1 to Array.length p.(b).inss do
+      x
+
+let regalloc2 (p: iprog) =
+  let lh = liveness p in
+  let nr = 4 in
+*)
 
 (* Little test programs. *)
 let pbasic: iprog =
