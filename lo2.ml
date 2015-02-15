@@ -260,8 +260,8 @@ let ircmp a b =
   | IRIns (_,x), IRIns (_,y) -> compare x y
 
 (* An interval specifies a region of the program text (usually where
- * a variable is live. It has two bounds, lo and hi, they are both
- * inclusive.  (We cannot have an empty interval.)
+ * a variable is live. It has two bounds, lo is exclusive and hi is
+ * inclusive.
  *)
 type inter = { lo: iref; hi: iref }
 
@@ -316,11 +316,61 @@ let mkinters (p: iprog) =
   ) ih;
   hp
 
-(*
-let regalloc2 (p: iprog) =
-  let lh = liveness p in
-  let nr = 4 in
-*)
+let regalloc2 ?(nr=4) (p: iprog) =
+  let nbb = Array.length p in
+
+  let _regs = Array.init nr (fun _ -> {busy=[]}) in
+  let _spillh = Heap.create (fun (_,a) (_,b) -> ircmp b a) in
+  let act = Hashtbl.create 101 in (* Active list. *)
+  let _loc_ ir =
+    try Hashtbl.find act ir
+    with Not_found -> LVoid in
+
+  let rp = Array.init nbb (fun i ->
+      { bb_name = p.(i).bb_name
+      ; bb_phis = [| |]
+      ; bb_inss = [| |]
+      ; bb_jmp = `Jmp (-1)
+      }
+    ) in
+  let bb = ref [] in (* Block in construction. *)
+  let _emit l i = bb := {ri_res=l;ri_ins=i} :: !bb in
+
+  for b = 0 to nbb do
+    let bi = p.(b).bb_inss in
+    let bl = Array.length bi in
+
+    (* Entering a block.
+     * Many phi intervals start at the same time.
+     * We need to allocate them registers and store
+     * the allocator state for the resolve phase.
+     *)
+
+    for i = 0 to bl - 1 do
+      let _ir = IRIns (b,i) in
+
+      (* For a regular instruction:
+       *   1. Get locations of arguments.
+       *      Make sure they are in registers.
+       *   2. Free registers of dead variables.
+       *   3. Allocate for the new interval.
+       *   4. Emit the instruction.
+       *)
+
+      ()
+    done;
+
+    (* Leaving a block.
+     * Rewrite the jump.
+     * Store the allocator state for the resolve
+     * phase.
+     *)
+
+    rp.(b).bb_inss <- Array.of_list (List.rev !bb);
+  done;
+
+  rp
+
 
 (* Little test programs. *)
 let pbasic: iprog =
