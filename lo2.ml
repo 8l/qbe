@@ -91,7 +91,7 @@ let liveness (p: iprog) =
 
 
 (* ** Register allocation. ** *)
-type loc = LVoid | LReg of int | LSpill of int
+type loc = LVoid | LReg of int | LSpill of int | LCon of int
 type 'op rins = { ri_res: 'op; ri_ins: [ 'op seqi | `Mov of 'op ] }
 type 'op rphi = { rp_res: 'op; rp_list: (bref * loc) list }
 type rprog = (loc rins, loc rphi, loc jmpi) bb array
@@ -116,7 +116,7 @@ let regalloc (p: iprog) =
   let bb = ref [] in (* Basic block in construction. *)
   let emiti l i = bb := {ri_res=l; ri_ins=i} :: !bb in
   let act = H.create 101 in (* The active list. *)
-  let free = ref [0;1;2;3;4] in (* Free registers. *)
+  let free = ref [0;1;2] in (* Free registers. *)
 
   let nspill = ref 0 in
   let newspill () = incr nspill; !nspill - 1 in
@@ -136,10 +136,43 @@ let regalloc (p: iprog) =
       let l =
         match !free with
         | r :: f -> free := f; LReg r
-        | [] -> LSpill (newspill ())                        (* Here we can try to spill the longer range instead. *)
+        | [] -> LSpill (newspill ())
       in
       H.add act ir l; l
     | l -> l in
+
+  let rec getreg frz = (* Aggressively obtain one register. *)
+    match !free with
+    | r :: f when List.mem r frz -> (* Frozen, can't use it. *)
+      free := f;
+      let r' = getreg frz in
+      free := r :: !free; r'
+    | r :: f -> free := f; r
+    | [] -> (* Spill needed! *)
+      match
+        H.fold (fun ir loc l -> (* Find candidates. *)
+          match loc with
+          | LReg r when not (List.mem r frz) ->
+            (ir, r) :: l
+          | _ -> l
+        ) act [] (* |> sort by spill cost *)
+      with [] -> failwith "god damn it, not enough registers"
+      | (ir, r) :: _ ->
+        H.remove act ir;
+        let s = getspill ir in
+        let s =
+          if s >= 0 then s else
+          let s' = newspill () in
+          H.add act ir (LSpill s'); s' in
+        emiti (LReg r) (`Mov (LSpill s));
+        r in
+
+  let regloc frz ir =
+    match H.find act ir with
+    | LReg r -> r
+    | _ ->
+      let r = getreg frz in
+      H.add act ir (LReg r); r in
 
   for b = nbb - 1 downto 0 do
     let bi = p.(b).bb_inss in
@@ -151,20 +184,15 @@ let regalloc (p: iprog) =
      *)
 
     let lvout = liveout lh (b, bl) in
-    IRSet.iter (fun ir -> ignore (loc ir)) lvout;
     outmaps.(b) <- begin
-      H.fold (fun ir l m ->
-        if IRSet.mem ir lvout
-        then (ir, l) :: m
-        else m
-      ) act []
+      IRSet.fold (fun ir m -> (ir, loc ir) :: m) lvout []
     end;
 
     let jmp =
       match p.(b).bb_jmp with
       | `Jmp br -> `Jmp br
       | `Brz (ir, br1, br2) ->
-        `Brz (LReg (regloc ir), br1, br2) in
+        `Brz (loc ir, br1, br2) in
     rp.(b).bb_jmp <- jmp;
 
     for i = bl - 1 downto 0 do
@@ -172,35 +200,34 @@ let regalloc (p: iprog) =
       begin match H.find act ir with
       | LVoid -> () (* Dead code. *)
       | lir ->
-        let r =
+        let r, frz =
           match lir with
-          | LSpill spl1 ->
-            (* Restore in a register.
-             *
-             * In this situation, the register for the result
-             * must not be killed because it lives until the
-             * spill code executes.
-             *
-             * This is a bit silly because we will move it
-             * into a spill location right after that, there
-             * is no benefit from having it in register here.
-             *)
-            let r = getreg
-          | LReg r -> kill ir; r (* In register, we can kill it now. *)
+          | LSpill s ->
+            let r = getreg [] in
+            emiti (LSpill s) (`Mov (LReg r));
+            if not (List.mem r !free) then
+              free := r :: !free; (* Add it straight back to free, but freeze it. *)
+            (r, [r])
+          | LReg r -> (r, [])
           | _ -> assert false
           in
+        kill ir;
+        let s = getspill ir in
         begin match bi.(i) with
         | `Con k ->
-          emiti lir (`Mov (LCon k))
+          if s >= 0 then emiti (LSpill s) (`Mov (LReg r));
+          emiti (LReg r) (`Mov (LCon k))
         | `Uop (op, ir') ->
-          let r' = regloc ir' in
+          let r' = regloc frz ir' in
+          if s >= 0 then emiti (LSpill s) (`Mov (LReg r));
           emiti (LReg r) (`Uop (op, LReg r'))
         | `Bop (ir1, op, ir2) ->
-          let r1 = regloc ir1 in
-          let r2 = regloc ~block:r1 ir2 in
+          let r1 = regloc frz ir1 in
+          let frz = r1 :: frz in
+          let r2 = regloc frz ir2 in
+          if s >= 0 then emiti (LSpill s) (`Mov (LReg r));
           emiti (LReg r) (`Bop (LReg r1, op, LReg r2))
         end;
-        kill ir;
       end
     done;
 
@@ -212,25 +239,11 @@ let regalloc (p: iprog) =
       )
     end;
 
-    (* Spill everyting not in liveout of the predecessor block.
-     * Remove them from the active list (ensures Invariant 1).
-     *)
-
+    (* Kill everything not in liveout of the predecessor block. *)
     let lvout =
       if b = 0 then IRSet.empty else
       liveout lh (b-1, Array.length p.(b-1).bb_inss) in
-    let spl = H.fold (fun ir l s ->
-        match l with
-        | LReg r ->
-          if IRSet.mem ir lvout then s else (ir, r) :: s
-        | _ -> s
-      ) act [] in
-    List.iter (fun (ir, r) ->
-      let spl = LSpill (newspill ()) in
-      free := r :: !free;
-      H.replace act ir spl;
-      emiti (LReg r) (`Mov spl)
-    ) spl;
+    IRSet.iter kill lvout;
 
     rp.(b).bb_inss <- Array.of_list !bb;
     bb := [];
@@ -255,131 +268,6 @@ let regalloc (p: iprog) =
 (* Facts
  * There are little lifetime holes in SSA (caused by block ordering)
  *)
-
-
-(* ** NEW attempt at a more clever allocator. ** *)
-
-let ircmp a b =
-  let blk = function IRPhi (b,_) | IRIns (b,_) -> b in
-  let cb = compare (blk a) (blk b) in
-  if cb <> 0 then cb else
-  match a, b with
-  | IRPhi _, IRIns _ -> -1
-  | IRIns _, IRPhi _ -> +1
-  | IRPhi (_,x), IRPhi (_,y)
-  | IRIns (_,x), IRIns (_,y) -> compare x y
-
-(* An interval specifies a region of the program text (usually where
- * a variable is live. It has two bounds, lo is exclusive and hi is
- * inclusive.
- *)
-type inter = { lo: iref; hi: iref }
-
-(* The register type is used to store the usage of a given register
- * by the program.  The list of intervals it stores has to be non-
- * overlapping.
- * Invariant: Intervals are stored.
- *)
-type reg = { mutable busy: (iref * inter) list }
-
-let reg_dispo {busy} i =
-  let rec f = function
-    | (_, {lo; hi}) :: l ->
-      if ircmp hi i.lo < 0 then f l else  (* [lo, hi] ... [i] *)
-      if ircmp lo i.hi < 0 then true else (* [i] ... [lo, hi] *)
-      false                               (* overlap *)
-    | [] -> true in
-  f busy
-
-let reg_add r ir i =
-  assert (reg_dispo r i);
-  let c (_,a) (_,b) = ircmp a.lo b.lo in
-  r.busy <- List.sort c ((ir, i) :: r.busy)
-
-let mkinters (p: iprog) =
-  let module H = Hashtbl in
-  let lh = liveness p in
-  let ih = H.create 1001 in
-  let n = ref 0 in      (* Fairly hashish. *)
-  let setlive ir loc =
-    let rec f = function
-      | [] -> [({lo=loc; hi=loc}, !n)]
-      | ({lo;_}, n') :: [] when n'+1 = !n -> [({lo; hi=loc}, !n)]
-      | x :: l' -> x :: f l' in
-    H.replace ih ir
-      (f (try H.find ih ir with Not_found -> [])) in
-  for b = 0 to Array.length p - 1 do
-    for i = -1 to Array.length p.(b).bb_inss do
-      let loc = IRIns (b,i) in
-      IRSet.iter (fun ir -> setlive ir loc)
-        (liveout lh (b,i));
-      incr n;
-    done
-  done;
-  let hp = Heap.create (fun (_,a) (_,b) ->
-      match a, b with
-      | a::_, b::_ -> ircmp a.lo b.lo
-      | _ -> assert false
-    ) in
-  H.iter (fun ir il ->
-    Heap.add hp (ir, List.map fst il)
-  ) ih;
-  hp
-
-let regalloc2 ?(nr=4) (p: iprog) =
-  let nbb = Array.length p in
-
-  let _regs = Array.init nr (fun _ -> {busy=[]}) in
-  let _spillh = Heap.create (fun (_,a) (_,b) -> ircmp b a) in
-  let act = Hashtbl.create 101 in (* Active list. *)
-  let _loc_ ir =
-    try Hashtbl.find act ir
-    with Not_found -> LVoid in
-
-  let rp = Array.init nbb (fun i ->
-      { bb_name = p.(i).bb_name
-      ; bb_phis = [| |]
-      ; bb_inss = [| |]
-      ; bb_jmp = `Jmp (-1)
-      }
-    ) in
-  let bb = ref [] in (* Block in construction. *)
-  let _emit l i = bb := {ri_res=l;ri_ins=i} :: !bb in
-
-  for b = 0 to nbb do
-    let bi = p.(b).bb_inss in
-    let bl = Array.length bi in
-
-    (* Entering a block.
-     * Many phi intervals start at the same time.
-     * We need to allocate them registers and store
-     * the allocator state for the resolve phase.
-     *)
-
-    for i = 0 to bl - 1 do
-      let _ir = IRIns (b,i) in
-
-      (* For a regular instruction:
-       *   1. Get locations of arguments.
-       *      Make sure they are in registers.
-       *   2. Free registers of dead variables.
-       *   3. Allocate for the new interval.
-       *   4. Emit the instruction.
-       *)
-
-      ()
-    done;
-
-    (* Leaving a block.
-     * Rewrite the jump.
-     * Store the allocator state for the resolve
-     * phase.
-     *)
-
-    rp.(b).bb_inss <- Array.of_list (List.rev !bb);
-  done;
-
-  rp
 
 
 (* Little test programs. *)
