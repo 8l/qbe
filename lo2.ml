@@ -1,5 +1,3 @@
-#use "heap.ml";;
-
 type uop = Neg
 type bop = Add | Sub | CLe | CEq
 
@@ -93,7 +91,7 @@ let liveness (p: iprog) =
 
 
 (* ** Register allocation. ** *)
-type loc = LVoid | LReg of int | LSpill of int | LCon of int
+type loc = LVoid | LReg of int | LSpill of int
 type 'op rins = { ri_res: 'op; ri_ins: [ 'op seqi | `Mov of 'op ] }
 type 'op rphi = { rp_res: 'op; rp_list: (bref * loc) list }
 type rprog = (loc rins, loc rphi, loc jmpi) bb array
@@ -165,7 +163,8 @@ let regalloc (p: iprog) =
     let jmp =
       match p.(b).bb_jmp with
       | `Jmp br -> `Jmp br
-      | `Brz (ir, br1, br2) -> `Brz (loc ir, br1, br2) in
+      | `Brz (ir, br1, br2) ->
+        `Brz (LReg (regloc ir), br1, br2) in
     rp.(b).bb_jmp <- jmp;
 
     for i = bl - 1 downto 0 do
@@ -173,24 +172,35 @@ let regalloc (p: iprog) =
       begin match H.find act ir with
       | LVoid -> () (* Dead code. *)
       | lir ->
-        kill ir;
+        let r =
+          match lir with
+          | LSpill spl1 ->
+            (* Restore in a register.
+             *
+             * In this situation, the register for the result
+             * must not be killed because it lives until the
+             * spill code executes.
+             *
+             * This is a bit silly because we will move it
+             * into a spill location right after that, there
+             * is no benefit from having it in register here.
+             *)
+            let r = getreg
+          | LReg r -> kill ir; r (* In register, we can kill it now. *)
+          | _ -> assert false
+          in
         begin match bi.(i) with
         | `Con k ->
           emiti lir (`Mov (LCon k))
         | `Uop (op, ir') ->
-          let lir' = loc ir' in
-          let spl = getspill ir in
-          if spl >= 0 && lir <> LSpill spl then
-            emiti (LSpill spl) (`Mov lir);
-          emiti lir (`Uop (op, lir'))
+          let r' = regloc ir' in
+          emiti (LReg r) (`Uop (op, LReg r'))
         | `Bop (ir1, op, ir2) ->
-          let lir1 = loc ir1 in
-          let lir2 = loc ir2 in
-          let spl = getspill ir in
-          if spl >= 0 && lir <> LSpill spl then
-            emiti (LSpill spl) (`Mov lir);
-          emiti lir (`Bop (lir1, op, lir2))
-        end
+          let r1 = regloc ir1 in
+          let r2 = regloc ~block:r1 ir2 in
+          emiti (LReg r) (`Bop (LReg r1, op, LReg r2))
+        end;
+        kill ir;
       end
     done;
 
