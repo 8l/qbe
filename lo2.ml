@@ -15,6 +15,7 @@ type ('ins, 'phi, 'jmp) bb =
 
 (* ** Liveness analysis. ** *)
 type iref = IRPhi of (bref * int) | IRIns of (bref * int)
+let blk = function IRPhi (b, _) | IRIns (b, _) -> b
 type iprog = (iref seqi, [`Phi of iref list], iref jmpi) bb array
 
 module IRSet = Set.Make(
@@ -78,8 +79,6 @@ let liveness (p: iprog) =
         IRSet.iter (fun ir' -> setlive ir' ir) live
       done;
       Array.iter (fun (`Phi il) ->
-        let blk ir = match ir with
-          | IRPhi (b, _) | IRIns (b, _) -> b in
         List.iter (fun ir ->
           let br = blk ir in
           setlive ir (br, Array.length p.(br).bb_inss)
@@ -112,7 +111,7 @@ let regalloc (p: iprog) =
       }
     ) in
   let outmaps = Array.make nbb [] in
-  let phimaps = Array.make nbb [| |] in
+  let inmaps  = Array.make nbb [] in
   let bb = ref [] in (* Basic block in construction. *)
   let emiti l i = bb := {ri_res=l; ri_ins=i} :: !bb in
   let act = H.create 101 in (* The active list. *)
@@ -180,9 +179,7 @@ let regalloc (p: iprog) =
 
     (* Fill outmaps with the allocation state at
      * the end of the block (after the final branch).
-     * Invariant 1: everything in registers is live.
      *)
-
     let lvout = liveout lh (b, bl) in
     outmaps.(b) <- begin
       IRSet.fold (fun ir m -> (ir, loc ir) :: m) lvout []
@@ -223,7 +220,7 @@ let regalloc (p: iprog) =
           emiti (LReg r) (`Uop (op, LReg r'))
         | `Bop (ir1, op, ir2) ->
           let r1 = regloc frz ir1 in
-          let frz = r1 :: frz in
+          let frz = r :: r1 :: frz in
           let r2 = regloc frz ir2 in
           if s >= 0 then emiti (LSpill s) (`Mov (LReg r));
           emiti (LReg r) (`Bop (LReg r1, op, LReg r2))
@@ -231,19 +228,15 @@ let regalloc (p: iprog) =
       end
     done;
 
-    phimaps.(b) <- begin
-      Array.init (Array.length p.(b).bb_phis) (fun p ->
-        let pr = IRPhi (b, p) in
-        let ploc = H.find act pr in
-        kill pr; ploc
-      )
+    let lvin = liveout lh (b, -1) in
+    inmaps.(b) <- begin
+      IRSet.fold (fun ir l ->
+        let loc = H.find act ir in
+        if blk ir = b then
+          kill ir; (* Kill current block's phis *)
+        (ir, loc) :: l
+      ) lvin []
     end;
-
-    (* Kill everything not in liveout of the predecessor block. *)
-    let lvout =
-      if b = 0 then IRSet.empty else
-      liveout lh (b-1, Array.length p.(b-1).bb_inss) in
-    IRSet.iter kill lvout;
 
     rp.(b).bb_inss <- Array.of_list !bb;
     bb := [];
@@ -251,15 +244,34 @@ let regalloc (p: iprog) =
 
   (* Compute phis. *)
   for b = 0 to nbb - 1 do
-    rp.(b).bb_phis <- begin
-      Array.mapi (fun i (`Phi l) ->
-        { rp_res = phimaps.(b).(i)
-        ; rp_list = List.map (function
-            | IRPhi (b, p) -> b, phimaps.(b).(i)
-            | IRIns (b, _) as ir -> (b, List.assoc ir outmaps.(b))
-          ) l
+    let phis =
+      IRSet.fold (fun ir l ->
+        match ir with
+        | IRPhi (b', pr) when b' = b ->
+          let `Phi pl = p.(b).bb_phis.(pr) in
+          let pl =
+            let f ir =
+              let b = blk ir in
+              (b, List.assoc ir outmaps.(b)) in
+            List.map f pl |>
+            List.sort (fun (a,_) (b,_) -> compare a b) in
+          (List.assoc ir inmaps.(b), pl) :: l
+        | _ -> assert (blk ir <> b);
+          (* Forgive me, I sin!! *)
+          let rl = ref [] in
+          for b = 0 to nbb - 1 do
+            let bl = Array.length p.(b).bb_inss in
+            if IRSet.mem ir (liveout lh (b, bl)) then
+              rl := (b, List.assoc ir outmaps.(b)) :: !rl
+          done;
+          (List.assoc ir inmaps.(b), List.rev !rl) :: l
+      ) (liveout lh (b, -1)) [] in
+    rp.(b).bb_phis <- Array.of_list begin
+      List.map (fun (res, l) ->
+        { rp_res = res
+        ; rp_list = l
         }
-      ) p.(b).bb_phis
+      ) phis
     end
   done;
 
