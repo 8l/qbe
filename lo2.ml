@@ -244,7 +244,7 @@ let regalloc (p: iprog) =
 
   (* Compute phis. *)
   for b = 0 to nbb - 1 do
-    let phis =
+    rp.(b).bb_phis <- Array.of_list begin
       IRSet.fold (fun ir l ->
         match ir with
         | IRPhi (b', pr) when b' = b ->
@@ -255,7 +255,9 @@ let regalloc (p: iprog) =
               (b, List.assoc ir outmaps.(b)) in
             List.map f pl |>
             List.sort (fun (a,_) (b,_) -> compare a b) in
-          (List.assoc ir inmaps.(b), pl) :: l
+          { rp_res = List.assoc ir inmaps.(b)
+          ; rp_list =  pl
+          } :: l
         | _ -> assert (blk ir <> b);
           (* Forgive me, I sin!! *)
           let rl = ref [] in
@@ -264,14 +266,10 @@ let regalloc (p: iprog) =
             if IRSet.mem ir (liveout lh (b, bl)) then
               rl := (b, List.assoc ir outmaps.(b)) :: !rl
           done;
-          (List.assoc ir inmaps.(b), List.rev !rl) :: l
-      ) (liveout lh (b, -1)) [] in
-    rp.(b).bb_phis <- Array.of_list begin
-      List.map (fun (res, l) ->
-        { rp_res = res
-        ; rp_list = l
-        }
-      ) phis
+          { rp_res = List.assoc ir inmaps.(b)
+          ; rp_list = List.rev !rl
+          } :: l
+      ) (liveout lh (b, -1)) []
     end
   done;
 
