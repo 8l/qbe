@@ -338,6 +338,29 @@ let psum: iprog =
      }
   |]
 
+let pspill: iprog =
+  [| { bb_name = "init"
+     ; bb_phis = [||]
+     ; bb_inss =
+(* 00 *)    [| `Con 42
+(* 01 *)     ; `Bop (IRIns (0, 0), Add, IRIns (0, 0))
+(* 02 *)     ; `Bop (IRIns (0, 0), Add, IRIns (0, 1))
+(* 03 *)     ; `Bop (IRIns (0, 0), Add, IRIns (0, 2))
+(* 04 *)     ; `Bop (IRIns (0, 0), Add, IRIns (0, 3))
+(* 05 *)     ; `Bop (IRIns (0, 0), Add, IRIns (0, 4))
+(* 06 *)     ; `Bop (IRIns (0, 0), Add, IRIns (0, 5))
+(* 07 *)     ; `Bop (IRIns (0, 6), Add, IRIns (0, 6))
+(* 08 *)     ; `Bop (IRIns (0, 5), Add, IRIns (0, 7))
+(* 09 *)     ; `Bop (IRIns (0, 4), Add, IRIns (0, 8))
+(* 10 *)     ; `Bop (IRIns (0, 3), Add, IRIns (0, 9))
+(* 11 *)     ; `Bop (IRIns (0, 2), Add, IRIns (0, 10))
+(* 12 *)     ; `Bop (IRIns (0, 1), Add, IRIns (0, 11))
+(* 13 *)     ; `Bop (IRIns (0, 0), Add, IRIns (0, 12))
+           |]
+     ; bb_jmp = `Brz (IRIns (0, 13), -1, -1)
+     }
+  |]
+
 (* ** Phi resolution. ** *)
 (* Machine program, ready for code generation. *)
 type mprog = (loc rins, unit, loc jmpi) bb array
