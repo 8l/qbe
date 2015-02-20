@@ -115,7 +115,7 @@ let regalloc (p: iprog): rprog =
   let bb = ref [] in (* Basic block in construction. *)
   let emiti l i = bb := {ri_res=l; ri_ins=i} :: !bb in
   let act = H.create 101 in (* The active list. *)
-  let free = ref [0;1;2] in (* Free registers. *)
+  let free = ref [0;1;2;3] in (* Free registers. *)
 
   let nspill = ref 0 in
   let newspill () = incr nspill; !nspill - 1 in
@@ -275,9 +275,6 @@ let regalloc (p: iprog): rprog =
 
   rp
 
-(* Facts
- * There are little lifetime holes in SSA (caused by block ordering)
- *)
 
 (* ** Phi resolution. ** *)
 (* Machine program, ready for code generation. *)
@@ -289,7 +286,7 @@ let movgen (p: rprog): mprog =
     let tmp = LReg (-1) in
     let src, dst =
       let phis = p.(b').bb_phis in
-      Array.map (fun x -> List.assoc b' x.rp_list) phis,
+      Array.map (fun x -> List.assoc b x.rp_list) phis,
       Array.map (fun x -> x.rp_res) phis in
     let n = Array.length dst in
     let status = Array.make n `Mv in
@@ -297,13 +294,13 @@ let movgen (p: rprog): mprog =
     let emov dst src =
       ms := {ri_res = dst; ri_ins = `Mov src} :: !ms in
     let rec mv i =
-      if src.(i) <> src.(i) then begin
+      if src.(i) <> dst.(i) then begin
         status.(i) <- `Mvg;
         for j = 0 to n - 1 do
           if src.(j) = dst.(i) then
             match status.(j) with
             | `Mv -> mv j
-            | `Mvg -> emov tmp dst.(j); src.(j) <- tmp
+            | `Mvg -> emov tmp src.(j); src.(j) <- tmp
             | `Mvd -> ()
         done;
         emov dst.(i) src.(i);
