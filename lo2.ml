@@ -95,7 +95,7 @@ type 'op rins = { ri_res: 'op; ri_ins: [ 'op seqi | `Mov of 'op ] }
 type 'op rphi = { rp_res: 'op; rp_list: (bref * loc) list }
 type rprog = (loc rins, loc rphi, loc jmpi) bb array
 
-let regalloc (p: iprog) =
+let regalloc (p: iprog): rprog =
   let module H = struct
     include Hashtbl
     let find h ir = try find h ir with Not_found -> LVoid
@@ -279,6 +279,93 @@ let regalloc (p: iprog) =
  * There are little lifetime holes in SSA (caused by block ordering)
  *)
 
+(* ** Phi resolution. ** *)
+(* Machine program, ready for code generation. *)
+type mprog = (loc rins, unit, loc jmpi) bb array
+
+let movgen (p: rprog): mprog =
+
+  let parmov b b' =
+    let tmp = LReg (-1) in
+    let src, dst =
+      let phis = p.(b').bb_phis in
+      Array.map (fun x -> List.assoc b' x.rp_list) phis,
+      Array.map (fun x -> x.rp_res) phis in
+    let n = Array.length dst in
+    let status = Array.make n `Mv in
+    let ms = ref [] in
+    let emov dst src =
+      ms := {ri_res = dst; ri_ins = `Mov src} :: !ms in
+    let rec mv i =
+      if src.(i) <> src.(i) then begin
+        status.(i) <- `Mvg;
+        for j = 0 to n - 1 do
+          if src.(j) = dst.(i) then
+            match status.(j) with
+            | `Mv -> mv j
+            | `Mvg -> emov tmp dst.(j); src.(j) <- tmp
+            | `Mvd -> ()
+        done;
+        emov dst.(i) src.(i);
+        status.(i) <- `Mvd;
+      end in
+    for i = 0 to n - 1 do
+      if status.(i) = `Mv then mv i
+    done;
+    List.rev !ms |> Array.of_list in
+
+  let nbb = Array.length p in
+  let bmap = Array.init nbb (fun i -> -i - 1) in
+  let bn = ref 0 in
+  let mp = ref [] in
+  let addb b = mp := b :: !mp; incr bn; !bn - 1 in
+
+  for b = 0 to nbb - 1 do
+    let b' =
+      { bb_name = p.(b).bb_name
+      ; bb_phis = [| |]
+      ; bb_inss = p.(b).bb_inss
+      ; bb_jmp = `Jmp (-1)
+      } in
+    bmap.(b) <- addb b';
+    let movbb suff jb =
+      if jb = -1 then -1 else
+      let c = parmov b jb in
+      if c = [| |] then bmap.(jb) else
+      addb
+        { bb_name = p.(b).bb_name ^ suff
+        ; bb_phis = [| |]
+        ; bb_inss = c
+        ; bb_jmp = `Jmp bmap.(jb)
+        } in
+    b'.bb_jmp <- begin
+      match p.(b).bb_jmp with
+      | `Jmp b1 -> `Jmp (movbb "_mov" b1)
+      | `Brz (l, b1, b2) ->
+        let b1', b2' =
+          if b1 = b + 1 then
+            let b2' = movbb "_mov2" b2 in
+            let b1' = movbb "_mov1" b1 in
+            (b1', b2')
+          else
+            let b1' = movbb "_mov1" b1 in
+            let b2' = movbb "_mov2" b2 in
+            (b1', b2') in
+        `Brz (l, b1', b2')
+    end;
+  done;
+  List.rev !mp
+  |> Array.of_list
+  |> Array.map (fun b ->
+    let f n =
+      if n >= -1 then n else bmap.(-n - 1) in
+    { b with bb_jmp =
+      match b.bb_jmp with
+      | `Jmp b1 -> `Jmp (f b1)
+      | `Brz (l, b1, b2) -> `Brz (l, f b1, f b2)
+    }
+  )
+
 
 (* Little test programs. *)
 let pbasic: iprog =
@@ -358,7 +445,3 @@ let pspill: iprog =
      ; bb_jmp = `Brz (IRIns (0, 13), -1, -1)
      }
   |]
-
-(* ** Phi resolution. ** *)
-(* Machine program, ready for code generation. *)
-type mprog = (loc rins, unit, loc jmpi) bb array
