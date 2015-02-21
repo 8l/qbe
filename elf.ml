@@ -45,7 +45,7 @@ let shf_WRITE     = 1
 let shf_ALLOC     = 2
 let shf_EXECINSTR = 4
 
-let barebones_elf oc text =
+let barebones_elf oc fn text =
   let header = String.concat ""
     [ "\x7fELF"                          (* e_ident, magic *)
     ; "\x02"                             (* e_ident, ELFCLASS64 *)
@@ -87,11 +87,11 @@ let barebones_elf oc text =
   let symtstr, strtab = adds strtab ".symt" in
   let strtstr, strtab = adds strtab ".strt" in
   (* function names *)
-  let mainstr, strtab = adds strtab "main" in
+  let fnstr, strtab = adds strtab fn in
 
   let symtab = String.concat ""
     [ le 0x18 0                      (* first symbol is reserved *)
-    ; le 4 mainstr                   (* st_name *)
+    ; le 4 fnstr                     (* st_name *)
     ; le 1 (stt_FUNC lor stb_GLOBAL) (* st_info *)
     ; "\x00"                         (* st_other *)
     ; le 2 1                         (* st_shndx, .text *)
@@ -103,8 +103,8 @@ let barebones_elf oc text =
   let txtlen, txtpad =
     let l = String.length text in
     let p = (l + 7) land 7 in
-    (l + p, p) in
-  let dataoff = textoff + txtlen in
+    (l, p) in
+  let dataoff = textoff + txtlen + txtpad in
   let bssoff  = dataoff + 0 in
   let relaoff = bssoff + 0 in
   let symtoff = relaoff + 0 in
@@ -195,4 +195,4 @@ let _ =
     [ "\xb8\x2a\x00\x00\x00" (* mov 42, %eax *)
     ; "\xc3"                 (* retq *)
     ] in
-  barebones_elf oc text
+  barebones_elf oc "main" text
