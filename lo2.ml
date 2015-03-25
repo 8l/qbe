@@ -476,7 +476,7 @@ let codegen (p: mprog): string =
     done;
 
     begin match p.(b).bb_jmp with
-    | `Brz ((LReg _ as r), b1, b2) when b1 >= 0 && b2 >= 0 ->
+    | `Brz (r, b1, b2) when b1 >= 0 && b2 >= 0 ->
       oins 0x85 (regn r) (regn r);
       if b1 = b+1 then
         (outb 0x0f; outb 0x85; outs (label b2))
