@@ -396,29 +396,49 @@ let codegen (p: mprog): string =
   let modrm ?(md=3) r m =
     (md lsl 6) + (r lsl 3) + m in
 
-  let arit op r r1 r2 =
-    if r <> r1 && op <> 0xf7 then begin (* HACK *)
-      let rex, r1, r = rexp r1 r in
-      outb rex; outb 0x89; outb (modrm r1 r);  (* mov r1, r *)
-    end;
-    let rex, r2, r = rexp r2 r in
-    outb rex; outb op; outb (modrm r2 r)       (* op r2, r *)
-      in
+  let move l l1 = match l, l1 with
+    | (LReg _ as r), LCon k ->
+      let rec outw i x =
+        if i = 0 then () else
+        (outb (x land 0xff); outw (i-1) (x lsr 8)) in
+      let rex, r, m = rexp 0 (regn r) in
+      outb rex; outb 0xc7; outb (modrm r m); outw 4 k
+    | (LReg _ as r), (LReg _ as r1) ->
+      let rex, r1, r = rexp (regn r1) (regn r) in
+      outb rex; outb 0x89; outb (modrm r1 r)
+    | (LReg _ as r), LSpill s -> assert (s<256/8);
+      let rex, r, m = rexp (regn r) 5 in
+      outb rex; outb 0x8b; outb (modrm ~md:1 r m); outb (s*4)
+    | LSpill s, (LReg _ as r) -> assert (s<256/8);
+      let rex, r, m = rexp (regn r) 5 in
+      outb rex; outb 0x89; outb (modrm ~md:1 r m); outb (s*4)
+    | _ -> failwith "invalid move" in
+
+  let oins op r m =
+    let rex, r, m = rexp r m in
+    outb rex; outb op; outb (modrm r m) in
 
   for b = 0 to Array.length p - 1 do
     let is = p.(b).bb_inss in
     for i = 0 to Array.length is - 1 do
       match is.(i) with
       | { ri_res = l; ri_ins = `Bop (l1, op, l2) } ->
+        if l1 <> l then
+          move l l1;
         begin match op with
-        | Add -> arit 0x01 (regn l) (regn l1) (regn l2)
-        | Sub -> arit 0x29 (regn l) (regn l1) (regn l2)
+        | Add -> oins 0x01 (regn l2) (regn l)
+        | Sub -> oins 0x29 (regn l2) (regn l)
         | CLe -> failwith "CLe not implemented"
         | CEq -> failwith "CEq not implemented"
         end
       | { ri_res = l; ri_ins = `Uop (Neg, l1) } ->
-        arit 0xf7 (regn l) 3 (regn l1)
-      | _ -> ()
+        if l <> l1 then
+          move l l1;
+        oins 0xf7 3 (regn l)
+      | { ri_res = l; ri_ins = `Mov l1 } ->
+        move l l1
+      | { ri_res = l; ri_ins = `Con k } ->
+        move l (LCon k)
     done
   done;
 
@@ -439,16 +459,6 @@ let pbasic: iprog =
      ; bb_jmp = `Brz (IRIns (0, 3), -1, -1)
      }
   |]
-
-(* ------------------------------------------------------------------------ *)
-
-let _ =
-  let oc = open_out "comp.bin" in
-  let s = pbasic |> regalloc |> movgen |> codegen in
-  output_string oc s;
-  close_out oc
-
-(* ------------------------------------------------------------------------ *)
 
 let pcount: iprog =
   [| { bb_name = "init"
@@ -514,3 +524,14 @@ let pspill: iprog =
      ; bb_jmp = `Brz (IRIns (0, 13), -1, -1)
      }
   |]
+
+
+(* ------------------------------------------------------------------------ *)
+
+let _ =
+  let oc = open_out "comp.bin" in
+  let s = pspill |> regalloc |> movgen |> codegen in
+  output_string oc s;
+  close_out oc
+
+(* ------------------------------------------------------------------------ *)
