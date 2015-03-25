@@ -363,6 +363,68 @@ let movgen (p: rprog): mprog =
     }
   )
 
+let codegen (p: mprog): string =
+  let cl = ref [] in
+  let outs s = cl := s :: !cl in
+  let outb b = outs (String.make 1 (Char.chr b)) in
+
+  let regmap = [| (* only caller-save regs, for now *)
+      0;  (* rax *)
+      1;  (* rcx *)
+      2;  (* rdx *)
+      6;  (* rsi *)
+      7;  (* rdi *)
+      8;  (* r8  *)
+      9;  (* r9  *)
+      10; (* r10 *)
+      11; (* r11 *)
+    |] in
+  let regn = function
+    | LReg r -> regmap.(r+1)
+    | _ -> failwith "register expected in regn" in
+
+  let rexp rg rm =
+    let rex = 0x48 in
+    let rg, rex = if rg > 7
+      then rg-8, rex lor 4
+      else rg, rex in
+    let rm, rex = if rm > 7
+      then rm-8, rex lor 1
+      else rm, rex in
+    (rex, rg, rm) in
+
+  let modrm ?(md=3) r m =
+    (md lsl 6) + (r lsl 3) + m in
+
+  let arit op r r1 r2 =
+    if r <> r1 && op <> 0xf7 then begin (* HACK *)
+      let rex, r1, r = rexp r1 r in
+      outb rex; outb 0x89; outb (modrm r1 r);  (* mov r1, r *)
+    end;
+    let rex, r2, r = rexp r2 r in
+    outb rex; outb op; outb (modrm r2 r)       (* op r2, r *)
+      in
+
+  for b = 0 to Array.length p - 1 do
+    let is = p.(b).bb_inss in
+    for i = 0 to Array.length is - 1 do
+      match is.(i) with
+      | { ri_res = l; ri_ins = `Bop (l1, op, l2) } ->
+        begin match op with
+        | Add -> arit 0x01 (regn l) (regn l1) (regn l2)
+        | Sub -> arit 0x29 (regn l) (regn l1) (regn l2)
+        | CLe -> failwith "CLe not implemented"
+        | CEq -> failwith "CEq not implemented"
+        end
+      | { ri_res = l; ri_ins = `Uop (Neg, l1) } ->
+        arit 0xf7 (regn l) 3 (regn l1)
+      | _ -> ()
+    done
+  done;
+
+  outb 0xc3;                                     (* retq *)
+  String.concat "" (List.rev !cl)
+
 
 (* Little test programs. *)
 let pbasic: iprog =
@@ -377,6 +439,16 @@ let pbasic: iprog =
      ; bb_jmp = `Brz (IRIns (0, 3), -1, -1)
      }
   |]
+
+(* ------------------------------------------------------------------------ *)
+
+let _ =
+  let oc = open_out "comp.bin" in
+  let s = pbasic |> regalloc |> movgen |> codegen in
+  output_string oc s;
+  close_out oc
+
+(* ------------------------------------------------------------------------ *)
 
 let pcount: iprog =
   [| { bb_name = "init"
