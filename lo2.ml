@@ -363,9 +363,11 @@ let movgen (p: rprog): mprog =
     }
   )
 
+
+(* ** X86-64 code generation. ** *)
 let codegen (p: mprog): string =
-  let cl = ref [] in
-  let outs s = cl := s :: !cl in
+  let cl = ref [] and off = ref 0 in
+  let outs s = cl := s :: !cl; off := !off + String.length s in
   let outb b = outs (String.make 1 (Char.chr b)) in
 
   let regmap = [| (* only caller-save regs, for now *)
@@ -396,13 +398,20 @@ let codegen (p: mprog): string =
   let modrm ?(md=3) r m =
     (md lsl 6) + (r lsl 3) + m in
 
+  let lite ?byt x =
+    let byt = match byt with
+      Some b -> b | None -> Bytes.create 4 in
+    let rec f i x =
+      if i = 4 then () else begin
+        Bytes.set byt i (Char.chr (x land 0xff));
+        f (i+1) (x lsr 8)
+      end in
+    f 0 x; Bytes.unsafe_to_string byt in
+
   let move l l1 = match l, l1 with
     | (LReg _ as r), LCon k ->
-      let rec outw i x =
-        if i = 0 then () else
-        (outb (x land 0xff); outw (i-1) (x lsr 8)) in
       let rex, r, m = rexp 0 (regn r) in
-      outb rex; outb 0xc7; outb (modrm r m); outw 4 k
+      outb rex; outb 0xc7; outb (modrm r m); outs (lite k)
     | (LReg _ as r), (LReg _ as r1) ->
       let rex, r1, r = rexp (regn r1) (regn r) in
       outb rex; outb 0x89; outb (modrm r1 r)
@@ -418,7 +427,31 @@ let codegen (p: mprog): string =
     let rex, r, m = rexp r m in
     outb rex; outb op; outb (modrm r m) in
 
-  for b = 0 to Array.length p - 1 do
+  let nbb = Array.length p in
+  let boffs = Array.make nbb (`Unk []) in
+  let label p0 b =
+    match boffs.(b) with
+    | `Unk l ->
+      let lbl = lite p0 in
+      boffs.(b) <- `Unk (lbl :: l);
+      lbl
+    | `Kno p -> lite (p - p0) in
+
+  for b = 0 to nbb - 1 do
+    let pl =
+      match boffs.(b) with
+      | `Unk pl -> pl | _ -> [] in
+    List.iter (fun s -> (* back-patching *)
+      let p =
+        Char.code s.[0] +
+        Char.code s.[1] lsl 8 +
+        Char.code s.[2] lsl 16 +
+        Char.code s.[3] lsl 24 in
+      let byt = Bytes.unsafe_of_string s in
+      ignore (lite ~byt (!off - p))
+    ) pl;
+    boffs.(b) <- `Kno !off;
+
     let is = p.(b).bb_inss in
     for i = 0 to Array.length is - 1 do
       match is.(i) with
@@ -439,7 +472,22 @@ let codegen (p: mprog): string =
         move l l1
       | { ri_res = l; ri_ins = `Con k } ->
         move l (LCon k)
-    done
+    done;
+
+    begin match p.(b).bb_jmp with
+    | `Brz ((LReg _ as r), b1, b2) when b1 >= 0 && b2 >= 0 ->
+      oins 0x85 (regn r) (regn r);
+      if b1 = b+1 then
+        (outb 0x0f; outb 0x85; outs (label (!off-2+6) b2))
+      else if b2 = b+1 then
+        (outb 0x0f; outb 0x84; outs (label (!off-2+6) b1))
+      else
+        failwith "double branch"
+    | `Jmp b1 when b1 >= 0 ->
+      if b1 <> b+1 then
+        (outb 0xe9; outs (label (!off-1+5) b1))
+    | _ -> ()
+    end
   done;
 
   outb 0xc3;                                     (* retq *)
@@ -530,7 +578,7 @@ let pspill: iprog =
 
 let _ =
   let oc = open_out "comp.bin" in
-  let s = pspill |> regalloc |> movgen |> codegen in
+  let s = psum |> regalloc |> movgen |> codegen in
   output_string oc s;
   close_out oc
 
