@@ -429,7 +429,8 @@ let codegen (p: mprog): string =
 
   let nbb = Array.length p in
   let boffs = Array.make nbb (`Unk []) in
-  let label p0 b =
+  let label b =
+    let p0 = !off + 4 in
     match boffs.(b) with
     | `Unk l ->
       let lbl = lite p0 in
@@ -478,14 +479,14 @@ let codegen (p: mprog): string =
     | `Brz ((LReg _ as r), b1, b2) when b1 >= 0 && b2 >= 0 ->
       oins 0x85 (regn r) (regn r);
       if b1 = b+1 then
-        (outb 0x0f; outb 0x85; outs (label (!off-2+6) b2))
+        (outb 0x0f; outb 0x85; outs (label b2))
       else if b2 = b+1 then
-        (outb 0x0f; outb 0x84; outs (label (!off-2+6) b1))
+        (outb 0x0f; outb 0x84; outs (label b1))
       else
         failwith "double branch"
     | `Jmp b1 when b1 >= 0 ->
       if b1 <> b+1 then
-        (outb 0xe9; outs (label (!off-1+5) b1))
+        (outb 0xe9; outs (label b1))
     | _ -> ()
     end
   done;
