@@ -1,0 +1,13 @@
+Ideas
+- Operand classes for instructions
+- Hints in register allocation
+- Fixed register instructions (div, mul)
+- Memory instructions (address of, deref)
+- Structured types
+
+Instructions
+- ADD SUB SDIV UDIV SREM UREM MUL LSL LSR ASL ASR
+- CMP ...
+- ALLOC STORE LOAD
+- PTR
+- CALL BRZ JMP RET
