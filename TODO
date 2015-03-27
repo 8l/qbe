@@ -1,13 +1,21 @@
-Ideas
+Features
 - Operand classes for instructions
 - Hints in register allocation
 - Fixed register instructions (div, mul)
-- Memory instructions (address of, deref)
-- Structured types
+  Is this part of "operand classes"?
 
 Instructions
 - ADD SUB SDIV UDIV SREM UREM MUL LSL LSR ASL ASR
+- SEXT ZEXT
 - CMP ...
 - ALLOC STORE LOAD
 - PTR
 - CALL BRZ JMP RET
+
+Types
+- Integer (64 bits)
+- Structure "{a,b,c}"
+- Pointer to type "t"
+
+Questions
+- Should we allow constant operands?
