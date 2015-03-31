@@ -18,4 +18,13 @@ Types
 - Pointer to type "t"
 
 Questions
-- Should we allow constant operands?
+- Q: Should we allow constant operands?
+  A:
+  It looks like `Con instructions are a bad idea because
+  they introduce spurious live ranges.
+
+Problems
+- x = y op z
+  if x is spilled, y can be moved to a spill location
+  to free one register for x, this is kind of stupid.
+- Phi defined variables with spill location do not work.
