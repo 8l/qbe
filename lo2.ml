@@ -98,7 +98,14 @@ type rprog = (loc rins, loc rphi, loc jmpi) bb array
 let regalloc (p: iprog): rprog =
   let module H = struct
     include Hashtbl
-    let find h ir = try find h ir with Not_found -> LVoid
+    let find h ir =
+      try find h ir with Not_found ->
+      let k = ref 0 in
+      let isconst = function
+        `Con c -> k := c; true | _ -> false in
+      match ir with
+      | IRIns (b, i) when isconst p.(b).bb_inss.(i) -> LCon !k
+      | _ -> LVoid
   end in
 
   let lh = liveness p in
@@ -168,10 +175,11 @@ let regalloc (p: iprog): rprog =
 
   let regloc frz ir =
     match H.find act ir with
-    | LReg r -> r
+    | (LCon _ | LReg _) as loc -> loc
     | _ ->
       let r = getreg frz in
-      H.add act ir (LReg r); r in
+      H.add act ir (LReg r);
+      LReg r in
 
   for b = nbb - 1 downto 0 do
     let bi = p.(b).bb_inss in
@@ -195,7 +203,7 @@ let regalloc (p: iprog): rprog =
     for i = bl - 1 downto 0 do
       let ir = IRIns (b, i) in
       begin match H.find act ir with
-      | LVoid -> () (* Dead code. *)
+      | LCon _ | LVoid -> () (* Dead code. *)
       | lir ->
         let r, frz =
           match lir with
@@ -211,19 +219,19 @@ let regalloc (p: iprog): rprog =
         kill ir;
         let s = getspill ir in
         begin match bi.(i) with
-        | `Con k ->
-          if s >= 0 then emiti (LSpill s) (`Mov (LReg r));
-          emiti (LReg r) (`Mov (LCon k))
+        | `Con k -> ()
         | `Uop (op, ir') ->
-          let r' = regloc frz ir' in
+          let l' = regloc frz ir' in
           if s >= 0 then emiti (LSpill s) (`Mov (LReg r));
-          emiti (LReg r) (`Uop (op, LReg r'))
+          emiti (LReg r) (`Uop (op, l'))
         | `Bop (ir1, op, ir2) ->
-          let r1 = regloc frz ir1 in
-          let frz = r :: r1 :: frz in
-          let r2 = regloc frz ir2 in
+          let l1 = regloc frz ir1 in
+          let frz = match l1 with
+            | LReg r1 -> r :: r1 :: frz
+            | _ -> r :: frz in                                                             (* WHY? *)
+          let l2 = regloc frz ir2 in
           if s >= 0 then emiti (LSpill s) (`Mov (LReg r));
-          emiti (LReg r) (`Bop (LReg r1, op, LReg r2))
+          emiti (LReg r) (`Bop (l1, op, l2))
         end;
       end
     done;
@@ -408,10 +416,13 @@ let codegen (p: mprog): string =
       end in
     f 0 x; Bytes.unsafe_to_string byt in
 
+  let oins op r m =
+    let rex, r, m = rexp r m in
+    outb rex; outb op; outb (modrm r m) in
+
   let move l l1 = match l, l1 with
     | (LReg _ as r), LCon k ->
-      let rex, r, m = rexp 0 (regn r) in
-      outb rex; outb 0xc7; outb (modrm r m); outs (lite k)
+      oins 0xc7 0 (regn r); outs (lite k)
     | (LReg _ as r), (LReg _ as r1) ->
       let rex, r1, r = rexp (regn r1) (regn r) in
       outb rex; outb 0x89; outb (modrm r1 r)
@@ -422,10 +433,6 @@ let codegen (p: mprog): string =
       let rex, r, m = rexp (regn r) 5 in
       outb rex; outb 0x89; outb (modrm ~md:1 r m); outb (s*4)
     | _ -> failwith "invalid move" in
-
-  let oins op r m =
-    let rex, r, m = rexp r m in
-    outb rex; outb op; outb (modrm r m) in
 
   let nbb = Array.length p in
   let boffs = Array.make nbb (`Unk []) in
@@ -460,8 +467,18 @@ let codegen (p: mprog): string =
         if l1 <> l then
           move l l1;
         begin match op with
-        | Add -> oins 0x01 (regn l2) (regn l)
-        | Sub -> oins 0x29 (regn l2) (regn l)
+        | Add ->
+          begin match l2 with
+          | LCon k -> oins 0x83 0 (regn l); outs (lite k)
+          | LReg _ -> oins 0x01 (regn l2) (regn l)
+          | _ -> assert false
+          end
+        | Sub ->
+          begin match l2 with
+          | LCon k -> oins 0x81 5 (regn l); outs (lite k)
+          | LReg _ -> oins 0x29 (regn l2) (regn l)
+          | _ -> assert false
+          end
         | CLe -> failwith "CLe not implemented"
         | CEq -> failwith "CEq not implemented"
         end
@@ -578,6 +595,7 @@ let pspill: iprog =
 (* ------------------------------------------------------------------------ *)
 
 let _ =
+  if true then
   let oc = open_out "comp.bin" in
   let s = psum |> regalloc |> movgen |> codegen in
   output_string oc s;
