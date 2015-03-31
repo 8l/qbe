@@ -92,7 +92,7 @@ let liveness (p: iprog) =
 (* ** Register allocation. ** *)
 type loc = LVoid | LReg of int | LSpill of int | LCon of int
 type 'op rins = { ri_res: 'op; ri_ins: [ 'op seqi | `Mov of 'op ] }
-type 'op rphi = { rp_res: 'op; rp_list: (bref * loc) list }
+type 'op rphi = { rp_res: 'op; rp_spill: int option; rp_list: (bref * loc) list }
 type rprog = (loc rins, loc rphi, loc jmpi) bb array
 
 let regalloc (p: iprog): rprog =
@@ -222,7 +222,7 @@ let regalloc (p: iprog): rprog =
               | `Uop (_, ir) -> [] |> block ir
               | `Bop (ir1, _, ir2) -> [] |> block ir1 |> block ir2
               | _ -> [] in
-            let r = getreg frz in
+            let r = getreg [] in
             free := r :: !free; (* Add it straight back to free, but freeze it. *)
             (r, [r])
           | LReg r -> kill ir; (r, [])
@@ -253,7 +253,12 @@ let regalloc (p: iprog): rprog =
         let loc = H.find act ir in
         if blk ir = b then
           kill ir; (* Kill current block's phis *)
-        (ir, loc) :: l
+        let s = getspill ir in
+        kill ir;
+        if s >= 0 then
+          (ir, (loc, Some s)) :: l
+        else
+          (ir, (loc, None)) :: l
       ) lvin []
     end;
 
@@ -274,7 +279,9 @@ let regalloc (p: iprog): rprog =
               (b, List.assoc ir outmaps.(b)) in
             List.map f pl |>
             List.sort (fun (a,_) (b,_) -> compare a b) in
-          { rp_res = List.assoc ir inmaps.(b)
+          let res, spl = List.assoc ir inmaps.(b) in
+          { rp_res = res
+          ; rp_spill = spl
           ; rp_list =  pl
           } :: l
         | _ -> assert (blk ir <> b);
@@ -285,7 +292,8 @@ let regalloc (p: iprog): rprog =
             if IRSet.mem ir (liveout lh (b, bl)) then
               rl := (b, List.assoc ir outmaps.(b)) :: !rl
           done;
-          { rp_res = List.assoc ir inmaps.(b)
+          { rp_res = fst (List.assoc ir inmaps.(b))
+          ; rp_spill = None
           ; rp_list = List.rev !rl
           } :: l
       ) (liveout lh (b, -1)) []
@@ -308,26 +316,32 @@ let movgen (p: rprog): mprog =
       Array.map (fun x -> List.assoc b x.rp_list) phis,
       Array.map (fun x -> x.rp_res) phis in
     let n = Array.length dst in
-    let status = Array.make n `Mv in
+    let status = Array.make n `ToMove in
     let ms = ref [] in
     let emov dst src =
       ms := {ri_res = dst; ri_ins = `Mov src} :: !ms in
     let rec mv i =
       if src.(i) <> dst.(i) then begin
-        status.(i) <- `Mvg;
+        status.(i) <- `Moving;
         for j = 0 to n - 1 do
           if src.(j) = dst.(i) then
             match status.(j) with
-            | `Mv -> mv j
-            | `Mvg -> emov tmp src.(j); src.(j) <- tmp
-            | `Mvd -> ()
+            | `ToMove -> mv j
+            | `Moving -> emov tmp src.(j); src.(j) <- tmp
+            | `Moved -> ()
         done;
         emov dst.(i) src.(i);
-        status.(i) <- `Mvd;
+        status.(i) <- `Moved;
       end in
     for i = 0 to n - 1 do
-      if status.(i) = `Mv then mv i
+      if status.(i) = `ToMove then mv i
     done;
+    Array.iter (fun {rp_res; rp_spill} ->
+      match rp_spill with
+      | Some spl when LSpill spl <> rp_res ->
+        emov (LSpill spl) rp_res
+      | _ -> ()
+    ) p.(b').bb_phis;
     List.rev !ms |> Array.of_list in
 
   let nbb = Array.length p in
