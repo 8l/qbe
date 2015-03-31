@@ -27,4 +27,5 @@ Problems
 - x = y op z
   if x is spilled, y can be moved to a spill location
   to free one register for x, this is kind of stupid.
-- Phi defined variables with spill location do not work.
+- [tentative fix: 4fc98da]
+  Phi defined variables with spill location do not work.
