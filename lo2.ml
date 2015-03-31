@@ -173,6 +173,11 @@ let regalloc (p: iprog): rprog =
         emiti (LReg r) (`Mov (LSpill s));
         r in
 
+  let getreg frz =
+    let r = getreg frz in
+    assert (not (List.mem r !free));
+    r in
+
   let regloc frz ir =
     match H.find act ir with
     | (LCon _ | LReg _) as loc -> loc
@@ -208,15 +213,21 @@ let regalloc (p: iprog): rprog =
         let r, frz =
           match lir with
           | LSpill s ->
-            let r = getreg [] in
-            emiti (LSpill s) (`Mov (LReg r));
-            if not (List.mem r !free) then
-              free := r :: !free; (* Add it straight back to free, but freeze it. *)
+            let frz =
+              let block ir l =
+                match H.find act ir with
+                | LReg r -> r :: l
+                | _ -> l in
+              match bi.(i) with
+              | `Uop (_, ir) -> [] |> block ir
+              | `Bop (ir1, _, ir2) -> [] |> block ir1 |> block ir2
+              | _ -> [] in
+            let r = getreg frz in
+            free := r :: !free; (* Add it straight back to free, but freeze it. *)
             (r, [r])
-          | LReg r -> (r, [])
+          | LReg r -> kill ir; (r, [])
           | _ -> assert false
           in
-        kill ir;
         let s = getspill ir in
         begin match bi.(i) with
         | `Con k -> ()
