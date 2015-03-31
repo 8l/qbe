@@ -122,7 +122,7 @@ let regalloc (p: iprog): rprog =
   let bb = ref [] in (* Basic block in construction. *)
   let emiti l i = bb := {ri_res=l; ri_ins=i} :: !bb in
   let act = H.create 101 in (* The active list. *)
-  let free = ref [0;1;2;3] in (* Free registers. *)
+  let free = ref [0;1] in (* Free registers. *)
 
   let nspill = ref 0 in
   let newspill () = incr nspill; !nspill - 1 in
@@ -423,6 +423,12 @@ let codegen (p: mprog): string =
   let move l l1 = match l, l1 with
     | (LReg _ as r), LCon k ->
       oins 0xc7 0 (regn r); outs (lite k)
+    | LSpill s, LCon k -> assert (s<256/8);
+      outb 0x48;
+      outb 0xc7;
+      outb (modrm ~md:1 0 5);
+      outb (s*4);
+      outs (lite k)
     | (LReg _ as r), (LReg _ as r1) ->
       let rex, r1, r = rexp (regn r1) (regn r) in
       outb rex; outb 0x89; outb (modrm r1 r)
