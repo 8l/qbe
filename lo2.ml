@@ -219,10 +219,12 @@ let regalloc (p: iprog): rprog =
                 | LReg r -> r :: l
                 | _ -> l in
               match bi.(i) with
-              | `Uop (_, ir) -> [] |> block ir
-              | `Bop (ir1, _, ir2) -> [] |> block ir1 |> block ir2
+              | `Uop (_, ir) ->
+                [] |> block ir
+              | `Bop (ir1, _, ir2) ->
+                [] |> block ir1 |> block ir2
               | _ -> [] in
-            let r = getreg [] in
+            let r = getreg frz in
             free := r :: !free; (* Add it straight back to free, but freeze it. *)
             (r, [r])
           | LReg r -> kill ir; (r, [])
@@ -238,8 +240,8 @@ let regalloc (p: iprog): rprog =
         | `Bop (ir1, op, ir2) ->
           let l1 = regloc frz ir1 in
           let frz = match l1 with
-            | LReg r1 -> r :: r1 :: frz
-            | _ -> r :: frz in                                                             (* WHY? *)
+            | LReg r1 -> r1 :: frz
+            | _ -> frz in
           let l2 = regloc frz ir2 in
           if s >= 0 then emiti (LSpill s) (`Mov (LReg r));
           emiti (LReg r) (`Bop (l1, op, l2))
