@@ -6,26 +6,49 @@ Features
 
 Instructions
 - ADD SUB SDIV UDIV SREM UREM MUL LSL LSR ASL ASR
-- SEXT ZEXT
+- SEXT ZEXT (we need 8, 16, 32, 64 bits)
 - CMP ...
-- ALLOC STORE LOAD
-- PTR
+- ALLOC STORE LOAD (we need 8, 16, 32, 64 bits)
+(- PTR)
 - CALL BRZ JMP RET
 
+Machine
+- SREG GREG
+- Register use/defs for all instructions.
+
 Types
-- Integer (64 bits)
-- Structure "{a,b,c}"
-- Pointer to type "t"
+- Integer (32 & 64 bits)
+(- Structure "{a,b,c}")
+(- Pointer (to type "t"))
 
 Questions
 - Q: Should we allow constant operands?
   A:
   It looks like `Con instructions are a bad idea because
   they introduce spurious live ranges.
+  This was not a huge problem, modifications s in loc and
+  getreg only fixed this.  Still, it makes use larger bit
+  vectors during the liveness analysis.
+- Q: How to represent the IR?
+  A:
+  So far, a graph of basic blocks composed of quadruples
+  seems to be the most convenient.
+- Q: Do we need types?
 
 Problems
-- x = y op z
+- x = y op z [fixed using freeze]
   if x is spilled, y can be moved to a spill location
   to free one register for x, this is kind of stupid.
+  We can probably fix this by having a better heuristic
+  for spilling decisions.
 - [tentative fix: 4fc98da]
   Phi defined variables with spill location do not work.
+- At the end of a block we call loc on all live variables,
+  if there are not enough registers, some variables get
+  assigned spill locations.  We need to be able to spill
+  variables that are already in register.
+  NOTE: Following Braun & Hack we could do one pass
+  first that determines what variables are in register
+  at the end of loops.  This sounds good because
+  back-edges are actually easier to detect than loop
+  headers!
