@@ -1,9 +1,9 @@
 type uop = Neg
-type bop = Add | Sub | CLe | CEq
+type bop = Add | Sub | Mul | Div | CLe | CEq
 
 type bref = int (* Block references. *)
 type 'op seqi = [ `Con of int | `Uop of uop * 'op | `Bop of 'op * bop * 'op ]
-type 'op jmpi = [ `Brz of 'op * bref * bref | `Jmp of bref ]
+type 'op jmpi = [ `Brz of 'op * bref * bref | `Jmp of bref | `Ret of 'op ]
 
 type ('ins, 'phi, 'jmp) bb =
   { mutable bb_name: string
@@ -31,7 +31,7 @@ let livein lh p ir =
       if i = -1 then [] else
       if i = Array.length bb_inss
       then match bb_jmp with
-      | `Brz (i1, _, _) -> [i1]
+      | `Brz (i1, _, _) | `Ret i1 -> [i1]
       | `Jmp _ -> []
       else match bb_inss.(i) with
       | `Uop (_, i1) -> [i1]
@@ -66,6 +66,7 @@ let liveness (p: iprog) =
       match bb_jmp with
       | `Brz (_, b1, b2) -> [(b1, -1); (b2, -1)]
       | `Jmp b1 -> [(b1, -1)]
+      | `Ret _ -> []
     else [(b, i+1)] in
   while !changed do
     changed := false;
@@ -95,6 +96,7 @@ type 'op rins = { ri_res: 'op; ri_ins: [ 'op seqi | `Mov of 'op ] }
 type 'op rphi = { rp_res: 'op; rp_spill: int option; rp_list: (bref * loc) list }
 type rprog = (loc rins, loc rphi, loc jmpi) bb array
 
+let nregs = ref 3
 let regalloc (p: iprog): rprog =
   let module H = struct
     include Hashtbl
@@ -122,7 +124,8 @@ let regalloc (p: iprog): rprog =
   let bb = ref [] in (* Basic block in construction. *)
   let emiti l i = bb := {ri_res=l; ri_ins=i} :: !bb in
   let act = H.create 101 in (* The active list. *)
-  let free = ref [0;1] in (* Free registers. *)
+  let regs = Array.init !nregs (fun i -> i) |> Array.to_list in
+  let free = ref regs in (* Free registers. *)
 
   let nspill = ref 0 in
   let newspill () = incr nspill; !nspill - 1 in
@@ -201,6 +204,7 @@ let regalloc (p: iprog): rprog =
     let jmp =
       match p.(b).bb_jmp with
       | `Jmp br -> `Jmp br
+      | `Ret (ir) -> `Ret (loc ir)
       | `Brz (ir, br1, br2) ->
         `Brz (loc ir, br1, br2) in
     rp.(b).bb_jmp <- jmp;
@@ -238,13 +242,21 @@ let regalloc (p: iprog): rprog =
           if s >= 0 then emiti (LSpill s) (`Mov (LReg r));
           emiti (LReg r) (`Uop (op, l'))
         | `Bop (ir1, op, ir2) ->
+          (* Special case: Division uses RDX, we
+           * need to make sure it is free for use.
+           *)
+          let rdx = 1 in
+          if op = Div && not (List.mem rdx !free) then
+            getreg (List.filter ((<>) rdx) regs) |> ignore;
           let l1 = regloc frz ir1 in
           let frz = match l1 with
             | LReg r1 -> r1 :: frz
             | _ -> frz in
           let l2 = regloc frz ir2 in
           if s >= 0 then emiti (LSpill s) (`Mov (LReg r));
-          emiti (LReg r) (`Bop (l1, op, l2))
+          emiti (LReg r) (`Bop (l1, op, l2));
+          if op = Div then
+            free := rdx :: !free;
         end;
       end
     done;
@@ -373,6 +385,7 @@ let movgen (p: rprog): mprog =
     b'.bb_jmp <- begin
       match p.(b).bb_jmp with
       | `Jmp b1 -> `Jmp (movbb "_mov" b1)
+      | `Ret (l) -> `Ret (l)
       | `Brz (l, b1, b2) ->
         let b1', b2' =
           if b1 = b + 1 then
@@ -393,6 +406,7 @@ let movgen (p: rprog): mprog =
       if n >= -1 then n else bmap.(-n - 1) in
     { b with bb_jmp =
       match b.bb_jmp with
+      | `Ret (l) -> `Ret (l)
       | `Jmp b1 -> `Jmp (f b1)
       | `Brz (l, b1, b2) -> `Brz (l, f b1, f b2)
     }
@@ -408,9 +422,10 @@ let codegen (p: mprog): string =
   let regmap = [| (* only caller-save regs, for now *)
       0;  (* rax *)
       1;  (* rcx *)
+      2;  (* rdx *) (* comes late because of division *)
+                    (* look for RDX and change there too! *)
       6;  (* rsi *)
       7;  (* rdi *)
-      2;  (* rdx *)
       8;  (* r8  *)
       9;  (* r9  *)
       10; (* r10 *)
@@ -512,6 +527,8 @@ let codegen (p: mprog): string =
           | LReg _ -> oins 0x29 (regn l2) (regn l)
           | _ -> assert false
           end
+        | Mul -> failwith "Mul not implemented"
+        | Div -> failwith "Div not implemented"
         | CLe -> failwith "CLe not implemented"
         | CEq -> failwith "CEq not implemented"
         end
@@ -537,11 +554,13 @@ let codegen (p: mprog): string =
     | `Jmp b1 when b1 >= 0 ->
       if b1 <> b+1 then
         (outb 0xe9; outs (label b1))
+    | `Ret (l) ->
+      move (LReg (-1)) l;
+      outb 0xc3
     | _ -> ()
     end
   done;
 
-  outb 0xc3;                                     (* retq *)
   String.concat "" (List.rev !cl)
 
 
@@ -555,7 +574,7 @@ let pbasic: iprog =
         ; `Bop (IRIns (0, 0), Add, IRIns (0, 1))
         ; `Bop (IRIns (0, 0), Add, IRIns (0, 2))
        |]
-     ; bb_jmp = `Brz (IRIns (0, 3), -1, -1)
+     ; bb_jmp = `Ret (IRIns (0, 3))
      }
   |]
 
@@ -580,13 +599,13 @@ let pcount: iprog =
 let psum: iprog =
   [| { bb_name = "init"
      ; bb_phis = [||]
-     ; bb_inss = [| `Con 100; `Con 1 |]
+     ; bb_inss = [| `Con 100; `Con 1; `Con 0 |]
      ; bb_jmp = `Jmp 1
      }
    ; { bb_name = "loop"
      ; bb_phis =
        [| `Phi [IRIns (0, 0); IRIns (1, 0)]       (* n  = phi(100, n1) *)
-        ; `Phi [IRIns (0, 1); IRIns (1, 1)]       (* s  = phi(1, s1) *)
+        ; `Phi [IRIns (0, 2); IRIns (1, 1)]       (* s  = phi(1, s1) *)
        |]
      ; bb_inss =
        [| `Bop (IRPhi (1, 0), Sub, IRIns (0, 1))  (* n1 = n - 1 *)
@@ -597,7 +616,7 @@ let psum: iprog =
    ; { bb_name = "end"
      ; bb_phis = [||]
      ; bb_inss = [| `Con 42 |]
-     ; bb_jmp = `Jmp (-1)
+     ; bb_jmp = `Ret (IRIns (1,1))
      }
   |]
 
@@ -620,18 +639,23 @@ let pspill: iprog =
 (* 12 *)     ; `Bop (IRIns (0, 1), Add, IRIns (0, 11))
 (* 13 *)     ; `Bop (IRIns (0, 0), Add, IRIns (0, 12))
            |]
-     ; bb_jmp = `Brz (IRIns (0, 13), -1, -1)
+     ; bb_jmp = `Ret (IRIns (0, 13))
      }
   |]
 
 
 (* ------------------------------------------------------------------------ *)
 
+let oneshot () =
+  ()
+
 let _ =
-  if true then
-  let oc = open_out "comp.bin" in
-  let s = psum |> regalloc |> movgen |> codegen in
-  output_string oc s;
-  close_out oc
+  if Array.length Sys.argv > 1 && Sys.argv.(1) = "test" then
+    let oc = open_out "t.o" in
+    let s = psum |> regalloc |> movgen |> codegen in
+    Elf.barebones_elf oc "f" s;
+    close_out oc;
+  else
+    oneshot ()
 
 (* ------------------------------------------------------------------------ *)
