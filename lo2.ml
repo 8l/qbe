@@ -467,8 +467,9 @@ let codegen (p: mprog): string =
     outb rex; outb op; outb (modrm r m) in
 
   let slot s =
-    assert (s*8<256);
-    ((-1-s) * 8) land 0xff in
+    let c = ((-1-s) * 8) land 0xff in
+    assert (c < 256);
+    c in
 
   let move l l1 = match l, l1 with
     | (LReg _ as r), LCon k ->
