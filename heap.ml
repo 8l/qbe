@@ -3,6 +3,7 @@ module Heap: sig
   type 'a t
   val create: ('a -> 'a -> int) -> 'a t
   val add: 'a t -> 'a -> unit
+  val popd: 'a t -> unit
   val pop: 'a t -> 'a option
   val top: 'a t -> 'a option
 end = struct
@@ -48,11 +49,12 @@ end = struct
       then ch0 else ch1 in
     if cmp arr.(i) arr.(mn) <= 0 then () else
     (swap arr i mn; bbldn cmp arr mn len)
-  let pop ({arr; len; cmp} as hp) =
-    if len = 0 then None else
-    let t = top hp in
+  let popd ({arr; len; cmp} as hp) =
+    if len = 0 then () else
     arr.(1) <- arr.(len);
     hp.len <- len - 1;
-    bbldn cmp arr 1 len;
-    t
+    bbldn cmp arr 1 len
+  let pop hp =
+    let r = top hp in
+    popd hp; r
 end
