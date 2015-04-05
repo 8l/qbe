@@ -10,4 +10,4 @@ test: bak
 	@cc -O2 -o t tmain.c t.o && ./t
 
 clean:
-	rm -f bak t t.o
+	rm -f bak t *.o *.cm[io]
