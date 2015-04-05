@@ -609,7 +609,7 @@ let pcount: iprog =
 let psum: iprog =
   [| { bb_name = "init"
      ; bb_phis = [||]
-     ; bb_inss = [| `Con 100; `Con 1; `Con 0 |]
+     ; bb_inss = [| `Con 1234567; `Con 1; `Con 0 |]
      ; bb_jmp = `Jmp 1
      }
    ; { bb_name = "loop"
@@ -662,7 +662,7 @@ let oneshot () =
 let _ =
   if Array.length Sys.argv > 1 && Sys.argv.(1) = "test" then
     let oc = open_out "t.o" in
-    nregs := 2; 
+    nregs := 3; 
     let s = psum |> regalloc |> movgen |> codegen in
     Elf.barebones_elf oc "f" s;
     close_out oc;
