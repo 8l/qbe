@@ -419,6 +419,10 @@ let codegen (p: mprog): string =
   let outs s = cl := s :: !cl; off := !off + String.length s in
   let outb b = outs (String.make 1 (Char.chr b)) in
 
+  (* output prelude *)
+  outb 0x55;              (* push %rbp      *)
+  outs "\x48\x89\xe5";    (* mov %rsp, %rbp *)
+
   let regmap = [| (* only caller-save regs, for now *)
       0;  (* rax *)
       1;  (* rcx *)
@@ -462,24 +466,28 @@ let codegen (p: mprog): string =
     let rex, r, m = rexp r m in
     outb rex; outb op; outb (modrm r m) in
 
+  let slot s =
+    assert (s*8<256);
+    ((-1-s) * 8) land 0xff in
+
   let move l l1 = match l, l1 with
     | (LReg _ as r), LCon k ->
       oins 0xc7 0 (regn r); outs (lite k)
-    | LSpill s, LCon k -> assert (s<256/8);
+    | LSpill s, LCon k ->
       outb 0x48;
       outb 0xc7;
       outb (modrm ~md:1 0 5);
-      outb (s*4);
+      outb (slot s);
       outs (lite k)
     | (LReg _ as r), (LReg _ as r1) ->
       let rex, r1, r = rexp (regn r1) (regn r) in
       outb rex; outb 0x89; outb (modrm r1 r)
-    | (LReg _ as r), LSpill s -> assert (s<256/8);
+    | (LReg _ as r), LSpill s ->
       let rex, r, m = rexp (regn r) 5 in
-      outb rex; outb 0x8b; outb (modrm ~md:1 r m); outb (s*4)
-    | LSpill s, (LReg _ as r) -> assert (s<256/8);
+      outb rex; outb 0x8b; outb (modrm ~md:1 r m); outb (slot s)
+    | LSpill s, (LReg _ as r) ->
       let rex, r, m = rexp (regn r) 5 in
-      outb rex; outb 0x89; outb (modrm ~md:1 r m); outb (s*4)
+      outb rex; outb 0x89; outb (modrm ~md:1 r m); outb (slot s)
     | _ -> failwith "invalid move" in
 
   let nbb = Array.length p in
@@ -556,7 +564,8 @@ let codegen (p: mprog): string =
         (outb 0xe9; outs (label b1))
     | `Ret (l) ->
       move (LReg (-1)) l;
-      outb 0xc3
+      outb 0x5d;           (* pop %rbp *)
+      outb 0xc3;           (* retq     *)
     | _ -> ()
     end
   done;
@@ -652,6 +661,7 @@ let oneshot () =
 let _ =
   if Array.length Sys.argv > 1 && Sys.argv.(1) = "test" then
     let oc = open_out "t.o" in
+    nregs := 2; 
     let s = psum |> regalloc |> movgen |> codegen in
     Elf.barebones_elf oc "f" s;
     close_out oc;
