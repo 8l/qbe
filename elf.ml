@@ -189,6 +189,7 @@ let barebones_elf oc fn text =
     ]
 
 
+(*
 let _ =
   let oc = open_out "test.o" in
   let text = String.concat ""
@@ -196,3 +197,4 @@ let _ =
     ; "\xc3"                 (* retq *)
     ] in
   barebones_elf oc "main" text
+*)
