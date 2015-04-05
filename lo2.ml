@@ -526,7 +526,7 @@ let codegen (p: mprog): string =
         begin match op with
         | Add ->
           begin match l2 with
-          | LCon k -> oins 0x83 0 (regn l); outs (lite k)
+          | LCon k -> oins 0x81 0 (regn l); outs (lite k)
           | LReg _ -> oins 0x01 (regn l2) (regn l)
           | _ -> assert false
           end
@@ -591,7 +591,7 @@ let pbasic: iprog =
 let pcount: iprog =
   [| { bb_name = "init"
      ; bb_phis = [||]
-     ; bb_inss = [| `Con 100; `Con 1 |]
+     ; bb_inss = [| `Con 1234567; `Con 1 |]
      ; bb_jmp = `Jmp 1
      }
    ; { bb_name = "loop"
@@ -602,7 +602,7 @@ let pcount: iprog =
    ; { bb_name = "end"
      ; bb_phis = [||]
      ; bb_inss = [| `Con 42 |]
-     ; bb_jmp = `Jmp (-1)
+     ; bb_jmp = `Ret (IRIns (0,1))
      }
   |]
 
@@ -663,7 +663,7 @@ let _ =
   if Array.length Sys.argv > 1 && Sys.argv.(1) = "test" then
     let oc = open_out "t.o" in
     nregs := 3; 
-    let s = psum |> regalloc |> movgen |> codegen in
+    let s = pspill |> regalloc |> movgen |> codegen in
     Elf.barebones_elf oc "f" s;
     close_out oc;
   else
