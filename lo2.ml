@@ -521,8 +521,14 @@ let codegen (p: mprog): string =
     for i = 0 to Array.length is - 1 do
       match is.(i) with
       | { ri_res = l; ri_ins = `Bop (l1, op, l2) } ->
-        if l1 <> l then
-          move l l1;
+	let l2 =
+          if l1 = l then l2 else
+          if l2 = l then begin
+            move (LReg (-1)) l;
+	    move l l1;
+	    LReg (-1)
+          end else
+            (move l l1; l2) in
         begin match op with
         | Add ->
           begin match l2 with
@@ -662,7 +668,7 @@ let oneshot () =
 let _ =
   if Array.length Sys.argv > 1 && Sys.argv.(1) = "test" then
     let oc = open_out "t.o" in
-    nregs := 3; 
+    nregs := 2; 
     let s = pspill |> regalloc |> movgen |> codegen in
     Elf.barebones_elf oc "f" s;
     close_out oc;
