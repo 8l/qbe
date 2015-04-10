@@ -631,7 +631,7 @@ let psum: iprog =
        |]
      ; bb_inss =
        [| `Bop (IRPhi (1, 0), Sub, IRIns (0, 1))  (* n1 = n - 1 *)
-        ; `Bop (IRPhi (1, 1), Div, IRPhi (1, 0))  (* s1 = s + n *)
+        ; `Bop (IRPhi (1, 1), Add, IRPhi (1, 0))  (* s1 = s + n *)
        |]
      ; bb_jmp = `Brz (IRIns (1, 0), 2, 1)
      }
