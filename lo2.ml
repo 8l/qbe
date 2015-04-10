@@ -524,7 +524,7 @@ let codegen (p: mprog): string =
       match is.(i) with
       | { ri_res = l; ri_ins = `Bop (l1, op, l2) } ->
 	let l2 =
-          if l1 = l then l2 else
+          if l1 = l || op = Div then l2 else
           if l2 = l then begin
             move (LReg (-1)) l;
 	    move l l1;
@@ -544,8 +544,12 @@ let codegen (p: mprog): string =
           | LReg _ -> oins 0x29 (regn l2) (regn l)
           | _ -> assert false
           end
+        | Div ->
+          move (LReg (-1)) l1;
+          outb 0x99;           (* cltd *)
+          oins 0xf7 7 (regn l2);
+          move l (LReg (-1));  (* quotient in rax *)
         | Mul -> failwith "Mul not implemented"
-        | Div -> failwith "Div not implemented"
         | CLe -> failwith "CLe not implemented"
         | CEq -> failwith "CEq not implemented"
         end
@@ -670,7 +674,7 @@ let oneshot () =
 let _ =
   if Array.length Sys.argv > 1 && Sys.argv.(1) = "test" then
     let oc = open_out "t.o" in
-    nregs := 2;
+    nregs := 3;
     let s = psum |> regalloc |> movgen |> codegen in
     Elf.barebones_elf oc "f" s;
     close_out oc;
