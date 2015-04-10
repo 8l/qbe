@@ -247,7 +247,9 @@ let regalloc (p: iprog): rprog =
            *)
           let rdx = 1 in
           if op = Div && not (List.mem rdx !free) then
-            getreg (List.filter ((<>) rdx) regs) |> ignore;
+            getreg (List.filter ((<>) rdx) regs) |> ignore
+          else
+            free := (List.filter ((<>) rdx) regs);
           let l1 = regloc frz ir1 in
           let frz = match l1 with
             | LReg r1 -> r1 :: frz
@@ -625,7 +627,7 @@ let psum: iprog =
        |]
      ; bb_inss =
        [| `Bop (IRPhi (1, 0), Sub, IRIns (0, 1))  (* n1 = n - 1 *)
-        ; `Bop (IRPhi (1, 1), Add, IRPhi (1, 0))  (* s1 = s + n *)
+        ; `Bop (IRPhi (1, 1), Div, IRPhi (1, 0))  (* s1 = s + n *)
        |]
      ; bb_jmp = `Brz (IRIns (1, 0), 2, 1)
      }
@@ -668,8 +670,8 @@ let oneshot () =
 let _ =
   if Array.length Sys.argv > 1 && Sys.argv.(1) = "test" then
     let oc = open_out "t.o" in
-    nregs := 2; 
-    let s = pspill |> regalloc |> movgen |> codegen in
+    nregs := 2;
+    let s = psum |> regalloc |> movgen |> codegen in
     Elf.barebones_elf oc "f" s;
     close_out oc;
   else
