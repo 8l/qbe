@@ -249,7 +249,7 @@ let regalloc (p: iprog): rprog =
           if (op = Div || op = Rem) && not (List.mem rdx !free) then
             getreg (List.filter ((<>) rdx) regs) |> ignore
           else
-            free := (List.filter ((<>) rdx) regs);
+            free := (List.filter ((<>) rdx) !free);
           let l1 = regloc frz ir1 in
           let frz = match l1 with
             | LReg r1 -> r1 :: frz
@@ -667,7 +667,7 @@ let peucl: iprog =
    ; { bb_name = "end"
      ; bb_phis = [||]
      ; bb_inss = [||]
-     ; bb_jmp = `Ret (IRPhi (1, 0))
+     ; bb_jmp = `Ret (IRPhi (1, 1))
      }
   |]
 
