@@ -2,3 +2,4 @@ t
 bak
 *.o
 *.cm[io]
+notrack/*
