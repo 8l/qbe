@@ -7,7 +7,7 @@ bak: elf.ml lo2.ml
 
 test: bak
 	@./bak test
-	@cc -O2 -o t tmain.c t.o && ./t
+	@cc -O2 -o t.out tmain.c t.o && ./t.out
 
 clean:
 	rm -f bak t *.o *.cm[io]
