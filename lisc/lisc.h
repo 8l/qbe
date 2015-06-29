@@ -1,33 +1,42 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+/*
+  References have to be able to encode:
+    - Results of other operations (temporaries).
+    - Machine registers (for lowering).
+    - Spill locations.
+    - Constants/pointers to program data.
+*/
+
 enum {
-	R = -1,        /* Invalid reference. */
-	Temp0 = 32,    /* First temporary, below are machine registers. */
-	MaxPreds = 16, /* Maximum number of predecessors for a block. */
+	R = 0,          /* Invalid reference. */
+	Temp0 = 33,     /* First temporary ref. */
+	Const0 = 20000, /* First constant ref. */
+	MaxIdnt = 32,
+	MaxPreds = 16,
 	MaxBlks = 128,
 	MaxInss = 128,
 	MaxPhis = 128,
 };
 
-typedef int Ref;
+typedef unsigned Ref;
 typedef struct Ins Ins;
 typedef struct Phi Phi;
 typedef struct Blk Blk;
+typedef struct Fn Fn;
 typedef enum Op Op;
 typedef enum Jmp Jmp;
 
 enum Op {
-	ONop,
-	OAdd,
+	OAdd = 1,
 	OSub,
-	OSDiv,
+	ODiv,
 	OMod,
-	OParam,
-	OCall,
 
-	/* x86 instructions (reserved) */
-	XDiv,
+	/* Reserved instructions. */
+	X86Div,
 };
 
 enum Jmp {
@@ -49,14 +58,51 @@ struct Phi {
 };
 
 struct Blk {
-	int np;
-	int ni;
 	Phi *ps;
 	Ins *is;
+	int np;
+	int ni;
 	struct {
 		Jmp ty;
 		Ref arg;
 	} jmp;
 	int suc0, suc1;
-	int dpth;
+	int lvl;
 };
+
+struct Sym {
+	enum {
+		SUndef,
+		SReg,
+		SNum,
+		STemp,
+	} ty;
+	union {
+		char sreg[MaxIdnt];
+		long long snum;
+		struct {
+			char id[MaxIdnt];
+			int blk;
+			enum {
+				TPhi,
+				TIns,
+			} ty;
+			int loc;
+		} stemp;
+	} u;
+};
+
+#define sreg u.sreg
+#define snum u.snum
+#define stemp u.stemp
+
+struct Fn {
+	Sym *sym;
+	Blk *blk;
+	int nblk;
+	Ref nref;
+};
+
+
+/* parse.c */
+Fn *parsefn(FILE *);

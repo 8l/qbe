@@ -1,7 +1,4 @@
-/*% clang -Wall -o # %
- */
 #include "lisc.h"
-
 
 static void
 rporec(int *rpo, int *cnt, Blk *bs, int b)
@@ -16,7 +13,7 @@ rporec(int *rpo, int *cnt, Blk *bs, int b)
 }
 
 int
-dorpo(Blk *bs, int nb)
+rposched(Blk *bs, int nb)
 {
 	static int rpo[MaxBlks];
 	Blk t;
@@ -55,6 +52,23 @@ dorpo(Blk *bs, int nb)
 }
 
 
+void
+cfdump(FILE *f, char *pname, Blk *bs, int nb)
+{
+	Blk *b;
+	int i;
+
+	fprintf(f, "digraph %s {\n", pname);
+	for (b=bs, i=0; i<nb; i++, b++) {
+		if (b->suc0 >= 0)
+			fprintf(f, "b%d -> b%d;\n", i, b->suc0);
+		if (b->suc1 >= 0)
+			fprintf(f, "b%d -> b%d;\n", i, b->suc1);
+		fprintf(f, "b%d [shape=box]\n", i);
+	}
+	fprintf(f, "}\n");
+}
+
 #define LEN(a) sizeof a / sizeof a[0]
 
 Blk rpocond[] = {
@@ -69,14 +83,17 @@ int
 main()
 {
 	Blk *bs;
-	int i, nb;
+	int nb;
+	FILE *f;
 
 	bs = rpocond;
 	nb = LEN(rpocond);
-	nb = dorpo(bs, nb);
-	for (i=0; i<nb; i++) {
-		printf("%02d -> [%02d, %02d]\n", i,
-			bs[i].suc0, bs[i].suc1);
-	}
+
+	f = fopen("cf.dot", "w");
+	cfdump(f, "bef", bs, nb);
+	nb = rposched(bs, nb);
+	cfdump(f, "aft", bs, nb);
+	fclose(f);
+
 	return 0;
 }
