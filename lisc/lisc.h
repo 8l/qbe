@@ -1,106 +1,108 @@
 #include <assert.h>
 #include <stdio.h>
-#include <stdlib.h>
 
-/*
-  References have to be able to encode:
-    - Results of other operations (temporaries).
-    - Machine registers (for lowering).
-    - Spill locations.
-    - Constants/pointers to program data.
-*/
+typedef unsgined int uint;
+typedef unsigned short ushort;
+typedef unsigned char uchar;
+
+/* How do I deal with stack slots (alloc, set, get) ?
+ *   It seems that computing the address of the slot
+ *   and then dereferencing is a bad idea, it uses
+ *   one register while I could use the machine
+ *   addressing capabilities.
+ */
 
 enum {
-	R = 0,          /* Invalid reference. */
-	Temp0 = 33,     /* First temporary ref. */
-	Const0 = 20000, /* First constant ref. */
-	MaxIdnt = 32,
-	MaxPreds = 16,
-	MaxBlks = 128,
-	MaxInss = 128,
-	MaxPhis = 128,
+	R = 0,           /* invalid reference */
+	NRegs = 32,
+	Temp0 = NRegs+1, /* first temporary */
+	NString = 32,
+	NPreds = 15,
+	NBlks = 128,
+	NInss = 256,
+	NPhis = 32,
 };
 
-typedef unsigned Ref;
 typedef struct Ins Ins;
 typedef struct Phi Phi;
 typedef struct Blk Blk;
 typedef struct Fn Fn;
-typedef enum Op Op;
-typedef enum Jmp Jmp;
+typedef ushort Ref;
 
-enum Op {
-	OAdd = 1,
+enum {
+	RTemp = 0,
+	RData = 1,
+
+	RMask = 1,
+	RShift = 1,
+	NRefs = USHRT_MAX>>RShift,
+};
+
+#define TEMP(x) (((x)<<RShift) | RTemp)
+#define DATA(x) (((x)<<RShift) | RData)
+
+enum {
+	OXXX,
+	OAdd,
 	OSub,
 	ODiv,
 	OMod,
+	OLoad,
 
-	/* Reserved instructions. */
-	X86Div,
+	/* reserved instructions */
+	OX86Div,
 };
 
-enum Jmp {
+enum {
+	JXXX,
 	JRet,
 	JJmp,
 	JCnd,
 };
 
 struct Ins {
-	Op op;
-	Ref res;
-	Ref arg0, arg1;
+	short op;
+	Ref to;
+	Ref l;
+	Ref r;
 };
 
 struct Phi {
-	Ref res;
+	Ref to;
+	Ref args[NPreds];
 	int na;
-	Ref args[MaxPreds];
 };
 
 struct Blk {
 	Phi *ps;
 	Ins *is;
-	int np;
-	int ni;
+	uint np;
+	uint ni;
 	struct {
-		Jmp ty;
+		short type;
 		Ref arg;
 	} jmp;
-	int suc0, suc1;
-	int lvl;
+	Blk *s1;
+	Blk *s2;
+
+	int rpo;
 };
 
 struct Sym {
 	enum {
 		SUndef,
 		SReg,
-		SNum,
 		STemp,
-	} ty;
-	union {
-		char sreg[MaxIdnt];
-		long long snum;
-		struct {
-			char id[MaxIdnt];
-			int blk;
-			enum {
-				TPhi,
-				TIns,
-			} ty;
-			int loc;
-		} stemp;
-	} u;
+	} type;
+	char name[NString];
+	Blk *blk;
+	int pos; /* negative for phis */
 };
 
-#define sreg u.sreg
-#define snum u.snum
-#define stemp u.stemp
-
 struct Fn {
+	Blk *start;
 	Sym *sym;
-	Blk *blk;
-	int nblk;
-	Ref nref;
+	int ntemp;
 };
 
 
