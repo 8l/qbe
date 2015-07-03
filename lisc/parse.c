@@ -217,6 +217,7 @@ varref(char *v)
 	sym[t].type = STemp;
 	strcpy(sym[t].name, v);
 	sym[t].blk = 0;
+	ntemp++;
 	return TEMP(t);
 }
 
@@ -402,7 +403,7 @@ parseline(PState ps)
 		curi->l = args[0];
 		curi->r = args[1];
 		curi++;
-		return PPhi;
+		return PIns;
 	} else {
 		if (curp - phis >= NPhis)
 			err("too many phis in block");
@@ -410,7 +411,7 @@ parseline(PState ps)
 		memcpy(curp->args, args, i * sizeof(Ref));
 		curp->na = i;
 		curp++;
-		return PIns;
+		return PPhi;
 	}
 }
 
