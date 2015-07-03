@@ -448,7 +448,7 @@ parsefn(FILE *f)
 	lnum = 1;
 	fn = alloc(sizeof *fn);
 	ps = parseline(PLbl);
-	fn->start = curb;  /* we should have parsed the start label */
+	fn->start = curb;  /* todo, it's a hack */
 	do
 		ps = parseline(ps);
 	while (ps != PEnd);
