@@ -29,7 +29,7 @@ enum Token {
 	TMod,
 	TPhi,
 	TJmp,
-	TCnd,
+	TJez,
 	TRet,
 
 	TNum,
@@ -101,7 +101,7 @@ lex()
 		{ "mod", TMod },
 		{ "phi", TPhi },
 		{ "jmp", TJmp },
-		{ "cnd", TCnd },
+		{ "jez", TJez },
 		{ "ret", TRet },
 		{ 0 },
 	};
@@ -334,11 +334,11 @@ parseline(PState ps)
 	case TJmp:
 		curb->jmp.type = JJmp;
 		goto Jump;
-	case TCnd:
-		curb->jmp.type = JCnd;
+	case TJez:
+		curb->jmp.type = JJez;
 		r = parseref();
 		if (r == R)
-			err("invalid argument for cnd jump");
+			err("invalid argument for jez jump");
 		curb->jmp.arg = r;
 		expect(TComma);
 	Jump:

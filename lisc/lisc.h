@@ -60,7 +60,7 @@ enum {
 	JXXX,
 	JRet,
 	JJmp,
-	JCnd,
+	JJez,
 };
 
 struct Ins {
