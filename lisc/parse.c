@@ -9,18 +9,15 @@ enum {
 	NTemps = 256,
 };
 
-typedef enum Token Token;
-typedef enum PState PState;
-
-enum PState {
+typedef enum {
 	PXXX,
 	PLbl,
 	PPhi,
 	PIns,
 	PEnd,
-};
+} PState;
 
-enum Token {
+typedef enum {
 	TXXX,
 	TCopy,
 	TAdd,
@@ -41,7 +38,7 @@ enum Token {
 	TRParen,
 	TNL,
 	TEOF,
-};
+} Token;
 
 
 static FILE *inf;
