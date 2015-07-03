@@ -1,7 +1,9 @@
 #include <assert.h>
+#include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-typedef unsgined int uint;
+typedef unsigned int uint;
 typedef unsigned short ushort;
 typedef unsigned char uchar;
 
@@ -13,9 +15,9 @@ typedef unsigned char uchar;
  */
 
 enum {
-	R = 0,           /* invalid reference */
+	R = 0,  /* invalid reference */
 	NRegs = 32,
-	Temp0 = NRegs+1, /* first temporary */
+	Temp0 = NRegs+1,
 	NString = 32,
 	NPreds = 15,
 	NBlks = 128,
@@ -26,20 +28,21 @@ enum {
 typedef struct Ins Ins;
 typedef struct Phi Phi;
 typedef struct Blk Blk;
+typedef struct Sym Sym;
 typedef struct Fn Fn;
 typedef ushort Ref;
 
 enum {
 	RTemp = 0,
-	RData = 1,
+	RConst = 1,
 
 	RMask = 1,
 	RShift = 1,
 	NRefs = USHRT_MAX>>RShift,
 };
 
-#define TEMP(x) (((x)<<RShift) | RTemp)
-#define DATA(x) (((x)<<RShift) | RData)
+#define TEMP(x)  (((x)<<RShift) | RTemp)
+#define CONST(x) (((x)<<RShift) | RConst)
 
 enum {
 	OXXX,
@@ -47,7 +50,7 @@ enum {
 	OSub,
 	ODiv,
 	OMod,
-	OLoad,
+	OConst,
 
 	/* reserved instructions */
 	OX86Div,
@@ -85,6 +88,7 @@ struct Blk {
 	Blk *s1;
 	Blk *s2;
 
+	char name[NString];
 	int rpo;
 };
 
