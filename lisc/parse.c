@@ -119,6 +119,14 @@ lex()
 		return TRParen;
 	case '=':
 		return TEq;
+	case '%':
+		t = TVar;
+		c = fgetc(inf);
+		goto Alpha;
+	case '@':
+		t = TLbl;
+		c = fgetc(inf);
+		goto Alpha;
 	case '#':
 		while (fgetc(inf) != '\n')
 			;
@@ -145,14 +153,8 @@ lex()
 		tokval.num *= sgn;
 		return TNum;
 	}
-	if (c == '%') {
-		t = TVar;
-		c = fgetc(inf);
-	} else if (c == '@') {
-		t = TLbl;
-		c = fgetc(inf);
-	} else
-		t = TXXX;
+	t = TXXX;
+Alpha:
 	if (!isalpha(c))
 		err("lexing failure");
 	i = 0;
