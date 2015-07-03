@@ -22,6 +22,7 @@ enum PState {
 
 enum Token {
 	TXXX,
+	TCopy,
 	TAdd,
 	TSub,
 	TDiv,
@@ -93,6 +94,7 @@ lex()
 		char *str;
 		Token tok;
 	} tmap[] = {
+		{ "copy", TCopy },
 		{ "add", TAdd },
 		{ "sub", TSub },
 		{ "div", TDiv },
@@ -121,6 +123,9 @@ lex()
 		return TRParen;
 	case '=':
 		return TEq;
+	case '#':
+		while (fgetc(inf) != '\n')
+			;
 	case '\n':
 		lnum++;
 		return TNL;
@@ -352,6 +357,10 @@ parseline(PState ps)
 	r = varref(tokval.str);
 	expect(TEq);
 	switch (next()) {
+	case TCopy:
+		op = OCopy;
+		j = 1;
+		break;
 	case TAdd:
 		op = OAdd;
 		j = 2;

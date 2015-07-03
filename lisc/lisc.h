@@ -50,7 +50,7 @@ enum {
 	OSub,
 	ODiv,
 	OMod,
-	OConst,
+	OCopy,
 
 	/* reserved instructions */
 	OX86Div,
