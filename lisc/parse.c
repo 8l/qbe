@@ -45,7 +45,6 @@ enum Token {
 
 
 static FILE *inf;
-static char *errstr;
 static Token thead;
 
 static Sym sym[NTemps];
@@ -80,9 +79,6 @@ static void
 err(char *s)
 {
 	/* todo, export the error handling in util.c */
-	if (!s)
-		s = errstr;
-	assert(s);
 	fprintf(stderr, "parse error: %s (line %d)\n", s, lnum);
 	exit(1);
 }
@@ -238,7 +234,6 @@ parseref()
 			abort();
 		return CONST(tokval.num);
 	default:
-		errstr = "number or variable expected";
 		return R;
 	}
 }
