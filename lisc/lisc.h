@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -38,7 +37,7 @@ enum {
 
 	RMask = 1,
 	RShift = 1,
-	NRefs = USHRT_MAX>>RShift,
+	NRefs = ((ushort)-1)>>RShift,
 };
 
 #define TEMP(x)  (((x)<<RShift) | RTemp)

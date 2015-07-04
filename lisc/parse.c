@@ -46,12 +46,12 @@ static Token thead;
 
 static Sym sym[NTemps];
 static Ref ntemp;
-static Phi phis[NPhis], *curp;
-static Ins inss[NInss], *curi;
+static Phi phi[NPhis], *curp;
+static Ins ins[NInss], *curi;
 static struct {
 	char name[NString];
 	Blk *blk;
-} blks[NBlks+1];
+} bmap[NBlks+1];
 static Blk *curb;
 
 static struct {
@@ -244,17 +244,17 @@ findblk(char *name)
 
 	assert(name[0]);
 	for (i=0; i<NBlks; i++)
-		if (!blks[i].blk || strcmp(blks[i].name, name) == 0)
+		if (!bmap[i].blk || strcmp(bmap[i].name, name) == 0)
 			break;
 	if (i == NBlks)
 		err("too many blocks");
-	if (!blks[i].blk) {
-		assert(blks[i].name[0] == 0);
-		strcpy(blks[i].name, name);
-		blks[i].blk = blocka();
-		strcpy(blks[i].blk->name, name);
+	if (!bmap[i].blk) {
+		assert(bmap[i].name[0] == 0);
+		strcpy(bmap[i].name, name);
+		bmap[i].blk = blocka();
+		strcpy(bmap[i].blk->name, name);
 	}
-	return blks[i].blk;
+	return bmap[i].blk;
 }
 
 static void
@@ -305,8 +305,8 @@ parseline(PState ps)
 	case TLbl:
 		b = findblk(tokval.str);
 		if (curb) {
-			curb->np = curp - phis;
-			curb->ni = curi - inss;
+			curb->np = curp - phi;
+			curb->ni = curi - ins;
 			curb->ps = alloc(curb->np * sizeof(Phi));
 			curb->is = alloc(curb->ni * sizeof(Ins));
 			memcpy(curb->ps, curp, curb->np * sizeof(Phi));
@@ -400,7 +400,7 @@ parseline(PState ps)
 	if (j >= 0 && i != j)
 		err("invalid arity");
 	if (op != -1) {
-		if (curi - inss >= NInss)
+		if (curi - ins >= NInss)
 			err("too many instructions in block");
 		curi->to = r;
 		curi->l = args[0];
@@ -408,7 +408,7 @@ parseline(PState ps)
 		curi++;
 		return PIns;
 	} else {
-		if (curp - phis >= NPhis)
+		if (curp - phi >= NPhis)
 			err("too many phis in block");
 		curp->to = r;
 		memcpy(curp->args, args, i * sizeof(Ref));
@@ -427,8 +427,8 @@ parsefn(FILE *f)
 
 	inf = f;
 	for (i=0; i<NBlks; i++) {
-		blks[i].name[0] = 0;
-		blks[i].blk = 0;
+		bmap[i].name[0] = 0;
+		bmap[i].blk = 0;
 	}
 	for (i=Temp0; i<NTemps; i++) {
 		sym[i].type = SUndef;
@@ -436,8 +436,8 @@ parsefn(FILE *f)
 		sym[i].blk = 0;
 	}
 	ntemp = Temp0;
-	curp = phis;
-	curi = inss;
+	curp = phi;
+	curi = ins;
 	curb = 0;
 	lnum = 1;
 	fn = alloc(sizeof *fn);
