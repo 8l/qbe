@@ -61,6 +61,7 @@ fillrpo(Fn *f)
 	for (b=f->start; b; b=b->link)
 		b->rpo = -1;
 	n = rporec(f->start, f->nblk-1);
+	free(f->rpo);
 	f->rpo = alloc(n * sizeof(Blk*));
 	for (p=&f->start; *p;) {
 		b = *p;
