@@ -82,32 +82,46 @@ fillrpo(Fn *f)
 	}
 }
 
+static Ref topdef(int, Blk *, Fn *, Ref *, Ref *);
+
 static Ref
-finddef(int t, Blk *b, Fn *f, Ref *top, Ref *bot)
+botdef(int t, Blk *b, Fn *f, Ref *top, Ref *bot)
+{
+	Ref r;
+
+	if (bot[b->rpo] != R)
+		return bot[b->rpo];
+	r = topdef(t, b, f, top, bot);
+	bot[b->rpo] = r;
+	return r;
+}
+
+static Ref
+topdef(int t, Blk *b, Fn *f, Ref *top, Ref *bot)
 {
 	int i, t1;
 	Ref r;
 	Phi *p;
 
-	if (bot[b->rpo] != R)
-		return bot[b->rpo];
 	if (top[b->rpo] != R)
 		return top[b->rpo];
 	if (b->npreds == 1) {
-		r = finddef(t, b->preds[0], f, top, bot);
-		bot[b->rpo] = r;
+		r = botdef(t, b->preds[0], f, top, bot);
+		top[b->rpo] = r;
 		return r;
 	}
 	/* add a phi node */
 	t1 = f->ntmp++;
 	r = SYM(t1);
+	bot[b->rpo] = r;
 	b->np++;
-	b->ps = realloc(b->ps, b->np * sizeof b->ps[0]);
+	b->ps = realloc(b->ps, b->np * sizeof b->ps[0]);   // nope, we iterate on that
 	assert(b->ps); /* todo, move this elsewhere */
 	p = &b->ps[b->np-1];
 	p->to = r;
 	for (i=0; i<b->npreds; i++)
-		p->args[i] = finddef(t, b->preds[i], f, top, bot);
+		p->args[i] = botdef(t, b->preds[i], f, top, bot);
+	p->na = i;
 	return r;
 }
 
@@ -159,13 +173,13 @@ ssafix(Fn *f, int t)
 			for (i=0; i<phi->na; i++) {
 				if (phi->args[i] != rt)
 					continue;
-				phi->args[i] = finddef(t, b, f, top, bot);
+				phi->args[i] = topdef(t, b, f, top, bot);
 			}
 		for (ins=b->is; ins-b->is < b->ni; ins++) {
 			if (ins->l == rt)
-				ins->l = finddef(t, b, f, top, bot);
+				ins->l = topdef(t, b, f, top, bot);
 			if (ins->r == rt)
-				ins->r = finddef(t, b, f, top, bot);
+				ins->r = topdef(t, b, f, top, bot);
 		}
 	}
 	free(top);
