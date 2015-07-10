@@ -1,7 +1,4 @@
-t
 bak
-.comfile
 *.o
 *.cm[io]
-lisc/lo
 t.out
