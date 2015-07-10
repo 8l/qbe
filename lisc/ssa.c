@@ -82,22 +82,22 @@ fillrpo(Fn *f)
 	}
 }
 
-static Ref topdef(int, Blk *, Fn *, Ref *, Ref *);
+static Ref topdef(Blk *, Fn *, Ref *, Ref *);
 
 static Ref
-botdef(int t, Blk *b, Fn *f, Ref *top, Ref *bot)
+botdef(Blk *b, Fn *f, Ref *top, Ref *bot)
 {
 	Ref r;
 
 	if (bot[b->rpo] != R)
 		return bot[b->rpo];
-	r = topdef(t, b, f, top, bot);
+	r = topdef(b, f, top, bot);
 	bot[b->rpo] = r;
 	return r;
 }
 
 static Ref
-topdef(int t, Blk *b, Fn *f, Ref *top, Ref *bot)
+topdef(Blk *b, Fn *f, Ref *top, Ref *bot)
 {
 	int i, t1;
 	Ref r;
@@ -106,7 +106,7 @@ topdef(int t, Blk *b, Fn *f, Ref *top, Ref *bot)
 	if (top[b->rpo] != R)
 		return top[b->rpo];
 	if (b->npreds == 1) {
-		r = botdef(t, b->preds[0], f, top, bot);
+		r = botdef(b->preds[0], f, top, bot);
 		top[b->rpo] = r;
 		return r;
 	}
@@ -120,7 +120,7 @@ topdef(int t, Blk *b, Fn *f, Ref *top, Ref *bot)
 	p = &b->ps[b->np-1];
 	p->to = r;
 	for (i=0; i<b->npreds; i++)
-		p->args[i] = botdef(t, b->preds[i], f, top, bot);
+		p->args[i] = botdef(b->preds[i], f, top, bot);
 	p->na = i;
 	return r;
 }
@@ -173,13 +173,13 @@ ssafix(Fn *f, int t)
 			for (i=0; i<phi->na; i++) {
 				if (phi->args[i] != rt)
 					continue;
-				phi->args[i] = topdef(t, b, f, top, bot);
+				phi->args[i] = topdef(b, f, top, bot);
 			}
 		for (ins=b->is; ins-b->is < b->ni; ins++) {
 			if (ins->l == rt)
-				ins->l = topdef(t, b, f, top, bot);
+				ins->l = topdef(b, f, top, bot);
 			if (ins->r == rt)
-				ins->r = topdef(t, b, f, top, bot);
+				ins->r = topdef(b, f, top, bot);
 		}
 	}
 	free(top);
