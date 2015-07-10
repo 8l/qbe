@@ -6,7 +6,7 @@ addpred(Blk *bp, Blk *bc)
 	int i;
 
 	if (!bc->preds) {
-		bc->preds = alloc(bc->npreds * sizeof(Blk*));
+		bc->preds = alloc(bc->npreds * sizeof bc->preds[0]);
 		for (i=0; i<bc->npreds; i++)
 			bc->preds[i] = 0;
 	}
@@ -15,6 +15,8 @@ addpred(Blk *bp, Blk *bc)
 	bc->preds[i] = bp;
 }
 
+/* fill predecessors information in blocks
+ */
 void
 fillpreds(Fn *f)
 {
@@ -49,9 +51,12 @@ rporec(Blk *b, int x)
 	if (b->s2)
 		x = rporec(b->s2, x);
 	b->rpo = x;
+	assert(x >= 0);
 	return x - 1;
 }
 
+/* fill the rpo information in blocks
+ */
 void
 fillrpo(Fn *f)
 {
@@ -60,9 +65,10 @@ fillrpo(Fn *f)
 
 	for (b=f->start; b; b=b->link)
 		b->rpo = -1;
-	n = rporec(f->start, f->nblk-1);
+	n = 1 + rporec(f->start, f->nblk-1);
+	f->nblk -= n;
 	free(f->rpo);
-	f->rpo = alloc(n * sizeof(Blk*));
+	f->rpo = alloc(f->nblk * sizeof f->rpo[0]);
 	for (p=&f->start; *p;) {
 		b = *p;
 		if (b->rpo == -1) {
@@ -76,10 +82,92 @@ fillrpo(Fn *f)
 	}
 }
 
-void
-ssafix(Fn *f, Ref v)
+static Ref
+finddef(int t, Blk *b, Fn *f, Ref *top, Ref *bot)
 {
-	(void)f;
-	(void)v;
-	return;
+	int i, t1;
+	Ref r;
+	Phi *p;
+
+	if (bot[b->rpo] != R)
+		return bot[b->rpo];
+	if (top[b->rpo] != R)
+		return top[b->rpo];
+	if (b->npreds == 1) {
+		r = finddef(t, b->preds[0], f, top, bot);
+		bot[b->rpo] = r;
+		return r;
+	}
+	/* add a phi node */
+	t1 = f->ntmp++;
+	r = SYM(t1);
+	b->np++;
+	b->ps = realloc(b->ps, b->np * sizeof b->ps[0]);
+	assert(b->ps); /* todo, move this elsewhere */
+	p = &b->ps[b->np-1];
+	p->to = r;
+	for (i=0; i<b->npreds; i++)
+		p->args[i] = finddef(t, b->preds[i], f, top, bot);
+	return r;
+}
+
+/* restore ssa form for a temporary t
+ * predecessors and rpo must be available
+ */
+void
+ssafix(Fn *f, int t)
+{
+	int i, t1;
+	Ref rt, *top, *bot;
+	Blk *b;
+	Phi *phi;
+	Ins *ins;
+
+	top = alloc(f->nblk * sizeof top[0]);
+	bot = alloc(f->nblk * sizeof bot[0]);
+	rt = SYM(t);
+	for (b=f->start; b; b=b->link) {
+		t1 = 0;
+		/* rename defs and some in-blocks uses */
+		for (phi=b->ps; phi-b->ps < b->np; phi++) {
+			if (t1)
+				for (i=0; i<phi->na; i++)
+					if (phi->args[i] == rt)
+						phi->args[i] = SYM(t1);
+			if (phi->to == rt) {
+				t1 = f->ntmp++;
+				phi->to = SYM(t1);
+			}
+		}
+		for (ins=b->is; ins-b->is < b->ni; ins++) {
+			if (t1) {
+				if (ins->l == rt)
+					ins->l = SYM(t1);
+				if (ins->r == rt)
+					ins->r = SYM(t1);
+			}
+			if (ins->to == rt) {
+				t1 = f->ntmp++;
+				ins->to = SYM(t1);
+			}
+		}
+		top[b->rpo] = R;
+		bot[b->rpo] = t1 ? SYM(t1) : R;
+	}
+	for (b=f->start; b; b=b->link) {
+		for (phi=b->ps; phi-b->ps < b->np; phi++)
+			for (i=0; i<phi->na; i++) {
+				if (phi->args[i] != rt)
+					continue;
+				phi->args[i] = finddef(t, b, f, top, bot);
+			}
+		for (ins=b->is; ins-b->is < b->ni; ins++) {
+			if (ins->l == rt)
+				ins->l = finddef(t, b, f, top, bot);
+			if (ins->r == rt)
+				ins->r = finddef(t, b, f, top, bot);
+		}
+	}
+	free(top);
+	free(bot);
 }
