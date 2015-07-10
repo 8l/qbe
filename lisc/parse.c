@@ -317,8 +317,8 @@ parseline(PState ps)
 			}
 		}
 		curb = b;
-		if (curb->np || curb->ni)
-			err("block already defined");
+		if (curb->jmp.type != JXXX)
+			err("multiple definitions of block");
 		expect(TNL);
 		return PPhi;
 	case TRet:
