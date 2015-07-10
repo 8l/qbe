@@ -53,6 +53,7 @@ static struct {
 	Blk *blk;
 } bmap[NBlks+1];
 static Blk *curb;
+static Blk **blink;
 
 static struct {
 	long long num;
@@ -200,6 +201,8 @@ blocka()
 
 	b = alloc(sizeof *b);
 	*b = zblock;
+	*blink = b;
+	blink = &b->link;
 	return b;
 }
 
@@ -441,8 +444,8 @@ parsefn(FILE *f)
 	curb = 0;
 	lnum = 1;
 	fn = alloc(sizeof *fn);
-	ps = parseline(PLbl);
-	fn->start = curb;  /* todo, it's a hack */
+	blink = &fn->start;
+	ps = PLbl;
 	do
 		ps = parseline(ps);
 	while (ps != PEnd);

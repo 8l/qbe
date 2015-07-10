@@ -88,7 +88,9 @@ struct Blk {
 	Blk *s2;
 
 	char name[NString];
-	int rpo;
+	Blk *link;
+	Blk **preds;
+	int npreds;
 };
 
 struct Sym {
@@ -110,4 +112,8 @@ struct Fn {
 
 
 /* parse.c */
+void *alloc(size_t);
 Fn *parsefn(FILE *);
+
+/* ssa.c */
+void fillpreds(Fn *);
