@@ -38,3 +38,47 @@ fillpreds(Fn *f)
 			addpred(b, b->s2);
 	}
 }
+
+static int
+rporec(Blk *b, int x)
+{
+	if (b->rpo >= 0)
+		return x;
+	if (b->s1)
+		x = rporec(b->s1, x);
+	if (b->s2)
+		x = rporec(b->s2, x);
+	b->rpo = x;
+	return x - 1;
+}
+
+void
+fillrpo(Fn *f)
+{
+	int n;
+	Blk *b, **p;
+
+	for (b=f->start; b; b=b->link)
+		b->rpo = -1;
+	n = rporec(f->start, f->nblk-1);
+	f->rpo = alloc(n * sizeof(Blk*));
+	for (p=&f->start; *p;) {
+		b = *p;
+		if (b->rpo == -1) {
+			*p = b->link;
+			/* todo, free block */
+		} else {
+			b->rpo -= n;
+			f->rpo[b->rpo] = b;
+			p=&(*p)->link;
+		}
+	}
+}
+
+void
+ssafix(Fn *f, Ref v)
+{
+	(void)f;
+	(void)v;
+	return;
+}

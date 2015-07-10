@@ -89,6 +89,7 @@ struct Blk {
 	Blk *link;
 
 	char name[NString];
+	int rpo;
 	Blk **preds;
 	int npreds;
 };
@@ -108,6 +109,8 @@ struct Fn {
 	Blk *start;
 	Sym *sym;
 	int ntemp;
+	int nblk;
+	Blk **rpo;
 };
 
 
@@ -117,3 +120,4 @@ Fn *parsefn(FILE *);
 
 /* ssa.c */
 void fillpreds(Fn *);
+void fillrpo(Fn *);

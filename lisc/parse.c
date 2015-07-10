@@ -54,6 +54,7 @@ static struct {
 } bmap[NBlks+1];
 static Blk *curb;
 static Blk **blink;
+static int nblk;
 
 static struct {
 	long long num;
@@ -203,6 +204,7 @@ blocka()
 	*b = zblock;
 	*blink = b;
 	blink = &b->link;
+	nblk++;
 	return b;
 }
 
@@ -443,6 +445,7 @@ parsefn(FILE *f)
 	curi = ins;
 	curb = 0;
 	lnum = 1;
+	nblk = 0;
 	fn = alloc(sizeof *fn);
 	blink = &fn->start;
 	ps = PLbl;
@@ -452,6 +455,8 @@ parsefn(FILE *f)
 	fn->sym = alloc(ntemp * sizeof sym[0]);
 	memcpy(fn->sym, sym, ntemp * sizeof sym[0]);
 	fn->ntemp = ntemp;
+	fn->nblk = nblk;
+	fn->rpo = 0;
 	return fn;
 }
 
