@@ -16,7 +16,7 @@ typedef unsigned char uchar;
 enum {
 	R = 0,  /* invalid reference */
 	NRegs = 32,
-	Temp0 = NRegs+1,
+	Tmp0 = NRegs+1,
 	NString = 32,
 	NPreds = 15,
 	NBlks = 128,
@@ -32,7 +32,7 @@ typedef struct Fn Fn;
 typedef ushort Ref;
 
 enum {
-	RTemp = 0,
+	RSym = 0,
 	RConst = 1,
 
 	RMask = 1,
@@ -40,7 +40,7 @@ enum {
 	NRefs = ((ushort)-1)>>RShift,
 };
 
-#define TEMP(x)  (((x)<<RShift) | RTemp)
+#define SYM(x)   (((x)<<RShift) | RSym)
 #define CONST(x) (((x)<<RShift) | RConst)
 
 enum {
@@ -88,17 +88,17 @@ struct Blk {
 	Blk *s2;
 	Blk *link;
 
-	char name[NString];
 	int rpo;
 	Blk **preds;
 	int npreds;
+	char name[NString];
 };
 
 struct Sym {
 	enum {
 		SUndef,
 		SReg,
-		STemp,
+		STmp,
 	} type;
 	char name[NString];
 	Blk *blk;
@@ -108,7 +108,7 @@ struct Sym {
 struct Fn {
 	Blk *start;
 	Sym *sym;
-	int ntemp;
+	int ntmp;
 	int nblk;
 	Blk **rpo;
 };
@@ -121,3 +121,4 @@ Fn *parsefn(FILE *);
 /* ssa.c */
 void fillpreds(Fn *);
 void fillrpo(Fn *);
+void ssafix(Fn *, int);

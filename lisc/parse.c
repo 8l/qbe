@@ -6,7 +6,7 @@
 #include "lisc.h"
 
 enum {
-	NTemps = 256,
+	NSyms = 256,
 };
 
 typedef enum {
@@ -44,8 +44,8 @@ typedef enum {
 static FILE *inf;
 static Token thead;
 
-static Sym sym[NTemps];
-static Ref ntemp;
+static Sym sym[NSyms];
+static Ref ntmp;
 static Phi phi[NPhis], *curp;
 static Ins ins[NInss], *curi;
 static struct {
@@ -213,17 +213,17 @@ varref(char *v)
 {
 	int t;
 
-	for (t=Temp0; t<ntemp; t++)
-		if (sym[t].type == STemp)
+	for (t=Tmp0; t<ntmp; t++)
+		if (sym[t].type == STmp)
 		if (strcmp(v, sym[t].name) == 0)
-			return TEMP(t);
-	if (t >= NTemps)
-		err("too many temporaries");
-	sym[t].type = STemp;
+			return SYM(t);
+	if (t >= NSyms)
+		err("too many symbols");
+	sym[t].type = STmp;
 	strcpy(sym[t].name, v);
 	sym[t].blk = 0;
-	ntemp++;
-	return TEMP(t);
+	ntmp++;
+	return SYM(t);
 }
 
 static Ref
@@ -435,12 +435,12 @@ parsefn(FILE *f)
 		bmap[i].name[0] = 0;
 		bmap[i].blk = 0;
 	}
-	for (i=Temp0; i<NTemps; i++) {
+	for (i=Tmp0; i<NSyms; i++) {
 		sym[i].type = SUndef;
 		sym[i].name[0] = 0;
 		sym[i].blk = 0;
 	}
-	ntemp = Temp0;
+	ntmp = Tmp0;
 	curp = phi;
 	curi = ins;
 	curb = 0;
@@ -452,9 +452,9 @@ parsefn(FILE *f)
 	do
 		ps = parseline(ps);
 	while (ps != PEnd);
-	fn->sym = alloc(ntemp * sizeof sym[0]);
-	memcpy(fn->sym, sym, ntemp * sizeof sym[0]);
-	fn->ntemp = ntemp;
+	fn->sym = alloc(ntmp * sizeof sym[0]);
+	memcpy(fn->sym, sym, ntmp * sizeof sym[0]);
+	fn->ntmp = ntmp;
 	fn->nblk = nblk;
 	fn->rpo = 0;
 	return fn;
