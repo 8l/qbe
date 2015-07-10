@@ -1,6 +1,4 @@
-.PHONY: all test clean
-
-all: bak
+.PHONY: test clean
 
 bak: elf.ml lo2.ml
 	ocamlc -g -o bak elf.ml lo2.ml
