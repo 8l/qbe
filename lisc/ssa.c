@@ -23,6 +23,7 @@ fillpreds(Fn *f)
 	for (b=f->start; b; b=b->link) {
 		b->npreds = 0;
 		free(b->preds);
+		b->preds = 0;
 	}
 	for (b=f->start; b; b=b->link) {
 		if (b->s1)

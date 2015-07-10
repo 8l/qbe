@@ -86,9 +86,9 @@ struct Blk {
 	} jmp;
 	Blk *s1;
 	Blk *s2;
+	Blk *link;
 
 	char name[NString];
-	Blk *link;
 	Blk **preds;
 	int npreds;
 };
