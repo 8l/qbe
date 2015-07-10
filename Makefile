@@ -10,4 +10,4 @@ test: bak
 	@cc -O2 -o t.out tmain.c t.o && ./t.out
 
 clean:
-	rm -f bak t *.o *.cm[io]
+	rm -f bak *.out *.o *.cm[io]
