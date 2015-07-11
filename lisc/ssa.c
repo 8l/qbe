@@ -44,13 +44,13 @@ fillpreds(Fn *f)
 static int
 rporec(Blk *b, int x)
 {
-	if (b->rpo >= 0)
+	if (b->id >= 0)
 		return x;
 	if (b->s1)
 		x = rporec(b->s1, x);
 	if (b->s2)
 		x = rporec(b->s2, x);
-	b->rpo = x;
+	b->id = x;
 	assert(x >= 0);
 	return x - 1;
 }
@@ -64,69 +64,68 @@ fillrpo(Fn *f)
 	Blk *b, **p;
 
 	for (b=f->start; b; b=b->link)
-		b->rpo = -1;
+		b->id = -1;
 	n = 1 + rporec(f->start, f->nblk-1);
 	f->nblk -= n;
 	free(f->rpo);
 	f->rpo = alloc(f->nblk * sizeof f->rpo[0]);
 	for (p=&f->start; *p;) {
 		b = *p;
-		if (b->rpo == -1) {
+		if (b->id == -1) {
 			*p = b->link;
 			/* todo, free block */
 		} else {
-			b->rpo -= n;
-			f->rpo[b->rpo] = b;
+			b->id -= n;
+			f->rpo[b->id] = b;
 			p=&(*p)->link;
 		}
 	}
 }
 
-static Ref topdef(Blk *, Fn *, Ref *, Ref *);
+static Ref topdef(Blk *, Fn *, Ref *, Ref *, Phi *);
 
 static Ref
-botdef(Blk *b, Fn *f, Ref *top, Ref *bot)
+botdef(Blk *b, Fn *f, Ref *top, Ref *bot, Phi *fix)
 {
 	Ref r;
 
-	if (bot[b->rpo] != R)
-		return bot[b->rpo];
-	r = topdef(b, f, top, bot);
-	bot[b->rpo] = r;
+	if (bot[b->id] != R)
+		return bot[b->id];
+	r = topdef(b, f, top, bot, fix);
+	bot[b->id] = r;
 	return r;
 }
 
 static Ref
-topdef(Blk *b, Fn *f, Ref *top, Ref *bot)
+topdef(Blk *b, Fn *f, Ref *top, Ref *bot, Phi *fix)
 {
 	int i, t1;
 	Ref r;
 	Phi *p;
 
-	if (top[b->rpo] != R)
-		return top[b->rpo];
+	if (top[b->id] != R)
+		return top[b->id];
+	assert(b->npreds && "invalid ssa program detected");
 	if (b->npreds == 1) {
-		r = botdef(b->preds[0], f, top, bot);
-		top[b->rpo] = r;
+		r = botdef(b->preds[0], f, top, bot, fix);
+		top[b->id] = r;
 		return r;
 	}
 	/* add a phi node */
 	t1 = f->ntmp++;
 	r = SYM(t1);
-	bot[b->rpo] = r;
+	top[b->id] = r;
 	b->np++;
-	b->ps = realloc(b->ps, b->np * sizeof b->ps[0]);   // nope, we iterate on that
-	assert(b->ps); /* todo, move this elsewhere */
-	p = &b->ps[b->np-1];
+	p = &fix[b->id];
 	p->to = r;
 	for (i=0; i<b->npreds; i++)
-		p->args[i] = botdef(b->preds[i], f, top, bot);
+		p->args[i] = botdef(b->preds[i], f, top, bot, fix);
 	p->na = i;
 	return r;
 }
 
 /* restore ssa form for a temporary t
- * predecessors and rpo must be available
+ * predecessors must be available
  */
 void
 ssafix(Fn *f, int t)
@@ -134,11 +133,12 @@ ssafix(Fn *f, int t)
 	int i, t1;
 	Ref rt, *top, *bot;
 	Blk *b;
-	Phi *phi;
+	Phi *phi, *fix;
 	Ins *ins;
 
 	top = alloc(f->nblk * sizeof top[0]);
 	bot = alloc(f->nblk * sizeof bot[0]);
+	fix = alloc(f->nblk * sizeof fix[0]);
 	rt = SYM(t);
 	for (b=f->start; b; b=b->link) {
 		t1 = 0;
@@ -165,23 +165,30 @@ ssafix(Fn *f, int t)
 				ins->to = SYM(t1);
 			}
 		}
-		top[b->rpo] = R;
-		bot[b->rpo] = t1 ? SYM(t1) : R;
+		top[b->id] = R;
+		bot[b->id] = t1 ? SYM(t1) : R;
+		fix[b->id].to = R;
 	}
 	for (b=f->start; b; b=b->link) {
 		for (phi=b->ps; phi-b->ps < b->np; phi++)
 			for (i=0; i<phi->na; i++) {
 				if (phi->args[i] != rt)
 					continue;
-				phi->args[i] = topdef(b, f, top, bot);
+				// use botdef of the parent block
+				// corresponding to the phi branch!
+				phi->args[i] = botdef(b, f, top, bot, fix);
 			}
 		for (ins=b->is; ins-b->is < b->ni; ins++) {
 			if (ins->l == rt)
-				ins->l = topdef(b, f, top, bot);
+				ins->l = topdef(b, f, top, bot, fix);
 			if (ins->r == rt)
-				ins->r = topdef(b, f, top, bot);
+				ins->r = topdef(b, f, top, bot, fix);
 		}
 	}
+
+	// fixup phis
+
+	free(fix);
 	free(top);
 	free(bot);
 }

@@ -204,7 +204,7 @@ blocka()
 	*b = zblock;
 	*blink = b;
 	blink = &b->link;
-	nblk++;
+	b->id = nblk++;
 	return b;
 }
 

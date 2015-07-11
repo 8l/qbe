@@ -80,6 +80,7 @@ struct Blk {
 	Ins *is;
 	uint np;
 	uint ni;
+	int id;
 	struct {
 		short type;
 		Ref arg;
@@ -88,7 +89,6 @@ struct Blk {
 	Blk *s2;
 	Blk *link;
 
-	int rpo;
 	Blk **preds;
 	int npreds;
 	char name[NString];
