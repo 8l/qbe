@@ -3,16 +3,16 @@
 static void
 addpred(Blk *bp, Blk *bc)
 {
-	int i;
+	uint i;
 
-	if (!bc->preds) {
-		bc->preds = alloc(bc->npreds * sizeof bc->preds[0]);
-		for (i=0; i<bc->npreds; i++)
-			bc->preds[i] = 0;
+	if (!bc->pred) {
+		bc->pred = alloc(bc->npred * sizeof bc->pred[0]);
+		for (i=0; i<bc->npred; i++)
+			bc->pred[i] = 0;
 	}
-	for (i=0; bc->preds[i]; i++)
+	for (i=0; bc->pred[i]; i++)
 		;
-	bc->preds[i] = bp;
+	bc->pred[i] = bp;
 }
 
 /* fill predecessors information in blocks
@@ -23,15 +23,15 @@ fillpreds(Fn *f)
 	Blk *b;
 
 	for (b=f->start; b; b=b->link) {
-		b->npreds = 0;
-		free(b->preds);
-		b->preds = 0;
+		b->npred = 0;
+		free(b->pred);
+		b->pred = 0;
 	}
 	for (b=f->start; b; b=b->link) {
 		if (b->s1)
-			b->s1->npreds++;
+			b->s1->npred++;
 		if (b->s2)
-			b->s2->npreds++;
+			b->s2->npred++;
 	}
 	for (b=f->start; b; b=b->link) {
 		if (b->s1)
@@ -82,32 +82,33 @@ fillrpo(Fn *f)
 	}
 }
 
-static Ref topdef(Blk *, Fn *, Ref *, Ref *, Phi *);
+static Ref topdef(Blk *, Fn *, Ref *, Ref *);
 
 static Ref
-botdef(Blk *b, Fn *f, Ref *top, Ref *bot, Phi *fix)
+botdef(Blk *b, Fn *f, Ref *top, Ref *bot)
 {
 	Ref r;
 
 	if (bot[b->id] != R)
 		return bot[b->id];
-	r = topdef(b, f, top, bot, fix);
+	r = topdef(b, f, top, bot);
 	bot[b->id] = r;
 	return r;
 }
 
 static Ref
-topdef(Blk *b, Fn *f, Ref *top, Ref *bot, Phi *fix)
+topdef(Blk *b, Fn *f, Ref *top, Ref *bot)
 {
-	int i, t1;
+	uint i;
+	int t1;
 	Ref r;
 	Phi *p;
 
 	if (top[b->id] != R)
 		return top[b->id];
-	assert(b->npreds && "invalid ssa program detected");
-	if (b->npreds == 1) {
-		r = botdef(b->preds[0], f, top, bot, fix);
+	assert(b->npred && "invalid ssa program detected");
+	if (b->npred == 1) {
+		r = botdef(b->pred[0], f, top, bot);
 		top[b->id] = r;
 		return r;
 	}
@@ -115,12 +116,15 @@ topdef(Blk *b, Fn *f, Ref *top, Ref *bot, Phi *fix)
 	t1 = f->ntmp++;
 	r = SYM(t1);
 	top[b->id] = r;
-	b->np++;
-	p = &fix[b->id];
+	p = alloc(sizeof *p);
+	p->link = b->phi;
+	b->phi = p;
 	p->to = r;
-	for (i=0; i<b->npreds; i++)
-		p->args[i] = botdef(b->preds[i], f, top, bot, fix);
-	p->na = i;
+	for (i=0; i<b->npred; i++) {
+		p->arg[i] = botdef(b->pred[i], f, top, bot);
+		p->blk[i] = b->pred[i];
+	}
+	p->narg = i;
 	return r;
 }
 
@@ -130,65 +134,56 @@ topdef(Blk *b, Fn *f, Ref *top, Ref *bot, Phi *fix)
 void
 ssafix(Fn *f, int t)
 {
-	int i, t1;
+	uint n;
+	int t1;
 	Ref rt, *top, *bot;
 	Blk *b;
-	Phi *phi, *fix;
-	Ins *ins;
+	Phi *p;
+	Ins *i;
 
 	top = alloc(f->nblk * sizeof top[0]);
 	bot = alloc(f->nblk * sizeof bot[0]);
-	fix = alloc(f->nblk * sizeof fix[0]);
 	rt = SYM(t);
 	for (b=f->start; b; b=b->link) {
 		t1 = 0;
 		/* rename defs and some in-blocks uses */
-		for (phi=b->ps; phi-b->ps < b->np; phi++) {
+		for (p=b->phi; p; p=p->link) {
 			if (t1)
-				for (i=0; i<phi->na; i++)
-					if (phi->args[i] == rt)
-						phi->args[i] = SYM(t1);
-			if (phi->to == rt) {
+				for (n=0; n<p->narg; n++)
+					if (p->arg[n] == rt)
+						p->arg[n] = SYM(t1);
+			if (p->to == rt) {
 				t1 = f->ntmp++;
-				phi->to = SYM(t1);
+				p->to = SYM(t1);
 			}
 		}
-		for (ins=b->is; ins-b->is < b->ni; ins++) {
+		for (i=b->ins; i-b->ins < b->nins; i++) {
 			if (t1) {
-				if (ins->l == rt)
-					ins->l = SYM(t1);
-				if (ins->r == rt)
-					ins->r = SYM(t1);
+				if (i->l == rt)
+					i->l = SYM(t1);
+				if (i->r == rt)
+					i->r = SYM(t1);
 			}
-			if (ins->to == rt) {
+			if (i->to == rt) {
 				t1 = f->ntmp++;
-				ins->to = SYM(t1);
+				i->to = SYM(t1);
 			}
 		}
 		top[b->id] = R;
 		bot[b->id] = t1 ? SYM(t1) : R;
-		fix[b->id].to = R;
 	}
 	for (b=f->start; b; b=b->link) {
-		for (phi=b->ps; phi-b->ps < b->np; phi++)
-			for (i=0; i<phi->na; i++) {
-				if (phi->args[i] != rt)
-					continue;
-				// use botdef of the parent block
-				// corresponding to the phi branch!
-				phi->args[i] = botdef(b, f, top, bot, fix);
-			}
-		for (ins=b->is; ins-b->is < b->ni; ins++) {
-			if (ins->l == rt)
-				ins->l = topdef(b, f, top, bot, fix);
-			if (ins->r == rt)
-				ins->r = topdef(b, f, top, bot, fix);
+		for (p=b->phi; p; p=p->link)
+			for (n=0; n<p->narg; n++)
+				if (p->arg[n] == rt)
+					p->arg[n] = botdef(p->blk[n], f, top, bot);
+		for (i=b->ins; i-b->ins < b->nins; i++) {
+			if (i->l == rt)
+				i->l = topdef(b, f, top, bot);
+			if (i->r == rt)
+				i->r = topdef(b, f, top, bot);
 		}
 	}
-
-	// fixup phis
-
-	free(fix);
 	free(top);
 	free(bot);
 }
