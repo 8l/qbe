@@ -6,7 +6,7 @@
 #include "lisc.h"
 
 enum {
-	NSyms = 256,
+	NSym = 256,
 };
 
 typedef enum {
@@ -44,14 +44,14 @@ typedef enum {
 static FILE *inf;
 static Token thead;
 
-static Sym sym[NSyms];
+static Sym sym[NSym];
 static Ref ntmp;
-static Phi phi[NPhis], *curp;
-static Ins ins[NInss], *curi;
+static Ins ins[NIns], *curi;
+static Phi **plink;
 static struct {
 	char name[NString];
 	Blk *blk;
-} bmap[NBlks+1];
+} bmap[NBlk+1];
 static Blk *curb;
 static Blk **blink;
 static int nblk;
@@ -217,7 +217,7 @@ varref(char *v)
 		if (sym[t].type == STmp)
 		if (strcmp(v, sym[t].name) == 0)
 			return SYM(t);
-	if (t >= NSyms)
+	if (t >= NSym)
 		err("too many symbols");
 	sym[t].type = STmp;
 	strcpy(sym[t].name, v);
@@ -248,10 +248,10 @@ findblk(char *name)
 	int i;
 
 	assert(name[0]);
-	for (i=0; i<NBlks; i++)
+	for (i=0; i<NBlk; i++)
 		if (!bmap[i].blk || strcmp(bmap[i].name, name) == 0)
 			break;
-	if (i == NBlks)
+	if (i == NBlk)
 		err("too many blocks");
 	if (!bmap[i].blk) {
 		assert(bmap[i].name[0] == 0);
@@ -288,13 +288,15 @@ expect(Token t)
 static PState
 parseline(PState ps)
 {
-	Ref args[NPreds] = {0};
+	Ref arg[NPred] = {0};
+	Blk *blk[NPred];
+	Phi *phi;
 	Ref r;
 	Token t;
 	Blk *b;
 	int op, i, j;
 
-	assert(args[0] == R);
+	assert(arg[0] == R);
 	do
 		t = next();
 	while (t == TNL);
@@ -310,12 +312,10 @@ parseline(PState ps)
 	case TLbl:
 		b = findblk(tokval.str);
 		if (curb) {
-			curb->np = curp - phi;
-			curb->ni = curi - ins;
-			curb->ps = alloc(curb->np * sizeof(Phi));
-			curb->is = alloc(curb->ni * sizeof(Ins));
-			memcpy(curb->ps, curp, curb->np * sizeof(Phi));
-			memcpy(curb->is, curi, curb->ni * sizeof(Ins));
+			curb->nins = curi - ins;
+			curb->ins = alloc(curb->nins * sizeof(Ins));
+			memcpy(curb->ins, ins, curb->nins * sizeof(Ins));
+			plink = &curb->phi;
 			if (curb->jmp.type == JXXX) {
 				curb->jmp.type = JJmp;
 				curb->s1 = b;
@@ -388,10 +388,14 @@ parseline(PState ps)
 	i = 0;
 	if (peek() != TNL)
 		for (;;) {
-			if (i == NPreds)
+			if (i == NPred)
 				err("too many arguments");
-			args[i] = parseref();
-			if (args[i] == R)
+			if (op == -1) {
+				expect(TLbl);
+				blk[i] = findblk(tokval.str);
+			}
+			arg[i] = parseref();
+			if (arg[i] == R)
 				err("invalid instruction argument");
 			i++;
 			t = peek();
@@ -405,20 +409,20 @@ parseline(PState ps)
 	if (j >= 0 && i != j)
 		err("invalid arity");
 	if (op != -1) {
-		if (curi - ins >= NInss)
+		if (curi - ins >= NIns)
 			err("too many instructions in block");
 		curi->to = r;
-		curi->l = args[0];
-		curi->r = args[1];
+		curi->l = arg[0];
+		curi->r = arg[1];
 		curi++;
 		return PIns;
 	} else {
-		if (curp - phi >= NPhis)
-			err("too many phis in block");
-		curp->to = r;
-		memcpy(curp->args, args, i * sizeof(Ref));
-		curp->na = i;
-		curp++;
+		phi = alloc(sizeof *phi);
+		phi->to = r;
+		memcpy(phi->arg, arg, i * sizeof arg[0]);
+		memcpy(phi->blk, blk, i * sizeof blk[0]);
+		phi->narg = i;
+		plink = &phi->link;
 		return PPhi;
 	}
 }
@@ -431,17 +435,16 @@ parsefn(FILE *f)
 	Fn *fn;
 
 	inf = f;
-	for (i=0; i<NBlks; i++) {
+	for (i=0; i<NBlk; i++) {
 		bmap[i].name[0] = 0;
 		bmap[i].blk = 0;
 	}
-	for (i=Tmp0; i<NSyms; i++) {
+	for (i=Tmp0; i<NSym; i++) {
 		sym[i].type = SUndef;
 		sym[i].name[0] = 0;
 		sym[i].blk = 0;
 	}
 	ntmp = Tmp0;
-	curp = phi;
 	curi = ins;
 	curb = 0;
 	lnum = 1;

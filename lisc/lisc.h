@@ -6,22 +6,14 @@ typedef unsigned int uint;
 typedef unsigned short ushort;
 typedef unsigned char uchar;
 
-/* How do I deal with stack slots (alloc, set, get) ?
- *   It seems that computing the address of the slot
- *   and then dereferencing is a bad idea, it uses
- *   one register while I could use the machine
- *   addressing capabilities.
- */
-
 enum {
-	R = 0,  /* invalid reference */
-	NRegs = 32,
-	Tmp0 = NRegs+1,
+	R       = 0,  /* invalid reference */
+	NReg    = 32,
+	Tmp0    = NReg+1,
 	NString = 32,
-	NPreds = 15,
-	NBlks = 128,
-	NInss = 256,
-	NPhis = 32,
+	NPred   = 15,
+	NBlk    = 128,
+	NIns    = 256,
 };
 
 typedef struct Ins Ins;
@@ -71,16 +63,16 @@ struct Ins {
 
 struct Phi {
 	Ref to;
-	Ref args[NPreds];
-	int na;
+	Ref arg[NPred];
+	Blk *blk[NPred];
+	uint narg;
+	Phi *link;
 };
 
 struct Blk {
-	Phi *ps;
-	Ins *is;
-	uint np;
-	uint ni;
-	int id;
+	Phi *phi;
+	Ins *ins;
+	uint nins;
 	struct {
 		short type;
 		Ref arg;
@@ -89,9 +81,10 @@ struct Blk {
 	Blk *s2;
 	Blk *link;
 
-	Blk **preds;
-	int npreds;
+	Blk **pred;
+	uint npred;
 	char name[NString];
+	int id;
 };
 
 struct Sym {
@@ -102,7 +95,7 @@ struct Sym {
 	} type;
 	char name[NString];
 	Blk *blk;
-	int pos; /* negative for phis */
+	int pos;
 };
 
 struct Fn {
