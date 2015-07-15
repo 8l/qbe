@@ -322,13 +322,13 @@ parseline(PState ps)
 			curb->nins = curi - ins;
 			curb->ins = alloc(curb->nins * sizeof(Ins));
 			memcpy(curb->ins, ins, curb->nins * sizeof(Ins));
-			plink = &curb->phi;
 			if (curb->jmp.type == JXXX) {
 				curb->jmp.type = JJmp;
 				curb->s1 = b;
 			}
 		}
 		curb = b;
+		plink = &curb->phi;
 		if (curb->jmp.type != JXXX)
 			err("multiple definitions of block");
 		expect(TNL);
@@ -424,6 +424,7 @@ parseline(PState ps)
 		memcpy(phi->arg, arg, i * sizeof arg[0]);
 		memcpy(phi->blk, blk, i * sizeof blk[0]);
 		phi->narg = i;
+		*plink = phi;
 		plink = &phi->link;
 		return PPhi;
 	}
