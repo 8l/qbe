@@ -74,8 +74,7 @@ enum {
 struct Ins {
 	short op;
 	Ref to;
-	Ref l;
-	Ref r;
+	Ref arg[2];
 };
 
 struct Phi {
@@ -111,8 +110,7 @@ struct Sym {
 		STmp,
 	} type;
 	char name[NString];
-	Blk *blk;
-	int pos;
+	int ndef, nuse;
 };
 
 struct Fn {

@@ -156,10 +156,10 @@ ssafix(Fn *f, int t)
 			}
 		for (i=b->ins; i-b->ins < b->nins; i++) {
 			if (t1) {
-				if (req(i->l, rt))
-					i->l = SYM(t1);
-				if (req(i->r, rt))
-					i->r = SYM(t1);
+				if (req(i->arg[0], rt))
+					i->arg[0] = SYM(t1);
+				if (req(i->arg[1], rt))
+					i->arg[1] = SYM(t1);
 			}
 			if (req(i->to, rt)) {
 				t1 = f->ntmp++;
@@ -177,10 +177,10 @@ ssafix(Fn *f, int t)
 				if (req(p->arg[n], rt))
 					p->arg[n] = botdef(p->blk[n], f);
 		for (i=b->ins; i-b->ins < b->nins; i++) {
-			if (req(i->l, rt))
-				i->l = topdef(b, f);
-			if (req(i->r, rt))
-				i->r = topdef(b, f);
+			if (req(i->arg[0], rt))
+				i->arg[0] = topdef(b, f);
+			if (req(i->arg[1], rt))
+				i->arg[1] = topdef(b, f);
 		}
 		if (req(b->jmp.arg, rt))
 			b->jmp.arg = topdef(b, f);
@@ -190,6 +190,7 @@ ssafix(Fn *f, int t)
 	if (!f->sym)
 		abort();
 	for (t1=t0; t0<f->ntmp; t0++) {
+		f->sym[t0].type = STmp;
 		snprintf(f->sym[t0].name, NString, "%s_%d",
 			f->sym[t].name, t0-t1);
 	}

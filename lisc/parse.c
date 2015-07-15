@@ -226,7 +226,6 @@ varref(char *v)
 		err("too many symbols");
 	sym[t].type = STmp;
 	strcpy(sym[t].name, v);
-	sym[t].blk = 0;
 	ntmp++;
 	return SYM(t);
 }
@@ -417,8 +416,8 @@ parseline(PState ps)
 			err("too many instructions in block");
 		curi->op = op;
 		curi->to = r;
-		curi->l = arg[0];
-		curi->r = arg[1];
+		curi->arg[0] = arg[0];
+		curi->arg[1] = arg[1];
 		curi++;
 		return PIns;
 	} else {
@@ -445,11 +444,8 @@ parsefn(FILE *f)
 		bmap[i].name[0] = 0;
 		bmap[i].blk = 0;
 	}
-	for (i=Tmp0; i<NSym; i++) {
-		sym[i].type = SUndef;
-		sym[i].name[0] = 0;
-		sym[i].blk = 0;
-	}
+	for (i=Tmp0; i<NSym; i++)
+		sym[i] = (Sym){.type = SUndef};
 	ntmp = Tmp0;
 	curi = ins;
 	curb = 0;
@@ -461,6 +457,8 @@ parsefn(FILE *f)
 	do
 		ps = parseline(ps);
 	while (ps != PEnd);
+	if (!curb)
+		err("empty file");
 	if (curb->jmp.type == JXXX)
 		err("last block misses jump");
 	fn->sym = alloc(ntmp * sizeof sym[0]);
@@ -517,11 +515,11 @@ printfn(Fn *fn, FILE *f)
 			n = opdesc[i->op].arity;
 			if (n > 0) {
 				fprintf(f, " ");
-				printref(i->l, fn, f);
+				printref(i->arg[0], fn, f);
 			}
 			if (n > 1) {
 				fprintf(f, ", ");
-				printref(i->r, fn, f);
+				printref(i->arg[1], fn, f);
 			}
 			fprintf(f, "\n");
 		}
