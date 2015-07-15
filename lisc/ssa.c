@@ -82,22 +82,23 @@ fillrpo(Fn *f)
 	}
 }
 
-static Ref topdef(Blk *, Fn *, Ref *, Ref *);
+static Ref *top, *bot;
+static Ref topdef(Blk *, Fn *);
 
 static Ref
-botdef(Blk *b, Fn *f, Ref *top, Ref *bot)
+botdef(Blk *b, Fn *f)
 {
 	Ref r;
 
 	if (bot[b->id] != R)
 		return bot[b->id];
-	r = topdef(b, f, top, bot);
+	r = topdef(b, f);
 	bot[b->id] = r;
 	return r;
 }
 
 static Ref
-topdef(Blk *b, Fn *f, Ref *top, Ref *bot)
+topdef(Blk *b, Fn *f)
 {
 	uint i;
 	int t1;
@@ -108,7 +109,7 @@ topdef(Blk *b, Fn *f, Ref *top, Ref *bot)
 		return top[b->id];
 	assert(b->npred && "invalid ssa program detected");
 	if (b->npred == 1) {
-		r = botdef(b->pred[0], f, top, bot);
+		r = botdef(b->pred[0], f);
 		top[b->id] = r;
 		return r;
 	}
@@ -121,7 +122,7 @@ topdef(Blk *b, Fn *f, Ref *top, Ref *bot)
 	b->phi = p;
 	p->to = r;
 	for (i=0; i<b->npred; i++) {
-		p->arg[i] = botdef(b->pred[i], f, top, bot);
+		p->arg[i] = botdef(b->pred[i], f);
 		p->blk[i] = b->pred[i];
 	}
 	p->narg = i;
@@ -135,8 +136,8 @@ void
 ssafix(Fn *f, int t)
 {
 	uint n;
-	int t1;
-	Ref rt, *top, *bot;
+	int t0, t1;
+	Ref rt;
 	Blk *b;
 	Phi *p;
 	Ins *i;
@@ -144,19 +145,15 @@ ssafix(Fn *f, int t)
 	top = alloc(f->nblk * sizeof top[0]);
 	bot = alloc(f->nblk * sizeof bot[0]);
 	rt = SYM(t);
+	t0 = f->ntmp;
 	for (b=f->start; b; b=b->link) {
 		t1 = 0;
 		/* rename defs and some in-blocks uses */
-		for (p=b->phi; p; p=p->link) {
-			if (t1)
-				for (n=0; n<p->narg; n++)
-					if (p->arg[n] == rt)
-						p->arg[n] = SYM(t1);
+		for (p=b->phi; p; p=p->link)
 			if (p->to == rt) {
 				t1 = f->ntmp++;
 				p->to = SYM(t1);
 			}
-		}
 		for (i=b->ins; i-b->ins < b->nins; i++) {
 			if (t1) {
 				if (i->l == rt)
@@ -169,6 +166,8 @@ ssafix(Fn *f, int t)
 				i->to = SYM(t1);
 			}
 		}
+		if (t1 && b->jmp.arg == rt)
+			b->jmp.arg = SYM(t1);
 		top[b->id] = R;
 		bot[b->id] = t1 ? SYM(t1) : R;
 	}
@@ -176,13 +175,23 @@ ssafix(Fn *f, int t)
 		for (p=b->phi; p; p=p->link)
 			for (n=0; n<p->narg; n++)
 				if (p->arg[n] == rt)
-					p->arg[n] = botdef(p->blk[n], f, top, bot);
+					p->arg[n] = botdef(p->blk[n], f);
 		for (i=b->ins; i-b->ins < b->nins; i++) {
 			if (i->l == rt)
-				i->l = topdef(b, f, top, bot);
+				i->l = topdef(b, f);
 			if (i->r == rt)
-				i->r = topdef(b, f, top, bot);
+				i->r = topdef(b, f);
 		}
+		if (b->jmp.arg == rt)
+			b->jmp.arg = topdef(b, f);
+	}
+	/* add new symbols */
+	f->sym = realloc(f->sym, f->ntmp * sizeof f->sym[0]);
+	if (!f->sym)
+		abort();
+	for (t1=t0; t0<f->ntmp; t0++) {
+		snprintf(f->sym[t0].name, NString, "%s_%d",
+			f->sym[t].name, t0-t1);
 	}
 	free(top);
 	free(bot);
