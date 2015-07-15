@@ -303,7 +303,7 @@ closeblk()
 static PState
 parseline(PState ps)
 {
-	Ref arg[NPred] = {0};
+	Ref arg[NPred] = {R};
 	Blk *blk[NPred];
 	Phi *phi;
 	Ref r;
@@ -311,7 +311,6 @@ parseline(PState ps)
 	Blk *b;
 	int op, i;
 
-	assert(arg[0] == R);
 	do
 		t = next();
 	while (t == TNL);
@@ -347,7 +346,7 @@ parseline(PState ps)
 	case TJez:
 		curb->jmp.type = JJez;
 		r = parseref();
-		if (r == R)
+		if (req(r, R))
 			err("invalid argument for jez jump");
 		curb->jmp.arg = r;
 		expect(TComma);
@@ -400,7 +399,7 @@ parseline(PState ps)
 				blk[i] = findblk(tokval.str);
 			}
 			arg[i] = parseref();
-			if (arg[i] == R)
+			if (req(arg[i], R))
 				err("invalid instruction argument");
 			i++;
 			t = peek();
@@ -475,12 +474,12 @@ parsefn(FILE *f)
 static void
 printref(Ref r, Fn *fn, FILE *f)
 {
-	switch (r&RMask) {
+	switch (r.type) {
 	case RSym:
-		fprintf(f, "%%%s", fn->sym[r>>RShift].name);
+		fprintf(f, "%%%s", fn->sym[r.val].name);
 		break;
 	case RConst:
-		fprintf(f, "%d", r>>RShift);
+		fprintf(f, "%d", r.val);
 		break;
 	}
 }

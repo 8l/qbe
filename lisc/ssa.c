@@ -90,7 +90,7 @@ botdef(Blk *b, Fn *f)
 {
 	Ref r;
 
-	if (bot[b->id] != R)
+	if (!req(bot[b->id], R))
 		return bot[b->id];
 	r = topdef(b, f);
 	bot[b->id] = r;
@@ -105,7 +105,7 @@ topdef(Blk *b, Fn *f)
 	Ref r;
 	Phi *p;
 
-	if (top[b->id] != R)
+	if (!req(top[b->id], R))
 		return top[b->id];
 	assert(b->npred && "invalid ssa program detected");
 	if (b->npred == 1) {
@@ -150,23 +150,23 @@ ssafix(Fn *f, int t)
 		t1 = 0;
 		/* rename defs and some in-blocks uses */
 		for (p=b->phi; p; p=p->link)
-			if (p->to == rt) {
+			if (req(p->to, rt)) {
 				t1 = f->ntmp++;
 				p->to = SYM(t1);
 			}
 		for (i=b->ins; i-b->ins < b->nins; i++) {
 			if (t1) {
-				if (i->l == rt)
+				if (req(i->l, rt))
 					i->l = SYM(t1);
-				if (i->r == rt)
+				if (req(i->r, rt))
 					i->r = SYM(t1);
 			}
-			if (i->to == rt) {
+			if (req(i->to, rt)) {
 				t1 = f->ntmp++;
 				i->to = SYM(t1);
 			}
 		}
-		if (t1 && b->jmp.arg == rt)
+		if (t1 && req(b->jmp.arg, rt))
 			b->jmp.arg = SYM(t1);
 		top[b->id] = R;
 		bot[b->id] = t1 ? SYM(t1) : R;
@@ -174,15 +174,15 @@ ssafix(Fn *f, int t)
 	for (b=f->start; b; b=b->link) {
 		for (p=b->phi; p; p=p->link)
 			for (n=0; n<p->narg; n++)
-				if (p->arg[n] == rt)
+				if (req(p->arg[n], rt))
 					p->arg[n] = botdef(p->blk[n], f);
 		for (i=b->ins; i-b->ins < b->nins; i++) {
-			if (i->l == rt)
+			if (req(i->l, rt))
 				i->l = topdef(b, f);
-			if (i->r == rt)
+			if (req(i->r, rt))
 				i->r = topdef(b, f);
 		}
-		if (b->jmp.arg == rt)
+		if (req(b->jmp.arg, rt))
 			b->jmp.arg = topdef(b, f);
 	}
 	/* add new symbols */

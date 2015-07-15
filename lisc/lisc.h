@@ -7,7 +7,6 @@ typedef unsigned short ushort;
 typedef unsigned char uchar;
 
 enum {
-	R       = 0,  /* invalid reference */
 	NReg    = 32,
 	Tmp0    = NReg+1,
 	NString = 32,
@@ -22,19 +21,29 @@ typedef struct Phi Phi;
 typedef struct Blk Blk;
 typedef struct Sym Sym;
 typedef struct Fn Fn;
-typedef ushort Ref;
+typedef struct Ref Ref;
+
+struct Ref {
+	ushort type:1;
+	ushort val:15;
+};
+
+static inline int
+req(Ref a, Ref b)
+{
+	return a.type == b.type && a.val == b.val;
+}
+
+#define R (Ref){0, 0} // Invalid reference
 
 enum {
 	RSym = 0,
 	RConst = 1,
-
-	RMask = 1,
-	RShift = 1,
-	NRef = ((ushort)-1)>>RShift,
+	NRef = ((ushort)-1)>>1,
 };
 
-#define SYM(x)   (((x)<<RShift) | RSym)
-#define CONST(x) (((x)<<RShift) | RConst)
+#define SYM(x)   (Ref){ RSym, x }
+#define CONST(x) (Ref){ RConst, x }
 
 enum {
 	OXXX,
