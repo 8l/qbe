@@ -1,40 +1,55 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef unsigned int uint;
 typedef unsigned short ushort;
 typedef unsigned char uchar;
+typedef unsigned long long ullong;
 
 enum {
 	NReg    = 32,
 	Tmp0    = NReg+1,
+
 	NString = 32,
 	NPred   = 15,
 	NBlk    = 128,
 	NIns    = 256,
+
+	BITS    = 4,
+	NBit    = 8 * sizeof(ullong),
 };
 
+typedef struct Bits Bits;
+typedef struct Ref Ref;
 typedef struct OpDesc OpDesc;
 typedef struct Ins Ins;
 typedef struct Phi Phi;
 typedef struct Blk Blk;
 typedef struct Sym Sym;
 typedef struct Fn Fn;
-typedef struct Ref Ref;
+
+struct Bits {
+	ullong t[BITS];
+};
+
+#define BGET(b, n) (1&((b).t[n/NBit]>>(n%NBit)))
+#define BSET(b, n) ((b).t[n/NBit] |= (ullong)1<<(n%NBit))
+#define BCLR(b, n) ((b).t[n/NBit] &= ~((ullong)1<<(n%NBit)))
 
 struct Ref {
 	ushort type:1;
 	ushort val:15;
 };
 
+#define R (Ref){0, 0} // Invalid reference
+
 static inline int
 req(Ref a, Ref b)
 {
 	return a.type == b.type && a.val == b.val;
 }
-
-#define R (Ref){0, 0} // Invalid reference
 
 enum {
 	RSym = 0,
@@ -46,7 +61,7 @@ enum {
 #define CONST(x) (Ref){RConst, x}
 
 enum {
-	OXXX,
+	OXXX = 0,
 	OAdd,
 	OSub,
 	ODiv,
@@ -58,17 +73,17 @@ enum {
 	OLast
 };
 
-struct OpDesc {
-	int arity;
-	int commut:1;
-	char *name;
-};
-
 enum {
 	JXXX,
 	JRet,
 	JJmp,
 	JJez,
+};
+
+struct OpDesc {
+	int arity;
+	int commut:1;
+	char *name;
 };
 
 struct Ins {
@@ -99,6 +114,7 @@ struct Blk {
 
 	Blk **pred;
 	uint npred;
+	Bits in, out;
 	char name[NString];
 	int id;
 };
@@ -124,7 +140,6 @@ struct Fn {
 
 /* parse.c */
 extern OpDesc opdesc[];
-
 void *alloc(size_t);
 Fn *parsefn(FILE *);
 void printfn(Fn *, FILE *);
@@ -133,3 +148,6 @@ void printfn(Fn *, FILE *);
 void fillpreds(Fn *);
 void fillrpo(Fn *);
 void ssafix(Fn *, int);
+
+/* live.c */
+void filllive(Fn *);

@@ -1,0 +1,10 @@
+@start
+	jmp @foo
+@baz
+	jez 1, @end, @foo
+@bar
+	jmp @end
+@foo
+	jez 0, @bar, @baz
+@end
+	ret
