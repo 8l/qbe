@@ -54,7 +54,6 @@ struct OpDesc {
 	int commut:1;
 	char *name;
 };
-extern OpDesc opdesc[];
 
 enum {
 	JXXX,
@@ -117,6 +116,8 @@ struct Fn {
 
 
 /* parse.c */
+extern OpDesc opdesc[];
+
 void *alloc(size_t);
 Fn *parsefn(FILE *);
 void printfn(Fn *, FILE *);
