@@ -39,11 +39,11 @@ req(Ref a, Ref b)
 enum {
 	RSym = 0,
 	RConst = 1,
-	NRef = ((ushort)-1)>>1,
+	NRef = (1<<15) - 1
 };
 
-#define SYM(x)   (Ref){ RSym, x }
-#define CONST(x) (Ref){ RConst, x }
+#define SYM(x)   (Ref){RSym, x}
+#define CONST(x) (Ref){RConst, x}
 
 enum {
 	OXXX,
