@@ -209,8 +209,6 @@ blocka()
 
 	b = alloc(sizeof *b);
 	*b = zblock;
-	*blink = b;
-	blink = &b->link;
 	b->id = nblk++;
 	return b;
 }
@@ -292,6 +290,16 @@ expect(Token t)
 	err(buf);
 }
 
+static void
+closeblk()
+{
+	curb->nins = curi - ins;
+	curb->ins = alloc(curb->nins * sizeof(Ins));
+	memcpy(curb->ins, ins, curb->nins * sizeof(Ins));
+	blink = &curb->link;
+	curi = ins;
+}
+
 static PState
 parseline(PState ps)
 {
@@ -318,25 +326,21 @@ parseline(PState ps)
 		break;
 	case TLbl:
 		b = findblk(tokval.str);
-		if (curb) {
-			curb->nins = curi - ins;
-			curb->ins = alloc(curb->nins * sizeof(Ins));
-			memcpy(curb->ins, ins, curb->nins * sizeof(Ins));
-			if (curb->jmp.type == JXXX) {
-				curb->jmp.type = JJmp;
-				curb->s1 = b;
-			}
+		if (b->jmp.type != JXXX)
+			err("multiple definitions of block");
+		if (curb && curb->jmp.type == JXXX) {
+			closeblk();
+			curb->jmp.type = JJmp;
+			curb->s1 = b;
 		}
+		*blink = b;
 		curb = b;
 		plink = &curb->phi;
-		if (curb->jmp.type != JXXX)
-			err("multiple definitions of block");
 		expect(TNL);
 		return PPhi;
 	case TRet:
 		curb->jmp.type = JRet;
-		expect(TNL);
-		return PLbl;
+		goto Close;
 	case TJmp:
 		curb->jmp.type = JJmp;
 		goto Jump;
@@ -350,14 +354,14 @@ parseline(PState ps)
 	Jump:
 		expect(TLbl);
 		curb->s1 = findblk(tokval.str);
-		if (curb->jmp.type == TJmp) {
-			expect(TNL);
-			return PLbl;
+		if (curb->jmp.type != JJmp) {
+			expect(TComma);
+			expect(TLbl);
+			curb->s2 = findblk(tokval.str);
 		}
-		expect(TComma);
-		expect(TLbl);
-		curb->s2 = findblk(tokval.str);
+	Close:
 		expect(TNL);
+		closeblk();
 		return PLbl;
 	}
 	r = varref(tokval.str);
@@ -458,6 +462,8 @@ parsefn(FILE *f)
 	do
 		ps = parseline(ps);
 	while (ps != PEnd);
+	if (curb->jmp.type == JXXX)
+		err("last block misses jump");
 	fn->sym = alloc(ntmp * sizeof sym[0]);
 	memcpy(fn->sym, sym, ntmp * sizeof sym[0]);
 	fn->ntmp = ntmp;
@@ -539,11 +545,30 @@ printfn(Fn *fn, FILE *f)
 
 
 int
-main()
+main(int ac, char *av[])
 {
+	int opt;
+	int tx, ntmp;
 	Fn *fn;
 
 	fn = parsefn(stdin);
+
+	opt = 0;
+	if (ac > 1 && av[1][0] == '-')
+		opt = av[1][1];
+
+	switch (opt) {
+	case 'f':
+		fprintf(stderr, "[test ssafix:");
+		fillpreds(fn);
+		for (ntmp=fn->ntmp, tx=Tmp0; tx<ntmp; tx++) {
+			fprintf(stderr, " %s", fn->sym[tx].name);
+			ssafix(fn, tx);
+		}
+		fprintf(stderr, "]\n");
+		break;
+	}
+
 	printfn(fn, stdout);
 	return 0;
 }
