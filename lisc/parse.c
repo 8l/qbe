@@ -61,10 +61,7 @@ static Sym sym[NSym];
 static int ntmp;
 static Ins ins[NIns], *curi;
 static Phi **plink;
-static struct {
-	char name[NString];
-	Blk *blk;
-} bmap[NBlk+1];
+static Blk *bmap[NBlk+1];
 static Blk *curb;
 static Blk **blink;
 static int nblk;
@@ -253,17 +250,15 @@ findblk(char *name)
 
 	assert(name[0]);
 	for (i=0; i<NBlk; i++)
-		if (!bmap[i].blk || strcmp(bmap[i].name, name) == 0)
+		if (!bmap[i] || strcmp(bmap[i]->name, name) == 0)
 			break;
 	if (i == NBlk)
 		err("too many blocks");
-	if (!bmap[i].blk) {
-		assert(bmap[i].name[0] == 0);
-		strcpy(bmap[i].name, name);
-		bmap[i].blk = blocka();
-		strcpy(bmap[i].blk->name, name);
+	if (!bmap[i]) {
+		bmap[i] = blocka();
+		strcpy(bmap[i]->name, name);
 	}
-	return bmap[i].blk;
+	return bmap[i];
 }
 
 static void
@@ -440,10 +435,8 @@ parsefn(FILE *f)
 	Fn *fn;
 
 	inf = f;
-	for (i=0; i<NBlk; i++) {
-		bmap[i].name[0] = 0;
-		bmap[i].blk = 0;
-	}
+	for (i=0; i<NBlk; i++)
+		bmap[i] = 0;
 	for (i=Tmp0; i<NSym; i++)
 		sym[i] = (Sym){.type = SUndef};
 	ntmp = Tmp0;
