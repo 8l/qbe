@@ -16,6 +16,7 @@ enum {
 	NIns    = 256,
 };
 
+typedef struct OpDesc OpDesc;
 typedef struct Ins Ins;
 typedef struct Phi Phi;
 typedef struct Blk Blk;
@@ -29,7 +30,7 @@ enum {
 
 	RMask = 1,
 	RShift = 1,
-	NRefs = ((ushort)-1)>>RShift,
+	NRef = ((ushort)-1)>>RShift,
 };
 
 #define SYM(x)   (((x)<<RShift) | RSym)
@@ -45,7 +46,15 @@ enum {
 
 	/* reserved instructions */
 	OX86Div,
+	OLast
 };
+
+struct OpDesc {
+	int arity;
+	int commut:1;
+	char *name;
+};
+extern OpDesc opdesc[];
 
 enum {
 	JXXX,
@@ -110,6 +119,7 @@ struct Fn {
 /* parse.c */
 void *alloc(size_t);
 Fn *parsefn(FILE *);
+void printfn(Fn *, FILE *);
 
 /* ssa.c */
 void fillpreds(Fn *);

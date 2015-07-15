@@ -9,6 +9,14 @@ enum {
 	NSym = 256,
 };
 
+OpDesc opdesc[OLast] = {
+	[OAdd] = { 2, 1, "add" },
+	[OSub] = { 2, 0, "sub" },
+	[ODiv] = { 2, 0, "div" },
+	[OMod] = { 2, 0, "mod" },
+	[OCopy] = { 1, 0, "copy" },
+};
+
 typedef enum {
 	PXXX,
 	PLbl,
@@ -43,9 +51,14 @@ typedef enum {
 
 static FILE *inf;
 static Token thead;
+static struct {
+	long long num;
+	char *str;
+} tokval;
+static int lnum;
 
 static Sym sym[NSym];
-static Ref ntmp;
+static int ntmp;
 static Ins ins[NIns], *curi;
 static Phi **plink;
 static struct {
@@ -56,19 +69,13 @@ static Blk *curb;
 static Blk **blink;
 static int nblk;
 
-static struct {
-	long long num;
-	char *str;
-} tokval;
-static int lnum;
-
 
 void *
 alloc(size_t n)
 {
 	void *p;
 
-	p = malloc(n);
+	p = calloc(1, n);
 	if (!p)
 		abort();
 	return p;
@@ -233,7 +240,7 @@ parseref()
 	case TVar:
 		return varref(tokval.str);
 	case TNum:
-		if (tokval.num > NRefs || tokval.num < 0)
+		if (tokval.num > NRef || tokval.num < 0)
 			/* todo, use constants table */
 			abort();
 		return CONST(tokval.num);
@@ -294,7 +301,7 @@ parseline(PState ps)
 	Ref r;
 	Token t;
 	Blk *b;
-	int op, i, j;
+	int op, i;
 
 	assert(arg[0] == R);
 	do
@@ -358,29 +365,23 @@ parseline(PState ps)
 	switch (next()) {
 	case TCopy:
 		op = OCopy;
-		j = 1;
 		break;
 	case TAdd:
 		op = OAdd;
-		j = 2;
 		break;
 	case TSub:
 		op = OSub;
-		j = 2;
 		break;
 	case TDiv:
 		op = ODiv;
-		j = 2;
 		break;
 	case TMod:
 		op = OMod;
-		j = 2;
 		break;
 	case TPhi:
 		if (ps != PPhi)
 			err("unexpected phi instruction");
 		op = -1;
-		j = -1;
 		break;
 	default:
 		err("invalid instruction");
@@ -406,11 +407,12 @@ parseline(PState ps)
 			next();
 		}
 	next();
-	if (j >= 0 && i != j)
+	if (op != -1 && i != opdesc[op].arity)
 		err("invalid arity");
 	if (op != -1) {
 		if (curi - ins >= NIns)
 			err("too many instructions in block");
+		curi->op = op;
 		curi->to = r;
 		curi->l = arg[0];
 		curi->r = arg[1];
@@ -463,11 +465,84 @@ parsefn(FILE *f)
 	return fn;
 }
 
+static void
+printref(Ref r, Fn *fn, FILE *f)
+{
+	switch (r&RMask) {
+	case RSym:
+		fprintf(f, "%%%s", fn->sym[r>>RShift].name);
+		break;
+	case RConst:
+		fprintf(f, "%d", r>>RShift);
+		break;
+	}
+}
+
+void
+printfn(Fn *fn, FILE *f)
+{
+	Blk *b;
+	Phi *p;
+	Ins *i;
+	uint n;
+
+	for (b=fn->start; b; b=b->link) {
+		fprintf(f, "@%s\n", b->name);
+		for (p=b->phi; p; p=p->link) {
+			fprintf(f, "\t");
+			printref(p->to, fn, f);
+			fprintf(f, " = phi ");
+			assert(p->narg);
+			for (n=0;; n++) {
+				fprintf(f, "@%s ", p->blk[n]->name);
+				printref(p->arg[n], fn, f);
+				if (n == p->narg-1) {
+					fprintf(f, "\n");
+					break;
+				} else
+					fprintf(f, ", ");
+			}
+		}
+		for (i=b->ins; i-b->ins < b->nins; i++) {
+			fprintf(f, "\t");
+			printref(i->to, fn, f);
+			assert(opdesc[i->op].name);
+			fprintf(f, " = %s", opdesc[i->op].name);
+			n = opdesc[i->op].arity;
+			if (n > 0) {
+				fprintf(f, " ");
+				printref(i->l, fn, f);
+			}
+			if (n > 1) {
+				fprintf(f, ", ");
+				printref(i->r, fn, f);
+			}
+			fprintf(f, "\n");
+		}
+		switch (b->jmp.type) {
+		case JRet:
+			fprintf(f, "\tret\n");
+			break;
+		case JJmp:
+			if (b->s1 != b->link)
+				fprintf(f, "\tjmp @%s\n", b->s1->name);
+			break;
+		case JJez:
+			fprintf(f, "\tjez ");
+			printref(b->jmp.arg, fn, f);
+			fprintf(f, ", @%s, @%s\n", b->s1->name, b->s2->name);
+			break;
+		}
+	}
+}
 
 
 int
 main()
 {
-	parsefn(stdin);
+	Fn *fn;
+
+	fn = parsefn(stdin);
+	printfn(fn, stdout);
 	return 0;
 }
