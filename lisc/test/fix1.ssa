@@ -1,0 +1,13 @@
+@start
+	%x = copy 1
+@loop
+	jez %x, @isz, @noz
+@noz
+	%x = copy 0
+	jmp @end
+@isz
+	%x = copy 1
+	jmp @loop
+@end
+	%z = add 10, %x
+	ret
