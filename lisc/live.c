@@ -21,8 +21,8 @@ filllive(Fn *f)
 	Bits *kill, *use, *k, *u, bt;
 
 	assert(f->ntmp <= NBit*BITS);
-	kill = alloc(f->ntmp * sizeof kill[0]);
-	use = alloc(f->ntmp * sizeof use[0]);
+	kill = alloc(f->nblk * sizeof kill[0]);
+	use = alloc(f->nblk * sizeof use[0]);
 	for (b=f->start; b; b=b->link) {
 		memset(&b->in, 0, sizeof(Bits));
 		memset(&b->out, 0, sizeof(Bits));
