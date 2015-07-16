@@ -1,9 +1,10 @@
 #include "lisc.h"
 
-static inline int
-issym(Ref r)
+static inline void
+symadd(Bits *b, Ref r)
 {
-	return !req(r, R) && r.type == RSym;
+	if (!req(r, R) && r.type == RSym)
+		BSET(*b, r.val);
 }
 
 /* liveness analysis
@@ -31,20 +32,15 @@ filllive(Fn *f)
 		u = &use[b->id];
 		for (p=b->phi; p; p=p->link) {
 			for (a=0; a<p->narg; a++)
-				if (issym(p->arg[a]))
-					BSET(p->blk[a]->out, p->arg[a].val);
-			BSET(*k, p->to.val);
+				symadd(&p->blk[a]->out, p->arg[a]);
+			symadd(k, p->to);
 		}
 		for (i=b->ins; i-b->ins < b->nins; i++) {
-			if (issym(i->to))
-				BSET(*k, i->to.val);
-			if (issym(i->arg[0]))
-				BSET(*u, i->arg[0].val);
-			if (issym(i->arg[1]))
-				BSET(*u, i->arg[1].val);
+			symadd(k, i->to);
+			symadd(u, i->arg[0]);
+			symadd(u, i->arg[1]);
 		}
-		if (issym(b->jmp.arg))
-			BSET(*u, b->jmp.arg.val);
+		symadd(u, b->jmp.arg);
 	}
 Again:
 	chg = 0;
