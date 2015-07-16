@@ -192,7 +192,7 @@ ssafix(Fn *f, int t)
 		abort();
 	for (t1=t0; t0<f->ntmp; t0++) {
 		f->sym[t0].type = STmp;
-		snprintf(f->sym[t0].name, NString, "%s_%d",
+		snprintf(f->sym[t0].name, NString, "%s%d",
 			f->sym[t].name, t0-t1);
 	}
 	free(top);
