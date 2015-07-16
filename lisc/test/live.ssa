@@ -1,0 +1,19 @@
+# this control flow graph is irreducible
+# yet, we expecet the liveness analysis
+# to work properly and make %x live in
+# the block @left
+#
+# nothing should ever be live at the entry
+
+@start
+	%b = copy 0
+	%x = copy 10
+	jez 0, @left, @loop
+@left
+	jmp @inloop
+@loop
+	%x1 = add %x, 1
+@inloop
+	%b1 = add %b, 1
+@endloop
+	jmp @loop

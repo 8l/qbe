@@ -540,19 +540,19 @@ dumprset(Bits *b, Fn *fn)
 	int t;
 
 	for (t=Tmp0; t<fn->ntmp; t++)
-		if (BSET(*b, t))
-			fprintf(stderr, " %s", fn->sym[t].name);
-	fprintf(stderr, "\n");
+		if (BGET(*b, t))
+			printf(" %s", fn->sym[t].name);
 }
 
 int
 main(int ac, char *av[])
 {
-	int opt;
+	int opt, pr;
 	Fn *fn;
 
 	fn = parsefn(stdin);
 
+	pr = 1;
 	opt = 0;
 	if (ac > 1 && av[1][0] == '-')
 		opt = av[1][1];
@@ -561,7 +561,7 @@ main(int ac, char *av[])
 	case 'f': {
 		int tx, ntmp;
 
-		fprintf(stderr, "[test ssafix:");
+		fprintf(stderr, "[Testing SSA Reconstruction:");
 		fillpreds(fn);
 		for (ntmp=fn->ntmp, tx=Tmp0; tx<ntmp; tx++) {
 			fprintf(stderr, " %s", fn->sym[tx].name);
@@ -573,7 +573,7 @@ main(int ac, char *av[])
 	case 'r': {
 		int n;
 
-		fprintf(stderr, "[test rpo]\n");
+		fprintf(stderr, "[Testing RPO]\n");
 		fillrpo(fn);
 		assert(fn->rpo[0] == fn->start);
 		for (n=0;; n++)
@@ -587,22 +587,26 @@ main(int ac, char *av[])
 	case 'l': {
 		Blk *b;
 
-		fprintf(stderr, "[test liveness]\n");
+		fprintf(stderr, "[Testing Liveness]\n");
 		fillrpo(fn);
 		filllive(fn);
 		for (b=fn->start; b; b=b->link) {
-			fprintf(stderr, "> Block %s\n", b->name);
-			fprintf(stderr, "\tlive in :");
+			printf("> Block %s\n", b->name);
+			printf("\t in: [");
 			dumprset(&b->in, fn);
-			fprintf(stderr, "\tlive out:");
+			printf(" ]\n");
+			printf("\tout: [");
 			dumprset(&b->out, fn);
+			printf(" ]\n");
 		}
+		pr = 0;
 		break;
 	}
 	default:
 		break;
 	}
 
-	printfn(fn, stdout);
+	if (pr)
+		printfn(fn, stdout);
 	return 0;
 }

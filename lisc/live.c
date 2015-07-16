@@ -1,5 +1,11 @@
 #include "lisc.h"
 
+static inline int
+issym(Ref r)
+{
+	return !req(r, R) && r.type == RSym;
+}
+
 /* liveness analysis
  * requires rpo computation
  */
@@ -10,30 +16,35 @@ filllive(Fn *f)
 	Ins *i;
 	Phi *p;
 	int z, n, chg;
+	uint a;
 	Bits *kill, *use, *k, *u, bt;
 
 	assert(f->ntmp <= NBit*BITS);
 	kill = alloc(f->ntmp * sizeof kill[0]);
 	use = alloc(f->ntmp * sizeof use[0]);
 	for (b=f->start; b; b=b->link) {
-		k = &kill[b->id];
-		u = &use[b->id];
-		for (p=b->phi; p; p=p->link)
-			BSET(*k, p->to.val);
-		for (i=b->ins; i-b->ins < b->nins; i++) {
-			if (!req(i->to, R))
-				BSET(*k, i->to.val);
-			if (!req(i->arg[0], R))
-				BSET(*u, i->arg[0].val);
-			if (!req(i->arg[1], R))
-				BSET(*u, i->arg[1].val);
-		}
-		if (!req(b->jmp.arg, R))
-			BSET(*u, b->jmp.arg.val);
-		for (z=0; z<BITS; z++)
-			u->t[z] &= ~k->t[z];
 		memset(&b->in, 0, sizeof(Bits));
 		memset(&b->out, 0, sizeof(Bits));
+	}
+	for (b=f->start; b; b=b->link) {
+		k = &kill[b->id];
+		u = &use[b->id];
+		for (p=b->phi; p; p=p->link) {
+			for (a=0; a<p->narg; a++)
+				if (issym(p->arg[a]))
+					BSET(p->blk[a]->out, p->arg[a].val);
+			BSET(*k, p->to.val);
+		}
+		for (i=b->ins; i-b->ins < b->nins; i++) {
+			if (issym(i->to))
+				BSET(*k, i->to.val);
+			if (issym(i->arg[0]))
+				BSET(*u, i->arg[0].val);
+			if (issym(i->arg[1]))
+				BSET(*u, i->arg[1].val);
+		}
+		if (issym(b->jmp.arg))
+			BSET(*u, b->jmp.arg.val);
 	}
 Again:
 	chg = 0;
