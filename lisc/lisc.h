@@ -5,8 +5,15 @@
 #include <string.h>
 
 typedef unsigned int uint;
-typedef unsigned char uchar;
-typedef unsigned long long ullong;
+
+typedef struct Bits Bits;
+typedef struct Ref Ref;
+typedef struct OpDesc OpDesc;
+typedef struct Ins Ins;
+typedef struct Phi Phi;
+typedef struct Blk Blk;
+typedef struct Sym Sym;
+typedef struct Fn Fn;
 
 enum {
 	NReg    = 32,
@@ -18,25 +25,16 @@ enum {
 	NIns    = 256,
 
 	BITS    = 4,
-	NBit    = 8 * sizeof(ullong),
+	NBit    = 8 * sizeof(unsigned long long),
 };
 
-typedef struct Bits Bits;
-typedef struct Ref Ref;
-typedef struct OpDesc OpDesc;
-typedef struct Ins Ins;
-typedef struct Phi Phi;
-typedef struct Blk Blk;
-typedef struct Sym Sym;
-typedef struct Fn Fn;
-
 struct Bits {
-	ullong t[BITS];
+	unsigned long long t[BITS];
 };
 
 #define BGET(b, n) (1&((b).t[n/NBit]>>(n%NBit)))
-#define BSET(b, n) ((b).t[n/NBit] |= (ullong)1<<(n%NBit))
-#define BCLR(b, n) ((b).t[n/NBit] &= ~((ullong)1<<(n%NBit)))
+#define BSET(b, n) ((b).t[n/NBit] |= 1ll<<(n%NBit))
+#define BCLR(b, n) ((b).t[n/NBit] &= ~(1ll<<(n%NBit)))
 
 struct Ref {
 	uint16_t type:1;
