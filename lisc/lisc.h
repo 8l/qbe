@@ -1,10 +1,10 @@
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 typedef unsigned int uint;
-typedef unsigned short ushort;
 typedef unsigned char uchar;
 typedef unsigned long long ullong;
 
@@ -39,17 +39,9 @@ struct Bits {
 #define BCLR(b, n) ((b).t[n/NBit] &= ~((ullong)1<<(n%NBit)))
 
 struct Ref {
-	ushort type:1;
-	ushort val:15;
+	uint16_t type:1;
+	uint16_t val:15;
 };
-
-#define R (Ref){0, 0} // Invalid reference
-
-static inline int
-req(Ref a, Ref b)
-{
-	return a.type == b.type && a.val == b.val;
-}
 
 enum {
 	RSym = 0,
@@ -57,8 +49,18 @@ enum {
 	NRef = (1<<15) - 1
 };
 
+#define R        (Ref){0, 0}
 #define SYM(x)   (Ref){RSym, x}
 #define CONST(x) (Ref){RConst, x}
+
+static inline int req(Ref a, Ref b)
+{
+	return a.type == b.type && a.val == b.val;
+}
+static inline int rtype(Ref r)
+{
+	return req(r, R) ? -1 : r.type;
+}
 
 enum {
 	OXXX = 0,

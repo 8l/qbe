@@ -1,9 +1,9 @@
 #include "lisc.h"
 
 static inline void
-symadd(Bits *b, Ref r)
+bset(Bits *b, Ref r)
 {
-	if (!req(r, R) && r.type == RSym)
+	if (rtype(r) == RSym)
 		BSET(*b, r.val);
 }
 
@@ -32,15 +32,15 @@ filllive(Fn *f)
 		u = &use[b->id];
 		for (p=b->phi; p; p=p->link) {
 			for (a=0; a<p->narg; a++)
-				symadd(&p->blk[a]->out, p->arg[a]);
-			symadd(k, p->to);
+				bset(&p->blk[a]->out, p->arg[a]);
+			bset(k, p->to);
 		}
 		for (i=b->ins; i-b->ins < b->nins; i++) {
-			symadd(k, i->to);
-			symadd(u, i->arg[0]);
-			symadd(u, i->arg[1]);
+			bset(k, i->to);
+			bset(u, i->arg[0]);
+			bset(u, i->arg[1]);
 		}
-		symadd(u, b->jmp.arg);
+		bset(u, b->jmp.arg);
 	}
 Again:
 	chg = 0;
