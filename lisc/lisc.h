@@ -52,24 +52,20 @@ enum {
 #define CONST(x) (Ref){RConst, x}
 
 static inline int req(Ref a, Ref b)
-{
-	return a.type == b.type && a.val == b.val;
-}
+{ return a.type == b.type && a.val == b.val; }
 static inline int rtype(Ref r)
-{
-	return req(r, R) ? -1 : r.type;
-}
+{ return req(r, R) ? -1 : r.type; }
 
 enum {
 	OXXX = 0,
+	/* public instruction */
 	OAdd,
 	OSub,
 	ODiv,
-	OMod,
-	OCopy,
-
+	ORem,
 	/* reserved instructions */
-	OX86Div,
+	OCopy,
+	OXDiv,
 	OLast
 };
 

@@ -13,7 +13,7 @@ OpDesc opdesc[OLast] = {
 	[OAdd] = { 2, 1, "add" },
 	[OSub] = { 2, 0, "sub" },
 	[ODiv] = { 2, 0, "div" },
-	[OMod] = { 2, 0, "mod" },
+	[ORem] = { 2, 0, "mod" },
 	[OCopy] = { 1, 0, "copy" },
 };
 
@@ -31,7 +31,7 @@ typedef enum {
 	TAdd,
 	TSub,
 	TDiv,
-	TMod,
+	TRem,
 	TPhi,
 	TJmp,
 	TJez,
@@ -97,7 +97,7 @@ lex()
 		{ "add", TAdd },
 		{ "sub", TSub },
 		{ "div", TDiv },
-		{ "mod", TMod },
+		{ "rem", TRem },
 		{ "phi", TPhi },
 		{ "jmp", TJmp },
 		{ "jez", TJez },
@@ -372,8 +372,8 @@ parseline(PState ps)
 	case TDiv:
 		op = ODiv;
 		break;
-	case TMod:
-		op = OMod;
+	case TRem:
+		op = ORem;
 		break;
 	case TPhi:
 		if (ps != PPhi)
