@@ -9,6 +9,8 @@ enum {
 	NSym = 256,
 };
 
+Ins insb[NIns];
+
 OpDesc opdesc[OLast] = {
 	[OAdd] = { 2, 1, "add" },
 	[OSub] = { 2, 0, "sub" },
@@ -59,8 +61,8 @@ static int lnum;
 
 static Sym sym[NSym];
 static int ntmp;
-static Ins ins[NIns], *curi;
 static Phi **plink;
+static Ins *curi;
 static Blk *bmap[NBlk+1];
 static Blk *curb;
 static Blk **blink;
@@ -72,18 +74,29 @@ alloc(size_t n)
 {
 	void *p;
 
+	/* todo, export in util.c */
 	p = calloc(1, n);
 	if (!p)
 		abort();
 	return p;
 }
 
+void
+diag(char *s)
+{
+	/* todo, export in util.c */
+	fputs(s, stderr);
+	fputc('\n', stderr);
+	abort();
+}
+
 static void
 err(char *s)
 {
-	/* todo, export the error handling in util.c */
-	fprintf(stderr, "parse error: %s (line %d)\n", s, lnum);
-	exit(1);
+	char buf[100];
+
+	snprintf(buf, sizeof buf, "parse: %s (line %d)", s, lnum);
+	diag(buf);
 }
 
 static Token
@@ -287,11 +300,11 @@ expect(Token t)
 static void
 closeblk()
 {
-	curb->nins = curi - ins;
+	curb->nins = curi - insb;
 	curb->ins = alloc(curb->nins * sizeof(Ins));
-	memcpy(curb->ins, ins, curb->nins * sizeof(Ins));
+	memcpy(curb->ins, insb, curb->nins * sizeof(Ins));
 	blink = &curb->link;
-	curi = ins;
+	curi = insb;
 }
 
 static PState
@@ -407,7 +420,7 @@ parseline(PState ps)
 	if (op != -1 && i != opdesc[op].arity)
 		err("invalid arity");
 	if (op != -1) {
-		if (curi - ins >= NIns)
+		if (curi - insb >= NIns)
 			err("too many instructions in block");
 		curi->op = op;
 		curi->to = r;
@@ -440,7 +453,7 @@ parsefn(FILE *f)
 	for (i=Tmp0; i<NSym; i++)
 		sym[i] = (Sym){.type = SUndef};
 	ntmp = Tmp0;
-	curi = ins;
+	curi = insb;
 	curb = 0;
 	lnum = 1;
 	nblk = 0;

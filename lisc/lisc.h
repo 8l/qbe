@@ -16,6 +16,25 @@ typedef struct Sym Sym;
 typedef struct Fn Fn;
 
 enum {
+	RAX = 1,
+	RCX,
+	RDX,
+	RBX,
+	RSP,
+	RBP,
+	RSI,
+	RDI,
+	R8,
+	R9,
+	R10,
+	R11,
+	R12,
+	R13,
+	R14,
+	R15,
+};
+
+enum {
 	NReg    = 32,
 	Tmp0    = NReg+1,
 
@@ -65,6 +84,7 @@ enum {
 	ORem,
 	/* reserved instructions */
 	OCopy,
+	OXCltd,
 	OXDiv,
 	OLast
 };
@@ -136,6 +156,7 @@ struct Fn {
 
 /* parse.c */
 extern OpDesc opdesc[];
+void diag(char *);
 void *alloc(size_t);
 Fn *parsefn(FILE *);
 void printfn(Fn *, FILE *);

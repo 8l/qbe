@@ -189,7 +189,7 @@ ssafix(Fn *f, int t)
 	/* add new symbols */
 	f->sym = realloc(f->sym, f->ntmp * sizeof f->sym[0]);
 	if (!f->sym)
-		abort();
+		diag("ssafix: out of memory");
 	for (t1=t0; t0<f->ntmp; t0++) {
 		f->sym[t0].type = STmp;
 		snprintf(f->sym[t0].name, NString, "%s%d",
