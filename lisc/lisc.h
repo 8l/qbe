@@ -142,7 +142,7 @@ struct Sym {
 		STmp,
 	} type;
 	char name[NString];
-	int ndef, nuse;
+	uint ndef, nuse;
 };
 
 struct Fn {

@@ -80,7 +80,8 @@ isel(Fn *fn)
 {
 	Blk *b;
 	Ins *i;
-	int t0, t, nins;
+	int t0, t;
+	uint nins;
 
 	t0 = fn->ntmp;
 	for (b=fn->start; b; b=b->link) {
