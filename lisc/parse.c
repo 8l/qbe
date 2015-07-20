@@ -9,7 +9,7 @@ enum {
 	NSym = 256,
 };
 
-Ins insb[NIns];
+Ins insb[NIns], *curi;
 
 OpDesc opdesc[OLast] = {
 	[OAdd] = { 2, 1, "add" },
@@ -62,7 +62,6 @@ static int lnum;
 static Sym sym[NSym];
 static int ntmp;
 static Phi **plink;
-static Ins *curi;
 static Blk *bmap[NBlk+1];
 static Blk *curb;
 static Blk **blink;

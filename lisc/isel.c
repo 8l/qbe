@@ -19,8 +19,7 @@
  *   ABI)
  */
 
-extern Ins insb[NIns]; /* shared work buffer */
-static Ins *curi;
+extern Ins insb[NIns], *curi; /* shared work buffer */
 
 static void
 emit(short op, Ref to, Ref arg0, Ref arg1)
