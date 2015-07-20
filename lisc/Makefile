@@ -1,7 +1,7 @@
 BIN = lisc
 OBJ = main.o parse.o ssa.o live.o isel.o
 
-CFLAGS = -Wall -Wextra -std=c11 -g
+CFLAGS = -Wall -Wextra -std=c11 -g -pedantic
 
 $(BIN): $(OBJ)
 	$(CC) $(LDFLAGS) $(OBJ) -o $@

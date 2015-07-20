@@ -98,7 +98,7 @@ enum {
 
 struct OpDesc {
 	int arity;
-	int commut:1;
+	uint commut:1;
 	char *name;
 };
 
