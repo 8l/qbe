@@ -32,11 +32,11 @@ enum {
 	R13,
 	R14,
 	R15,
+	NReg = R15 - RAX + 1
 };
 
 enum {
-	NReg    = 32,
-	Tmp0    = NReg+1,
+	Tmp0    = 33,
 
 	NString = 32,
 	NPred   = 15,
@@ -44,11 +44,11 @@ enum {
 	NIns    = 256,
 
 	BITS    = 4,
-	NBit    = 8 * sizeof(unsigned long long),
+	NBit    = 8 * sizeof(uint64_t),
 };
 
 struct Bits {
-	unsigned long long t[BITS];
+	uint64_t t[BITS];
 };
 
 #define BGET(b, n) (1&((b).t[n/NBit]>>(n%NBit)))
@@ -131,6 +131,7 @@ struct Blk {
 	Blk **pred;
 	uint npred;
 	Bits in, out;
+	int loop;
 	char name[NString];
 	int id;
 };
@@ -143,6 +144,7 @@ struct Sym {
 	} type;
 	char name[NString];
 	uint ndef, nuse;
+	int cost;
 };
 
 struct Fn {
@@ -168,3 +170,10 @@ void ssafix(Fn *, int);
 
 /* live.c */
 void filllive(Fn *);
+
+/* isel.c */
+void isel(Fn *);
+
+/* spill.c */
+void fillcost(Fn *);
+void spill(Fn *);
