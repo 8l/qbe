@@ -26,7 +26,7 @@ emit(short op, Ref to, Ref arg0, Ref arg1)
 {
 	if (curi == insb)
 		diag("isel: too many instructions");
-	*curi-- = (Ins){op, to, {arg0, arg1}};
+	*--curi = (Ins){op, to, {arg0, arg1}};
 }
 
 static void
@@ -84,12 +84,11 @@ isel(Fn *fn)
 
 	t0 = fn->ntmp;
 	for (b=fn->start; b; b=b->link) {
-		curi = &insb[NIns-1];
+		curi = &insb[NIns];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			sel(--i, fn);
 		}
-		nins = &insb[NIns-1] - curi;
-		curi++;
+		nins = &insb[NIns] - curi;
 		free(b->ins);
 		b->ins = alloc(nins * sizeof b->ins[0]);
 		memcpy(b->ins, curi, nins * sizeof b->ins[0]);
