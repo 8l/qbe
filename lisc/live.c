@@ -3,8 +3,7 @@
 static void
 bset(Ref r, Blk *b, int *nlv)
 {
-	if (rtype(r) == RSym)
-	if (!BGET(b->in, r.val)) {
+	if (rtype(r) == RSym && !BGET(b->in, r.val)) {
 		++*nlv;
 		BSET(b->in, r.val);
 		BSET(b->gen, r.val);
@@ -29,12 +28,9 @@ filllive(Fn *f)
 		b->in = (Bits){{0}};
 		b->out = (Bits){{0}};
 		b->gen = (Bits){{0}};
-		b->nlive = 0;
 	}
 	chg = 1;
-	if (0)
-	Again:
-		chg = 0;
+Again:
 	for (n=f->nblk-1; n>=0; n--) {
 		b = f->rpo[n];
 
@@ -45,7 +41,7 @@ filllive(Fn *f)
 		if (b->s2)
 			for (z=0; z<BITS; z++)
 				b->out.t[z] |= b->s2->in.t[z];
-		chg |= memcmp(&b->out, &tb, sizeof(Bits)) != 0;
+		chg |= memcmp(&b->out, &tb, sizeof(Bits));
 
 		b->in = b->out;
 		nlv = bcnt(&b->in);
@@ -70,6 +66,8 @@ filllive(Fn *f)
 					BSET(p->blk[a]->out, p->arg[a].val);
 		}
 	}
-	if (chg)
+	if (chg) {
+		chg = 0;
 		goto Again;
+	}
 }
