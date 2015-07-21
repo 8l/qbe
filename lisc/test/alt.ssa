@@ -4,6 +4,7 @@
 
 @start
 	%ten = copy 10
+	%dum = copy 0  # dummy live-through temprorary
 @loop
 	%alt = phi @start 0, @left %alt1, @right %alt1
 	%cnt = phi @start 100, @left %cnt, @right %cnt2
@@ -19,6 +20,5 @@
 	%cnt2 = sub %cnt1, %ten
 	jez %cnt2, @end, @loop
 @end
-	%ret = copy %cnt # a dummy use, no return
-	                 # values are available yet
+	%ret = add %cnt, %dum
 	ret
