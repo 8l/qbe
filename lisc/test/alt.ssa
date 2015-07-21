@@ -12,7 +12,8 @@
 @left
 	%x = phi @loop 10, @left %x1
 	%x1 = sub %x, 1
-	jez %x, @loop, @left
+	%z = copy %x
+	jez %z, @loop, @left
 @right
 	%cnt1 = phi @loop %cnt, @right %cnt2
 	%cnt2 = sub %cnt1, %ten
