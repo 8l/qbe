@@ -38,6 +38,9 @@ fillcost(Fn *fn)
 	 * +> loop <+
 	 * |   /\   |
 	 * +- a  b -+
+	 *    |  |
+	 *     \/
+	 *     end
 	 */
 	for (b=fn->start; b; b=b->link)
 		b->loop = 1;
@@ -78,7 +81,7 @@ fillcost(Fn *fn)
 	}
 }
 
-static int
+int
 bcnt(Bits *b) /* glad I can pull it :) */
 {
 	const uint64_t m1 = 0x5555555555555555;
@@ -107,35 +110,89 @@ bcnt(Bits *b) /* glad I can pull it :) */
 }
 
 extern Ins insb[NIns], *curi; /* shared work buffer */
-static Bits w;
-static Sym *sym;
-
-#if 0
-static void
-emit(short op, Ref to, Ref arg0, Ref arg1)
-{
-	if (curi == insb)
-		diag("spill: too many instructions");
-	*curi-- = (Ins){op, to, {arg0, arg1}};
-}
-#endif
+static Bits *f;  /* temps to prioritize in registers (for tcmp1) */
+static Sym *sym; /* current symbol table (for tcmpX) */
+static int ntmp; /* current # of temps (for limit) */
 
 static int
-tcmp(const void *pa, const void *pb)
+tcmp0(const void *pa, const void *pb)
 {
-	int a, b;
+	return sym[*(int *)pb].cost - sym[*(int *)pa].cost;
+}
 
-	/* so here, we make sure temporaries
-	 * in w are sorted first in the list
-	 * no matter their cost
+static int
+tcmp1(const void *pa, const void *pb)
+{
+	int c;
+
+	c = BGET(*f, *(int *)pb) - BGET(*f, *(int *)pa);
+	return c ? c : tcmp0(pa, pb);
+}
+
+static Bits
+limit(Bits *b, int k, Bits *fst)
+{
+	static int *tmp, maxt;
+	int i, t, nt;
+	Bits res;
+
+	nt = bcnt(b);
+	if (nt <= k)
+		return *b;
+	if (nt > maxt) {
+		free(tmp);
+		tmp = alloc(nt * sizeof tmp[0]);
+		maxt = nt;
+	}
+	i = 0;
+	for (t=0/*Tmp0*/; t<ntmp; t++)
+		if (BGET(*b, t)) {
+			assert(sym[t].type == STmp);
+			tmp[i++] = t;
+		}
+	assert(i == nt);
+	if (!fst)
+		qsort(tmp, nt, sizeof tmp[0], tcmp0);
+	else {
+		f = fst;
+		qsort(tmp, nt, sizeof tmp[0], tcmp1);
+	}
+	res = (Bits){{0}};
+	for (i=0; i<k && i<nt; i++)
+		BSET(res, tmp[i]);
+	return res;
+}
+
+static int
+lscan(Bits *use, Blk **rpo, int n0, int n1)
+{
+	int z, pl;
+	Blk *b;
+
+	/* using a range to represent
+	 * loops does not work:
+	 * in the example above, when
+	 * analyzing the block in the
+	 * loop with the smallest rpo
+	 * we will not account for the
+	 * other one
+	 *
+	 * todo, use predecessors to
+	 * fix that
 	 */
-	a = *(int *)pa;
-	b = *(int *)pb;
-	assert(sym[a].type==STmp && sym[b].type==STmp);
-	if (BGET(w, a))
-		return BGET(w, b) ? sym[b].cost-sym[a].cost : -1;
-	else
-		return BGET(w, b) ? +1 : sym[b].cost-sym[a].cost;
+
+	pl = 0;
+	*use = (Bits){{0}};
+	for (; n0<n1; n0++) {
+		b = rpo[n0];
+		if (b->nlive > pl)
+			pl = b->nlive;
+		for (z=0; z<BITS; z++)
+			use->t[z] |= b->gen.t[z];
+	}
+	for (z=0; z<BITS; z++)
+		use->t[z] &= rpo[n1]->out.t[z];
+	return pl;
 }
 
 /* spill code insertion
@@ -155,74 +212,68 @@ tcmp(const void *pa, const void *pb)
 void
 spill(Fn *fn)
 {
-	Bits v;
-	int n, z, j, k, l;
-	Blk *b, *s1, *s2;
+	Blk *b, *s1, *s2, *hd;
+	int n, z, k, pl;
+	Bits v, w;
 	Ins *i;
-	int *tmp, maxt, nt;
+	int j;
 
 	sym = fn->sym;
-	tmp = 0;
-	maxt = 0;
+	ntmp = fn->ntmp;
+	assert(ntmp < NBit*BITS);
+
 	for (n=fn->nblk-1; n>=0; n--) {
 		/* invariant: m>n => in,out of m updated */
 		b = fn->rpo[n];
-		curi = &insb[NIns-1];
 
 		/* 1. find temporaries in registers at
 		 * the end of the block (put them in v) */
 		s1 = b->s1;
 		s2 = b->s2;
 		k = NReg - !req(b->jmp.arg, R);
-
-		if ((s1 && s1->id <= n) || (s2 && s2->id <= n)) {
-			/* potential back-edge */
+		if (!s1) {
+			assert(!s2);
+			v = (Bits){{0}};
+		} else if (s1->id <= n || (s2 && s2->id <= n)) {
+			/* back-edge */
+			hd = s1;
+			if (s2 && s2->id <= hd->id)
+				hd = s2;
+			pl = lscan(&v, fn->rpo, hd->id, n);
+			j = bcnt(&v);
+			if (j < k) {
+				w = b->out;
+				for (z=0; z<BITS; z++)
+					w.t[z] &= ~v.t[z];
+				j = bcnt(&w);   /* live through */
+				w = limit(&w, k - (pl - j), 0);
+				for (z=0; z<BITS; z++)
+					v.t[z] |= w.t[z];
+			} else if (j > k)
+				v = limit(&v, k, 0);
 		} else {
-			if (s1) {
-				v = s1->in; /* could be in reg */
-				w = s1->in; /* will be in reg */
-			} else {
-				w = (Bits){{0}};
-				v = (Bits){{0}};
-			}
-			if (s2) {
+			v = s1->in;
+			w = s1->in;
+			if (s2)
 				for (z=0; z<BITS; z++) {
 					v.t[z] |= s2->in.t[z];
 					w.t[z] &= s2->in.t[z];
 				}
-			}
-/* #if 0 */
 			for (z=0; z<BITS; z++) {
 				assert(!(v.t[z] & ~b->out.t[z]));
 				assert(!(w.t[z] & ~b->out.t[z]));
 			}
 			assert(bcnt(&w) <= NReg);
 			assert(bcnt(&w) <= bcnt(&v));
-/* #endif */
-			nt = bcnt(&v);
-			if (nt > maxt) {
-				free(tmp);
-				tmp = alloc(nt * sizeof tmp[0]);
-				maxt = nt;
-			}
-			j=0;
-			for (l=0/*Tmp0*/; l<fn->ntmp; l++)
-				if (BGET(v, l)) {
-					assert(fn->sym[l].type == STmp);
-					tmp[j++] = l;
-				}
-			assert(j == nt);
-			qsort(tmp, nt, sizeof tmp[0], tcmp);
-			v = (Bits){{0}};
-			for (j=0; j<k; j++)
-				BSET(v, j);
+			v = limit(&v, k, &w);
 		}
+		assert(bcnt(&v) <= k);
 
 		/* 2. process the block instructions */
+		curi = &insb[NIns];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			i--;
 			;
 		}
 	}
-	free(tmp);
 }
