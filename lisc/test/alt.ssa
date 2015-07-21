@@ -1,0 +1,23 @@
+# an example with reducible control
+# flow graph that exposes poor
+# handling of looping constructs
+
+@start
+	%ten = copy 10
+@loop
+	%alt = phi @start 0, @left %alt1, @right %alt1
+	%cnt = phi @start 100, @left %cnt, @right %cnt2
+	%alt1 = sub 1, %alt
+	jez %alt1, @left, @right
+@left
+	%x = phi @loop 10, @left %x1
+	%x1 = sub %x, 1
+	jez %x, @loop, @left
+@right
+	%cnt1 = phi @loop %cnt, @right %cnt2
+	%cnt2 = sub %cnt1, %ten
+	jez %cnt2, @end, @loop
+@end
+	%ret = copy %cnt # a dummy use, no return
+	                 # values are available yet
+	ret
