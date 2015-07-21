@@ -71,16 +71,22 @@ main(int ac, char *av[])
 		break;
 	}
 	case 's': {
+		int t;
 		Blk *b;
 
 		fprintf(stderr, "[Testing Spilling]\n");
 		fillrpo(fn);
 		filllive(fn);
 		fillcost(fn);
+		fprintf(stderr, "> Spill costs:\n");
+		for (t=Tmp0; t<fn->ntmp; t++)
+			fprintf(stderr, "\t%s: %d\n",
+				fn->sym[t].name,
+				fn->sym[t].cost);
 		spill(fn);
+		fprintf(stderr, "\n> In registers at exits:\n");
 		for (b=fn->start; b; b=b->link) {
-			printf("> In regs after block %s: [",
-				b->name);
+			printf("\t%s: [", b->name);
 			dumprset(&b->out, fn);
 			printf(" ]\n");
 		}
