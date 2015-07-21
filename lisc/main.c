@@ -70,6 +70,23 @@ main(int ac, char *av[])
 		pr = 0;
 		break;
 	}
+	case 's': {
+		Blk *b;
+
+		fprintf(stderr, "[Testing Spilling]\n");
+		fillrpo(fn);
+		filllive(fn);
+		fillcost(fn);
+		spill(fn);
+		for (b=fn->start; b; b=b->link) {
+			printf("> In regs after block %s: [",
+				b->name);
+			dumprset(&b->out, fn);
+			printf(" ]\n");
+		}
+		pr = 0;
+		break;
+	}
 	default:
 		break;
 	}
