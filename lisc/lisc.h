@@ -130,7 +130,8 @@ struct Blk {
 
 	Blk **pred;
 	uint npred;
-	Bits in, out;
+	Bits in, out, gen;
+	int nlive;
 	int loop;
 	char name[NString];
 	int id;
@@ -175,5 +176,6 @@ void filllive(Fn *);
 void isel(Fn *);
 
 /* spill.c */
+int bcnt(Bits *);
 void fillcost(Fn *);
 void spill(Fn *);

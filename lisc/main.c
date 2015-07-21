@@ -59,12 +59,13 @@ main(int ac, char *av[])
 		filllive(fn);
 		for (b=fn->start; b; b=b->link) {
 			printf("> Block %s\n", b->name);
-			printf("\t in: [");
+			printf("\t in:   [");
 			dumprset(&b->in, fn);
 			printf(" ]\n");
-			printf("\tout: [");
+			printf("\tout:   [");
 			dumprset(&b->out, fn);
 			printf(" ]\n");
+			printf("\tnlive: %d\n", b->nlive);
 		}
 		pr = 0;
 		break;
