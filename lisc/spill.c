@@ -94,7 +94,8 @@ fillcost(Fn *fn)
 			symuse(p->to, 0, 0, fn);
 			for (a=0; a<p->narg; a++) {
 				n = p->blk[a]->loop;
-				assert(b->npred && "invalid cfg");
+				assert(b->npred==p->narg &&
+					"wrong cfg");
 				n /= b->npred;
 				symuse(p->arg[a], 1, n, fn);
 			}
