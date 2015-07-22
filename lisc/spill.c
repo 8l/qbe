@@ -111,6 +111,14 @@ fillcost(Fn *fn)
 		}
 		symuse(b->jmp.arg, 1, n, fn);
 	}
+	if (debug['S']) {
+		fprintf(stderr, "> Spill costs:\n");
+		for (n=Tmp0; n<fn->ntmp; n++)
+			fprintf(stderr, "\t%-10s %d\n",
+				fn->sym[n].name,
+				fn->sym[n].cost);
+		fprintf(stderr, "\n");
+	}
 }
 
 int

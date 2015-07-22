@@ -2,7 +2,7 @@
 
 
 char debug['Z'+1] = {
-	['S'] = 1, /* spiller */
+	['S'] = 0, /* spiller */
 };
 
 void
@@ -11,7 +11,7 @@ dumpss(Bits *b, Sym *s, FILE *f)
 	int t;
 
 	fprintf(f, "[");
-	for (t=Tmp0; t<BITS*NBit; t++)
+	for (t=0; t<BITS*NBit; t++)
 		if (BGET(*b, t))
 			fprintf(f, " %s", s[t].name);
 	fprintf(f, " ]\n");
@@ -75,21 +75,16 @@ main(int ac, char *av[])
 		break;
 	}
 	case 's': {
-		int t;
 		Blk *b;
 
 		fprintf(stderr, "[Testing Spilling]\n");
+		debug['S'] = 1;
 		fillrpo(fn);
 		fillpreds(fn);
 		filllive(fn);
 		fillcost(fn);
-		printf("> Spill costs:\n");
-		for (t=Tmp0; t<fn->ntmp; t++)
-			printf("\t%-10s %d\n",
-				fn->sym[t].name,
-				fn->sym[t].cost);
 		spill(fn);
-		printf("\n> Block information:\n");
+		printf("> Block information:\n");
 		for (b=fn->start; b; b=b->link) {
 			printf("\t%-10s (% 5d) ",
 				b->name, b->loop);
