@@ -217,7 +217,7 @@ void
 spill(Fn *fn)
 {
 	Blk *b, *s1, *s2, *hd;
-	int n, z, k, pl;
+	int n, z, pl;
 	Bits v, w;
 	Ins *i;
 	int j;
@@ -234,8 +234,6 @@ spill(Fn *fn)
 		 * the end of the block (put them in v) */
 		s1 = b->s1;
 		s2 = b->s2;
-		// k = NReg - !req(b->jmp.arg, R);
-		k = 4 - !req(b->jmp.arg, R);
 		v = (Bits){{0}};
 		hd = 0;
 		if (s1 && s1->id <= n)
@@ -249,16 +247,16 @@ spill(Fn *fn)
 			for (z=0; z<BITS; z++)
 				v.t[z] = hd->gen.t[z] & b->out.t[z];
 			j = bcnt(&v);
-			if (j < k) {
+			if (j < NReg) {
 				w = b->out;
 				for (z=0; z<BITS; z++)
 					w.t[z] &= ~v.t[z];
 				j = bcnt(&w);   /* live through */
-				w = limit(&w, k - (pl - j), 0);
+				w = limit(&w, NReg - (pl - j), 0);
 				for (z=0; z<BITS; z++)
 					v.t[z] |= w.t[z];
-			} else if (j > k)
-				v = limit(&v, k, 0);
+			} else if (j > NReg)
+				v = limit(&v, NReg, 0);
 		} else if (s1) {
 			v = s1->in;
 			w = s1->in;
@@ -273,9 +271,13 @@ spill(Fn *fn)
 			}
 			assert(bcnt(&w) <= NReg);
 			assert(bcnt(&w) <= bcnt(&v));
-			v = limit(&v, k, &w);
+			v = limit(&v, NReg, &w);
 		}
-		assert(bcnt(&v) <= k);
+		assert(bcnt(&v) <= NReg);
+		if (rtype(b->jmp.arg) == RSym
+		&& !BGET(v, b->jmp.arg.val)
+		&& bcnt(&v) == NReg)
+			v = limit(&v, NReg-1, 0);
 		b->out = v;
 
 		/* 2. process the block instructions */

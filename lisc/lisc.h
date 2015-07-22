@@ -32,7 +32,8 @@ enum {
 	R13,
 	R14,
 	R15,
-	NReg = R15 - RAX + 1
+	// NReg = R15 - RAX + 1
+	NReg = 4 /* for test purposes */
 };
 
 enum {
