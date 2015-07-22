@@ -2,16 +2,33 @@
 
 
 static void
-loopmark(Blk **rpo, int head, Blk *b)
+loopmark(Blk *hd, Blk *b)
 {
-	uint p;
+	int z, head;
+	uint n, a;
+	Blk *pr;
+	Phi *p;
 
+	head = hd->id;
 	if (b->id < head || b->visit == head)
 		return;
 	b->visit = head;
 	b->loop *= 10;
-	for (p=0; p<b->npred; p++)
-		loopmark(rpo, head, b->pred[p]);
+	/* aggregate looping information at
+	 * loop headers */
+	for (z=0; z<BITS; z++)
+		hd->gen.t[z] |= b->gen.t[z];
+	if (b->nlive > hd->nlive)
+		hd->nlive = b->nlive;
+	for (n=0; n<b->npred; n++) {
+		pr = b->pred[n];
+		for (p=b->phi; p; p=p->link)
+			for (a=0; a<p->narg; a++)
+				if (p->blk[a] == pr)
+				if (rtype(p->arg[a]) == RSym)
+					BSET(hd->gen, p->arg[a].val);
+		loopmark(hd, pr);
+	}
 }
 
 static void
@@ -38,7 +55,7 @@ symuse(Ref r, int use, int loop, Fn *fn)
 void
 fillcost(Fn *fn)
 {
-	int n;
+	int n, dmp;
 	uint a;
 	Blk *b;
 	Ins *i;
@@ -51,9 +68,16 @@ fillcost(Fn *fn)
 	}
 	for (n=0; n<fn->nblk; n++) {
 		b = fn->rpo[n];
+		dmp = 0;
 		for (a=0; a<b->npred; a++)
-			if (b->pred[a]->id >= n)
-				loopmark(fn->rpo, n, b->pred[a]);
+			if (b->pred[a]->id >= n) {
+				loopmark(b, b->pred[a]);
+				dmp = 1;
+			}
+		if (dmp && debug['S']) {
+			fprintf(stderr, "uses for %s: ", b->name);
+			dumpss(&b->gen, fn->sym, stderr);
+		}
 	}
 	for (s=fn->sym; s-fn->sym < fn->ntmp; s++) {
 		s->cost = 0;
@@ -166,38 +190,6 @@ limit(Bits *b, int k, Bits *fst)
 	return res;
 }
 
-static int
-loopscan(Bits *use, Blk **rpo, int hd, int n)
-{
-	int z, pl;
-	Blk *b;
-
-	/* using a range to represent
-	 * loops does not work:
-	 * in the example above, when
-	 * analyzing the block in the
-	 * loop with the smallest rpo
-	 * we will not account for the
-	 * other one
-	 *
-	 * todo, use predecessors to
-	 * fix that
-	 */
-
-	pl = 0;
-	*use = (Bits){{0}};
-	for (; hd<=n; hd++) {
-		b = rpo[hd];
-		if (b->nlive > pl)
-			pl = b->nlive;
-		for (z=0; z<BITS; z++)
-			use->t[z] |= b->gen.t[z];
-	}
-	for (z=0; z<BITS; z++)
-		use->t[z] &= rpo[n]->out.t[z];
-	return pl;
-}
-
 /* spill code insertion
  * requires spill costs, rpo, liveness
  *
@@ -241,9 +233,11 @@ spill(Fn *fn)
 		} else if (s1->id <= n || (s2 && s2->id <= n)) {
 			/* back-edge */
 			hd = s1;
-			if (s2 && s2->id <= hd->id)
+			if (s2 && s2->id <= b->id && s2->id >= hd->id)
 				hd = s2;
-			pl = loopscan(&v, fn->rpo, hd->id, n);
+			pl = hd->nlive;
+			for (z=0; z<BITS; z++)
+				v.t[z] = hd->gen.t[z] & b->out.t[z];
 			j = bcnt(&v);
 			if (j < k) {
 				w = b->out;
