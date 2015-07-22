@@ -1,14 +1,20 @@
 #include "lisc.h"
 
 
-static void
-dumprset(Bits *b, Fn *fn)
+char debug['Z'+1] = {
+	['S'] = 1, /* spiller */
+};
+
+void
+dumpss(Bits *b, Sym *s, FILE *f)
 {
 	int t;
 
-	for (t=Tmp0; t<fn->ntmp; t++)
+	fprintf(f, "[");
+	for (t=Tmp0; t<BITS*NBit; t++)
 		if (BGET(*b, t))
-			printf(" %s", fn->sym[t].name);
+			fprintf(f, " %s", s[t].name);
+	fprintf(f, " ]\n");
 }
 
 int
@@ -59,12 +65,10 @@ main(int ac, char *av[])
 		filllive(fn);
 		for (b=fn->start; b; b=b->link) {
 			printf("> Block %s\n", b->name);
-			printf("\t in:   [");
-			dumprset(&b->in, fn);
-			printf(" ]\n");
-			printf("\tout:   [");
-			dumprset(&b->out, fn);
-			printf(" ]\n");
+			printf("\t in:   ");
+			dumpss(&b->in, fn->sym, stdout);
+			printf("\tout:   ");
+			dumpss(&b->out, fn->sym, stdout);
 			printf("\tnlive: %d\n", b->nlive);
 		}
 		pr = 0;
@@ -79,17 +83,16 @@ main(int ac, char *av[])
 		fillpreds(fn);
 		filllive(fn);
 		fillcost(fn);
-		fprintf(stderr, "> Spill costs:\n");
+		printf("> Spill costs:\n");
 		for (t=Tmp0; t<fn->ntmp; t++)
-			fprintf(stderr, "\t%s: %d\n",
+			printf("\t%-10s %d\n",
 				fn->sym[t].name,
 				fn->sym[t].cost);
 		spill(fn);
-		fprintf(stderr, "\n> Block information:\n");
+		printf("\n> Block information:\n");
 		for (b=fn->start; b; b=b->link) {
-			printf("\t%10s (% 5d) [", b->name, b->loop);
-			dumprset(&b->out, fn);
-			printf(" ]\n");
+			printf("\t%-10s (% 5d) ", b->name, b->loop);
+			dumpss(&b->out, fn->sym, stdout);
 		}
 		pr = 0;
 		break;

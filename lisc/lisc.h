@@ -158,6 +158,10 @@ struct Fn {
 };
 
 
+/* main.c */
+extern char debug['Z'+1];
+void dumpss(Bits *, Sym *, FILE *);
+
 /* parse.c */
 extern OpDesc opdesc[];
 void diag(char *);
