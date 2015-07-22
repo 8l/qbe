@@ -91,7 +91,8 @@ main(int ac, char *av[])
 		spill(fn);
 		printf("\n> Block information:\n");
 		for (b=fn->start; b; b=b->link) {
-			printf("\t%-10s (% 5d) ", b->name, b->loop);
+			printf("\t%-10s (% 5d) ",
+				b->name, b->loop);
 			dumpss(&b->out, fn->sym, stdout);
 		}
 		pr = 0;

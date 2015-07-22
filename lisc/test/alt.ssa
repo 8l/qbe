@@ -4,7 +4,7 @@
 
 @start
 	%ten = copy 10
-	%dum = copy 0  # dummy live-through temprorary
+	%dum = copy 0  # dummy live-through temporary
 @loop
 	%alt = phi @start 0, @left %alt1, @right %alt1
 	%cnt = phi @start 100, @left %cnt, @right %cnt1
