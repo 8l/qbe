@@ -2,18 +2,16 @@
 
 
 static void
-loopmark(Blk **rpo, int head, int n)
+loopmark(Blk **rpo, int head, Blk *b)
 {
 	uint p;
-	Blk *b;
 
-	b = rpo[n];
-	if (n <= head || b->visit == head)
+	if (b->id <= head || b->visit == head)
 		return;
 	b->visit = head;
 	b->loop *= 10;
 	for (p=0; p<b->npred; p++)
-		loopmark(rpo, head, b->pred[p]->id);
+		loopmark(rpo, head, b->pred[p]);
 }
 
 static void
@@ -40,7 +38,7 @@ symuse(Ref r, int use, int loop, Fn *fn)
 void
 fillcost(Fn *fn)
 {
-	int n, m;
+	int n;
 	uint a;
 	Blk *b;
 	Ins *i;
@@ -53,11 +51,9 @@ fillcost(Fn *fn)
 	}
 	for (n=0; n<fn->nblk; n++) {
 		b = fn->rpo[n];
-		for (a=0; a<b->npred; a++) {
-			m = b->pred[a]->id;
-			if (m >= n)
-				loopmark(fn->rpo, n, m);
-		}
+		for (a=0; a<b->npred; a++)
+			if (b->pred[a]->id >= n)
+				loopmark(fn->rpo, n, b->pred[a]);
 	}
 	for (s=fn->sym; s-fn->sym < fn->ntmp; s++) {
 		s->cost = 0;
