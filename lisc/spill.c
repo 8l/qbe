@@ -55,7 +55,7 @@ symuse(Ref r, int use, int loop, Fn *fn)
 void
 fillcost(Fn *fn)
 {
-	int n, dmp;
+	int n, hd;
 	uint a;
 	Blk *b;
 	Ins *i;
@@ -66,19 +66,24 @@ fillcost(Fn *fn)
 		b->loop = 1;
 		b->visit = -1;
 	}
+	if (debug['S'])
+		fprintf(stderr, "> Loop information:\n");
 	for (n=0; n<fn->nblk; n++) {
 		b = fn->rpo[n];
-		dmp = 0;
+		hd = 0;
 		for (a=0; a<b->npred; a++)
 			if (b->pred[a]->id >= n) {
 				loopmark(b, b->pred[a]);
-				dmp = 1;
+				hd = 1;
 			}
-		if (dmp && debug['S']) {
-			fprintf(stderr, "uses for %s: ", b->name);
+		if (hd && debug['S']) {
+			fprintf(stderr, "\t%-10s", b->name);
+			fprintf(stderr, " (% 3d) ", b->nlive);
 			dumpss(&b->gen, fn->sym, stderr);
 		}
 	}
+	if (debug['S'])
+		fprintf(stderr,"\n");
 	for (s=fn->sym; s-fn->sym < fn->ntmp; s++) {
 		s->cost = 0;
 		s->nuse = 0;
@@ -227,14 +232,17 @@ spill(Fn *fn)
 		s2 = b->s2;
 		// k = NReg - !req(b->jmp.arg, R);
 		k = 4 - !req(b->jmp.arg, R);
-		if (!s1) {
-			assert(!s2);
-			v = (Bits){{0}};
-		} else if (s1->id <= n || (s2 && s2->id <= n)) {
-			/* back-edge */
-			hd = s1;
-			if (s2 && s2->id <= b->id && s2->id >= hd->id)
+		v = (Bits){{0}};
+		hd = 0;
+		if (s1) {
+			if (s1->id <= n)
+				hd = s1;
+			if (s2 && s2->id <= n)
+			if (!hd || s2->id >= hd->id)
 				hd = s2;
+		}
+		if (hd) {
+			/* back-edge */
 			pl = hd->nlive;
 			for (z=0; z<BITS; z++)
 				v.t[z] = hd->gen.t[z] & b->out.t[z];
@@ -249,7 +257,7 @@ spill(Fn *fn)
 					v.t[z] |= w.t[z];
 			} else if (j > k)
 				v = limit(&v, k, 0);
-		} else {
+		} else if (s1) {
 			v = s1->in;
 			w = s1->in;
 			if (s2)
