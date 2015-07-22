@@ -76,6 +76,7 @@ main(int ac, char *av[])
 
 		fprintf(stderr, "[Testing Spilling]\n");
 		fillrpo(fn);
+		fillpreds(fn);
 		filllive(fn);
 		fillcost(fn);
 		fprintf(stderr, "> Spill costs:\n");

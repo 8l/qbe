@@ -128,13 +128,14 @@ struct Blk {
 	Blk *s2;
 	Blk *link;
 
+	int id;
+	int visit;
 	Blk **pred;
 	uint npred;
 	Bits in, out, gen;
 	int nlive;
 	int loop;
 	char name[NString];
-	int id;
 };
 
 struct Sym {

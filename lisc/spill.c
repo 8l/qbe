@@ -2,6 +2,21 @@
 
 
 static void
+loopmark(Blk **rpo, int head, int n)
+{
+	uint p;
+	Blk *b;
+
+	b = rpo[n];
+	if (n <= head || b->visit == head)
+		return;
+	b->visit = head;
+	b->loop *= 10;
+	for (p=0; p<b->npred; p++)
+		loopmark(rpo, head, b->pred[p]->id);
+}
+
+static void
 symuse(Ref r, int use, int loop, Fn *fn)
 {
 	Sym *s;
@@ -20,7 +35,7 @@ symuse(Ref r, int use, int loop, Fn *fn)
 
 /* evaluate spill costs of temporaries,
  * this also fills usage information
- * requires rpo
+ * requires rpo, preds
  */
 void
 fillcost(Fn *fn)
@@ -32,27 +47,17 @@ fillcost(Fn *fn)
 	Sym *s;
 	Phi *p;
 
-	/* todo, have somewhat proper loop
-	 * detection for example on this
-	 * cfg, it's bogus:
-	 * +> loop <+
-	 * |   /\   |
-	 * +- a  b -+
-	 *    |  |
-	 *     \/
-	 *     end
-	 */
-	for (b=fn->start; b; b=b->link)
+	for (b=fn->start; b; b=b->link) {
 		b->loop = 1;
-	for (n=fn->nblk-1; n>=0; n--) {
+		b->visit = -1;
+	}
+	for (n=0; n<fn->nblk; n++) {
 		b = fn->rpo[n];
-		m = n;
-		if (b->s1 && b->s1->id < m)
-			m = b->s1->id;
-		if (b->s2 && b->s2->id < m)
-			m = b->s2->id;
-		for (; m<n; m++)
-			fn->rpo[m]->loop *= 10;
+		for (a=0; a<b->npred; a++) {
+			m = b->pred[a]->id;
+			if (m >= n)
+				loopmark(fn->rpo, n, m);
+		}
 	}
 	for (s=fn->sym; s-fn->sym < fn->ntmp; s++) {
 		s->cost = 0;
@@ -75,7 +80,7 @@ fillcost(Fn *fn)
 		for (i=b->ins; i-b->ins < b->nins; i++) {
 			symuse(i->to, 0, n, fn);
 			symuse(i->arg[0], 1, n, fn);
-			symuse(i->arg[0], 1, n, fn);
+			symuse(i->arg[1], 1, n, fn);
 		}
 		symuse(b->jmp.arg, 1, n, fn);
 	}
@@ -164,7 +169,7 @@ limit(Bits *b, int k, Bits *fst)
 }
 
 static int
-lscan(Bits *use, Blk **rpo, int n0, int n1)
+loopscan(Bits *use, Blk **rpo, int hd, int n)
 {
 	int z, pl;
 	Blk *b;
@@ -183,20 +188,20 @@ lscan(Bits *use, Blk **rpo, int n0, int n1)
 
 	pl = 0;
 	*use = (Bits){{0}};
-	for (; n0<n1; n0++) {
-		b = rpo[n0];
+	for (; hd<=n; hd++) {
+		b = rpo[hd];
 		if (b->nlive > pl)
 			pl = b->nlive;
 		for (z=0; z<BITS; z++)
 			use->t[z] |= b->gen.t[z];
 	}
 	for (z=0; z<BITS; z++)
-		use->t[z] &= rpo[n1]->out.t[z];
+		use->t[z] &= rpo[n]->out.t[z];
 	return pl;
 }
 
 /* spill code insertion
- * requires spill costs and rpo
+ * requires spill costs, rpo, liveness
  *
  * Note: this will replace liveness
  * information (in, out) with temporaries
@@ -230,7 +235,8 @@ spill(Fn *fn)
 		 * the end of the block (put them in v) */
 		s1 = b->s1;
 		s2 = b->s2;
-		k = NReg - !req(b->jmp.arg, R);
+		// k = NReg - !req(b->jmp.arg, R);
+		k = 4 - !req(b->jmp.arg, R);
 		if (!s1) {
 			assert(!s2);
 			v = (Bits){{0}};
@@ -239,7 +245,7 @@ spill(Fn *fn)
 			hd = s1;
 			if (s2 && s2->id <= hd->id)
 				hd = s2;
-			pl = lscan(&v, fn->rpo, hd->id, n);
+			pl = loopscan(&v, fn->rpo, hd->id, n);
 			j = bcnt(&v);
 			if (j < k) {
 				w = b->out;
@@ -268,6 +274,7 @@ spill(Fn *fn)
 			v = limit(&v, k, &w);
 		}
 		assert(bcnt(&v) <= k);
+		b->out = v;
 
 		/* 2. process the block instructions */
 		curi = &insb[NIns];
