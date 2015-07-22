@@ -6,7 +6,7 @@ loopmark(Blk **rpo, int head, Blk *b)
 {
 	uint p;
 
-	if (b->id <= head || b->visit == head)
+	if (b->id < head || b->visit == head)
 		return;
 	b->visit = head;
 	b->loop *= 10;
@@ -66,11 +66,13 @@ fillcost(Fn *fn)
 		for (p=b->phi; p; p=p->link) {
 			/* zero cost for temporaries used
 			 * in phi instructions */
-			assert(rtype(p->to) == RSym);
-			assert(fn->sym[p->to.val].type == STmp);
 			symuse(p->to, 0, 0, fn);
-			for (a=0; a<p->narg; a++)
-				symuse(p->arg[a], 1, 0, fn);
+			for (a=0; a<p->narg; a++) {
+				n = p->blk[a]->loop;
+				assert(b->npred && "invalid cfg");
+				n /= b->npred;
+				symuse(p->arg[a], 1, n, fn);
+			}
 		}
 		n = b->loop;
 		for (i=b->ins; i-b->ins < b->nins; i++) {
