@@ -85,9 +85,9 @@ main(int ac, char *av[])
 				fn->sym[t].name,
 				fn->sym[t].cost);
 		spill(fn);
-		fprintf(stderr, "\n> In registers at exits:\n");
+		fprintf(stderr, "\n> Block information:\n");
 		for (b=fn->start; b; b=b->link) {
-			printf("\t%s: [", b->name);
+			printf("\t%10s (% 5d) [", b->name, b->loop);
 			dumprset(&b->out, fn);
 			printf(" ]\n");
 		}
