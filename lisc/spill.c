@@ -234,13 +234,11 @@ spill(Fn *fn)
 		k = 4 - !req(b->jmp.arg, R);
 		v = (Bits){{0}};
 		hd = 0;
-		if (s1) {
-			if (s1->id <= n)
-				hd = s1;
-			if (s2 && s2->id <= n)
-			if (!hd || s2->id >= hd->id)
-				hd = s2;
-		}
+		if (s1 && s1->id <= n)
+			hd = s1;
+		if (s2 && s2->id <= n)
+		if (!hd || s2->id >= hd->id)
+			hd = s2;
 		if (hd) {
 			/* back-edge */
 			pl = hd->nlive;
