@@ -2,15 +2,20 @@
 
 
 static void
-loopmark(Blk *hd, Blk *b)
+loopmark(Blk *hd, Blk *b, Phi *p)
 {
 	int z, head;
 	uint n, a;
-	Blk *pr;
-	Phi *p;
 
 	head = hd->id;
-	if (b->id < head || b->visit == head)
+	if (b->id < head)
+		return;
+	for (; p; p=p->link)
+		for (a=0; a<p->narg; a++)
+			if (p->blk[a] == b)
+			if (rtype(p->arg[a]) == RSym)
+				BSET(hd->gen, p->arg[a].val);
+	if (b->visit == head)
 		return;
 	b->visit = head;
 	b->loop *= 10;
@@ -20,15 +25,8 @@ loopmark(Blk *hd, Blk *b)
 		hd->gen.t[z] |= b->gen.t[z];
 	if (b->nlive > hd->nlive)
 		hd->nlive = b->nlive;
-	for (n=0; n<b->npred; n++) {
-		pr = b->pred[n];
-		for (p=b->phi; p; p=p->link)
-			for (a=0; a<p->narg; a++)
-				if (p->blk[a] == pr)
-				if (rtype(p->arg[a]) == RSym)
-					BSET(hd->gen, p->arg[a].val);
-		loopmark(hd, pr);
-	}
+	for (n=0; n<b->npred; n++)
+		loopmark(hd, b->pred[n], b->phi);
 }
 
 static void
@@ -73,7 +71,7 @@ fillcost(Fn *fn)
 		hd = 0;
 		for (a=0; a<b->npred; a++)
 			if (b->pred[a]->id >= n) {
-				loopmark(b, b->pred[a]);
+				loopmark(b, b->pred[a], b->phi);
 				hd = 1;
 			}
 		if (hd && debug['S']) {
@@ -82,8 +80,6 @@ fillcost(Fn *fn)
 			dumpss(&b->gen, fn->sym, stderr);
 		}
 	}
-	if (debug['S'])
-		fprintf(stderr,"\n");
 	for (s=fn->sym; s-fn->sym < fn->ntmp; s++) {
 		s->cost = 0;
 		s->nuse = 0;
@@ -112,7 +108,7 @@ fillcost(Fn *fn)
 		symuse(b->jmp.arg, 1, n, fn);
 	}
 	if (debug['S']) {
-		fprintf(stderr, "> Spill costs:\n");
+		fprintf(stderr, "\n> Spill costs:\n");
 		for (n=Tmp0; n<fn->ntmp; n++)
 			fprintf(stderr, "\t%-10s %d\n",
 				fn->sym[n].name,
