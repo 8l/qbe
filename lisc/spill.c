@@ -150,6 +150,7 @@ extern Ins insb[NIns], *curi; /* shared work buffer */
 static Bits *f;  /* temps to prioritize in registers (for tcmp1) */
 static Sym *sym; /* current symbol table (for tcmpX) */
 static int ntmp; /* current # of temps (for limit) */
+static uint ns;  /* current # of spill slots */
 
 static int
 tcmp0(const void *pa, const void *pb)
@@ -200,6 +201,45 @@ limit(Bits *b, int k, Bits *fst)
 	return res;
 }
 
+static uint
+tspill(int t)
+{
+	int s;
+
+	s = sym[t].spill;
+	if (!s) {
+		s = 1 + ns++;
+		sym[t].spill = s;
+	}
+	return s;
+}
+
+static int
+tnew(int t0, int *t, int l)
+{
+	int *p, s;
+
+	assert(l <= NReg);
+	if (l == NReg) {
+		if (curi == insb)
+			diag("addtmp: out of memory");
+		curi--;
+		curi->to = SYM(t0);
+		curi->op = OLoad;
+		s = tspill(t[--l]);
+		curi->arg[0] = CONST(s);
+	}
+	t[l] = t0;
+	for (p=&t[l]; p>t; p--)
+		if (sym[*p].cost > sym[p[-1]].cost) {
+			*p = p[-1];
+			p[-1] = t0;
+		} else
+			assert(p[-1]!=t0);
+			/* break; */
+	return l+1;
+}
+
 /* spill code insertion
  * requires spill costs, rpo, liveness
  *
@@ -218,11 +258,13 @@ void
 spill(Fn *fn)
 {
 	Blk *b, *s1, *s2, *hd;
-	int n, z, pl;
+	int n, z, l, *t;
 	Bits v, w;
 	Ins *i;
 	int j;
 
+	t = 1 + (int[NReg+1]){0};
+	ns = 0;
 	sym = fn->sym;
 	ntmp = fn->ntmp;
 	assert(ntmp < NBit*BITS);
@@ -244,7 +286,7 @@ spill(Fn *fn)
 			hd = s2;
 		if (hd) {
 			/* back-edge */
-			pl = hd->nlive;
+			l = hd->nlive;
 			for (z=0; z<BITS; z++)
 				v.t[z] = hd->gen.t[z] & b->out.t[z];
 			j = bcnt(&v);
@@ -253,7 +295,7 @@ spill(Fn *fn)
 				for (z=0; z<BITS; z++)
 					w.t[z] &= ~v.t[z];
 				j = bcnt(&w);   /* live through */
-				w = limit(&w, NReg - (pl - j), 0);
+				w = limit(&w, NReg - (l - j), 0);
 				for (z=0; z<BITS; z++)
 					v.t[z] |= w.t[z];
 			} else if (j > NReg)
@@ -266,12 +308,7 @@ spill(Fn *fn)
 					v.t[z] |= s2->in.t[z];
 					w.t[z] &= s2->in.t[z];
 				}
-			for (z=0; z<BITS; z++) {
-				assert(!(v.t[z] & ~b->out.t[z]));
-				assert(!(w.t[z] & ~b->out.t[z]));
-			}
 			assert(bcnt(&w) <= NReg);
-			assert(bcnt(&w) <= bcnt(&v));
 			v = limit(&v, NReg, &w);
 		}
 		assert(bcnt(&v) <= NReg);
@@ -282,10 +319,25 @@ spill(Fn *fn)
 		b->out = v;
 
 		/* 2. process the block instructions */
+		l = 0;
+		for (j=0; j<fn->ntmp; j++)
+			if (BGET(v, j))
+				tnew(j, t, l++);
+		if (rtype(b->jmp.arg) == RSym
+		&& !BGET(v, b->jmp.arg.val)) {
+			j = b->jmp.arg.val;
+			tnew(j, t, l++);
+			BSET(v, j);
+		}
+
 		curi = &insb[NIns];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
+			assert(l<=NReg);
+			assert(l==bcnt(&v));
 			i--;
-			;
+			if (!req(i->to, R)) {
+				assert(rtype(i->to) == RSym);
+			}
 		}
 	}
 }

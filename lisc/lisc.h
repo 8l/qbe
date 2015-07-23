@@ -45,7 +45,7 @@ enum {
 	NIns    = 256,
 
 	BITS    = 4,
-	NBit    = 8 * sizeof(uint64_t),
+	NBit    = 64,
 };
 
 struct Bits {
@@ -83,6 +83,8 @@ enum {
 	OSub,
 	ODiv,
 	ORem,
+	OStore,
+	OLoad,
 	/* reserved instructions */
 	OCopy,
 	OXCltd,
@@ -147,7 +149,8 @@ struct Sym {
 	} type;
 	char name[NString];
 	uint ndef, nuse;
-	int cost;
+	uint cost;
+	uint spill;
 };
 
 struct Fn {
