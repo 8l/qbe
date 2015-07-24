@@ -74,11 +74,17 @@ main(int ac, char *av[])
 		pr = 0;
 		break;
 	}
+	case 'i': {
+		fprintf(stderr, "[Testing Instruction Selection]\n");
+		isel(fn);
+		break;
+	}
 	case 's': {
 		Blk *b;
 
 		fprintf(stderr, "[Testing Spilling]\n");
 		debug['S'] = 1;
+		isel(fn);
 		fillrpo(fn);
 		fillpreds(fn);
 		filllive(fn);
@@ -90,7 +96,8 @@ main(int ac, char *av[])
 				b->name, b->loop);
 			dumpss(&b->out, fn->sym, stdout);
 		}
-		pr = 0;
+		printf("\n");
+		pr = 1;
 		break;
 	}
 	default:
