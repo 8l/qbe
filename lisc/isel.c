@@ -2,11 +2,6 @@
 
 /* For x86_64, we have to:
  *
- * - add dummy uses for the second argument
- *   after non-commutative arithmetic
- *   operations (this prevents the reg.
- *   allocator to get 'eax = sub ebx eax')
- *
  * - check that constants are used only in
  *   places allowed by the machine
  *
@@ -62,9 +57,7 @@ sel(Ins *i, Fn *fn)
 		break;
 	case OAdd:
 	case OSub:
-		if (!opdesc[i->op].commut
-		&& rtype(i->arg[1]) != RConst)
-			emit(OCopy, R, i->arg[1], R);
+	case OCopy:
 		emit(i->op, i->to, i->arg[0], i->arg[1]);
 		break;
 	default:
