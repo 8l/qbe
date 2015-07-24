@@ -223,6 +223,35 @@ limit(Bits *b, int k, Bits *fst)
 	return res;
 }
 
+static void
+setloc(Ref *pr, Bits *v, Bits *w)
+{
+	int t;
+
+	/* <arch>
+	 *   here we assume that the
+	 *   machine can always support
+	 *   instructions of the kind
+	 *   reg = op slot, slot
+	 *   if not, we need to add
+	 *   't' to 'w' before calling
+	 *   limit
+	 */
+	if (rtype(*pr) != RSym)
+		return;
+	t = pr->val;
+	BSET(*v, t);
+	*v = limit(v, NReg, w);
+	if (curi->op == OLoad)
+	if (curi->to.val == t)
+		curi++;
+	if (!BGET(*v, t))
+		*pr = slot(t);
+	else
+		BSET(*w, t);
+}
+
+
 /* spill code insertion
  * requires spill costs, rpo, liveness
  *
@@ -311,14 +340,6 @@ spill(Fn *fn)
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			assert(bcnt(&v) <= NReg);
 			i--;
-			/* <arch>
-			 *   here we assume that the
-			 *   machine can always support
-			 *   instructions of the kind
-			 *   reg = op slot, slot
-			 *   if not, we need to use the
-			 *   last argument of 'limit'
-			 */
 			if (!req(i->to, R)) {
 				assert(rtype(i->to)==RSym);
 				j = i->to.val;
@@ -330,48 +351,23 @@ spill(Fn *fn)
 			} else
 				s = 0;
 			w = (Bits){{0}};
-			if (rtype(i->arg[1]) == RSym) {
-				j = i->arg[1].val;
-				if (!req(i->to, R)
-				&& opdesc[i->op].commut == 0) {
-					/* <arch>
-					 *   here we make sure that we
-					 *   will never have to compile
-					 *   say: eax = sub ebx, eax
-					 *   on a two-address machine
-					 */
-					BSET(w, i->to.val);
-					BSET(v, i->to.val);
-					BSET(v, j);
-					v = limit(&v, NReg, &w);
-					if (curi->op == OLoad)
-					if (curi->to.val == j)
-						curi++;
-					if (!BGET(v, j))
-						i->arg[1] = slot(j);
-					BCLR(v, i->to.val);
-					BCLR(w, i->to.val);
-				} else {
-					BSET(v, j);
-					v = limit(&v, NReg, 0);
-					if (!BGET(v, j))
-						i->arg[1] = slot(j);
-				}
-				if (BGET(v, j))
-					BSET(w, j);
-			}
-			if (rtype(i->arg[0]) == RSym) {
-				j = i->arg[0].val;
-				BSET(v, j);
-				v = limit(&v, NReg, &w);
-				if (curi->op == OLoad)
-				if (curi->to.val == j)
-					curi++;
-				if (!BGET(v, j))
-					i->arg[0] = slot(j);
-				else
-					BSET(w, j);
-			}
+			if (rtype(i->arg[1]) == RSym
+			&& !req(i->to, R)
+			&& !opdesc[i->op].commut) {
+				/* <arch>
+				 *   here we make sure that we
+				 *   will never have to compile
+				 *   say: eax = sub ebx, eax
+				 *   on a two-address machine
+				 */
+				BSET(w, i->to.val);
+				BSET(v, i->to.val);
+				setloc(&i->arg[1], &v, &w);
+				BCLR(v, i->to.val);
+				BCLR(w, i->to.val);
+			} else
+				setloc(&i->arg[1], &v, &w);
+			setloc(&i->arg[0], &v, &w);
 			if (s)
 				emit(OStore, R, i->to, SLOT(s));
 			emit(i->op, i->to, i->arg[0], i->arg[1]);
