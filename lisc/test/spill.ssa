@@ -1,11 +1,13 @@
-# Test with NReg == 3
+# test with NReg == 3
 # there must be a spill
-# happening on %c.
-# If you replace the sub
+# happening on %c
+#
+# if you replace the sub
 # by an add or comment
 # the two marked lines
 # there should be no
-# spill.
+# spill
+#
 
 @start
 	%f = copy 0      # here
@@ -13,6 +15,6 @@
 	%c = copy 2
 	%a = sub %b, %c
 	%d = copy %b
-	%e = copy %f     # and here
+	%e = copy %f     # and there
 	%g = copy %a
 	ret
