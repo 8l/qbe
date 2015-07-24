@@ -167,6 +167,27 @@ tcmp1(const void *pa, const void *pb)
 	return c ? c : tcmp0(pa, pb);
 }
 
+static Ref
+slot(int t)
+{
+	int s;
+
+	s = sym[t].spill;
+	if (!s) {
+		s = 1 + ns++;
+		sym[t].spill = s;
+	}
+	return SLOT(s);
+}
+
+static void
+emit(short op, Ref to, Ref arg0, Ref arg1)
+{
+	if (curi == insb)
+		diag("emit (spill.c): out of memory");
+	*--curi = (Ins){op, to, {arg0, arg1}};
+}
+
 static Bits
 limit(Bits *b, int k, Bits *fst)
 {
@@ -183,11 +204,9 @@ limit(Bits *b, int k, Bits *fst)
 		maxt = nt;
 	}
 	i = 0;
-	for (t=0/*Tmp0*/; t<ntmp; t++)
-		if (BGET(*b, t)) {
-			assert(sym[t].type == STmp);
+	for (t=0; t<ntmp; t++)
+		if (BGET(*b, t))
 			tmp[i++] = t;
-		}
 	assert(i == nt);
 	if (!fst)
 		qsort(tmp, nt, sizeof tmp[0], tcmp0);
@@ -198,46 +217,10 @@ limit(Bits *b, int k, Bits *fst)
 	res = (Bits){{0}};
 	for (i=0; i<k && i<nt; i++)
 		BSET(res, tmp[i]);
+	if (curi)
+		for (; i<nt; i++)
+			emit(OLoad, SYM(tmp[i]), slot(tmp[i]), R);
 	return res;
-}
-
-static uint
-tspill(int t)
-{
-	int s;
-
-	s = sym[t].spill;
-	if (!s) {
-		s = 1 + ns++;
-		sym[t].spill = s;
-	}
-	return s;
-}
-
-static int
-tnew(int t0, int *t, int l)
-{
-	int *p, s;
-
-	assert(l <= NReg);
-	if (l == NReg) {
-		if (curi == insb)
-			diag("addtmp: out of memory");
-		curi--;
-		curi->to = SYM(t0);
-		curi->op = OLoad;
-		s = tspill(t[--l]);
-		curi->arg[0] = CONST(s);
-	}
-	t[l] = t0;
-	for (p=&t[l]; p>t; p--)
-		if (sym[*p].cost > sym[p[-1]].cost) {
-			*p = p[-1];
-			p[-1] = t0;
-		} else
-			assert(p[-1]!=t0);
-			/* break; */
-	return l+1;
 }
 
 /* spill code insertion
@@ -258,12 +241,12 @@ void
 spill(Fn *fn)
 {
 	Blk *b, *s1, *s2, *hd;
-	int n, z, l, *t;
+	int n, z, l;
 	Bits v, w;
 	Ins *i;
-	int j;
+	int j, s;
+	Phi *p;
 
-	t = 1 + (int[NReg+1]){0};
 	ns = 0;
 	sym = fn->sym;
 	ntmp = fn->ntmp;
@@ -275,6 +258,7 @@ spill(Fn *fn)
 
 		/* 1. find temporaries in registers at
 		 * the end of the block (put them in v) */
+		curi = 0;
 		s1 = b->s1;
 		s2 = b->s2;
 		v = (Bits){{0}};
@@ -311,33 +295,90 @@ spill(Fn *fn)
 			assert(bcnt(&w) <= NReg);
 			v = limit(&v, NReg, &w);
 		}
-		assert(bcnt(&v) <= NReg);
-		if (rtype(b->jmp.arg) == RSym
-		&& !BGET(v, b->jmp.arg.val)
-		&& bcnt(&v) == NReg)
-			v = limit(&v, NReg-1, 0);
 		b->out = v;
+		assert(bcnt(&v) <= NReg);
 
 		/* 2. process the block instructions */
-		l = 0;
-		for (j=0; j<fn->ntmp; j++)
-			if (BGET(v, j))
-				tnew(j, t, l++);
-		if (rtype(b->jmp.arg) == RSym
-		&& !BGET(v, b->jmp.arg.val)) {
+		if (rtype(b->jmp.arg) == RSym) {
 			j = b->jmp.arg.val;
-			tnew(j, t, l++);
+			if (!BGET(v, j) && l==NReg) {
+				v = limit(&v, l-1, 0);
+				b->out = v;
+			}
 			BSET(v, j);
 		}
-
 		curi = &insb[NIns];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
-			assert(l<=NReg);
-			assert(l==bcnt(&v));
+			assert(bcnt(&v) <= NReg);
 			i--;
+			/* <arch>
+			 *   here we assume that the
+			 *   machine can always support
+			 *   instructions of the kind
+			 *   reg = op slot, slot
+			 *   if not, we need to use the
+			 *   last argument of 'limit'
+			 */
 			if (!req(i->to, R)) {
-				assert(rtype(i->to) == RSym);
+				assert(rtype(i->to)==RSym);
+				j = i->to.val;
+				if (BSET(v, j))
+					BCLR(v, j);
+				else
+					v = limit(&v, NReg-1, &w);
+				s = sym[j].spill;
+			} else
+				s = 0;
+			w = (Bits){{0}};
+			if (rtype(i->arg[1]) == RSym) {
+				j = i->arg[1].val;
+				if (!req(i->to, R)
+				&& opdesc[i->op].commut == 0) {
+					/* <arch>
+					 */
+					BSET(w, i->to.val);
+					BSET(v, i->to.val);
+					BSET(v, j);
+					v = limit(&v, NReg, &w);
+					if (curi->op == OLoad)
+					if (curi->to.val == j)
+						curi++;
+					if (!BGET(v, j))
+						i->arg[1] = slot(j);
+					BCLR(v, i->to.val);
+					BCLR(w, i->to.val);
+				} else {
+					BSET(v, j);
+					v = limit(&v, NReg, 0);
+					if (!BGET(v, j))
+						i->arg[1] = slot(j);
+				}
+				if (BGET(v, j))
+					BSET(w, j);
 			}
+			if (rtype(i->arg[0]) == RSym) {
+				j = i->arg[0].val;
+				BSET(v, j);
+				v = limit(&v, NReg, &w);
+				if (curi->op == OLoad)
+				if (curi->to.val == j)
+					curi++;
+				if (!BGET(v, j))
+					i->arg[0] = slot(j);
+				else
+					BSET(w, j);
+			}
+			if (s)
+				emit(OStore, R, i->to, SLOT(s));
+			emit(i->op, i->to, i->arg[0], i->arg[1]);
 		}
+		free(b->ins);
+		b->nins = &insb[NIns] - curi;
+		b->ins = alloc(b->nins * sizeof(Ins));
+		memcpy(b->ins, curi, b->nins * sizeof(Ins));
+
+		for (p=b->phi; p; p=p->link)
+			BCLR(v, p->to.val);
+		b->in = v;
 	}
 }

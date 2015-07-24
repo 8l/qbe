@@ -16,6 +16,8 @@ OpDesc opdesc[OLast] = {
 	[OSub] = { 2, 0, "sub" },
 	[ODiv] = { 2, 0, "div" },
 	[ORem] = { 2, 0, "mod" },
+	[OStore] = { 2, 0, "store" },
+	[OLoad] = { 1, 0, "load" },
 	[OCopy] = { 1, 0, "copy" },
 };
 
@@ -484,6 +486,9 @@ printref(Ref r, Fn *fn, FILE *f)
 	case RConst:
 		fprintf(f, "%d", r.val);
 		break;
+	case RSlot:
+		fprintf(f, "$%d", r.val);
+		break;
 	}
 }
 
@@ -514,9 +519,12 @@ printfn(Fn *fn, FILE *f)
 		}
 		for (i=b->ins; i-b->ins < b->nins; i++) {
 			fprintf(f, "\t");
-			printref(i->to, fn, f);
+			if (!req(i->to, R)) {
+				printref(i->to, fn, f);
+				fprintf(f, " = ");
+			}
 			assert(opdesc[i->op].name);
-			fprintf(f, " = %s", opdesc[i->op].name);
+			fprintf(f, "%s", opdesc[i->op].name);
 			n = opdesc[i->op].arity;
 			if (n > 0) {
 				fprintf(f, " ");

@@ -33,7 +33,7 @@ enum {
 	R14,
 	R15,
 	// NReg = R15 - RAX + 1
-	NReg = 4 /* for test purposes */
+	NReg = 3 /* for test purposes */
 };
 
 enum {
@@ -57,19 +57,21 @@ struct Bits {
 #define BCLR(b, n) ((b).t[n/NBit] &= ~(1ll<<(n%NBit)))
 
 struct Ref {
-	uint16_t type:1;
-	uint16_t val:15;
+	uint16_t type:2;
+	uint16_t val:14;
 };
 
 enum {
-	RSym = 0,
-	RConst = 1,
-	NRef = (1<<15) - 1
+	RSym,
+	RConst,
+	RSlot,
+	NRef = (1<<14) - 1
 };
 
 #define R        (Ref){0, 0}
 #define SYM(x)   (Ref){RSym, x}
 #define CONST(x) (Ref){RConst, x}
+#define SLOT(x)  (Ref){RSlot, x}
 
 static inline int req(Ref a, Ref b)
 { return a.type == b.type && a.val == b.val; }
