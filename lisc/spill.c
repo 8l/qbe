@@ -322,7 +322,7 @@ spill(Fn *fn)
 			if (!req(i->to, R)) {
 				assert(rtype(i->to)==RSym);
 				j = i->to.val;
-				if (BSET(v, j))
+				if (BGET(v, j))
 					BCLR(v, j);
 				else
 					v = limit(&v, NReg-1, &w);
@@ -335,6 +335,10 @@ spill(Fn *fn)
 				if (!req(i->to, R)
 				&& opdesc[i->op].commut == 0) {
 					/* <arch>
+					 *   here we make sure that we
+					 *   will never have to compile
+					 *   say: eax = sub ebx, eax
+					 *   on a two-address machine
 					 */
 					BSET(w, i->to.val);
 					BSET(v, i->to.val);
