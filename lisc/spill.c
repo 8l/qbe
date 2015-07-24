@@ -184,7 +184,7 @@ static void
 emit(short op, Ref to, Ref arg0, Ref arg1)
 {
 	if (curi == insb)
-		diag("emit (spill.c): out of memory");
+		diag("spill: too many instructions");
 	*--curi = (Ins){op, to, {arg0, arg1}};
 }
 
