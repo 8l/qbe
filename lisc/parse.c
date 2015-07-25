@@ -231,7 +231,7 @@ next()
 	return t;
 }
 
-static Blk *
+Blk *
 blocka()
 {
 	static Blk zblock;

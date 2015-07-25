@@ -172,6 +172,7 @@ void dumpss(Bits *, Sym *, FILE *);
 extern OpDesc opdesc[];
 void diag(char *);
 void *alloc(size_t);
+Blk *blocka(void);
 Fn *parsefn(FILE *);
 void printfn(Fn *, FILE *);
 
