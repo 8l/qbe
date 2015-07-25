@@ -1,0 +1,15 @@
+# euclide's algorithm in ssa
+# it is a fairly interesting
+# ssa program because of the
+# swap of b and a
+
+@start
+
+@loop
+	%a = phi @start 380, @loop %r
+	%b = phi @start 747, @loop %a
+	%r = rem %b, %a
+	jez %r, @end, @loop
+
+@end
+	ret
