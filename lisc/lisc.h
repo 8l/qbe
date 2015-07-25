@@ -89,8 +89,8 @@ enum {
 	OLoad,
 	/* reserved instructions */
 	OCopy,
-	OXCltd,
-	OXDiv,
+	OIACltd,
+	OIADiv,
 	OLast
 };
 

@@ -12,13 +12,15 @@ enum {
 Ins insb[NIns], *curi;
 
 OpDesc opdesc[OLast] = {
-	[OAdd] = { 2, 1, "add" },
-	[OSub] = { 2, 0, "sub" },
-	[ODiv] = { 2, 0, "div" },
-	[ORem] = { 2, 0, "mod" },
-	[OStore] = { 2, 0, "store" },
-	[OLoad] = { 1, 0, "load" },
-	[OCopy] = { 1, 0, "copy" },
+	[OAdd]    = { 2, 1, "add" },
+	[OSub]    = { 2, 0, "sub" },
+	[ODiv]    = { 2, 0, "div" },
+	[ORem]    = { 2, 0, "rem" },
+	[OStore]  = { 2, 0, "store" },
+	[OLoad]   = { 1, 0, "load" },
+	[OIADiv]  = { 1, 0, "iadiv" },
+	[OIACltd] = { 0, 0, "iacltd" },
+	[OCopy]   = { 1, 0, "copy" },
 };
 
 typedef enum {
@@ -61,7 +63,24 @@ static struct {
 } tokval;
 static int lnum;
 
-static Sym sym[NSym];
+static Sym sym[NSym] = {
+	[RAX] = { .type = SReg, .name = "rax" },
+	[RCX] = { .type = SReg, .name = "rcx" },
+	[RDX] = { .type = SReg, .name = "rdx" },
+	[RBX] = { .type = SReg, .name = "rbx" },
+	[RSP] = { .type = SReg, .name = "rsp" },
+	[RBP] = { .type = SReg, .name = "rbp" },
+	[RSI] = { .type = SReg, .name = "rsi" },
+	[RDI] = { .type = SReg, .name = "rdi" },
+	[R8 ] = { .type = SReg, .name = "r8" },
+	[R9 ] = { .type = SReg, .name = "r9" },
+	[R10] = { .type = SReg, .name = "r10" },
+	[R11] = { .type = SReg, .name = "r11" },
+	[R12] = { .type = SReg, .name = "r12" },
+	[R13] = { .type = SReg, .name = "r13" },
+	[R14] = { .type = SReg, .name = "r14" },
+	[R15] = { .type = SReg, .name = "r15" },
+};
 static int ntmp;
 static Phi **plink;
 static Blk *bmap[NBlk+1];
@@ -481,7 +500,17 @@ printref(Ref r, Fn *fn, FILE *f)
 {
 	switch (r.type) {
 	case RSym:
-		fprintf(f, "%%%s", fn->sym[r.val].name);
+		switch (fn->sym[r.val].type) {
+		case STmp:
+			fprintf(f, "%%%s", fn->sym[r.val].name);
+			break;
+		case SReg:
+			fprintf(f, "%s", fn->sym[r.val].name);
+			break;
+		case SUndef:
+			fprintf(f, "???");
+			break;
+		}
 		break;
 	case RConst:
 		fprintf(f, "%d", r.val);
