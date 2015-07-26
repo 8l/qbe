@@ -11,9 +11,11 @@ struct RMap {
 };
 
 extern Ins insb[NIns], *curi;
-static Sym *sym;   /* symbol table in use */
-static Blk *elist; /* edge list created by edge() */
-static int ne;     /* length of elist */
+static Sym *sym;       /* symbol table in use */
+static struct {
+	Ref src, dst;
+} *pm;                 /* parallel move constructed */
+static int cpm, npm;   /* capacity and size of pm */
 
 static int
 rfind(RMap *m, int t)
@@ -24,6 +26,20 @@ rfind(RMap *m, int t)
 		if (m->t[i] == t)
 			return m->r[i];
 	return -1;
+}
+
+static Ref
+rref(RMap *m, int t)
+{
+	int r, s;
+
+	r = rfind(m, t);
+	if (r == -1) {
+		s = sym[t].spill;
+		assert(s && "should have spilled");
+		return SLOT(s);
+	} else
+		return SYM(r);
 }
 
 static void
@@ -40,7 +56,7 @@ radd(RMap *m, int t, int r)
 	m->n++;
 }
 
-static void
+static int
 ralloc(RMap *m, int t)
 {
 	int r;
@@ -52,6 +68,7 @@ ralloc(RMap *m, int t)
 			if (!BGET(m->br, r))
 				break;
 	radd(m, t, r);
+	return t;
 }
 
 static int
@@ -72,14 +89,66 @@ rfree(RMap *m, int t)
 	return r;
 }
 
-static int
+static inline int
 isreg(Ref r)
 {
 	return rtype(r) == RSym && sym[r.val].type == SReg;
 }
 
+static void
+pmadd(Ref src, Ref dst)
+{
+	if (npm == cpm) {
+		cpm *= 2;
+		pm = realloc(pm, cpm * sizeof pm[0]);
+		if (!pm)
+			diag("pmadd: out of memory");
+	}
+	pm[npm].src = src;
+	pm[npm].dst = dst;
+	npm++;
+}
+
+enum PMStat { ToMove, Moving, Moved };
+
+static void
+pmrec(enum PMStat *status, int i)
+{
+	int j;
+
+	if (req(pm[i].src, pm[i].dst))
+		return;
+	status[i] = Moving;
+	for (j=0; j<npm; j++) {
+		if (req(pm[j].src, pm[i].dst))
+			switch (status[j]) {
+			case ToMove:
+				pmrec(status, j);
+				break;
+			case Moving:
+			case Moved:
+				break;
+			}
+	}
+	status[i] = Moved;
+}
+
+static void
+pmgen()
+{
+	int i;
+	enum PMStat *status;
+
+	status = alloc(npm * sizeof status[0]);
+	assert(!npm || status[npm-1] == ToMove);
+	curi = insb;
+	for (i=0; i<npm; i++)
+		pmrec(status, i);
+	free(status);
+}
+
 static Ins *
-pmgen(Blk *b, Ins *i)
+dopm(Blk *b, Ins *i)
 {
 	diag("not implemented");
 	return 0;
@@ -91,10 +160,13 @@ pmgen(Blk *b, Ins *i)
 void
 rega(Fn *fn)
 {
-	int n, t, u, r;
-	Blk *b, *b1;
+	int n, t, u, r, z;
+	Blk *b, *b1, *s, ***ps, *blist;
 	Ins *i;
 	RMap *end, *beg, cur;
+	Phi *p;
+	uint a;
+	Bits v;
 
 	sym = fn->sym;
 	/* 1. gross hinting setup */
@@ -136,13 +208,14 @@ rega(Fn *fn)
 			if (!BGET(cur.bt, t))
 				ralloc(&cur, t);
 		/* process instructions */
+		end[n] = cur;
 		if (rtype(b->jmp.arg) == RSym)
 			ralloc(&cur, b->jmp.arg.val);
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			i--;
 			if (i->op == OCopy /* par. moves are special */
 			&& (isreg(i->arg[0]) || isreg(i->to))) {
-				i = pmgen(b, i);
+				i = dopm(b, i);
 				continue;
 			}
 			if (!req(i->to, R))
@@ -157,7 +230,7 @@ rega(Fn *fn)
 				t = i->arg[0].val;
 				if (sym[t].hint == -1)
 					sym[t].hint = r;
-				ralloc(&cur, t);
+				i->arg[0] = SYM(ralloc(&cur, t));
 			}
 			if (rtype(i->arg[1]) == RSym) {
 				/* <arch>
@@ -169,43 +242,58 @@ rega(Fn *fn)
 				if (!opdesc[i->op].commut && r!=-1)
 					BSET(cur.br, r);
 				t = i->arg[1].val;
-				ralloc(&cur, t);
+				i->arg[1] = SYM(ralloc(&cur, t));
 				if (!opdesc[i->op].commut && r!=-1)
 					BCLR(cur.br, r);
 			}
 		}
+		beg[n] = cur;
 	}
 
 	/* 3. compose glue code */
+	blist = 0;
+	for (b=fn->start;; b=b->link) {
+		ps = (Blk**[3]){&b->s1, &b->s2, (Blk*[1]){0}};
+		for (; (s=**ps); ps++) {
+			v = b->out;
+			for (z=0; z<BITS; z++)
+				v.t[z] |= s->in.t[z];
+			for (p=s->phi; p; p=p->link) {
+				for (a=0; p->blk[a]!=b; a++)
+					assert(a+1 < p->narg);
+				if (rtype(p->arg[a]) == RSym)
+					BSET(v, p->arg[a].val);
+			}
+			npm = 0;
+			for (t=Tmp0; t<fn->ntmp; t++)
+				if (BGET(v, t))
+					pmadd(
+						rref(&end[b->id], t),
+						rref(&beg[s->id], t)
+					);
+			pmgen();
+			/* todo, moving this out of
+			 * here would make sense */
+			n = curi-insb;
+			b1 = blocka();
+			b1->link = blist;
+			blist = b1;
+			fn->nblk++;
+			sprintf(b1->name, "%s_%s", b->name, s->name);
+			i = alloc(n * sizeof(Ins));
+			memcpy(i, insb, n * sizeof(Ins));
+			b1->ins = i;
+			b1->nins = n;
+			b1->jmp.type = JJmp;
+			b1->s1 = s;
+			**ps = b1;
+		}
+		if (!b->link) {
+			b->link = blist;
+			break;
+		}
+	}
+
 	free(end);
 	free(beg);
-}
-
-
-
-
-
-
-static Blk *
-edge(Blk *b, Blk **ps, Ins *ins, int nins)
-{
-	Blk *b1, *s;
-	Ins *ib;
-
-	/* we could try to merge in blocks,
-	 * but what the hell...
-	 */
-	s = *ps;
-	b1 = blocka();
-	b1->link = elist;
-	elist = b1;
-	ne++;
-	sprintf(b1->name, "%s_%s", b->name, s->name);
-	ib = alloc(nins * sizeof(Ins));
-	memcpy(ib, ins, nins * sizeof(Ins));
-	b1->ins = ib;
-	b1->nins = nins;
-	b1->jmp.type = JJmp;
-	b1->s1 = s;
-	return *ps = b1;
 }
