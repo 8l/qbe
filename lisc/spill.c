@@ -254,93 +254,6 @@ setloc(Ref *pr, Bits *v, Bits *w)
 		BSET(*w, t);
 }
 
-static Blk *elist; /* edge list created by edge() */
-static int ne;     /* length of elist */
-
-static Blk *
-edge(Blk *b, Blk **ps, Ins *ins, int nins)
-{
-	Blk *b1, *s;
-	Ins *ib;
-	Phi *p;
-	uint a;
-
-	s = *ps;
-	/* first, try adding at the beginning
-	 * or end of b or s
-	 *
-	 * todo, hey, is this overkill?
-	 */
-	if (b->s1 == s && !b->s2) {
-		ib = alloc((nins + b->nins) * sizeof(Ins));
-		memcpy(ib, b->ins, b->nins * sizeof(Ins));
-		memcpy(&ib[b->nins], ins, nins * sizeof(Ins));
-		free(b->ins);
-		b->nins += nins;
-		b->ins = ib;
-		return 0;
-	}
-	if (s->npred == 1) {
-		ib = alloc((nins + s->nins) * sizeof(Ins));
-		memcpy(ib, ins, nins * sizeof(Ins));
-		memcpy(&ib[nins], s->ins, s->nins * sizeof(Ins));
-		free(s->ins);
-		s->nins += nins;
-		s->ins = ib;
-		return 0;
-	}
-	/* last resort alloc a block */
-	b1 = blocka();
-	b1->link = elist;
-	elist = b1;
-	ne++;
-	sprintf(b1->name, "%s_%s", b->name, s->name);
-	ib = alloc(nins * sizeof(Ins));
-	memcpy(ib, ins, nins * sizeof(Ins));
-	b1->ins = ib;
-	b1->nins = nins;
-	b1->jmp.type = JJmp;
-	b1->s1 = s;
-	*ps = b1;
-	/* fix phis and predecessors */
-	for (p=s->phi; p; p=p->link)
-		for (a=0; a<p->narg; a++)
-			if (p->blk[a] == b)
-				p->blk[a] = b1;
-	for (a=0; a<s->npred; a++)
-		if (s->pred[a] == b)
-			s->pred[a] = b1;
-	return b1;
-}
-
-static void
-reload(Blk *b, Blk **ps)
-{
-	Bits v;
-	Blk *s, *e;
-	int z, t;
-	Ref sr;
-
-	s = *ps;
-	curi = insb;
-	v = s->in;
-	for (z=0; z<BITS; z++)
-		v.t[z] &= ~b->out.t[z];
-	for (t=Tmp0; t<ntmp; t++)
-		if (BGET(v, t)) {
-			sr = SLOT(sym[t].spill);
-			assert(sr.val);
-			*curi++ = (Ins){OLoad, SYM(t), {sr, R}};
-		}
-	if (curi != insb) {
-		e = edge(b, ps, insb, curi-insb);
-		if (e) {
-			e->loop = s->loop/s->npred;
-			e->out = v;
-		}
-	}
-}
-
 /* spill code insertion
  * requires spill costs, rpo, liveness
  *
@@ -364,9 +277,6 @@ spill(Fn *fn)
 	Ins *i;
 	int j, s;
 	Phi *p;
-	Ref sr;
-	Ins *ib;
-	uint a;
 
 	ns = 0;
 	sym = fn->sym;
@@ -464,58 +374,21 @@ spill(Fn *fn)
 				emit(OStore, R, i->to, SLOT(s));
 			emit(i->op, i->to, i->arg[0], i->arg[1]);
 		}
+
+		for (p=b->phi; p; p=p->link) {
+			t = p->to.val;
+			if (BGET(v, t)) {
+				BCLR(v, t);
+				s = sym[t].spill;
+				if (s)
+					emit(OStore, R, p->to, SLOT(s));
+			} else
+				p->to = slot(p->to.val);
+		}
 		free(b->ins);
 		b->nins = &insb[NIns] - curi;
 		b->ins = alloc(b->nins * sizeof(Ins));
 		memcpy(b->ins, curi, b->nins * sizeof(Ins));
-
-		for (p=b->phi; p; p=p->link)
-			if (BGET(v, p->to.val))
-				BCLR(v, p->to.val);
-			else
-				p->to = slot(p->to.val);
 		b->in = v;
-	}
-
-	/* 3. fix phi nodes and
-	 * insert reload code between blocks */
-	ne = 0;
-	elist = 0;
-	for (b=fn->start;; b=b->link) {
-		if (b->s1)
-			reload(b, &b->s1);
-		if (b->s2)
-			reload(b, &b->s2);
-		curi = insb;
-		for (p=b->phi; p; p=p->link) {
-			t = p->to.val;
-			sr = SLOT(sym[t].spill);
-			if (sr.val)
-				*curi++ = (Ins){OStore, R, {SYM(t), sr}};
-			for (a=0; a<p->narg; a++) {
-				if (rtype(p->arg[a]) != RSym)
-					continue;
-				t = p->arg[a].val;
-				if (!BGET(p->blk[a]->out, t)) {
-					sr = SLOT(sym[t].spill);
-					assert(sr.val);
-					p->arg[a] = sr;
-				}
-			}
-		}
-		if (curi != insb) {
-			n = curi - insb;
-			ib = alloc((b->nins+n) * sizeof(Ins));
-			memcpy(ib, insb, n * sizeof(Ins));
-			memcpy(&ib[n], b->ins, b->nins * sizeof(Ins));
-			free(b->ins);
-			b->nins += n;
-			b->ins = ib;
-		}
-		if (!b->link) {
-			b->link = elist;
-			fn->nblk += ne;
-			break;
-		}
 	}
 }
