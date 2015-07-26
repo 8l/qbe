@@ -153,6 +153,7 @@ struct Sym {
 	uint ndef, nuse;
 	uint cost;
 	uint spill;
+	int hint;
 };
 
 struct Fn {
@@ -191,3 +192,6 @@ void isel(Fn *);
 int bcnt(Bits *);
 void fillcost(Fn *);
 void spill(Fn *);
+
+/* rega.c */
+void rega(Fn *);
