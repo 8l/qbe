@@ -139,7 +139,7 @@ lex()
 		{ "jmp", TJmp },
 		{ "jez", TJez },
 		{ "ret", TRet },
-		{ 0 },
+		{ 0, TXXX }
 	};
 	static char tok[NString];
 	int c, i, sgn;
