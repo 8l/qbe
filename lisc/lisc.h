@@ -88,6 +88,7 @@ enum {
 	OStore,
 	OLoad,
 	/* reserved instructions */
+	ONop,
 	OCopy,
 	OSwap,
 	OIACltd,

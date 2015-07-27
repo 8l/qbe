@@ -18,6 +18,7 @@ OpDesc opdesc[OLast] = {
 	[ORem]    = { 2, 0, "rem" },
 	[OStore]  = { 2, 0, "store" },
 	[OLoad]   = { 1, 0, "load" },
+	[ONop]    = { 0, 0, "nop" },
 	[OCopy]   = { 1, 0, "copy" },
 	[OSwap]   = { 2, 1, "swap" },
 	[OIADiv]  = { 1, 0, "iadiv" },

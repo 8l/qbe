@@ -256,7 +256,7 @@ rega(Fn *fn)
 		/* process instructions */
 		end[n] = cur;
 		if (debug['R']) {
-			fprintf(stderr, "\tend %-10s ", b->name);
+			fprintf(stderr, "\t%-10s end", b->name);
 			mdump(&cur);
 		}
 		if (rtype(b->jmp.arg) == RSym)
@@ -270,8 +270,11 @@ rega(Fn *fn)
 			}
 			if (!req(i->to, R)) {
 				r = rfree(&cur, i->to.val);
-				if (r)
-					i->to = SYM(r);
+				if (!r) {
+					*i = (Ins){ONop, R, {R, R}};
+					continue;
+				}
+				i->to = SYM(r);
 			}
 			if (rtype(i->arg[0]) == RSym) {
 				/* <arch>
@@ -301,9 +304,13 @@ rega(Fn *fn)
 			}
 		}
 		if (debug['R']) {
-			fprintf(stderr, "\tbeg %-10s ", b->name);
+			fprintf(stderr, "\t           beg");
 			mdump(&cur);
 		}
+		b->in = cur.bt;
+		for (p=b->phi; p; p=p->link)
+			if (rtype(p->to) == RSym)
+				BCLR(b->in, p->to.val);
 		beg[n] = cur;
 	}
 	if (debug['R'])
@@ -318,14 +325,18 @@ rega(Fn *fn)
 			for (p=s->phi; p; p=p->link) {
 				assert(rtype(p->to) == RSlot
 					|| rtype(p->to) == RSym);
+				dst = p->to;
+				if (rtype(dst) == RSym) {
+					r = rfind(&beg[s->id], dst.val);
+					if (!r)
+						continue;
+					dst = SYM(r);
+				}
 				for (a=0; p->blk[a]!=b; a++)
 					assert(a+1 < p->narg);
-				dst = p->to;
 				src = p->arg[a];
 				if (rtype(src) == RSym)
 					src = rref(&end[b->id], src.val);
-				if (rtype(dst) == RSym)
-					dst = rref(&beg[s->id], dst.val);
 				pmadd(src, dst);
 			}
 			for (t=Tmp0; t<fn->ntmp; t++)
