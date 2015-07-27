@@ -62,13 +62,20 @@ ralloc(RMap *m, int t)
 	int r;
 
 	assert(m->n <= NReg || "oops, too few regs");
+	if (BGET(m->bt, t)) {
+		r = rfind(m, t);
+		assert(r > 0);
+		return r;
+	}
 	r = sym[t].hint;
 	if (r == -1 || BGET(m->br, r))
 		for (r=RAX; r<NReg; r++)
 			if (!BGET(m->br, r))
 				break;
 	radd(m, t, r);
-	return t;
+	if (sym[t].hint == -1)
+		sym[t].hint = r;
+	return r;
 }
 
 static int
@@ -89,6 +96,18 @@ rfree(RMap *m, int t)
 	return r;
 }
 
+static void
+mdump(RMap *m)
+{
+	int i;
+
+	for (i=0; i<m->n; i++)
+		fprintf(stderr, " (%s, %s)",
+			sym[m->t[i]].name,
+			sym[m->r[i]].name);
+	fprintf(stderr, "\n");
+}
+
 static inline int
 isreg(Ref r)
 {
@@ -99,7 +118,7 @@ static void
 pmadd(Ref src, Ref dst)
 {
 	if (npm == cpm) {
-		cpm *= 2;
+		cpm = cpm * 2 + 16;
 		pm = realloc(pm, cpm * sizeof pm[0]);
 		if (!pm)
 			diag("pmadd: out of memory");
@@ -111,26 +130,42 @@ pmadd(Ref src, Ref dst)
 
 enum PMStat { ToMove, Moving, Moved };
 
-static void
+static Ref
 pmrec(enum PMStat *status, int i)
 {
+	Ref swp, swp1;
 	int j;
 
 	if (req(pm[i].src, pm[i].dst))
-		return;
+		return R;
 	status[i] = Moving;
+	swp = R;
 	for (j=0; j<npm; j++) {
 		if (req(pm[j].src, pm[i].dst))
 			switch (status[j]) {
 			case ToMove:
-				pmrec(status, j);
+				swp1 = pmrec(status, j);
+				assert(req(swp, R) || req(swp1, R));
+				swp = swp1;
 				break;
 			case Moving:
+				assert(req(swp, R));
+				swp = pm[i].dst;
+				break;
 			case Moved:
 				break;
 			}
 	}
 	status[i] = Moved;
+	if (req(swp, R)) {
+		*curi++ = (Ins){OCopy, pm[i].dst, {pm[i].src, R}};
+		return R;
+	} else if (!req(swp, pm[i].src)) {
+		*curi++ = (Ins){OSwap, R, {pm[i].src, pm[i].dst}};
+		return swp;
+	} else
+		return R;
+
 }
 
 static void
@@ -143,7 +178,8 @@ pmgen()
 	assert(!npm || status[npm-1] == ToMove);
 	curi = insb;
 	for (i=0; i<npm; i++)
-		pmrec(status, i);
+		if (status[i] == ToMove)
+			pmrec(status, i);
 	free(status);
 }
 
@@ -160,16 +196,18 @@ dopm(Blk *b, Ins *i)
 void
 rega(Fn *fn)
 {
-	int n, t, u, r, z;
+	int n, t, u, r, x;
 	Blk *b, *b1, *s, ***ps, *blist;
 	Ins *i;
 	RMap *end, *beg, cur;
 	Phi *p;
 	uint a;
-	Bits v;
+	Ref src, dst;
 
 	sym = fn->sym;
 	/* 1. gross hinting setup */
+	for (t=Tmp0; t<fn->ntmp; t++)
+		sym[t].hint = -1;
 	for (b=fn->start; b; b=b->link) {
 		for (i=b->ins; i-b->ins < b->nins; i++) {
 			if (i->op == OCopy
@@ -188,29 +226,41 @@ rega(Fn *fn)
 	/* 2. assign registers backwards */
 	end = alloc(fn->ntmp * sizeof end[0]);
 	beg = alloc(fn->ntmp * sizeof beg[0]);
+	if (debug['R'])
+		fprintf(stderr, "> Register mappings:\n");
 	for (n=fn->nblk-1; n>=0; n--) {
 		b = fn->rpo[n];
-		b1 = b->s1;
 		cur.n = 0;
 		cur.bt = (Bits){{0}};
 		cur.br = (Bits){{0}};
-		if (!b1 || b->s2->loop > b1->loop)
+		b1 = b->s1;
+		if (b1 && b->s2 && b->s2->loop > b1->loop)
 			b1 = b->s2;
+		if (b1 && b->loop > b1->loop)
+			b1 = 0;
 		/* try to reuse the register
 		 * assignment of the most frequent
 		 * successor
 		 */
-		for (t=Tmp0; t<fn->ntmp; t++)
-			if (BGET(b->out, t))
-			if ((r = rfind(&beg[b1->id], t)) != -1)
-				radd(&cur, t, r);
-		for (t=Tmp0; t<fn->ntmp; t++)
-			if (!BGET(cur.bt, t))
-				ralloc(&cur, t);
+		if (b1)
+			for (t=Tmp0; t<fn->ntmp; t++)
+				if (BGET(b->out, t))
+				if ((r = rfind(&beg[b1->id], t)) != -1)
+					radd(&cur, t, r);
+		for (x=0; x<2; x++)
+			for (t=Tmp0; t<fn->ntmp; t++)
+				if (x==1 || sym[t].hint!=-1)
+				if (BGET(b->out, t))
+				if (!BGET(cur.bt, t))
+					ralloc(&cur, t);
 		/* process instructions */
 		end[n] = cur;
+		if (debug['R']) {
+			fprintf(stderr, "\tend %-10s ", b->name);
+			mdump(&cur);
+		}
 		if (rtype(b->jmp.arg) == RSym)
-			ralloc(&cur, b->jmp.arg.val);
+			b->jmp.arg = SYM(ralloc(&cur, b->jmp.arg.val));
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			i--;
 			if (i->op == OCopy /* par. moves are special */
@@ -218,8 +268,11 @@ rega(Fn *fn)
 				i = dopm(b, i);
 				continue;
 			}
-			if (!req(i->to, R))
+			if (!req(i->to, R)) {
 				r = rfree(&cur, i->to.val);
+				if (r)
+					i->to = SYM(r);
+			}
 			if (rtype(i->arg[0]) == RSym) {
 				/* <arch>
 				 *   on Intel, we attempt to
@@ -228,7 +281,7 @@ rega(Fn *fn)
 				 *   first argument
 				 */
 				t = i->arg[0].val;
-				if (sym[t].hint == -1)
+				if (sym[t].hint == -1 && r)
 					sym[t].hint = r;
 				i->arg[0] = SYM(ralloc(&cur, t));
 			}
@@ -239,42 +292,54 @@ rega(Fn *fn)
 				 *   situation
 				 *   eax = sub ebx, eax
 				 */
-				if (!opdesc[i->op].commut && r!=-1)
+				if (!opdesc[i->op].commut && r)
 					BSET(cur.br, r);
 				t = i->arg[1].val;
 				i->arg[1] = SYM(ralloc(&cur, t));
-				if (!opdesc[i->op].commut && r!=-1)
+				if (!opdesc[i->op].commut && r)
 					BCLR(cur.br, r);
 			}
 		}
+		if (debug['R']) {
+			fprintf(stderr, "\tbeg %-10s ", b->name);
+			mdump(&cur);
+		}
 		beg[n] = cur;
 	}
+	if (debug['R'])
+		fprintf(stderr, "\n");
 
 	/* 3. compose glue code */
 	blist = 0;
 	for (b=fn->start;; b=b->link) {
 		ps = (Blk**[3]){&b->s1, &b->s2, (Blk*[1]){0}};
 		for (; (s=**ps); ps++) {
-			v = b->out;
-			for (z=0; z<BITS; z++)
-				v.t[z] |= s->in.t[z];
+			npm = 0;
 			for (p=s->phi; p; p=p->link) {
+				assert(rtype(p->to) == RSlot
+					|| rtype(p->to) == RSym);
 				for (a=0; p->blk[a]!=b; a++)
 					assert(a+1 < p->narg);
-				if (rtype(p->arg[a]) == RSym)
-					BSET(v, p->arg[a].val);
+				dst = p->to;
+				src = p->arg[a];
+				if (rtype(src) == RSym)
+					src = rref(&end[b->id], src.val);
+				if (rtype(dst) == RSym)
+					dst = rref(&beg[s->id], dst.val);
+				pmadd(src, dst);
 			}
-			npm = 0;
 			for (t=Tmp0; t<fn->ntmp; t++)
-				if (BGET(v, t))
-					pmadd(
-						rref(&end[b->id], t),
-						rref(&beg[s->id], t)
-					);
+				if (BGET(s->in, t)) {
+					src = rref(&end[b->id], t);
+					dst = rref(&beg[s->id], t);
+					pmadd(src, dst);
+				}
 			pmgen();
 			/* todo, moving this out of
 			 * here would make sense */
 			n = curi-insb;
+			if (!n)
+				continue;
 			b1 = blocka();
 			b1->link = blist;
 			blist = b1;
@@ -293,6 +358,11 @@ rega(Fn *fn)
 			break;
 		}
 	}
+	for (b=fn->start; b; b=b->link)
+		while ((p=b->phi)) {
+			b->phi = p->link;
+			free(p);
+		}
 
 	free(end);
 	free(beg);

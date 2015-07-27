@@ -20,8 +20,6 @@ enum {
 	RCX,
 	RDX,
 	RBX,
-	RSP,
-	RBP,
 	RSI,
 	RDI,
 	R8,
@@ -32,6 +30,8 @@ enum {
 	R13,
 	R14,
 	R15,
+	RSP, /* reserved */
+	RBP, /* reserved */
 	// NReg = R15 - RAX + 1
 	NReg = 3 /* for test purposes */
 };
@@ -89,6 +89,7 @@ enum {
 	OLoad,
 	/* reserved instructions */
 	OCopy,
+	OSwap,
 	OIACltd,
 	OIADiv,
 	OLast

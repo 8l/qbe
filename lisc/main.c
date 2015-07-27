@@ -47,6 +47,7 @@ main(int ac, char *av[])
 		int n;
 
 		fprintf(stderr, "[Testing RPO]\n");
+	RPODump:
 		fillrpo(fn);
 		assert(fn->rpo[0] == fn->start);
 		for (n=0;; n++)
@@ -97,7 +98,19 @@ main(int ac, char *av[])
 			dumpss(&b->out, fn->sym, stdout);
 		}
 		printf("\n");
-		pr = 1;
+		break;
+	}
+	case 'a': {
+		fprintf(stderr, "[Testing Register Allocation]\n");
+		debug['R'] = 1;
+		isel(fn);
+		fillrpo(fn);
+		fillpreds(fn);
+		filllive(fn);
+		fillcost(fn);
+		spill(fn);
+		rega(fn);
+		goto RPODump;
 		break;
 	}
 	default:

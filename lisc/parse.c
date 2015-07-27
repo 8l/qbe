@@ -18,9 +18,10 @@ OpDesc opdesc[OLast] = {
 	[ORem]    = { 2, 0, "rem" },
 	[OStore]  = { 2, 0, "store" },
 	[OLoad]   = { 1, 0, "load" },
+	[OCopy]   = { 1, 0, "copy" },
+	[OSwap]   = { 2, 1, "swap" },
 	[OIADiv]  = { 1, 0, "iadiv" },
 	[OIACltd] = { 0, 0, "iacltd" },
-	[OCopy]   = { 1, 0, "copy" },
 };
 
 typedef enum {
@@ -95,6 +96,8 @@ alloc(size_t n)
 	void *p;
 
 	/* todo, export in util.c */
+	if (n == 0)
+		return 0;
 	p = calloc(1, n);
 	if (!p)
 		abort();
