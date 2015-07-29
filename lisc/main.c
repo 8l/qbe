@@ -3,6 +3,7 @@
 
 char debug['Z'+1] = {
 	['S'] = 0, /* spiller */
+	['R'] = 0, /* reg. allocator */
 };
 
 void
@@ -111,12 +112,12 @@ main(int ac, char *av[])
 		spill(fn);
 		rega(fn);
 		goto RPODump;
-		break;
 	}
 	case 'e': {
 		int n;
 
 		fprintf(stderr, "[Testing Code Emission]\n");
+		isel(fn);
 		fillrpo(fn);
 		fillpreds(fn);
 		filllive(fn);
