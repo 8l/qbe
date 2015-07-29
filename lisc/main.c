@@ -113,6 +113,28 @@ main(int ac, char *av[])
 		goto RPODump;
 		break;
 	}
+	case 'e': {
+		int n;
+
+		fprintf(stderr, "[Testing Code Emission]\n");
+		fillrpo(fn);
+		fillpreds(fn);
+		filllive(fn);
+		fillcost(fn);
+		spill(fn);
+		rega(fn);
+		fillrpo(fn);
+		assert(fn->rpo[0] == fn->start);
+		for (n=0;; n++)
+			if (n == fn->nblk-1) {
+				fn->rpo[n]->link = 0;
+				break;
+			} else
+				fn->rpo[n]->link = fn->rpo[n+1];
+		emitfn(fn, stdout);
+		pr = 0;
+		break;
+	}
 	default:
 		break;
 	}

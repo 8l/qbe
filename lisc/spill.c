@@ -391,4 +391,5 @@ spill(Fn *fn)
 		memcpy(b->ins, curi, b->nins * sizeof(Ins));
 		b->in = v;
 	}
+	fn->nspill = ns;
 }

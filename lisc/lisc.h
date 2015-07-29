@@ -19,9 +19,9 @@ enum {
 	RAX = 1,
 	RCX,
 	RDX,
-	RBX,
 	RSI,
 	RDI,
+	RBX,
 	R8,
 	R9,
 	R10,
@@ -164,6 +164,7 @@ struct Fn {
 	int ntmp;
 	int nblk;
 	Blk **rpo;
+	uint nspill;
 };
 
 
@@ -197,3 +198,6 @@ void spill(Fn *);
 
 /* rega.c */
 void rega(Fn *);
+
+/* emit.c */
+void emitfn(Fn *, FILE *);
