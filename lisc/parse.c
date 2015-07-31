@@ -1,9 +1,7 @@
 /* really crude parser
  */
-#include <ctype.h>
-#include <string.h>
-
 #include "lisc.h"
+#include <ctype.h>
 
 enum {
 	NSym = 256,
@@ -546,12 +544,11 @@ printref(Ref r, Fn *fn, FILE *f)
 		switch (fn->cst[r.val].type) {
 		case CAddr:
 			fprintf(f, "$%s", fn->cst[r.val].label);
-			if (!fn->cst[r.val].val)
-				break;
-			if (fn->cst[r.val].val > 0)
-				fprintf(f, "+");
+			if (fn->cst[r.val].val)
+				fprintf(f, "%+"PRIi64, fn->cst[r.val].val);
+			break;
 		case CNum:
-			fprintf(f, "%"PRId64, fn->cst[r.val].val);
+			fprintf(f, "%"PRIi64, fn->cst[r.val].val);
 			break;
 		case CUndef:
 			diag("printref: invalid constant");
