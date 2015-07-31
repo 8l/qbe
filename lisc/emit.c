@@ -57,6 +57,15 @@ eins(Ins i, Fn *fn, FILE *f)
 	switch (i.op) {
 	case OAdd:
 	case OSub:
+		if (req(i.to, i.arg[1]))
+			switch (opdesc[i.op].comm) {
+			case T:
+				i.arg[1] = i.arg[0];
+				i.arg[0] = i.to;
+				break;
+			default:
+				diag("emit: instruction can't be encoded");
+			}
 		if (!req(i.to, i.arg[0]))
 			eop("mov", i.arg[0], i.to, fn, f);
 		eop(opi[i.op], i.arg[1], i.to, fn, f);

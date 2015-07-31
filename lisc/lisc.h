@@ -16,6 +16,8 @@ typedef struct Sym Sym;
 typedef struct Const Const;
 typedef struct Fn Fn;
 
+typedef enum { U, F, T } B3;
+
 enum {
 	RAX = 1,
 	RCX,
@@ -105,9 +107,9 @@ enum {
 };
 
 struct OpDesc {
-	int arity;
-	uint commut:1;
 	char *name;
+	int arity;
+	B3 comm;
 };
 
 struct Ins {

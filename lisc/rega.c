@@ -350,11 +350,11 @@ rega(Fn *fn)
 				 *   situation
 				 *   eax = sub ebx, eax
 				 */
-				if (!opdesc[i->op].commut && r)
+				if (opdesc[i->op].comm == F && r)
 					BSET(cur.br, r);
 				t = i->arg[1].val;
 				i->arg[1] = ralloc(&cur, t);
-				if (!opdesc[i->op].commut && r)
+				if (opdesc[i->op].comm == F && r)
 					BCLR(cur.br, r);
 			}
 		}

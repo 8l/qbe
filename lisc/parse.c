@@ -13,17 +13,18 @@ enum {
 Ins insb[NIns], *curi;
 
 OpDesc opdesc[OLast] = {
-	[OAdd]    = { 2, 1, "add" },
-	[OSub]    = { 2, 0, "sub" },
-	[ODiv]    = { 2, 0, "div" },
-	[ORem]    = { 2, 0, "rem" },
-	[OStore]  = { 2, 0, "store" },
-	[OLoad]   = { 1, 0, "load" },
-	[ONop]    = { 0, 0, "nop" },
-	[OCopy]   = { 1, 0, "copy" },
-	[OSwap]   = { 2, 1, "swap" },
-	[OIADiv]  = { 1, 0, "iadiv" },
-	[OIACltd] = { 0, 0, "iacltd" },
+	/*            NAME  ARTY  C */
+	[OAdd]    = { "add",   2, T },
+	[OSub]    = { "sub",   2, F },
+	[ODiv]    = { "div",   2, U },
+	[ORem]    = { "rem",   2, U },
+	[OStore]  = { "store", 2, U },
+	[OLoad]   = { "load",  1, U },
+	[ONop]    = { "nop",   0, U },
+	[OCopy]   = { "copy",  1, U },
+	[OSwap]   = { "swap",  2, T },
+	[OIADiv]  = { "iadiv", 1, U },
+	[OIACltd] = { "iacltd", 0, U },
 };
 
 typedef enum {

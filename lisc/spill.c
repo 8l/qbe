@@ -355,7 +355,7 @@ spill(Fn *fn)
 			w = (Bits){{0}};
 			if (rtype(i->arg[1]) == RSym
 			&& !req(i->to, R)
-			&& !opdesc[i->op].commut) {
+			&& opdesc[i->op].comm == F) {
 				/* <arch>
 				 *   here we make sure that we
 				 *   will never have to compile
