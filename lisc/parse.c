@@ -275,36 +275,28 @@ varref(char *v)
 static Ref
 parseref()
 {
-	int64_t val;
-	char *label;
-	int i, ty;
+	int i;
+	Const c;
 
 	switch (next()) {
 	case TVar:
 		return varref(tokval.str);
 	case TNum:
-		ty = CNum;
-		val = tokval.num;
-		label = "";
-		for (i=0; i<ncst; i++)
-			if (cst[i].type == CNum)
-			if (cst[i].val == val)
-				return CONST(i);
-		goto New;
+		c = (Const){.type = CNum, .val = tokval.num};
+		strcpy(c.label, "");
+	if (0) {
 	case TAddr:
-		ty = CAddr;
-		val = 0;
-		label = tokval.str;
+		c = (Const){.type = CAddr, .val = 0};
+		strcpy(c.label, tokval.str);
+	}
 		for (i=0; i<ncst; i++)
-			if (cst[i].type == CAddr)
-			if (strcmp(cst[i].label, label) == 0)
+			if (cst[i].type == c.type
+			&& cst[i].val == c.val
+			&& strcmp(cst[i].label, c.label) == 0)
 				return CONST(i);
-	New:
 		if (i >= NCst)
 			err("too many constants");
-		cst[i].type = ty;
-		cst[i].val = val;
-		strcpy(cst[i].label, label);
+		cst[i] = c;
 		ncst++;
 		return CONST(i);
 	default:
