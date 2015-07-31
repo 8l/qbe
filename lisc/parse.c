@@ -264,19 +264,18 @@ varref(char *v)
 		if (sym[t].type == STmp)
 		if (strcmp(v, sym[t].name) == 0)
 			return SYM(t);
-	if (t >= NSym)
+	if (ntmp++ >= NSym)
 		err("too many symbols");
 	sym[t].type = STmp;
 	strcpy(sym[t].name, v);
-	ntmp++;
 	return SYM(t);
 }
 
 static Ref
 parseref()
 {
-	int i;
 	Const c;
+	int i;
 
 	switch (next()) {
 	case TVar:
@@ -294,10 +293,9 @@ parseref()
 			&& cst[i].val == c.val
 			&& strcmp(cst[i].label, c.label) == 0)
 				return CONST(i);
-		if (i >= NCst)
+		if (ncst++ >= NCst)
 			err("too many constants");
 		cst[i] = c;
-		ncst++;
 		return CONST(i);
 	default:
 		return R;
