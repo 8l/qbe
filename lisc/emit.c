@@ -4,6 +4,8 @@
 static void
 eref(Ref r, Fn *fn, FILE *f)
 {
+	Const *c;
+
 	switch (rtype(r)) {
 	case RSym:
 		assert(fn->sym[r.val].type == SReg);
@@ -13,7 +15,19 @@ eref(Ref r, Fn *fn, FILE *f)
 		fprintf(f, "-%d(%%rbp)", 8 * r.val);
 		break;
 	case RConst:
-		fprintf(f, "$%d", (int)r.val);
+		c = &fn->cst[r.val];
+		switch (c->type) {
+		case CAddr:
+			fprintf(f, "$%s", c->label);
+			if (c->val)
+				fprintf(f, "%+"PRIi64, c->val);
+			break;
+		case CNum:
+			fprintf(f, "$%"PRId64, c->val);
+			break;
+		default:
+			diag("emitref: invalid constant");
+		}
 		break;
 	default:
 		diag("emitref: invalid reference");

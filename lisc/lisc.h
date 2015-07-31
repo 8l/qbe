@@ -1,5 +1,5 @@
 #include <assert.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,6 +13,7 @@ typedef struct Ins Ins;
 typedef struct Phi Phi;
 typedef struct Blk Blk;
 typedef struct Sym Sym;
+typedef struct Const Const;
 typedef struct Fn Fn;
 
 enum {
@@ -158,9 +159,20 @@ struct Sym {
 	int hint;
 };
 
+struct Const {
+	enum {
+		CUndef,
+		CNum,
+		CAddr,
+	} type;
+	char label[NString];
+	int64_t val;
+};
+
 struct Fn {
 	Blk *start;
 	Sym *sym;
+	Const *cst;
 	int ntmp;
 	int nblk;
 	Blk **rpo;

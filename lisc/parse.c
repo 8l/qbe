@@ -7,6 +7,7 @@
 
 enum {
 	NSym = 256,
+	NCst = 256,
 };
 
 Ins insb[NIns], *curi;
@@ -48,6 +49,7 @@ typedef enum {
 	TNum,
 	TVar,
 	TLbl,
+	TAddr,
 	TEq,
 	TComma,
 	TLParen,
@@ -60,7 +62,7 @@ typedef enum {
 static FILE *inf;
 static Token thead;
 static struct {
-	long long num;
+	int64_t num;
 	char *str;
 } tokval;
 static int lnum;
@@ -83,7 +85,9 @@ static Sym sym[NSym] = {
 	[R14] = { .type = SReg, .name = "r14" },
 	[R15] = { .type = SReg, .name = "r15" },
 };
+static Const cst[NCst];
 static int ntmp;
+static int ncst;
 static Phi **plink;
 static Blk *bmap[NBlk+1];
 static Blk *curb;
@@ -165,6 +169,10 @@ lex()
 		goto Alpha;
 	case '@':
 		t = TLbl;
+		c = fgetc(inf);
+		goto Alpha;
+	case '$':
+		t = TAddr;
 		c = fgetc(inf);
 		goto Alpha;
 	case '#':
@@ -267,14 +275,38 @@ varref(char *v)
 static Ref
 parseref()
 {
+	int64_t val;
+	char *label;
+	int i, ty;
+
 	switch (next()) {
 	case TVar:
 		return varref(tokval.str);
 	case TNum:
-		if (tokval.num > NRef || tokval.num < 0)
-			/* todo, use constants table */
-			abort();
-		return CONST(tokval.num);
+		ty = CNum;
+		val = tokval.num;
+		label = "";
+		for (i=0; i<ncst; i++)
+			if (cst[i].type == CNum)
+			if (cst[i].val == val)
+				return CONST(i);
+		goto New;
+	case TAddr:
+		ty = CAddr;
+		val = 0;
+		label = tokval.str;
+		for (i=0; i<ncst; i++)
+			if (cst[i].type == CAddr)
+			if (strcmp(cst[i].label, label) == 0)
+				return CONST(i);
+	New:
+		if (i >= NCst)
+			err("too many constants");
+		cst[i].type = ty;
+		cst[i].val = val;
+		strcpy(cst[i].label, label);
+		ncst++;
+		return CONST(i);
 	default:
 		return R;
 	}
@@ -477,6 +509,7 @@ parsefn(FILE *f)
 	for (i=Tmp0; i<NSym; i++)
 		sym[i] = (Sym){.type = SUndef};
 	ntmp = Tmp0;
+	ncst = 0;
 	curi = insb;
 	curb = 0;
 	lnum = 1;
@@ -493,6 +526,8 @@ parsefn(FILE *f)
 		err("last block misses jump");
 	fn->sym = alloc(ntmp * sizeof sym[0]);
 	memcpy(fn->sym, sym, ntmp * sizeof sym[0]);
+	fn->cst = alloc(ncst * sizeof cst[0]);
+	memcpy(fn->cst, cst, ncst * sizeof cst[0]);
 	fn->ntmp = ntmp;
 	fn->nblk = nblk;
 	fn->rpo = 0;
@@ -512,12 +547,25 @@ printref(Ref r, Fn *fn, FILE *f)
 			fprintf(f, "%s", fn->sym[r.val].name);
 			break;
 		case SUndef:
-			fprintf(f, "???");
+			diag("printref: invalid symbol");
 			break;
 		}
 		break;
 	case RConst:
-		fprintf(f, "%d", r.val);
+		switch (fn->cst[r.val].type) {
+		case CAddr:
+			fprintf(f, "$%s", fn->cst[r.val].label);
+			if (!fn->cst[r.val].val)
+				break;
+			if (fn->cst[r.val].val > 0)
+				fprintf(f, "+");
+		case CNum:
+			fprintf(f, "%"PRId64, fn->cst[r.val].val);
+			break;
+		case CUndef:
+			diag("printref: invalid constant");
+			break;
+		}
 		break;
 	case RSlot:
 		fprintf(f, "$%d", r.val);
