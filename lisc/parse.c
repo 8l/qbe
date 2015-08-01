@@ -5,7 +5,7 @@
 
 enum {
 	NSym = 256,
-	NCst = 256,
+	NCons = 256,
 };
 
 Ins insb[NIns], *curi;
@@ -84,9 +84,9 @@ static Sym sym[NSym] = {
 	[R14] = { .type = SReg, .name = "r14" },
 	[R15] = { .type = SReg, .name = "r15" },
 };
-static Const cst[NCst];
+static Cons cons[NCons];
 static int ntmp;
-static int ncst;
+static int ncons;
 static Phi **plink;
 static Blk *bmap[NBlk+1];
 static Blk *curb;
@@ -273,29 +273,29 @@ varref(char *v)
 static Ref
 parseref()
 {
-	Const c;
+	Cons c;
 	int i;
 
 	switch (next()) {
 	case TVar:
 		return varref(tokval.str);
 	case TNum:
-		c = (Const){.type = CNum, .val = tokval.num};
+		c = (Cons){.type = CNum, .val = tokval.num};
 		strcpy(c.label, "");
 	if (0) {
 	case TAddr:
-		c = (Const){.type = CAddr, .val = 0};
+		c = (Cons){.type = CAddr, .val = 0};
 		strcpy(c.label, tokval.str);
 	}
-		for (i=0; i<ncst; i++)
-			if (cst[i].type == c.type
-			&& cst[i].val == c.val
-			&& strcmp(cst[i].label, c.label) == 0)
-				return CONST(i);
-		if (ncst++ >= NCst)
+		for (i=0; i<ncons; i++)
+			if (cons[i].type == c.type
+			&& cons[i].val == c.val
+			&& strcmp(cons[i].label, c.label) == 0)
+				return CONS(i);
+		if (ncons++ >= NCons)
 			err("too many constants");
-		cst[i] = c;
-		return CONST(i);
+		cons[i] = c;
+		return CONS(i);
 	default:
 		return R;
 	}
@@ -498,7 +498,7 @@ parsefn(FILE *f)
 	for (i=Tmp0; i<NSym; i++)
 		sym[i] = (Sym){.type = SUndef};
 	ntmp = Tmp0;
-	ncst = 0;
+	ncons = 0;
 	curi = insb;
 	curb = 0;
 	lnum = 1;
@@ -515,8 +515,8 @@ parsefn(FILE *f)
 		err("last block misses jump");
 	fn->sym = alloc(ntmp * sizeof sym[0]);
 	memcpy(fn->sym, sym, ntmp * sizeof sym[0]);
-	fn->cst = alloc(ncst * sizeof cst[0]);
-	memcpy(fn->cst, cst, ncst * sizeof cst[0]);
+	fn->cons = alloc(ncons * sizeof cons[0]);
+	memcpy(fn->cons, cons, ncons * sizeof cons[0]);
 	fn->ntmp = ntmp;
 	fn->nblk = nblk;
 	fn->rpo = 0;
@@ -540,15 +540,15 @@ printref(Ref r, Fn *fn, FILE *f)
 			break;
 		}
 		break;
-	case RConst:
-		switch (fn->cst[r.val].type) {
+	case RCons:
+		switch (fn->cons[r.val].type) {
 		case CAddr:
-			fprintf(f, "$%s", fn->cst[r.val].label);
-			if (fn->cst[r.val].val)
-				fprintf(f, "%+"PRIi64, fn->cst[r.val].val);
+			fprintf(f, "$%s", fn->cons[r.val].label);
+			if (fn->cons[r.val].val)
+				fprintf(f, "%+"PRIi64, fn->cons[r.val].val);
 			break;
 		case CNum:
-			fprintf(f, "%"PRIi64, fn->cst[r.val].val);
+			fprintf(f, "%"PRIi64, fn->cons[r.val].val);
 			break;
 		case CUndef:
 			diag("printref: invalid constant");

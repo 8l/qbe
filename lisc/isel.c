@@ -41,7 +41,7 @@ sel(Ins *i, Fn *fn)
 	}
 		emit(OCopy, i->to, r0, R);
 		emit(OCopy, R, r1, R);
-		if (rtype(i->arg[1]) == RConst) {
+		if (rtype(i->arg[1]) == RCons) {
 			/* immediates not allowed for
 			 * divisions in x86
 			 */
@@ -52,7 +52,7 @@ sel(Ins *i, Fn *fn)
 		emit(OIADiv, R, r0, R);
 		emit(OIACltd, SYM(RDX), R, R);
 		emit(OCopy, SYM(RAX), i->arg[0], R);
-		if (rtype(i->arg[1]) == RConst)
+		if (rtype(i->arg[1]) == RCons)
 			emit(OCopy, r0, i->arg[1], R);
 		break;
 	case OAdd:

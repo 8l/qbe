@@ -13,7 +13,7 @@ typedef struct Ins Ins;
 typedef struct Phi Phi;
 typedef struct Blk Blk;
 typedef struct Sym Sym;
-typedef struct Const Const;
+typedef struct Cons Cons;
 typedef struct Fn Fn;
 
 typedef enum { U, F, T } B3;
@@ -66,14 +66,14 @@ struct Ref {
 
 enum {
 	RSym,
-	RConst,
+	RCons,
 	RSlot,
 	NRef = (1<<14) - 1
 };
 
 #define R        (Ref){0, 0}
 #define SYM(x)   (Ref){RSym, x}
-#define CONST(x) (Ref){RConst, x}
+#define CONS(x)  (Ref){RCons, x}
 #define SLOT(x)  (Ref){RSlot, x}
 
 static inline int req(Ref a, Ref b)
@@ -161,7 +161,7 @@ struct Sym {
 	int hint;
 };
 
-struct Const {
+struct Cons {
 	enum {
 		CUndef,
 		CNum,
@@ -174,7 +174,7 @@ struct Const {
 struct Fn {
 	Blk *start;
 	Sym *sym;
-	Const *cst;
+	Cons *cons;
 	int ntmp;
 	int nblk;
 	Blk **rpo;

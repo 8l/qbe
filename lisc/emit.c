@@ -4,7 +4,7 @@
 static void
 eref(Ref r, Fn *fn, FILE *f)
 {
-	Const *c;
+	Cons *c;
 
 	switch (rtype(r)) {
 	case RSym:
@@ -14,8 +14,8 @@ eref(Ref r, Fn *fn, FILE *f)
 	case RSlot:
 		fprintf(f, "-%d(%%rbp)", 8 * r.val);
 		break;
-	case RConst:
-		c = &fn->cst[r.val];
+	case RCons:
+		c = &fn->cons[r.val];
 		switch (c->type) {
 		case CAddr:
 			fprintf(f, "$%s", c->label);
