@@ -50,7 +50,7 @@ sel(Ins *i, Fn *fn)
 		} else
 			r0 = i->arg[1];
 		emit(OXDiv, R, r0, R);
-		emit(OXCltd, SYM(RDX), R, R);
+		emit(OSign, SYM(RDX), SYM(RAX), R);
 		emit(OCopy, SYM(RAX), i->arg[0], R);
 		if (rtype(i->arg[1]) == RCons)
 			emit(OCopy, r0, i->arg[1], R);

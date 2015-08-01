@@ -6,14 +6,14 @@
 # nothing should ever be live at the entry
 
 @start
-	%b = copy 0
-	%x = copy 10
+	%b =w copy 0
+	%x =w copy 10
 	jez 0, @left, @loop
 @left
 	jmp @inloop
 @loop
-	%x1 = add %x, 1
+	%x1 =w add %x, 1
 @inloop
-	%b1 = add %b, 1
+	%b1 =w add %b, 1
 @endloop
 	jmp @loop

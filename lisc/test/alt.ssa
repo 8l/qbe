@@ -3,21 +3,21 @@
 # handling of looping constructs
 
 @start
-	%ten = copy 10
-	%dum = copy 0  # dummy live-through temporary
+	%ten =w copy 10
+	%dum =w copy 0  # dummy live-through temporary
 @loop
-	%alt = phi @start 0, @left %alt1, @right %alt1
-	%cnt = phi @start 100, @left %cnt, @right %cnt1
-	%alt1 = sub 1, %alt
+	%alt =w phi @start 0, @left %alt1, @right %alt1
+	%cnt =w phi @start 100, @left %cnt, @right %cnt1
+	%alt1 =w sub 1, %alt
 	jez %alt1, @left, @right
 @left
-	%x = phi @loop 10, @left %x1
-	%x1 = sub %x, 1
-	%z = copy %x
+	%x =w phi @loop 10, @left %x1
+	%x1 =w sub %x, 1
+	%z =w copy %x
 	jez %z, @loop, @left
 @right
-	%cnt1 = sub %cnt, %ten
+	%cnt1 =w sub %cnt, %ten
 	jez %cnt1, @end, @loop
 @end
-	%ret = add %cnt, %dum
+	%ret =w add %cnt, %dum
 	ret

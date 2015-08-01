@@ -62,7 +62,10 @@ ralloc(RMap *m, int t)
 {
 	int r;
 
-	if (BGET(m->bt, t)) {
+	if (sym[t].type == SReg) {
+		assert(BGET(m->br, t));
+		r = t;
+	} else if (BGET(m->bt, t)) {
 		r = rfind(m, t);
 		assert(r > 0);
 	} else {

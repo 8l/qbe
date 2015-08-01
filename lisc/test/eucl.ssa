@@ -6,9 +6,9 @@
 @start
 
 @loop
-	%a = phi @start 380, @loop %r
-	%b = phi @start 747, @loop %a
-	%r = rem %b, %a
+	%a =w phi @start 380, @loop %r
+	%b =w phi @start 747, @loop %a
+	%r =w rem %b, %a
 	jez %r, @end, @loop
 
 @end

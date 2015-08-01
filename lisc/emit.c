@@ -57,15 +57,12 @@ eins(Ins i, Fn *fn, FILE *f)
 	switch (i.op) {
 	case OAdd:
 	case OSub:
-		if (req(i.to, i.arg[1]))
-			switch (opdesc[i.op].comm) {
-			case T:
-				i.arg[1] = i.arg[0];
-				i.arg[0] = i.to;
-				break;
-			default:
-				diag("emit: instruction can't be encoded");
-			}
+		if (req(i.to, i.arg[1])) {
+			if (!opdesc[i.op].comm)
+				diag("emit: unhandled instruction (1)");
+			i.arg[1] = i.arg[0];
+			i.arg[0] = i.to;
+		}
 		if (!req(i.to, i.arg[0]))
 			eop("mov", i.arg[0], i.to, fn, f);
 		eop(opi[i.op], i.arg[1], i.to, fn, f);
@@ -81,8 +78,11 @@ eins(Ins i, Fn *fn, FILE *f)
 	case OSwap:
 		eop("xchg", i.arg[0], i.arg[1], fn, f);
 		break;
-	case OXCltd:
-		fprintf(f, "\tcltd\n");
+	case OSign:
+		if (!req(i.to, SYM(RDX))
+		|| !req(i.arg[0], SYM(RAX)))
+			diag("emit: unhandled instruction (2)");
+		fprintf(f, "\tcqto\n");
 		break;
 	case OXDiv:
 		eop("idiv", i.arg[0], R, fn, f);
@@ -90,7 +90,7 @@ eins(Ins i, Fn *fn, FILE *f)
 	case ONop:
 		break;
 	default:
-		diag("emit: unhandled instruction");
+		diag("emit: unhandled instruction (3)");
 	}
 }
 

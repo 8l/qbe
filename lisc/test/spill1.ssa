@@ -1,20 +1,20 @@
 # stupid spilling test
 
 @start
-	%x1  = copy 10
-	%x2  = add %x1, %x1
-	%x3  = sub %x2, %x1
-	%x4  = add %x3, %x1
-	%x5  = sub %x4, %x1
-	%x6  = add %x5, %x1
-	%x7  = sub %x6, %x1
-	%x8  = add %x7, %x1
-	%x9  = sub %x8, %x8
-	%x10 = add %x9, %x7
-	%x11 = sub %x10, %x6
-	%x12 = add %x11, %x5
-	%x13 = sub %x12, %x4
-	%x14 = add %x13, %x3
-	%x15 = sub %x14, %x2
-	%x16 = add %x15, %x1
+	%x1  =w copy 10
+	%x2  =w add %x1, %x1
+	%x3  =w sub %x2, %x1
+	%x4  =w add %x3, %x1
+	%x5  =w sub %x4, %x1
+	%x6  =w add %x5, %x1
+	%x7  =w sub %x6, %x1
+	%x8  =w add %x7, %x1
+	%x9  =w sub %x8, %x8
+	%x10 =w add %x9, %x7
+	%x11 =w sub %x10, %x6
+	%x12 =w add %x11, %x5
+	%x13 =w sub %x12, %x4
+	%x14 =w add %x13, %x3
+	%x15 =w sub %x14, %x2
+	%x16 =w add %x15, %x1
 	ret

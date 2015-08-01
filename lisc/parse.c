@@ -21,8 +21,8 @@ OpDesc opdesc[OLast] = {
 	[ONop]    = { "nop",   0, U },
 	[OCopy]   = { "copy",  1, U },
 	[OSwap]   = { "swap",  2, T },
-	[OXDiv]   = { "xdiv", 1, U },
-	[OXCltd]  = { "xcltd", 0, U },
+	[OSign]   = { "sign",  1, U },
+	[OXDiv]   = { "xdiv",  1, U },
 };
 
 typedef enum {
@@ -44,6 +44,8 @@ typedef enum {
 	TJmp,
 	TJez,
 	TRet,
+	TW,
+	TL,
 
 	TNum,
 	TVar,
@@ -142,6 +144,8 @@ lex()
 		{ "jmp", TJmp },
 		{ "jez", TJez },
 		{ "ret", TRet },
+		{ "w", TW },
+		{ "l", TL },
 		{ 0, TXXX }
 	};
 	static char tok[NString];
@@ -418,6 +422,16 @@ parseline(PState ps)
 	r = varref(tokval.str);
 	expect(TEq);
 	switch (next()) {
+	case TW:
+		sym[r.val].class = CWord;
+		break;
+	case TL:
+		sym[r.val].class = CLong;
+		break;
+	default:
+		err("class expected after =");
+	}
+	switch (next()) {
 	case TCopy:
 		op = OCopy;
 		break;
@@ -523,21 +537,26 @@ parsefn(FILE *f)
 	return fn;
 }
 
-static void
+static char *
 printref(Ref r, Fn *fn, FILE *f)
 {
+	static char *ctoa[] = {
+		[CXXX] = "?",
+		[CWord] = "w",
+		[CLong] = "l",
+	};
+
 	switch (r.type) {
 	case RSym:
 		switch (fn->sym[r.val].type) {
 		case STmp:
 			fprintf(f, "%%%s", fn->sym[r.val].name);
-			break;
+			return ctoa[fn->sym[r.val].class];
 		case SReg:
 			fprintf(f, "%s", fn->sym[r.val].name);
 			break;
 		case SUndef:
 			diag("printref: invalid symbol");
-			break;
 		}
 		break;
 	case RCons:
@@ -552,13 +571,13 @@ printref(Ref r, Fn *fn, FILE *f)
 			break;
 		case CUndef:
 			diag("printref: invalid constant");
-			break;
 		}
 		break;
 	case RSlot:
 		fprintf(f, "$%d", r.val);
 		break;
 	}
+	return "";
 }
 
 void
@@ -568,13 +587,14 @@ printfn(Fn *fn, FILE *f)
 	Phi *p;
 	Ins *i;
 	uint n;
+	char *cl;
 
 	for (b=fn->start; b; b=b->link) {
 		fprintf(f, "@%s\n", b->name);
 		for (p=b->phi; p; p=p->link) {
 			fprintf(f, "\t");
-			printref(p->to, fn, f);
-			fprintf(f, " = phi ");
+			cl = printref(p->to, fn, f);
+			fprintf(f, " =%s phi ", cl);
 			assert(p->narg);
 			for (n=0;; n++) {
 				fprintf(f, "@%s ", p->blk[n]->name);
@@ -589,8 +609,8 @@ printfn(Fn *fn, FILE *f)
 		for (i=b->ins; i-b->ins < b->nins; i++) {
 			fprintf(f, "\t");
 			if (!req(i->to, R)) {
-				printref(i->to, fn, f);
-				fprintf(f, " = ");
+				cl = printref(i->to, fn, f);
+				fprintf(f, " =%s ", cl);
 			}
 			assert(opdesc[i->op].name);
 			fprintf(f, "%s", opdesc[i->op].name);

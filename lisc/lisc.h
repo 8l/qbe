@@ -19,22 +19,25 @@ typedef struct Fn Fn;
 typedef enum { U, F, T } B3;
 
 enum {
-	RAX = 1,
+	RAX = 1, /* caller-save */
 	RCX,
 	RDX,
 	RSI,
 	RDI,
-	RBX,
 	R8,
 	R9,
 	R10,
 	R11,
+
+	RBX, /* callee-save */
 	R12,
 	R13,
 	R14,
 	R15,
-	RSP, /* reserved */
+
 	RBP, /* reserved */
+	RSP,
+
 	// NReg = R15 - RAX + 1
 	NReg = 3 /* for test purposes */
 };
@@ -94,9 +97,15 @@ enum {
 	ONop,
 	OCopy,
 	OSwap,
-	OXCltd,
+	OSign,
 	OXDiv,
 	OLast
+};
+
+enum {
+	CXXX,
+	CWord,
+	CLong,
 };
 
 enum {
@@ -155,6 +164,7 @@ struct Sym {
 		STmp,
 	} type;
 	char name[NString];
+	int class;
 	uint ndef, nuse;
 	uint cost;
 	uint spill;
