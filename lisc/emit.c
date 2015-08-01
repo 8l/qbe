@@ -81,10 +81,10 @@ eins(Ins i, Fn *fn, FILE *f)
 	case OSwap:
 		eop("xchg", i.arg[0], i.arg[1], fn, f);
 		break;
-	case OIACltd:
+	case OXCltd:
 		fprintf(f, "\tcltd\n");
 		break;
-	case OIADiv:
+	case OXDiv:
 		eop("idiv", i.arg[0], R, fn, f);
 		break;
 	case ONop:

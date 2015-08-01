@@ -21,8 +21,8 @@ OpDesc opdesc[OLast] = {
 	[ONop]    = { "nop",   0, U },
 	[OCopy]   = { "copy",  1, U },
 	[OSwap]   = { "swap",  2, T },
-	[OIADiv]  = { "iadiv", 1, U },
-	[OIACltd] = { "iacltd", 0, U },
+	[OXDiv]   = { "xdiv", 1, U },
+	[OXCltd]  = { "xcltd", 0, U },
 };
 
 typedef enum {

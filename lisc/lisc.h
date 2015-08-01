@@ -94,8 +94,8 @@ enum {
 	ONop,
 	OCopy,
 	OSwap,
-	OIACltd,
-	OIADiv,
+	OXCltd,
+	OXDiv,
 	OLast
 };
 

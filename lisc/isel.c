@@ -49,8 +49,8 @@ sel(Ins *i, Fn *fn)
 			r0 = SYM(t);
 		} else
 			r0 = i->arg[1];
-		emit(OIADiv, R, r0, R);
-		emit(OIACltd, SYM(RDX), R, R);
+		emit(OXDiv, R, r0, R);
+		emit(OXCltd, SYM(RDX), R, R);
 		emit(OCopy, SYM(RAX), i->arg[0], R);
 		if (rtype(i->arg[1]) == RCons)
 			emit(OCopy, r0, i->arg[1], R);
