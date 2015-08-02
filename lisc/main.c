@@ -33,13 +33,13 @@ main(int ac, char *av[])
 
 	switch (opt) {
 	case 'f': {
-		int tx, ntmp;
+		int s, nsym;
 
 		fprintf(stderr, "[Testing SSA Reconstruction:");
 		fillpreds(fn);
-		for (ntmp=fn->ntmp, tx=Tmp0; tx<ntmp; tx++) {
-			fprintf(stderr, " %s", fn->sym[tx].name);
-			ssafix(fn, tx);
+		for (nsym=fn->nsym, s=0; s<nsym; s++) {
+			fprintf(stderr, " %s", fn->sym[s].name);
+			ssafix(fn, s);
 		}
 		fprintf(stderr, "]\n");
 		break;

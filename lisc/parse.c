@@ -68,26 +68,9 @@ static struct {
 } tokval;
 static int lnum;
 
-static Sym sym[NSym] = {
-	[RAX] = { .type = SReg, .name = "rax" },
-	[RCX] = { .type = SReg, .name = "rcx" },
-	[RDX] = { .type = SReg, .name = "rdx" },
-	[RBX] = { .type = SReg, .name = "rbx" },
-	[RSP] = { .type = SReg, .name = "rsp" },
-	[RBP] = { .type = SReg, .name = "rbp" },
-	[RSI] = { .type = SReg, .name = "rsi" },
-	[RDI] = { .type = SReg, .name = "rdi" },
-	[R8 ] = { .type = SReg, .name = "r8" },
-	[R9 ] = { .type = SReg, .name = "r9" },
-	[R10] = { .type = SReg, .name = "r10" },
-	[R11] = { .type = SReg, .name = "r11" },
-	[R12] = { .type = SReg, .name = "r12" },
-	[R13] = { .type = SReg, .name = "r13" },
-	[R14] = { .type = SReg, .name = "r14" },
-	[R15] = { .type = SReg, .name = "r15" },
-};
+static Sym sym[NSym];
 static Cons cons[NCons];
-static int ntmp;
+static int nsym;
 static int ncons;
 static Phi **plink;
 static Blk *bmap[NBlk+1];
@@ -261,17 +244,15 @@ blocka()
 static Ref
 varref(char *v)
 {
-	int t;
+	int s;
 
-	for (t=Tmp0; t<ntmp; t++)
-		if (sym[t].type == STmp)
-		if (strcmp(v, sym[t].name) == 0)
-			return SYM(t);
-	if (ntmp++ >= NSym)
+	for (s=0; s<nsym; s++)
+		if (strcmp(v, sym[s].name) == 0)
+			return SYM(s);
+	if (nsym++ >= NSym)
 		err("too many symbols");
-	sym[t].type = STmp;
-	strcpy(sym[t].name, v);
-	return SYM(t);
+	strcpy(sym[s].name, v);
+	return SYM(s);
 }
 
 static Ref
@@ -509,9 +490,9 @@ parsefn(FILE *f)
 	inf = f;
 	for (i=0; i<NBlk; i++)
 		bmap[i] = 0;
-	for (i=Tmp0; i<NSym; i++)
-		sym[i] = (Sym){.type = SUndef};
-	ntmp = Tmp0;
+	for (i=0; i<NSym; i++)
+		sym[i] = (Sym){.name = ""};
+	nsym = 0;
 	ncons = 0;
 	curi = insb;
 	curb = 0;
@@ -527,11 +508,11 @@ parsefn(FILE *f)
 		err("empty file");
 	if (curb->jmp.type == JXXX)
 		err("last block misses jump");
-	fn->sym = alloc(ntmp * sizeof sym[0]);
-	memcpy(fn->sym, sym, ntmp * sizeof sym[0]);
+	fn->sym = alloc(nsym * sizeof sym[0]);
+	memcpy(fn->sym, sym, nsym * sizeof sym[0]);
 	fn->cons = alloc(ncons * sizeof cons[0]);
 	memcpy(fn->cons, cons, ncons * sizeof cons[0]);
-	fn->ntmp = ntmp;
+	fn->nsym = nsym;
 	fn->nblk = nblk;
 	fn->rpo = 0;
 	return fn;
@@ -548,17 +529,8 @@ printref(Ref r, Fn *fn, FILE *f)
 
 	switch (r.type) {
 	case RSym:
-		switch (fn->sym[r.val].type) {
-		case STmp:
-			fprintf(f, "%%%s", fn->sym[r.val].name);
-			return ctoa[fn->sym[r.val].class];
-		case SReg:
-			fprintf(f, "%s", fn->sym[r.val].name);
-			break;
-		case SUndef:
-			diag("printref: invalid symbol");
-		}
-		break;
+		fprintf(f, "%%%s", fn->sym[r.val].name);
+		return ctoa[fn->sym[r.val].class];
 	case RCons:
 		switch (fn->cons[r.val].type) {
 		case CAddr:
@@ -575,6 +547,9 @@ printref(Ref r, Fn *fn, FILE *f)
 		break;
 	case RSlot:
 		fprintf(f, "$%d", r.val);
+		break;
+	case RReg:
+		fprintf(f, "???");
 		break;
 	}
 	return "";

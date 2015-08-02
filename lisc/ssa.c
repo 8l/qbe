@@ -102,7 +102,7 @@ static Ref
 topdef(Blk *b, Fn *f)
 {
 	uint i;
-	int t1;
+	int s1;
 	Ref r;
 	Phi *p;
 
@@ -115,8 +115,8 @@ topdef(Blk *b, Fn *f)
 		return r;
 	}
 	/* add a phi node */
-	t1 = f->ntmp++;
-	r = SYM(t1);
+	s1 = f->nsym++;
+	r = SYM(s1);
 	top[b->id] = r;
 	p = alloc(sizeof *p);
 	p->link = b->phi;
@@ -137,7 +137,7 @@ void
 ssafix(Fn *f, int t)
 {
 	uint n;
-	int t0, t1;
+	int s0, s1;
 	Ref rt;
 	Blk *b;
 	Phi *p;
@@ -146,31 +146,31 @@ ssafix(Fn *f, int t)
 	top = alloc(f->nblk * sizeof top[0]);
 	bot = alloc(f->nblk * sizeof bot[0]);
 	rt = SYM(t);
-	t0 = f->ntmp;
+	s0 = f->nsym;
 	for (b=f->start; b; b=b->link) {
-		t1 = 0;
+		s1 = 0;
 		/* rename defs and some in-blocks uses */
 		for (p=b->phi; p; p=p->link)
 			if (req(p->to, rt)) {
-				t1 = f->ntmp++;
-				p->to = SYM(t1);
+				s1 = f->nsym++;
+				p->to = SYM(s1);
 			}
 		for (i=b->ins; i-b->ins < b->nins; i++) {
-			if (t1) {
+			if (s1) {
 				if (req(i->arg[0], rt))
-					i->arg[0] = SYM(t1);
+					i->arg[0] = SYM(s1);
 				if (req(i->arg[1], rt))
-					i->arg[1] = SYM(t1);
+					i->arg[1] = SYM(s1);
 			}
 			if (req(i->to, rt)) {
-				t1 = f->ntmp++;
-				i->to = SYM(t1);
+				s1 = f->nsym++;
+				i->to = SYM(s1);
 			}
 		}
-		if (t1 && req(b->jmp.arg, rt))
-			b->jmp.arg = SYM(t1);
+		if (s1 && req(b->jmp.arg, rt))
+			b->jmp.arg = SYM(s1);
 		top[b->id] = R;
-		bot[b->id] = t1 ? SYM(t1) : R;
+		bot[b->id] = s1 ? SYM(s1) : R;
 	}
 	for (b=f->start; b; b=b->link) {
 		for (p=b->phi; p; p=p->link)
@@ -187,13 +187,13 @@ ssafix(Fn *f, int t)
 			b->jmp.arg = topdef(b, f);
 	}
 	/* add new symbols */
-	f->sym = realloc(f->sym, f->ntmp * sizeof f->sym[0]);
+	f->sym = realloc(f->sym, f->nsym * sizeof f->sym[0]);
 	if (!f->sym)
 		diag("ssafix: out of memory");
-	for (t1=t0; t0<f->ntmp; t0++) {
-		f->sym[t0] = f->sym[t];
-		snprintf(f->sym[t0].name, NString, "%s%d",
-			f->sym[t].name, t0-t1);
+	for (s1=s0; s0<f->nsym; s0++) {
+		f->sym[s0] = f->sym[t];
+		snprintf(f->sym[s0].name, NString, "%s%d",
+			f->sym[t].name, s0-s1);
 	}
 	free(top);
 	free(bot);

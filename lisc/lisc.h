@@ -19,7 +19,9 @@ typedef struct Fn Fn;
 typedef enum { U, F, T } B3;
 
 enum {
-	RAX = 1, /* caller-save */
+	RXX,
+
+	RAX, /* caller-save */
 	RCX,
 	RDX,
 	RSI,
@@ -43,8 +45,6 @@ enum {
 };
 
 enum {
-	Tmp0    = 33,
-
 	NString = 32,
 	NPred   = 15,
 	NBlk    = 128,
@@ -71,6 +71,7 @@ enum {
 	RSym,
 	RCons,
 	RSlot,
+	RReg,
 	NRef = (1<<14) - 1
 };
 
@@ -78,6 +79,7 @@ enum {
 #define SYM(x)   (Ref){RSym, x}
 #define CONS(x)  (Ref){RCons, x}
 #define SLOT(x)  (Ref){RSlot, x}
+#define REG(x)   (Ref){RReg, x}
 
 static inline int req(Ref a, Ref b)
 { return a.type == b.type && a.val == b.val; }
@@ -158,11 +160,6 @@ struct Blk {
 };
 
 struct Sym {
-	enum {
-		SUndef,
-		SReg,
-		STmp,
-	} type;
 	char name[NString];
 	int class;
 	uint ndef, nuse;
@@ -185,7 +182,7 @@ struct Fn {
 	Blk *start;
 	Sym *sym;
 	Cons *cons;
-	int ntmp;
+	int nsym;
 	int nblk;
 	Blk **rpo;
 	uint nspill;
