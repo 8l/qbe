@@ -60,7 +60,8 @@ enum {
 	NReg = 3 /* for test purposes */
 };
 
-#define LTW(r) (r + (EAX-RAX))
+#define WORD(r) (r + (EAX-RAX))
+#define BASE(r) (r >= EAX ? r - (EAX-RAX) : r)
 
 enum {
 	NString = 32,

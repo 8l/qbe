@@ -132,7 +132,7 @@ main(int ac, char *av[])
 				break;
 			} else
 				fn->rpo[n]->link = fn->rpo[n+1];
-		// emitfn(fn, stdout);
+		emitfn(fn, stdout);
 		pr = 0;
 		break;
 	}

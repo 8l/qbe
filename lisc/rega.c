@@ -29,6 +29,19 @@ rfind(RMap *m, int t)
 }
 
 static Ref
+reg(int r, int t)
+{
+	switch (tmp[t].type) {
+	default:
+		assert(!"invalid temporary");
+	case TWord:
+		return REG(WORD(r));
+	case TLong:
+		return REG(r);
+	}
+}
+
+static Ref
 rref(RMap *m, int t)
 {
 	int r, s;
@@ -39,14 +52,7 @@ rref(RMap *m, int t)
 		assert(s && "should have spilled");
 		return SLOT(s);
 	} else
-		switch (tmp[t].type) {
-		default:
-			assert(!"invalid temporary");
-		case TWord:
-			return REG(LTW(r));
-		case TLong:
-			return REG(r);
-		}
+		return reg(r, t);
 }
 
 static void
@@ -80,7 +86,7 @@ ralloc(RMap *m, int t)
 		if (tmp[t].hint == -1)
 			tmp[t].hint = r;
 	}
-	return REG(r);
+	return reg(r, t);
 }
 
 static int
@@ -107,7 +113,7 @@ mdump(RMap *m)
 	int i;
 
 	for (i=0; i<m->n; i++)
-		fprintf(stderr, " (%s, reg%d)",
+		fprintf(stderr, " (%s, R%d)",
 			tmp[m->t[i]].name,
 			m->r[i]);
 	fprintf(stderr, "\n");
@@ -193,7 +199,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 	i1 = i+1;
 	if (rtype(i->to) == RReg)
 		for (;; i--) {
-			r = i->to.val;
+			r = BASE(i->to.val);
 			rt = i->arg[0];
 			assert(rtype(rt) == RTmp);
 			assert(BGET(m->br, r));
@@ -208,7 +214,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 		}
 	else if (rtype(i->arg[0]) == RReg)
 		for (;; i--) {
-			r = i->arg[0].val;
+			r = BASE(i->arg[0].val);
 			assert(req(i->to, R) || i->to.type == RTmp);
 			if (req(i->to, R)) {
 				if (BGET(m->br, r)) {
@@ -221,7 +227,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 					pmadd(rt, i->arg[0]);
 				}
 			} else if (BGET(m->bt, i->to.val)) {
-				rt = TMP(rfree(m, i->to.val));
+				rt = reg(rfree(m, i->to.val), i->to.val);
 				pmadd(i->arg[0], rt);
 			}
 			BSET(m->br, r);
@@ -268,15 +274,16 @@ rega(Fn *fn)
 	for (t=0; t<fn->ntmp; t++)
 		tmp[t].hint = -1;
 	for (b=fn->start; b; b=b->link)
-		for (i=b->ins; i-b->ins < b->nins; i++)
-			if (i->op == OCopy) {
-				if (rtype(i->arg[0]) == RTmp
-				&& rtype(i->to) == RReg)
-					tmp[i->arg[0].val].hint = i->to.val;
-				if (rtype(i->to) == RTmp
-				&& rtype(i->arg[0]) == RReg)
-					tmp[i->to.val].hint = i->arg[0].val;
-			}
+		for (i=b->ins; i-b->ins < b->nins; i++) {
+			if (i->op != OCopy)
+				continue;
+			if (rtype(i->arg[0]) == RTmp
+			&& rtype(i->to) == RReg)
+				tmp[i->arg[0].val].hint = BASE(i->to.val);
+			if (rtype(i->to) == RTmp
+			&& rtype(i->arg[0]) == RReg)
+				tmp[i->to.val].hint = BASE(i->arg[0].val);
+		}
 
 	/* 2. assign registers backwards */
 	if (debug['R'])
@@ -327,10 +334,10 @@ rega(Fn *fn)
 					*i = (Ins){ONop, R, {R, R}};
 					continue;
 				}
-				i->to = REG(r);
+				i->to = reg(r, i->to.val);
 				break;
 			case RReg:
-				r = i->to.val;
+				r = BASE(i->to.val);
 				assert(BGET(cur.br, r));
 				BCLR(cur.br, r);
 				break;
@@ -350,7 +357,7 @@ rega(Fn *fn)
 				i->arg[0] = ralloc(&cur, t);
 				break;
 			case RReg:
-				BSET(cur.br, i->arg[0].val);
+				BSET(cur.br, BASE(i->arg[0].val));
 				break;
 			}
 			switch (rtype(i->arg[1])) {
@@ -369,7 +376,7 @@ rega(Fn *fn)
 					BCLR(cur.br, r);
 				break;
 			case RReg:
-				BSET(cur.br, i->arg[1].val);
+				BSET(cur.br, BASE(i->arg[1].val));
 				break;
 			}
 		}
@@ -401,7 +408,7 @@ rega(Fn *fn)
 					r = rfind(&beg[s->id], dst.val);
 					if (r == -1)
 						continue;
-					dst = REG(r);
+					dst = reg(r, dst.val);
 				}
 				for (a=0; p->blk[a]!=b; a++)
 					assert(a+1 < p->narg);
