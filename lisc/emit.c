@@ -1,21 +1,59 @@
 #include "lisc.h"
 
 
+static char *rtoa[] = {
+	[RXX] = "OH GOD!",
+
+	[RAX] = "rax",
+	[RCX] = "rcx",
+	[RDX] = "rdx",
+	[RSI] = "rsi",
+	[RDI] = "rdi",
+	[R8] = "r8",
+	[R9] = "r9",
+	[R10] = "r10",
+	[R11] = "r11",
+
+	[RBX] = "rbx",
+	[R12] = "r12",
+	[R13] = "r13",
+	[R14] = "r14",
+	[R15] = "r15",
+
+	[RBP] = "rbp",
+	[RSP] = "rsp",
+
+	[EAX] = "eax",
+	[ECX] = "ecx",
+	[EDX] = "edx",
+	[ESI] = "esi",
+	[EDI] = "edi",
+	[R8D] = "r8d",
+	[R9D] = "r9d",
+	[R10D] = "r10d",
+	[R11D] = "r11d",
+
+	[EBX] = "ebx",
+	[R12D] = "r12d",
+	[R13D] = "r13d",
+	[R14D] = "r14d",
+	[R15D] = "r15d",
+};
+
 static void
 eref(Ref r, Fn *fn, FILE *f)
 {
-	Cons *c;
+	Con *c;
 
 	switch (rtype(r)) {
-	case RSym:
-		assert(fn->sym[r.val].type == SReg);
-		fprintf(f, "%%%s", fn->sym[r.val].name);
+	case RReg:
+		fprintf(f, "%%%s", rtoa[r.val]);
 		break;
 	case RSlot:
 		fprintf(f, "-%d(%%rbp)", 8 * r.val);
 		break;
-	case RCons:
-		c = &fn->cons[r.val];
+	case RCon:
+		c = &fn->con[r.val];
 		switch (c->type) {
 		case CAddr:
 			fprintf(f, "$%s", c->label);
@@ -79,10 +117,12 @@ eins(Ins i, Fn *fn, FILE *f)
 		eop("xchg", i.arg[0], i.arg[1], fn, f);
 		break;
 	case OSign:
-		if (!req(i.to, SYM(RDX))
-		|| !req(i.arg[0], SYM(RAX)))
+		if (req(i.to, REG(RDX)) && req(i.arg[0], REG(RAX)))
+			fprintf(f, "\tcqto\n");
+		else if (req(i.to, REG(EDX)) && req(i.arg[0], REG(EAX)))
+			fprintf(f, "\tcltq\n");
+		else
 			diag("emit: unhandled instruction (2)");
-		fprintf(f, "\tcqto\n");
 		break;
 	case OXDiv:
 		eop("idiv", i.arg[0], R, fn, f);
