@@ -105,12 +105,6 @@ enum {
 };
 
 enum {
-	CXXX,
-	CWord,
-	CLong,
-};
-
-enum {
 	JXXX,
 	JRet,
 	JJmp,
@@ -160,8 +154,12 @@ struct Blk {
 };
 
 struct Sym {
+	enum {
+		SUndef,
+		SWord,
+		SLong,
+	} type;
 	char name[NString];
-	int class;
 	uint ndef, nuse;
 	uint cost;
 	uint spill;

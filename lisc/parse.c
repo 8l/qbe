@@ -404,10 +404,10 @@ parseline(PState ps)
 	expect(TEq);
 	switch (next()) {
 	case TW:
-		sym[r.val].class = CWord;
+		sym[r.val].type = SWord;
 		break;
 	case TL:
-		sym[r.val].class = CLong;
+		sym[r.val].type = SLong;
 		break;
 	default:
 		err("class expected after =");
@@ -521,16 +521,16 @@ parsefn(FILE *f)
 static char *
 printref(Ref r, Fn *fn, FILE *f)
 {
-	static char *ctoa[] = {
-		[CXXX] = "?",
-		[CWord] = "w",
-		[CLong] = "l",
+	static char *ttoa[] = {
+		[SUndef] = "?",
+		[SWord] = "w",
+		[SLong] = "l",
 	};
 
 	switch (r.type) {
 	case RSym:
 		fprintf(f, "%%%s", fn->sym[r.val].name);
-		return ctoa[fn->sym[r.val].class];
+		return ttoa[fn->sym[r.val].type];
 	case RCons:
 		switch (fn->cons[r.val].type) {
 		case CAddr:
