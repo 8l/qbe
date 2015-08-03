@@ -550,7 +550,7 @@ printref(Ref r, Fn *fn, FILE *f)
 		fprintf(f, "$%d", r.val);
 		break;
 	case RReg:
-		fprintf(f, "???");
+		fprintf(f, "R%d", r.val);
 		break;
 	}
 	return "";
