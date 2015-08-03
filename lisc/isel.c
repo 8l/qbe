@@ -24,6 +24,20 @@ emit(short op, Ref to, Ref arg0, Ref arg1)
 	*--curi = (Ins){op, to, {arg0, arg1}};
 }
 
+static int
+newsym(int type, Fn *fn)
+{
+	int s;
+
+	s = fn->nsym++;
+	fn->sym = realloc(fn->sym, fn->nsym * sizeof(Sym));
+	if (!fn->sym)
+		diag("isel: out of memory");
+	fn->sym[s] = (Sym){.type = type};
+	sprintf(fn->sym[s].name, "isel%d", s);
+	return s;
+}
+
 static void
 sel(Ins *i, Fn *fn)
 {
@@ -45,7 +59,7 @@ sel(Ins *i, Fn *fn)
 			/* immediates not allowed for
 			 * divisions in x86
 			 */
-			t = fn->ntmp++;
+			t = newsym(fn->sym[i->to.val].type, fn);
 			r0 = SYM(t);
 		} else
 			r0 = i->arg[1];
@@ -72,10 +86,8 @@ isel(Fn *fn)
 {
 	Blk *b;
 	Ins *i;
-	int t0, t;
 	uint nins;
 
-	t0 = fn->ntmp;
 	for (b=fn->start; b; b=b->link) {
 		curi = &insb[NIns];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
@@ -86,14 +98,5 @@ isel(Fn *fn)
 		b->ins = alloc(nins * sizeof b->ins[0]);
 		memcpy(b->ins, curi, nins * sizeof b->ins[0]);
 		b->nins = nins;
-	}
-	if (fn->ntmp == t0)
-		return;
-	fn->sym = realloc(fn->sym, fn->ntmp * sizeof(Sym));
-	if (!fn->sym)
-		diag("isel: out of memory");
-	for (t=t0; t<fn->ntmp; t++) {
-		fn->sym[t].type = STmp;
-		sprintf(fn->sym[t].name, "isel%d", t-t0);
 	}
 }
