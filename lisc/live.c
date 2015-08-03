@@ -6,7 +6,7 @@ bset(Ref r, Blk *b, Bits *rb, int *nlv)
 	Bits *bs;
 
 	switch (rtype(r)) {
-	case RSym:
+	case RTmp:
 		bs = &b->in;
 		BSET(b->gen, r.val);
 		break;
@@ -14,7 +14,6 @@ bset(Ref r, Blk *b, Bits *rb, int *nlv)
 		bs = rb;
 		break;
 	default:
-		diag("live: unhandled reference");
 		return;
 	}
 	if (!BGET(*bs, r.val)) {
@@ -36,7 +35,7 @@ filllive(Fn *f)
 	uint a;
 	Bits tb, rb;
 
-	assert(f->nsym <= NBit*BITS);
+	assert(f->ntmp <= NBit*BITS);
 	for (b=f->start; b; b=b->link) {
 		b->in = (Bits){{0}};
 		b->out = (Bits){{0}};
@@ -64,15 +63,18 @@ Again:
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			i--;
 			switch (rtype(i->to)) {
-			case RSym:
+			default:
+				diag("live: unhandled destination");
+			case RTmp:
 				nlv -= BGET(b->in, i->to.val);
 				BCLR(b->in, i->to.val);
 				break;
 			case RReg:
 				nlv -= BGET(rb, i->to.val);
 				BCLR(rb, i->to.val);
-			default:
-				diag("live: unhandled destination");
+				break;
+			case -1:
+				break;
 			}
 			bset(i->arg[0], b, &rb, &nlv);
 			bset(i->arg[1], b, &rb, &nlv);
@@ -83,7 +85,7 @@ Again:
 		for (p=b->phi; p; p=p->link) {
 			BCLR(b->in, p->to.val);
 			for (a=0; a<p->narg; a++)
-				if (rtype(p->arg[a]) == RSym)
+				if (rtype(p->arg[a]) == RTmp)
 					BSET(p->blk[a]->out, p->arg[a].val);
 		}
 	}

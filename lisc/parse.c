@@ -4,8 +4,8 @@
 #include <ctype.h>
 
 enum {
-	NSym = 256,
-	NCons = 256,
+	NTmp = 256,
+	NCon = 256,
 };
 
 Ins insb[NIns], *curi;
@@ -48,7 +48,7 @@ typedef enum {
 	TL,
 
 	TNum,
-	TVar,
+	TTmp,
 	TLbl,
 	TAddr,
 	TEq,
@@ -68,10 +68,10 @@ static struct {
 } tokval;
 static int lnum;
 
-static Sym sym[NSym];
-static Cons cons[NCons];
-static int nsym;
-static int ncons;
+static Tmp tmp[NTmp];
+static Con con[NCon];
+static int ntmp;
+static int ncon;
 static Phi **plink;
 static Blk *bmap[NBlk+1];
 static Blk *curb;
@@ -150,7 +150,7 @@ lex()
 	case '=':
 		return TEq;
 	case '%':
-		t = TVar;
+		t = TTmp;
 		c = fgetc(inf);
 		goto Alpha;
 	case '@':
@@ -242,45 +242,45 @@ blocka()
 }
 
 static Ref
-varref(char *v)
+tmpref(char *v)
 {
-	int s;
+	int t;
 
-	for (s=0; s<nsym; s++)
-		if (strcmp(v, sym[s].name) == 0)
-			return SYM(s);
-	if (nsym++ >= NSym)
-		err("too many symbols");
-	strcpy(sym[s].name, v);
-	return SYM(s);
+	for (t=0; t<ntmp; t++)
+		if (strcmp(v, tmp[t].name) == 0)
+			return TMP(t);
+	if (ntmp++ >= NTmp)
+		err("too many temporaries");
+	strcpy(tmp[t].name, v);
+	return TMP(t);
 }
 
 static Ref
 parseref()
 {
-	Cons c;
+	Con c;
 	int i;
 
 	switch (next()) {
-	case TVar:
-		return varref(tokval.str);
+	case TTmp:
+		return tmpref(tokval.str);
 	case TNum:
-		c = (Cons){.type = CNum, .val = tokval.num};
+		c = (Con){.type = CNum, .val = tokval.num};
 		strcpy(c.label, "");
 	if (0) {
 	case TAddr:
-		c = (Cons){.type = CAddr, .val = 0};
+		c = (Con){.type = CAddr, .val = 0};
 		strcpy(c.label, tokval.str);
 	}
-		for (i=0; i<ncons; i++)
-			if (cons[i].type == c.type
-			&& cons[i].val == c.val
-			&& strcmp(cons[i].label, c.label) == 0)
-				return CONS(i);
-		if (ncons++ >= NCons)
+		for (i=0; i<ncon; i++)
+			if (con[i].type == c.type
+			&& con[i].val == c.val
+			&& strcmp(con[i].label, c.label) == 0)
+				return CON(i);
+		if (ncon++ >= NCon)
 			err("too many constants");
-		cons[i] = c;
-		return CONS(i);
+		con[i] = c;
+		return CON(i);
 	default:
 		return R;
 	}
@@ -358,7 +358,7 @@ parseline(PState ps)
 		err("label, instruction or jump expected");
 	case TEOF:
 		return PEnd;
-	case TVar:
+	case TTmp:
 		break;
 	case TLbl:
 		b = findblk(tokval.str);
@@ -400,14 +400,14 @@ parseline(PState ps)
 		closeblk();
 		return PLbl;
 	}
-	r = varref(tokval.str);
+	r = tmpref(tokval.str);
 	expect(TEq);
 	switch (next()) {
 	case TW:
-		sym[r.val].type = SWord;
+		tmp[r.val].type = TWord;
 		break;
 	case TL:
-		sym[r.val].type = SLong;
+		tmp[r.val].type = TLong;
 		break;
 	default:
 		err("class expected after =");
@@ -490,10 +490,10 @@ parsefn(FILE *f)
 	inf = f;
 	for (i=0; i<NBlk; i++)
 		bmap[i] = 0;
-	for (i=0; i<NSym; i++)
-		sym[i] = (Sym){.name = ""};
-	nsym = 0;
-	ncons = 0;
+	for (i=0; i<NTmp; i++)
+		tmp[i] = (Tmp){.name = ""};
+	ntmp = 1;
+	ncon = 0;
 	curi = insb;
 	curb = 0;
 	lnum = 1;
@@ -508,11 +508,12 @@ parsefn(FILE *f)
 		err("empty file");
 	if (curb->jmp.type == JXXX)
 		err("last block misses jump");
-	fn->sym = alloc(nsym * sizeof sym[0]);
-	memcpy(fn->sym, sym, nsym * sizeof sym[0]);
-	fn->cons = alloc(ncons * sizeof cons[0]);
-	memcpy(fn->cons, cons, ncons * sizeof cons[0]);
-	fn->nsym = nsym;
+	fn->tmp = alloc(ntmp * sizeof tmp[0]);
+	memcpy(fn->tmp, tmp, ntmp * sizeof tmp[0]);
+	fn->con = alloc(ncon * sizeof con[0]);
+	memcpy(fn->con, con, ncon * sizeof con[0]);
+	fn->ntmp = ntmp;
+	fn->ncon = ncon;
 	fn->nblk = nblk;
 	fn->rpo = 0;
 	return fn;
@@ -522,24 +523,24 @@ static char *
 printref(Ref r, Fn *fn, FILE *f)
 {
 	static char *ttoa[] = {
-		[SUndef] = "?",
-		[SWord] = "w",
-		[SLong] = "l",
+		[TUndef] = "?",
+		[TWord] = "w",
+		[TLong] = "l",
 	};
 
 	switch (r.type) {
-	case RSym:
-		fprintf(f, "%%%s", fn->sym[r.val].name);
-		return ttoa[fn->sym[r.val].type];
-	case RCons:
-		switch (fn->cons[r.val].type) {
+	case RTmp:
+		fprintf(f, "%%%s", fn->tmp[r.val].name);
+		return ttoa[fn->tmp[r.val].type];
+	case RCon:
+		switch (fn->con[r.val].type) {
 		case CAddr:
-			fprintf(f, "$%s", fn->cons[r.val].label);
-			if (fn->cons[r.val].val)
-				fprintf(f, "%+"PRIi64, fn->cons[r.val].val);
+			fprintf(f, "$%s", fn->con[r.val].label);
+			if (fn->con[r.val].val)
+				fprintf(f, "%+"PRIi64, fn->con[r.val].val);
 			break;
 		case CNum:
-			fprintf(f, "%"PRIi64, fn->cons[r.val].val);
+			fprintf(f, "%"PRIi64, fn->con[r.val].val);
 			break;
 		case CUndef:
 			diag("printref: invalid constant");

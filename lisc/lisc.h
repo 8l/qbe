@@ -12,8 +12,8 @@ typedef struct OpDesc OpDesc;
 typedef struct Ins Ins;
 typedef struct Phi Phi;
 typedef struct Blk Blk;
-typedef struct Sym Sym;
-typedef struct Cons Cons;
+typedef struct Tmp Tmp;
+typedef struct Con Con;
 typedef struct Fn Fn;
 
 typedef enum { U, F, T } B3;
@@ -40,9 +40,27 @@ enum {
 	RBP, /* reserved */
 	RSP,
 
+	EAX, /* 32bits */
+	ECX,
+	EDX,
+	ESI,
+	EDI,
+	R8D,
+	R9D,
+	R10D,
+	R11D,
+
+	EBX,
+	R12D,
+	R13D,
+	R14D,
+	R15D,
+
 	// NReg = R15 - RAX + 1
 	NReg = 3 /* for test purposes */
 };
+
+#define LTW(r) (r + (EAX-RAX))
 
 enum {
 	NString = 32,
@@ -68,16 +86,16 @@ struct Ref {
 };
 
 enum {
-	RSym,
-	RCons,
+	RTmp,
+	RCon,
 	RSlot,
 	RReg,
 	NRef = (1<<14) - 1
 };
 
 #define R        (Ref){0, 0}
-#define SYM(x)   (Ref){RSym, x}
-#define CONS(x)  (Ref){RCons, x}
+#define TMP(x)   (Ref){RTmp, x}
+#define CON(x)   (Ref){RCon, x}
 #define SLOT(x)  (Ref){RSlot, x}
 #define REG(x)   (Ref){RReg, x}
 
@@ -153,11 +171,11 @@ struct Blk {
 	char name[NString];
 };
 
-struct Sym {
+struct Tmp {
 	enum {
-		SUndef,
-		SWord,
-		SLong,
+		TUndef,
+		TWord,
+		TLong,
 	} type;
 	char name[NString];
 	uint ndef, nuse;
@@ -166,7 +184,7 @@ struct Sym {
 	int hint;
 };
 
-struct Cons {
+struct Con {
 	enum {
 		CUndef,
 		CNum,
@@ -178,9 +196,10 @@ struct Cons {
 
 struct Fn {
 	Blk *start;
-	Sym *sym;
-	Cons *cons;
-	int nsym;
+	Tmp *tmp;
+	Con *con;
+	int ntmp;
+	int ncon;
 	int nblk;
 	Blk **rpo;
 	uint nspill;
@@ -189,7 +208,7 @@ struct Fn {
 
 /* main.c */
 extern char debug['Z'+1];
-void dumpss(Bits *, Sym *, FILE *);
+void dumpts(Bits *, Tmp *, FILE *);
 
 /* parse.c */
 extern OpDesc opdesc[];

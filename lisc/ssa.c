@@ -102,7 +102,7 @@ static Ref
 topdef(Blk *b, Fn *f)
 {
 	uint i;
-	int s1;
+	int t1;
 	Ref r;
 	Phi *p;
 
@@ -115,8 +115,8 @@ topdef(Blk *b, Fn *f)
 		return r;
 	}
 	/* add a phi node */
-	s1 = f->nsym++;
-	r = SYM(s1);
+	t1 = f->ntmp++;
+	r = TMP(t1);
 	top[b->id] = r;
 	p = alloc(sizeof *p);
 	p->link = b->phi;
@@ -137,7 +137,7 @@ void
 ssafix(Fn *f, int t)
 {
 	uint n;
-	int s0, s1;
+	int t0, t1;
 	Ref rt;
 	Blk *b;
 	Phi *p;
@@ -145,32 +145,32 @@ ssafix(Fn *f, int t)
 
 	top = alloc(f->nblk * sizeof top[0]);
 	bot = alloc(f->nblk * sizeof bot[0]);
-	rt = SYM(t);
-	s0 = f->nsym;
+	rt = TMP(t);
+	t0 = f->ntmp;
 	for (b=f->start; b; b=b->link) {
-		s1 = 0;
+		t1 = 0;
 		/* rename defs and some in-blocks uses */
 		for (p=b->phi; p; p=p->link)
 			if (req(p->to, rt)) {
-				s1 = f->nsym++;
-				p->to = SYM(s1);
+				t1 = f->ntmp++;
+				p->to = TMP(t1);
 			}
 		for (i=b->ins; i-b->ins < b->nins; i++) {
-			if (s1) {
+			if (t1) {
 				if (req(i->arg[0], rt))
-					i->arg[0] = SYM(s1);
+					i->arg[0] = TMP(t1);
 				if (req(i->arg[1], rt))
-					i->arg[1] = SYM(s1);
+					i->arg[1] = TMP(t1);
 			}
 			if (req(i->to, rt)) {
-				s1 = f->nsym++;
-				i->to = SYM(s1);
+				t1 = f->ntmp++;
+				i->to = TMP(t1);
 			}
 		}
-		if (s1 && req(b->jmp.arg, rt))
-			b->jmp.arg = SYM(s1);
+		if (t1 && req(b->jmp.arg, rt))
+			b->jmp.arg = TMP(t1);
 		top[b->id] = R;
-		bot[b->id] = s1 ? SYM(s1) : R;
+		bot[b->id] = t1 ? TMP(t1) : R;
 	}
 	for (b=f->start; b; b=b->link) {
 		for (p=b->phi; p; p=p->link)
@@ -186,14 +186,14 @@ ssafix(Fn *f, int t)
 		if (req(b->jmp.arg, rt))
 			b->jmp.arg = topdef(b, f);
 	}
-	/* add new symbols */
-	f->sym = realloc(f->sym, f->nsym * sizeof f->sym[0]);
-	if (!f->sym)
+	/* add new temporaries */
+	f->tmp = realloc(f->tmp, f->ntmp * sizeof f->tmp[0]);
+	if (!f->tmp)
 		diag("ssafix: out of memory");
-	for (s1=s0; s0<f->nsym; s0++) {
-		f->sym[s0] = f->sym[t];
-		snprintf(f->sym[s0].name, NString, "%s%d",
-			f->sym[t].name, s0-s1);
+	for (t1=t0; t0<f->ntmp; t0++) {
+		f->tmp[t0] = f->tmp[t];
+		snprintf(f->tmp[t0].name, NString, "%s%d",
+			f->tmp[t].name, t0-t1);
 	}
 	free(top);
 	free(bot);

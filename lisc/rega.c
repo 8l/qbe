@@ -11,7 +11,7 @@ struct RMap {
 };
 
 extern Ins insb[NIns], *curi;
-static Sym *sym;       /* symbol table in use */
+static Tmp *tmp;       /* function temporaries */
 static struct {
 	Ref src, dst;
 } *pm;                 /* parallel move constructed */
@@ -35,17 +35,23 @@ rref(RMap *m, int t)
 
 	r = rfind(m, t);
 	if (r == -1) {
-		s = sym[t].spill;
+		s = tmp[t].spill;
 		assert(s && "should have spilled");
 		return SLOT(s);
 	} else
-		return SYM(r);
+		switch (tmp[t].type) {
+		default:
+			assert(!"invalid temporary");
+		case TWord:
+			return REG(LTW(r));
+		case TLong:
+			return REG(r);
+		}
 }
 
 static void
 radd(RMap *m, int t, int r)
 {
-	assert(sym[t].type == STmp && "invalid symbol");
 	assert(RAX <= r && r < RAX + NReg && "invalid register");
 	assert(!BGET(m->bt, t) && "temp has mapping");
 	assert(!BGET(m->br, r) && "reg already allocated");
@@ -62,22 +68,19 @@ ralloc(RMap *m, int t)
 {
 	int r;
 
-	if (sym[t].type == SReg) {
-		assert(BGET(m->br, t));
-		r = t;
-	} else if (BGET(m->bt, t)) {
+	if (BGET(m->bt, t)) {
 		r = rfind(m, t);
-		assert(r > 0);
+		assert(r != -1);
 	} else {
-		r = sym[t].hint;
+		r = tmp[t].hint;
 		if (r == -1 || BGET(m->br, r))
 			for (r=RAX; BGET(m->br, r); r++)
 				;
 		radd(m, t, r);
-		if (sym[t].hint == -1)
-			sym[t].hint = r;
+		if (tmp[t].hint == -1)
+			tmp[t].hint = r;
 	}
-	return SYM(r);
+	return REG(r);
 }
 
 static int
@@ -85,21 +88,16 @@ rfree(RMap *m, int t)
 {
 	int i, r;
 
-	if (sym[t].type == SReg) {
-		assert(BGET(m->br, t));
-		BCLR(m->br, t);
-		return t;
-	}
 	if (!BGET(m->bt, t))
-		return 0;
+		return -1;
 	for (i=0; m->t[i] != t; i++)
 		assert(i+1 < m->n);
 	r = m->r[i];
 	BCLR(m->bt, t);
 	BCLR(m->br, r);
 	m->n--;
-	memmove(&m->t[i], &m->t[i+1], (m->n-i) * sizeof(int));
-	memmove(&m->r[i], &m->r[i+1], (m->n-i) * sizeof(int));
+	memmove(&m->t[i], &m->t[i+1], (m->n-i) * m->t[0]);
+	memmove(&m->r[i], &m->r[i+1], (m->n-i) * m->r[0]);
 	return r;
 }
 
@@ -109,16 +107,10 @@ mdump(RMap *m)
 	int i;
 
 	for (i=0; i<m->n; i++)
-		fprintf(stderr, " (%s, %s)",
-			sym[m->t[i]].name,
-			sym[m->r[i]].name);
+		fprintf(stderr, " (%s, reg%d)",
+			tmp[m->t[i]].name,
+			m->r[i]);
 	fprintf(stderr, "\n");
-}
-
-static inline int
-isreg(Ref r)
-{
-	return rtype(r) == RSym && sym[r.val].type == SReg;
 }
 
 static void
@@ -199,22 +191,25 @@ dopm(Blk *b, Ins *i, RMap *m)
 
 	npm = 0;
 	i1 = i+1;
-	if (isreg(i->to))
+	if (rtype(i->to) == RReg)
 		for (;; i--) {
 			r = i->to.val;
 			rt = i->arg[0];
-			assert(rtype(rt) == RSym);
-			rfree(m, r);
+			assert(rtype(rt) == RTmp);
+			assert(BGET(m->br, r));
+			/* todo, assert that r is not mapped */
+			BCLR(m->br, r);
 			rt = ralloc(m, rt.val);
 			pmadd(rt, i->to);
 			if (i==b->ins
 			|| (i-1)->op!=OCopy
-			|| !isreg((i-1)->to))
+			|| rtype((i-1)->to) != RReg)
 				break;
 		}
-	else if (isreg(i->arg[0]))
+	else if (rtype(i->arg[0]) == RReg)
 		for (;; i--) {
 			r = i->arg[0].val;
+			assert(req(i->to, R) || i->to.type == RTmp);
 			if (req(i->to, R)) {
 				if (BGET(m->br, r)) {
 					for (n=0; m->r[n] != r; n++)
@@ -226,13 +221,13 @@ dopm(Blk *b, Ins *i, RMap *m)
 					pmadd(rt, i->arg[0]);
 				}
 			} else if (BGET(m->bt, i->to.val)) {
-				rt = SYM(rfree(m, i->to.val));
+				rt = TMP(rfree(m, i->to.val));
 				pmadd(i->arg[0], rt);
 			}
 			BSET(m->br, r);
 			if (i==b->ins
 			|| (i-1)->op!=OCopy
-			|| !isreg((i-1)->arg[0]))
+			|| rtype((i-1)->arg[0]) != RReg)
 				break;
 		}
 	else
@@ -257,7 +252,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 void
 rega(Fn *fn)
 {
-	int n, t, u, r, x;
+	int n, t, r, x;
 	Blk *b, *b1, *s, ***ps, *blist;
 	Ins *i;
 	RMap *end, *beg, cur;
@@ -265,27 +260,23 @@ rega(Fn *fn)
 	uint a;
 	Ref src, dst;
 
-	sym = fn->sym;
+	tmp = fn->tmp;
 	end = alloc(fn->ntmp * sizeof end[0]);
 	beg = alloc(fn->ntmp * sizeof beg[0]);
 
 	/* 1. gross hinting setup */
-	for (t=Tmp0; t<fn->ntmp; t++)
-		sym[t].hint = -1;
-	for (b=fn->start; b; b=b->link) {
-		for (i=b->ins; i-b->ins < b->nins; i++) {
-			if (i->op == OCopy
-			&& rtype(i->arg[0]) == RSym
-			&& !req(i->to, R)) {
-				t = i->arg[0].val;
-				u = i->to.val;
-				if (sym[t].type == SReg)
-					sym[u].hint = t;
-				if (sym[u].type == SReg)
-					sym[t].hint = u;
+	for (t=0; t<fn->ntmp; t++)
+		tmp[t].hint = -1;
+	for (b=fn->start; b; b=b->link)
+		for (i=b->ins; i-b->ins < b->nins; i++)
+			if (i->op == OCopy) {
+				if (rtype(i->arg[0]) == RTmp
+				&& rtype(i->to) == RReg)
+					tmp[i->arg[0].val].hint = i->to.val;
+				if (rtype(i->to) == RTmp
+				&& rtype(i->arg[0]) == RReg)
+					tmp[i->to.val].hint = i->arg[0].val;
 			}
-		}
-	}
 
 	/* 2. assign registers backwards */
 	if (debug['R'])
@@ -305,36 +296,48 @@ rega(Fn *fn)
 		 * successor
 		 */
 		if (b1)
-			for (t=Tmp0; t<fn->ntmp; t++)
+			for (t=0; t<fn->ntmp; t++)
 				if (BGET(b->out, t))
 				if ((r = rfind(&beg[b1->id], t)) != -1)
 					radd(&cur, t, r);
 		for (x=0; x<2; x++)
-			for (t=Tmp0; t<fn->ntmp; t++)
-				if (x==1 || sym[t].hint!=-1)
+			for (t=0; t<fn->ntmp; t++)
+				if (x==1 || tmp[t].hint!=-1)
 				if (BGET(b->out, t))
 				if (!BGET(cur.bt, t))
 					ralloc(&cur, t);
 		/* process instructions */
 		end[n] = cur;
-		if (rtype(b->jmp.arg) == RSym)
+		assert(rtype(b->jmp.arg) != RReg);
+		if (rtype(b->jmp.arg) == RTmp)
 			b->jmp.arg = ralloc(&cur, b->jmp.arg.val);
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			i--;
 			if (i->op == OCopy /* par. moves are special */
-			&& (isreg(i->arg[0]) || isreg(i->to))) {
+			&& (rtype(i->arg[0]) == RReg || rtype(i->to) == RReg)) {
 				i = dopm(b, i, &cur);
 				continue;
 			}
-			if (!req(i->to, R)) {
+			switch (rtype(i->to)) {
+			default:
+				assert(!"unhandled destination");
+			case RTmp:
 				r = rfree(&cur, i->to.val);
-				if (!r) {
+				if (r == -1) {
 					*i = (Ins){ONop, R, {R, R}};
 					continue;
 				}
-				i->to = SYM(r);
+				i->to = REG(r);
+				break;
+			case RReg:
+				r = i->to.val;
+				assert(BGET(cur.br, r));
+				BCLR(cur.br, r);
+				break;
+			case -1:;
 			}
-			if (rtype(i->arg[0]) == RSym) {
+			switch (rtype(i->arg[0])) {
+			case RTmp:
 				/* <arch>
 				 *   on Intel, we attempt to
 				 *   use the same register
@@ -342,11 +345,16 @@ rega(Fn *fn)
 				 *   first argument
 				 */
 				t = i->arg[0].val;
-				if (sym[t].hint == -1 && r)
-					sym[t].hint = r;
+				if (tmp[t].hint == -1 && r)
+					tmp[t].hint = r;
 				i->arg[0] = ralloc(&cur, t);
+				break;
+			case RReg:
+				BSET(cur.br, i->arg[0].val);
+				break;
 			}
-			if (rtype(i->arg[1]) == RSym) {
+			switch (rtype(i->arg[1])) {
+			case RTmp:
 				/* <arch>
 				 *   on Intel, we have to
 				 *   make sure we avoid the
@@ -359,11 +367,15 @@ rega(Fn *fn)
 				i->arg[1] = ralloc(&cur, t);
 				if (opdesc[i->op].comm == F && r)
 					BCLR(cur.br, r);
+				break;
+			case RReg:
+				BSET(cur.br, i->arg[1].val);
+				break;
 			}
 		}
 		b->in = cur.bt;
 		for (p=b->phi; p; p=p->link)
-			if (rtype(p->to) == RSym)
+			if (rtype(p->to) == RTmp)
 				BCLR(b->in, p->to.val);
 		beg[n] = cur;
 		if (debug['R']) {
@@ -383,23 +395,22 @@ rega(Fn *fn)
 		for (; (s=**ps); ps++) {
 			npm = 0;
 			for (p=s->phi; p; p=p->link) {
-				assert(rtype(p->to) == RSlot
-					|| rtype(p->to) == RSym);
 				dst = p->to;
-				if (rtype(dst) == RSym) {
+				assert(rtype(dst)==RSlot|| rtype(dst)==RTmp);
+				if (rtype(dst) == RTmp) {
 					r = rfind(&beg[s->id], dst.val);
-					if (!r)
+					if (r == -1)
 						continue;
-					dst = SYM(r);
+					dst = REG(r);
 				}
 				for (a=0; p->blk[a]!=b; a++)
 					assert(a+1 < p->narg);
 				src = p->arg[a];
-				if (rtype(src) == RSym)
+				if (rtype(src) == RTmp)
 					src = rref(&end[b->id], src.val);
 				pmadd(src, dst);
 			}
-			for (t=Tmp0; t<fn->ntmp; t++)
+			for (t=0; t<fn->ntmp; t++)
 				if (BGET(s->in, t)) {
 					src = rref(&end[b->id], t);
 					dst = rref(&beg[s->id], t);

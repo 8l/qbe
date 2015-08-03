@@ -7,14 +7,14 @@ char debug['Z'+1] = {
 };
 
 void
-dumpss(Bits *b, Sym *s, FILE *f)
+dumpts(Bits *b, Tmp *tmp, FILE *f)
 {
 	int t;
 
 	fprintf(f, "[");
 	for (t=0; t<BITS*NBit; t++)
 		if (BGET(*b, t))
-			fprintf(f, " %s", s[t].name);
+			fprintf(f, " %s", tmp[t].name);
 	fprintf(f, " ]\n");
 }
 
@@ -33,13 +33,13 @@ main(int ac, char *av[])
 
 	switch (opt) {
 	case 'f': {
-		int s, nsym;
+		int t, ntmp;
 
 		fprintf(stderr, "[Testing SSA Reconstruction:");
 		fillpreds(fn);
-		for (nsym=fn->nsym, s=0; s<nsym; s++) {
-			fprintf(stderr, " %s", fn->sym[s].name);
-			ssafix(fn, s);
+		for (ntmp=fn->ntmp, t=0; t<ntmp; t++) {
+			fprintf(stderr, " %s", fn->tmp[t].name);
+			ssafix(fn, t);
 		}
 		fprintf(stderr, "]\n");
 		break;
@@ -68,9 +68,9 @@ main(int ac, char *av[])
 		for (b=fn->start; b; b=b->link) {
 			printf("> Block %s\n", b->name);
 			printf("\t in:   ");
-			dumpss(&b->in, fn->sym, stdout);
+			dumpts(&b->in, fn->tmp, stdout);
 			printf("\tout:   ");
-			dumpss(&b->out, fn->sym, stdout);
+			dumpts(&b->out, fn->tmp, stdout);
 			printf("\tnlive: %d\n", b->nlive);
 		}
 		pr = 0;
@@ -96,7 +96,7 @@ main(int ac, char *av[])
 		for (b=fn->start; b; b=b->link) {
 			printf("\t%-10s (% 5d) ",
 				b->name, b->loop);
-			dumpss(&b->out, fn->sym, stdout);
+			dumpts(&b->out, fn->tmp, stdout);
 		}
 		printf("\n");
 		break;
@@ -132,7 +132,7 @@ main(int ac, char *av[])
 				break;
 			} else
 				fn->rpo[n]->link = fn->rpo[n+1];
-		emitfn(fn, stdout);
+		// emitfn(fn, stdout);
 		pr = 0;
 		break;
 	}
@@ -142,5 +142,5 @@ main(int ac, char *av[])
 
 	if (pr)
 		printfn(fn, stdout);
-	return 0;
+	exit(0);
 }

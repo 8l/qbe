@@ -13,7 +13,7 @@ loopmark(Blk *hd, Blk *b, Phi *p)
 	for (; p; p=p->link)
 		for (a=0; a<p->narg; a++)
 			if (p->blk[a] == b)
-			if (rtype(p->arg[a]) == RSym)
+			if (rtype(p->arg[a]) == RTmp)
 				BSET(hd->gen, p->arg[a].val);
 	if (b->visit == head)
 		return;
@@ -30,20 +30,16 @@ loopmark(Blk *hd, Blk *b, Phi *p)
 }
 
 static void
-symuse(Ref r, int use, int loop, Fn *fn)
+tmpuse(Ref r, int use, int loop, Fn *fn)
 {
-	Sym *s;
+	Tmp *t;
 
-	if (rtype(r) != RSym)
+	if (rtype(r) != RTmp)
 		return;
-	s = &fn->sym[r.val];
-	if (s->type != STmp)
-		return;
-	if (use)
-		s->nuse++;
-	else
-		s->ndef++;
-	s->cost += loop;
+	t = &fn->tmp[r.val];
+	t->nuse += use;
+	t->ndef += 1 - use;
+	t->cost += loop;
 }
 
 /* evaluate spill costs of temporaries,
@@ -57,7 +53,7 @@ fillcost(Fn *fn)
 	uint a;
 	Blk *b;
 	Ins *i;
-	Sym *s;
+	Tmp *t;
 	Phi *p;
 
 	for (b=fn->start; b; b=b->link) {
@@ -77,43 +73,41 @@ fillcost(Fn *fn)
 		if (hd && debug['S']) {
 			fprintf(stderr, "\t%-10s", b->name);
 			fprintf(stderr, " (% 3d) ", b->nlive);
-			dumpss(&b->gen, fn->sym, stderr);
+			dumpts(&b->gen, fn->tmp, stderr);
 		}
 	}
-	for (s=fn->sym; s-fn->sym < fn->ntmp; s++) {
-		s->cost = 0;
-		s->nuse = 0;
-		s->ndef = 0;
-		if (s->type == SReg)
-			s->cost = 100000;
+	for (t=fn->tmp; t-fn->tmp < fn->ntmp; t++) {
+		t->cost = 0;
+		t->nuse = 0;
+		t->ndef = 0;
 	}
 	for (b=fn->start; b; b=b->link) {
 		for (p=b->phi; p; p=p->link) {
-			/* zero cost for temporaries used
-			 * in phi instructions */
-			symuse(p->to, 0, 0, fn);
+			/* todo, the cost computation
+			 * for p->to is not great... */
+			tmpuse(p->to, 0, 0, fn);
 			for (a=0; a<p->narg; a++) {
 				n = p->blk[a]->loop;
 				assert(b->npred==p->narg &&
 					"wrong cfg");
 				n /= b->npred;
-				symuse(p->arg[a], 1, n, fn);
+				tmpuse(p->arg[a], 1, n, fn);
 			}
 		}
 		n = b->loop;
 		for (i=b->ins; i-b->ins < b->nins; i++) {
-			symuse(i->to, 0, n, fn);
-			symuse(i->arg[0], 1, n, fn);
-			symuse(i->arg[1], 1, n, fn);
+			tmpuse(i->to, 0, n, fn);
+			tmpuse(i->arg[0], 1, n, fn);
+			tmpuse(i->arg[1], 1, n, fn);
 		}
-		symuse(b->jmp.arg, 1, n, fn);
+		tmpuse(b->jmp.arg, 1, n, fn);
 	}
 	if (debug['S']) {
 		fprintf(stderr, "\n> Spill costs:\n");
-		for (n=Tmp0; n<fn->ntmp; n++)
+		for (n=0; n<fn->ntmp; n++)
 			fprintf(stderr, "\t%-10s %d\n",
-				fn->sym[n].name,
-				fn->sym[n].cost);
+				fn->tmp[n].name,
+				fn->tmp[n].cost);
 		fprintf(stderr, "\n");
 	}
 }
@@ -148,14 +142,16 @@ bcnt(Bits *b) /* glad I can pull it :) */
 
 extern Ins insb[NIns], *curi; /* shared work buffer */
 static Bits *f;  /* temps to prioritize in registers (for tcmp1) */
-static Sym *sym; /* current symbol table (for tcmpX) */
+static Tmp *tmp; /* current temporaries (for tcmpX) */
 static int ntmp; /* current # of temps (for limit) */
 static uint ns;  /* current # of spill slots */
+static int nreg; /* # of registers available */
+static Bits br;  /* live registers */
 
 static int
 tcmp0(const void *pa, const void *pb)
 {
-	return sym[*(int *)pb].cost - sym[*(int *)pa].cost;
+	return tmp[*(int *)pb].cost - tmp[*(int *)pa].cost;
 }
 
 static int
@@ -172,11 +168,10 @@ slot(int t)
 {
 	int s;
 
-	assert(sym[t].type == STmp);
-	s = sym[t].spill;
+	s = tmp[t].spill;
 	if (!s) {
-		s = 1 + ns++;
-		sym[t].spill = s;
+		s = ++ns;
+		tmp[t].spill = s;
 	}
 	return SLOT(s);
 }
@@ -192,7 +187,7 @@ emit(short op, Ref to, Ref arg0, Ref arg1)
 static Bits
 limit(Bits *b, int k, Bits *fst)
 {
-	static int *tmp, maxt;
+	static int *tarr, maxt;
 	int i, t, nt;
 	Bits res;
 
@@ -200,28 +195,28 @@ limit(Bits *b, int k, Bits *fst)
 	if (nt <= k)
 		return *b;
 	if (nt > maxt) {
-		free(tmp);
-		tmp = alloc(nt * sizeof tmp[0]);
+		free(tarr);
+		tarr = alloc(nt * sizeof tarr[0]);
 		maxt = nt;
 	}
 	i = 0;
 	for (t=0; t<ntmp; t++)
 		if (BGET(*b, t))
-			tmp[i++] = t;
+			tarr[i++] = t;
 	assert(i == nt);
 	if (!fst)
-		qsort(tmp, nt, sizeof tmp[0], tcmp0);
+		qsort(tarr, nt, sizeof tarr[0], tcmp0);
 	else {
 		f = fst;
-		qsort(tmp, nt, sizeof tmp[0], tcmp1);
+		qsort(tarr, nt, sizeof tarr[0], tcmp1);
 	}
 	res = (Bits){{0}};
 	for (i=0; i<k && i<nt; i++)
-		BSET(res, tmp[i]);
+		BSET(res, tarr[i]);
 	for (; i<nt; i++) {
-		slot(tmp[i]);
+		slot(tarr[i]);
 		if (curi)
-			emit(OLoad, SYM(tmp[i]), slot(tmp[i]), R);
+			emit(OLoad, TMP(tarr[i]), slot(tarr[i]), R);
 	}
 	return res;
 }
@@ -240,13 +235,20 @@ setloc(Ref *pr, Bits *v, Bits *w)
 	 *   't' to 'w' before calling
 	 *   limit
 	 */
-	if (rtype(*pr) != RSym)
+	if (rtype(*pr) == RReg) {
+		nreg -= !BGET(br, pr->val);
+		BSET(br, pr->val);
+	}
+	if (rtype(*pr) != RTmp)
 		return;
 	t = pr->val;
 	BSET(*v, t);
-	*v = limit(v, NReg, w);
+	*v = limit(v, nreg, w);
 	if (curi->op == OLoad)
 	if (curi->to.val == t)
+		/* if t was spilled by limit,
+		 * it was not live so we don't
+		 * have to reload it */
 		curi++;
 	if (!BGET(*v, t))
 		*pr = slot(t);
@@ -279,13 +281,15 @@ spill(Fn *fn)
 	Phi *p;
 
 	ns = 0;
-	sym = fn->sym;
+	tmp = fn->tmp;
 	ntmp = fn->ntmp;
 	assert(ntmp < NBit*BITS);
 
 	for (n=fn->nblk-1; n>=0; n--) {
 		/* invariant: m>n => in,out of m updated */
 		b = fn->rpo[n];
+		nreg = NReg;
+		assert(bcnt(&br) == 0);
 
 		/* 1. find temporaries in registers at
 		 * the end of the block (put them in v) */
@@ -305,16 +309,16 @@ spill(Fn *fn)
 			for (z=0; z<BITS; z++)
 				v.t[z] = hd->gen.t[z] & b->out.t[z];
 			j = bcnt(&v);
-			if (j < NReg) {
+			if (j < nreg) {
 				w = b->out;
 				for (z=0; z<BITS; z++)
 					w.t[z] &= ~v.t[z];
 				j = bcnt(&w);   /* live through */
-				w = limit(&w, NReg - (l - j), 0);
+				w = limit(&w, nreg - (l - j), 0);
 				for (z=0; z<BITS; z++)
 					v.t[z] |= w.t[z];
-			} else if (j > NReg)
-				v = limit(&v, NReg, 0);
+			} else if (j > nreg)
+				v = limit(&v, nreg, 0);
 		} else if (s1) {
 			v = s1->in;
 			w = s1->in;
@@ -323,16 +327,16 @@ spill(Fn *fn)
 					v.t[z] |= s2->in.t[z];
 					w.t[z] &= s2->in.t[z];
 				}
-			assert(bcnt(&w) <= NReg);
-			v = limit(&v, NReg, &w);
+			assert(bcnt(&w) <= nreg);
+			v = limit(&v, nreg, &w);
 		}
 		b->out = v;
-		assert(bcnt(&v) <= NReg);
+		assert(bcnt(&v) <= nreg);
 
 		/* 2. process the block instructions */
-		if (rtype(b->jmp.arg) == RSym) {
+		if (rtype(b->jmp.arg) == RTmp) {
 			j = b->jmp.arg.val;
-			if (!BGET(v, j) && l==NReg) {
+			if (!BGET(v, j) && l==nreg) {
 				v = limit(&v, l-1, 0);
 				b->out = v;
 			}
@@ -340,20 +344,32 @@ spill(Fn *fn)
 		}
 		curi = &insb[NIns];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
-			assert(bcnt(&v) <= NReg);
+			assert(bcnt(&v) <= nreg);
 			i--;
-			if (!req(i->to, R)) {
-				assert(rtype(i->to)==RSym);
+			s = 0;
+			switch (rtype(i->to)) {
+			default:
+				assert(!"unhandled destination");
+			case RTmp:
 				j = i->to.val;
 				if (BGET(v, j))
 					BCLR(v, j);
 				else
 					v = limit(&v, NReg-1, &w);
-				s = sym[j].spill;
-			} else
-				s = 0;
+				s = tmp[j].spill;
+				break;
+			case RReg:
+				j = i->to.val;
+				if (BGET(br, j)) {
+					BCLR(br, j);
+					nreg++;
+				} else
+					v = limit(&v, nreg-1, &w);
+				break;
+			case -1:;
+			}
 			w = (Bits){{0}};
-			if (rtype(i->arg[1]) == RSym
+			if (rtype(i->arg[1]) == RTmp
 			&& !req(i->to, R)
 			&& opdesc[i->op].comm == F) {
 				/* <arch>
@@ -376,20 +392,21 @@ spill(Fn *fn)
 		}
 
 		for (p=b->phi; p; p=p->link) {
+			assert(rtype(p->to) == RTmp);
 			t = p->to.val;
 			if (BGET(v, t)) {
 				BCLR(v, t);
-				s = sym[t].spill;
+				s = tmp[t].spill;
 				if (s)
 					emit(OStore, R, p->to, SLOT(s));
 			} else
 				p->to = slot(p->to.val);
 		}
+		b->in = v;
 		free(b->ins);
 		b->nins = &insb[NIns] - curi;
 		b->ins = alloc(b->nins * sizeof(Ins));
 		memcpy(b->ins, curi, b->nins * sizeof(Ins));
-		b->in = v;
 	}
 	fn->nspill = ns;
 }

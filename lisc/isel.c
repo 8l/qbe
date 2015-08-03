@@ -25,17 +25,18 @@ emit(short op, Ref to, Ref arg0, Ref arg1)
 }
 
 static int
-newsym(int type, Fn *fn)
+newtmp(int type, Fn *fn)
 {
-	int s;
+	static int n;
+	int t;
 
-	s = fn->nsym++;
-	fn->sym = realloc(fn->sym, fn->nsym * sizeof(Sym));
-	if (!fn->sym)
+	t = fn->ntmp++;
+	fn->tmp = realloc(fn->tmp, fn->ntmp * sizeof fn->tmp[0]);
+	if (!fn->tmp)
 		diag("isel: out of memory");
-	fn->sym[s] = (Sym){.type = type};
-	sprintf(fn->sym[s].name, "isel%d", s);
-	return s;
+	fn->tmp[t] = (Tmp){.type = type};
+	sprintf(fn->tmp[t].name, "isel%d", ++n);
+	return t;
 }
 
 static void
@@ -46,27 +47,27 @@ sel(Ins *i, Fn *fn)
 
 	switch (i->op) {
 	case ODiv:
-		r0 = SYM(RAX);
-		r1 = SYM(RDX);
+		r0 = REG(RAX);
+		r1 = REG(RDX);
 	if (0) {
 	case ORem:
-		r0 = SYM(RDX);
-		r1 = SYM(RAX);
+		r0 = REG(RDX);
+		r1 = REG(RAX);
 	}
 		emit(OCopy, i->to, r0, R);
 		emit(OCopy, R, r1, R);
-		if (rtype(i->arg[1]) == RCons) {
+		if (rtype(i->arg[1]) == RCon) {
 			/* immediates not allowed for
 			 * divisions in x86
 			 */
-			t = newsym(fn->sym[i->to.val].type, fn);
-			r0 = SYM(t);
+			t = newtmp(fn->tmp[i->to.val].type, fn);
+			r0 = TMP(t);
 		} else
 			r0 = i->arg[1];
 		emit(OXDiv, R, r0, R);
-		emit(OSign, SYM(RDX), SYM(RAX), R);
-		emit(OCopy, SYM(RAX), i->arg[0], R);
-		if (rtype(i->arg[1]) == RCons)
+		emit(OSign, REG(RDX), REG(RAX), R);
+		emit(OCopy, REG(RAX), i->arg[0], R);
+		if (rtype(i->arg[1]) == RCon)
 			emit(OCopy, r0, i->arg[1], R);
 		break;
 	case OAdd:
