@@ -42,18 +42,26 @@ newtmp(int type, Fn *fn)
 static void
 sel(Ins *i, Fn *fn)
 {
+	Ref r0, r1, ra, rd;
 	int t;
-	Ref r0, r1;
 
 	switch (i->op) {
 	case ODiv:
-		r0 = REG(RAX);
-		r1 = REG(RDX);
-	if (0) {
 	case ORem:
-		r0 = REG(RDX);
-		r1 = REG(RAX);
-	}
+		switch (fn->tmp[i->to.val].type) {
+		default:
+			diag("isel: invalid division");
+		case TWord:
+			ra = REG(EAX);
+			rd = REG(EDX);
+			break;
+		case TLong:
+			ra = REG(RAX);
+			rd = REG(RDX);
+			break;
+		}
+		r0 = i->op == ODiv ? ra : rd;
+		r1 = i->op == ODiv ? rd : ra;
 		emit(OCopy, i->to, r0, R);
 		emit(OCopy, R, r1, R);
 		if (rtype(i->arg[1]) == RCon) {
@@ -65,8 +73,8 @@ sel(Ins *i, Fn *fn)
 		} else
 			r0 = i->arg[1];
 		emit(OXDiv, R, r0, R);
-		emit(OSign, REG(RDX), REG(RAX), R);
-		emit(OCopy, REG(RAX), i->arg[0], R);
+		emit(OSign, rd, ra, R);
+		emit(OCopy, ra, i->arg[0], R);
 		if (rtype(i->arg[1]) == RCon)
 			emit(OCopy, r0, i->arg[1], R);
 		break;
