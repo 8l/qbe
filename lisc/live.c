@@ -15,6 +15,7 @@ bset(Ref r, Blk *b, Bits *rb, int *nlv)
 		break;
 	default:
 		diag("live: unhandled reference");
+		return;
 	}
 	if (!BGET(*bs, r.val)) {
 		++*nlv;
