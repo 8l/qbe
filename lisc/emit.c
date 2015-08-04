@@ -168,14 +168,14 @@ emitfn(Fn *fn, FILE *f)
 			break;
 		case JJez:
 			if (b->s1 == b->link) {
-				js = "jnz";
+				js = "jne";
 				s = b->s2;
 			} else if (b->s2 == b->link) {
-				js = "jz";
+				js = "je";
 				s = b->s1;
 			} else
 				diag("emit: unhandled jump (1)");
-			eop("test", b->jmp.arg, b->jmp.arg, fn, f);
+			eop("cmp $0,", b->jmp.arg, R, fn, f);
 			fprintf(f, "\t%s .L%s\n", js, s->name);
 			break;
 		default:

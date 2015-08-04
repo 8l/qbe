@@ -334,6 +334,7 @@ spill(Fn *fn)
 		assert(bcnt(&v) <= nreg);
 
 		/* 2. process the block instructions */
+#if 0
 		if (rtype(b->jmp.arg) == RTmp) {
 			j = b->jmp.arg.val;
 			if (!BGET(v, j) && l==nreg) {
@@ -342,6 +343,7 @@ spill(Fn *fn)
 			}
 			BSET(v, j);
 		}
+#endif
 		curi = &insb[NIns];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			assert(bcnt(&v) <= nreg);
