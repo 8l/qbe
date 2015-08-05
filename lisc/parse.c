@@ -25,10 +25,13 @@ OpDesc opdesc[OLast] = {
 	[OXDiv]   = { "xdiv",  1, U },
 	[OXCmp]   = { "xcmp",  2, U },
 
-	[OCmp+Ceq]   = { "ceq",    2, U },
-	[OCmp+Csle]  = { "csle",   2, U },
-	[OXSet+Ceq]  = { "xsete",  0, U },
-	[OXSet+Csle] = { "xsetle", 0, U },
+	#define I(X) X(eq), X(sle), X(sgt), X(ne)
+	#define CMP(c) [OCmp+C##c]  = { "c"    #c, 2, U }
+	#define SET(c) [OXSet+C##c] = { "xset" #c, 0, U }
+	I(CMP), I(SET)
+	#undef CMP
+	#undef SET
+	#undef I
 };
 
 typedef enum {

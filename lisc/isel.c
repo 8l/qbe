@@ -87,8 +87,14 @@ sel(Ins i, Fn *fn)
 	default:
 		if (OCmp <= i.op && i.op <= OCmp1) {
 			c = i.op - OCmp;
+			if (rtype(i.arg[0]) == RCon) {
+				r0 = i.arg[0];
+				i.arg[0] = i.arg[1];
+				i.arg[1] = r0;
+				c = CNEG(c);
+			}
 			emit(OXSet+c, i.to, R, R);
-			emit(OXCmp, R, i.arg[0], i.arg[1]);
+			emit(OXCmp, R, i.arg[1], i.arg[0]);
 			break;
 		}
 		diag("isel: non-exhaustive implementation");

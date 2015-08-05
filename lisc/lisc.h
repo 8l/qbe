@@ -108,8 +108,12 @@ static inline int rtype(Ref r)
 enum {
 	Ceq,
 	Csle,
+	Csgt, /* mirror opposite cmps! */
+	Cne,
 	NCmp,
 };
+
+#define CNEG(c) (NCmp-1 - c)
 
 enum {
 	OXXX,

@@ -4,7 +4,7 @@
 @loop
 	%n0  =w phi @start -1988, @loop %n1
 	%n1  =w add 1, %n0
-	%cmp =w csle %n1, 1000
-	jez %cmp, @end, @loop
+	%cmp =w csle 1990, %n1
+	jez %cmp, @loop, @end
 @end
 	ret
