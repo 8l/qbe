@@ -288,7 +288,6 @@ spill(Fn *fn)
 	for (n=fn->nblk-1; n>=0; n--) {
 		/* invariant: m>n => in,out of m updated */
 		b = fn->rpo[n];
-		nreg = NReg;
 		assert(bcnt(&br) == 0);
 
 		/* 1. find temporaries in registers at
@@ -309,16 +308,16 @@ spill(Fn *fn)
 			for (z=0; z<BITS; z++)
 				v.t[z] = hd->gen.t[z] & b->out.t[z];
 			j = bcnt(&v);
-			if (j < nreg) {
+			if (j < NReg) {
 				w = b->out;
 				for (z=0; z<BITS; z++)
 					w.t[z] &= ~v.t[z];
 				j = bcnt(&w);   /* live through */
-				w = limit(&w, nreg - (l - j), 0);
+				w = limit(&w, NReg - (l - j), 0);
 				for (z=0; z<BITS; z++)
 					v.t[z] |= w.t[z];
-			} else if (j > nreg)
-				v = limit(&v, nreg, 0);
+			} else if (j > NReg)
+				v = limit(&v, NReg, 0);
 		} else if (s1) {
 			v = s1->in;
 			w = s1->in;
@@ -327,23 +326,14 @@ spill(Fn *fn)
 					v.t[z] |= s2->in.t[z];
 					w.t[z] &= s2->in.t[z];
 				}
-			assert(bcnt(&w) <= nreg);
-			v = limit(&v, nreg, &w);
+			assert(bcnt(&w) <= NReg);
+			v = limit(&v, NReg, &w);
 		}
 		b->out = v;
-		assert(bcnt(&v) <= nreg);
+		assert(bcnt(&v) <= NReg);
 
 		/* 2. process the block instructions */
-#if 0
-		if (rtype(b->jmp.arg) == RTmp) {
-			j = b->jmp.arg.val;
-			if (!BGET(v, j) && l==nreg) {
-				v = limit(&v, l-1, 0);
-				b->out = v;
-			}
-			BSET(v, j);
-		}
-#endif
+		nreg = NReg;
 		curi = &insb[NIns];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			assert(bcnt(&v) <= nreg);
@@ -351,7 +341,7 @@ spill(Fn *fn)
 			s = 0;
 			switch (rtype(i->to)) {
 			default:
-				assert(!"unhandled destination");
+				diag("spill: unhandled destination");
 			case RTmp:
 				j = i->to.val;
 				if (BGET(v, j))
