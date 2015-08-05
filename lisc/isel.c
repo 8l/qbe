@@ -86,15 +86,25 @@ sel(Ins i, Fn *fn)
 		break;
 	default:
 		if (OCmp <= i.op && i.op <= OCmp1) {
+			r0 = i.arg[0];
 			c = i.op - OCmp;
 			if (rtype(i.arg[0]) == RCon) {
-				r0 = i.arg[0];
-				i.arg[0] = i.arg[1];
-				i.arg[1] = r0;
-				c = CNEG(c);
+				if (rtype(i.arg[1]) == RCon) {
+					/* todo, use the constant
+					 * size to dimension the
+					 * constant */
+					t = newtmp(TWord, fn);
+					r0 = TMP(t);
+				} else {
+					r0 = i.arg[1];
+					i.arg[1] = i.arg[0];
+					c = CNEG(c);
+				}
 			}
 			emit(OXSet+c, i.to, R, R);
-			emit(OXCmp, R, i.arg[1], i.arg[0]);
+			emit(OXCmp, R, i.arg[1], r0);
+			if (!req(r0, i.arg[0]))
+				emit(OCopy, r0, i.arg[0], R);
 			break;
 		}
 		diag("isel: non-exhaustive implementation");
