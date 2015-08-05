@@ -38,7 +38,7 @@ tmpuse(Ref r, int use, int loop, Fn *fn)
 		return;
 	t = &fn->tmp[r.val];
 	t->nuse += use;
-	t->ndef += 1 - use;
+	t->ndef += !use;
 	t->cost += loop;
 }
 

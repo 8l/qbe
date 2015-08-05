@@ -40,15 +40,16 @@ newtmp(int type, Fn *fn)
 }
 
 static void
-sel(Ins *i, Fn *fn)
+sel(Ins i, Fn *fn)
 {
 	Ref r0, r1, ra, rd;
-	int t;
+	int t, ty, c;
 
-	switch (i->op) {
+	switch (i.op) {
 	case ODiv:
 	case ORem:
-		switch (fn->tmp[i->to.val].type) {
+		ty = fn->tmp[i.to.val].type;
+		switch (ty) {
 		default:
 			diag("isel: invalid division");
 		case TWord:
@@ -60,35 +61,42 @@ sel(Ins *i, Fn *fn)
 			rd = REG(RDX);
 			break;
 		}
-		r0 = i->op == ODiv ? ra : rd;
-		r1 = i->op == ODiv ? rd : ra;
-		emit(OCopy, i->to, r0, R);
+		r0 = i.op == ODiv ? ra : rd;
+		r1 = i.op == ODiv ? rd : ra;
+		emit(OCopy, i.to, r0, R);
 		emit(OCopy, R, r1, R);
-		if (rtype(i->arg[1]) == RCon) {
+		if (rtype(i.arg[1]) == RCon) {
 			/* immediates not allowed for
 			 * divisions in x86
 			 */
-			t = newtmp(fn->tmp[i->to.val].type, fn);
+			t = newtmp(ty, fn);
 			r0 = TMP(t);
 		} else
-			r0 = i->arg[1];
+			r0 = i.arg[1];
 		emit(OXDiv, R, r0, R);
 		emit(OSign, rd, ra, R);
-		emit(OCopy, ra, i->arg[0], R);
-		if (rtype(i->arg[1]) == RCon)
-			emit(OCopy, r0, i->arg[1], R);
+		emit(OCopy, ra, i.arg[0], R);
+		if (rtype(i.arg[1]) == RCon)
+			emit(OCopy, r0, i.arg[1], R);
 		break;
 	case OAdd:
 	case OSub:
 	case OCopy:
-		emit(i->op, i->to, i->arg[0], i->arg[1]);
+		emit(i.op, i.to, i.arg[0], i.arg[1]);
 		break;
 	default:
+		if (OCmp <= i.op && i.op <= OCmp1) {
+			c = i.op - OCmp;
+			emit(OXSet+c, i.to, R, R);
+			emit(OXCmp, R, i.arg[0], i.arg[1]);
+			break;
+		}
 		diag("isel: non-exhaustive implementation");
 	}
 }
 
 /* instruction selection
+ * requires use counts (as given by parsing)
  */
 void
 isel(Fn *fn)
@@ -100,7 +108,7 @@ isel(Fn *fn)
 	for (b=fn->start; b; b=b->link) {
 		curi = &insb[NIns];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
-			sel(--i, fn);
+			sel(*--i, fn);
 		}
 		nins = &insb[NIns] - curi;
 		free(b->ins);

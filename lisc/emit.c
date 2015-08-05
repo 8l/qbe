@@ -40,6 +40,36 @@ static char *rtoa[] = {
 	[R15D] = "r15d",
 };
 
+static char *rbtoa[] = {
+	[RXX] = "OH GOD!",
+
+
+	[RAX] = "al",
+	[RCX] = "cl",
+	[RDX] = "dl",
+	[RSI] = "sil",
+	[RDI] = "dil",
+	[R8] = "r8b",
+	[R9] = "r9b",
+	[R10] = "r10b",
+	[R11] = "r11b",
+
+	[RBX] = "bl",
+	[R12] = "r12b",
+	[R13] = "r13b",
+	[R14] = "r14b",
+	[R15] = "r15b",
+
+	[RBP] = "bpl",
+	[RSP] = "spl",
+
+};
+
+static char *ctoa[NCmp] = {
+	[Ceq] = "e",
+	[Csle] = "le",
+};
+
 static void
 eref(Ref r, Fn *fn, FILE *f)
 {
@@ -87,7 +117,7 @@ eop(char *op, Ref a, Ref b, Fn *fn, FILE *f)
 static void
 eins(Ins i, Fn *fn, FILE *f)
 {
-	static char *opi[] = {
+	static char *otoa[OLast] = {
 		[OAdd] = "add",
 		[OSub] = "sub",
 	};
@@ -103,7 +133,7 @@ eins(Ins i, Fn *fn, FILE *f)
 		}
 		if (!req(i.to, i.arg[0]))
 			eop("mov", i.arg[0], i.to, fn, f);
-		eop(opi[i.op], i.arg[1], i.to, fn, f);
+		eop(otoa[i.op], i.arg[1], i.to, fn, f);
 		break;
 	case OStore:
 		i.to = i.arg[1];
@@ -127,9 +157,19 @@ eins(Ins i, Fn *fn, FILE *f)
 	case OXDiv:
 		eop("idiv", i.arg[0], R, fn, f);
 		break;
+	case OXCmp:
+		eop("cmp", i.arg[0], i.arg[1], fn, f);
+		break;
 	case ONop:
 		break;
 	default:
+		if (OXSet <= i.op && i.op <= OXSet1) {
+			eop("mov $0,", i.to, R, fn, f);
+			fprintf(f, "\tset%s %%%s\n",
+				ctoa[i.op-OXSet],
+				rbtoa[BASE(i.to.val)]);
+			break;
+		}
 		diag("emit: unhandled instruction (3)");
 	}
 }

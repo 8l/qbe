@@ -106,12 +106,20 @@ static inline int rtype(Ref r)
 { return req(r, R) ? -1 : r.type; }
 
 enum {
-	OXXX = 0,
+	Ceq,
+	Csle,
+	NCmp,
+};
+
+enum {
+	OXXX,
 	/* public instruction */
 	OAdd,
 	OSub,
 	ODiv,
 	ORem,
+	OCmp,
+	OCmp1 = OCmp + NCmp-1,
 	OStore,
 	OLoad,
 	/* reserved instructions */
@@ -120,6 +128,9 @@ enum {
 	OSwap,
 	OSign,
 	OXDiv,
+	OXCmp,
+	OXSet,
+	OXSet1 = OXSet + NCmp-1,
 	OLast
 };
 

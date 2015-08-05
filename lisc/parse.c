@@ -23,6 +23,12 @@ OpDesc opdesc[OLast] = {
 	[OSwap]   = { "swap",  2, T },
 	[OSign]   = { "sign",  1, U },
 	[OXDiv]   = { "xdiv",  1, U },
+	[OXCmp]   = { "xcmp",  2, U },
+
+	[OCmp+Ceq]   = { "ceq",    2, U },
+	[OCmp+Csle]  = { "csle",   2, U },
+	[OXSet+Ceq]  = { "xsete",  0, U },
+	[OXSet+Csle] = { "xsetle", 0, U },
 };
 
 typedef enum {
@@ -40,6 +46,8 @@ typedef enum {
 	TSub,
 	TDiv,
 	TRem,
+	TCeq,
+	TCsle,
 	TPhi,
 	TJmp,
 	TJez,
@@ -123,6 +131,8 @@ lex()
 		{ "sub", TSub },
 		{ "div", TDiv },
 		{ "rem", TRem },
+		{ "ceq", TCeq },
+		{ "csle", TCsle },
 		{ "phi", TPhi },
 		{ "jmp", TJmp },
 		{ "jez", TJez },
@@ -242,7 +252,7 @@ blocka()
 }
 
 static Ref
-tmpref(char *v)
+tmpref(char *v, int use)
 {
 	int t;
 
@@ -252,6 +262,8 @@ tmpref(char *v)
 	if (ntmp++ >= NTmp)
 		err("too many temporaries");
 	strcpy(tmp[t].name, v);
+	tmp[t].ndef += !use;
+	tmp[t].nuse += use;
 	return TMP(t);
 }
 
@@ -263,7 +275,7 @@ parseref()
 
 	switch (next()) {
 	case TTmp:
-		return tmpref(tokval.str);
+		return tmpref(tokval.str, 1);
 	case TNum:
 		c = (Con){.type = CNum, .val = tokval.num};
 		strcpy(c.label, "");
@@ -400,7 +412,7 @@ parseline(PState ps)
 		closeblk();
 		return PLbl;
 	}
-	r = tmpref(tokval.str);
+	r = tmpref(tokval.str, 0);
 	expect(TEq);
 	switch (next()) {
 	case TW:
@@ -427,6 +439,12 @@ parseline(PState ps)
 		break;
 	case TRem:
 		op = ORem;
+		break;
+	case TCeq:
+		op = OCmp+Ceq;
+		break;
+	case TCsle:
+		op = OCmp+Csle;
 		break;
 	case TPhi:
 		if (ps != PPhi)
