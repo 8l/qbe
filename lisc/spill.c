@@ -357,7 +357,7 @@ spill(Fn *fn)
 				if (BGET(v, j))
 					BCLR(v, j);
 				else
-					v = limit(&v, NReg-1, &w);
+					v = limit(&v, nreg-1, &w);
 				s = tmp[j].spill;
 				break;
 			case RReg:
