@@ -68,7 +68,9 @@ static char *rbtoa[] = {
 static char *ctoa[NCmp] = {
 	[Ceq] = "e",
 	[Csle] = "le",
+	[Cslt] = "l",
 	[Csgt] = "g",
+	[Csge] = "ge",
 	[Cne] = "ne",
 };
 

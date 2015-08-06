@@ -25,7 +25,7 @@ OpDesc opdesc[OLast] = {
 	[OXDiv]   = { "xdiv",  1, U },
 	[OXCmp]   = { "xcmp",  2, U },
 
-	#define I(X) X(eq), X(sle), X(sgt), X(ne)
+	#define I(X) X(eq), X(sle), X(slt), X(sgt), X(sge), X(ne)
 	#define CMP(c) [OCmp+C##c]  = { "c"    #c, 2, U }
 	#define SET(c) [OXSet+C##c] = { "xset" #c, 0, U }
 	I(CMP), I(SET)

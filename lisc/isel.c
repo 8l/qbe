@@ -86,6 +86,7 @@ sel(Ins i, Fn *fn)
 		break;
 	default:
 		if (OCmp <= i.op && i.op <= OCmp1) {
+			t = -1;
 			r0 = i.arg[0];
 			c = i.op - OCmp;
 			if (rtype(i.arg[0]) == RCon) {
@@ -98,12 +99,12 @@ sel(Ins i, Fn *fn)
 				} else {
 					r0 = i.arg[1];
 					i.arg[1] = i.arg[0];
-					c = CNEG(c);
+					c = COP(c);
 				}
 			}
 			emit(OXSet+c, i.to, R, R);
 			emit(OXCmp, R, i.arg[1], r0);
-			if (!req(r0, i.arg[0]))
+			if (t != -1)
 				emit(OCopy, r0, i.arg[0], R);
 			break;
 		}
