@@ -128,7 +128,12 @@ eins(Ins i, Fn *fn, FILE *f)
 	case OAdd:
 	case OSub:
 		if (req(i.to, i.arg[1])) {
-			if (!opdesc[i.op].comm)
+			if (i.op == OSub) {
+				eop("neg", i.to, R, fn, f);
+				eop("add", i.arg[0], i.to, fn, f);
+				break;
+			}
+			if (opdesc[i.op].comm != T)
 				diag("emit: unhandled instruction (1)");
 			i.arg[1] = i.arg[0];
 			i.arg[0] = i.to;

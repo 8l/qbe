@@ -361,22 +361,7 @@ spill(Fn *fn)
 			case -1:;
 			}
 			w = (Bits){{0}};
-			if (rtype(i->arg[1]) == RTmp
-			&& !req(i->to, R)
-			&& opdesc[i->op].comm == F) {
-				/* <arch>
-				 *   here we make sure that we
-				 *   will never have to compile
-				 *   say: eax = sub ebx, eax
-				 *   on a two-address machine
-				 */
-				BSET(w, i->to.val);
-				BSET(v, i->to.val);
-				setloc(&i->arg[1], &v, &w);
-				BCLR(v, i->to.val);
-				BCLR(w, i->to.val);
-			} else
-				setloc(&i->arg[1], &v, &w);
+			setloc(&i->arg[1], &v, &w);
 			setloc(&i->arg[0], &v, &w);
 			if (s)
 				emit(OStore, R, i->to, SLOT(s));

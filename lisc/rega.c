@@ -102,8 +102,8 @@ rfree(RMap *m, int t)
 	BCLR(m->bt, t);
 	BCLR(m->br, r);
 	m->n--;
-	memmove(&m->t[i], &m->t[i+1], (m->n-i) * m->t[0]);
-	memmove(&m->r[i], &m->r[i+1], (m->n-i) * m->r[0]);
+	memmove(&m->t[i], &m->t[i+1], (m->n-i) * sizeof m->t[0]);
+	memmove(&m->r[i], &m->r[i+1], (m->n-i) * sizeof m->r[0]);
 	return r;
 }
 
@@ -293,11 +293,14 @@ rega(Fn *fn)
 		cur.n = 0;
 		cur.bt = (Bits){{0}};
 		cur.br = (Bits){{0}};
-		b1 = b->s1;
-		if (b1 && b->s2 && b->s2->loop > b1->loop)
-			b1 = b->s2;
-		if (b1 && b->loop > b1->loop)
-			b1 = 0;
+		b1 = 0;
+		if (b->s1 && b->s1->id > n) {
+			if (b->s1->loop > b->loop)
+				b1 = b->s1;
+			if (b->s2 && b->s2->id > n)
+			if (b->s2->loop > b1->loop)
+				b1 = b->s2;
+		}
 		/* try to reuse the register
 		 * assignment of the most frequent
 		 * successor
@@ -362,18 +365,8 @@ rega(Fn *fn)
 			}
 			switch (rtype(i->arg[1])) {
 			case RTmp:
-				/* <arch>
-				 *   on Intel, we have to
-				 *   make sure we avoid the
-				 *   situation
-				 *   eax = sub ebx, eax
-				 */
-				if (opdesc[i->op].comm == F && r)
-					BSET(cur.br, r);
 				t = i->arg[1].val;
 				i->arg[1] = ralloc(&cur, t);
-				if (opdesc[i->op].comm == F && r)
-					BCLR(cur.br, r);
 				break;
 			case RReg:
 				BSET(cur.br, BASE(i->arg[1].val));
