@@ -39,6 +39,12 @@ newtmp(int type, Fn *fn)
 	return t;
 }
 
+static int
+islong(Ref r, Fn *fn)
+{
+	return rtype(r) == RTmp && fn->tmp[r.val].type == TLong;
+}
+
 static void
 sel(Ins i, Fn *fn)
 {
@@ -103,7 +109,10 @@ sel(Ins i, Fn *fn)
 				}
 			}
 			emit(OXSet+c, i.to, R, R);
-			emit(OXCmp, R, i.arg[1], r0);
+			if (islong(r0, fn) || islong(i.arg[1], fn))
+				emit(OXCmpl, R, i.arg[1], r0);
+			else
+				emit(OXCmpw, R, i.arg[1], r0);
 			if (t != -1)
 				emit(OCopy, r0, i.arg[0], R);
 			break;

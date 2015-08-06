@@ -134,7 +134,8 @@ enum {
 	OSwap,
 	OSign,
 	OXDiv,
-	OXCmp,
+	OXCmpw,
+	OXCmpl,
 	OXSet,
 	OXSet1 = OXSet + NCmp-1,
 	OLast

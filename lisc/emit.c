@@ -43,7 +43,6 @@ static char *rtoa[] = {
 static char *rbtoa[] = {
 	[RXX] = "OH GOD!",
 
-
 	[RAX] = "al",
 	[RCX] = "cl",
 	[RDX] = "dl",
@@ -166,8 +165,10 @@ eins(Ins i, Fn *fn, FILE *f)
 	case OXDiv:
 		eop("idiv", i.arg[0], R, fn, f);
 		break;
-	case OXCmp:
-		eop("cmp", i.arg[0], i.arg[1], fn, f);
+	case OXCmpw:
+	case OXCmpl:
+		eop(i.op == OXCmpw ? "cmpl" : "cmpq",
+			i.arg[0], i.arg[1], fn, f);
 		break;
 	case ONop:
 		break;

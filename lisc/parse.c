@@ -23,7 +23,8 @@ OpDesc opdesc[OLast] = {
 	[OSwap]   = { "swap",  2, T },
 	[OSign]   = { "sign",  1, U },
 	[OXDiv]   = { "xdiv",  1, U },
-	[OXCmp]   = { "xcmp",  2, U },
+	[OXCmpw]  = { "xcmpw", 2, U },
+	[OXCmpl]  = { "xcmpl", 2, U },
 
 	#define X(c)                        \
 	[OCmp+C##c]  = { "c"    #c, 2, U }, \
