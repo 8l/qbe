@@ -141,10 +141,10 @@ flagi(Ins *i0, Ins *i)
 			if (OCmp <= i->op && i->op <= OCmp1)
 				return i;
 			return 0;
-		case OAdd: /* <arch> */
+		case OAdd:  /* <arch> flag-setting */
 		case OSub:
 			return i;
-		case OCopy:
+		case OCopy: /* <arch> flag-transparent */
 		case OStore:
 		case OLoad:;
 		}
