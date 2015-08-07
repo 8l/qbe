@@ -1,10 +1,10 @@
 @start
 	%x =w copy 1
 @loop
-	jez %x, @isz, @noz
+	jnz %x, @noz, @isz
 @noz
 	%x =w copy 0
-	jez %x, @end, @loop
+	jnz %x, @loop, @end
 @isz
 	%x =w copy 1
 	jmp @loop

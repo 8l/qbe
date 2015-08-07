@@ -146,7 +146,7 @@ enum {
 	JXXX,
 	JRet,
 	JJmp,
-	JJez,
+	JJnz,
 	JXJc,
 	JXJc1 = JXJc + NCmp-1,
 	JLast

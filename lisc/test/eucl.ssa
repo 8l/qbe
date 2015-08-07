@@ -9,7 +9,7 @@
 	%a =w phi @start 380, @loop %r
 	%b =w phi @start 747, @loop %a
 	%r =w rem %b, %a
-	jez %r, @end, @loop
+	jnz %r, @loop, @end
 
 @end
 	ret

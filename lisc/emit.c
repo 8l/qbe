@@ -73,6 +73,20 @@ static char *ctoa[NCmp] = {
 	[Cne] = "ne",
 };
 
+static int
+cneg(int cmp)
+{
+	switch (cmp) {
+	default:   diag("cneg: unhandled comparison");
+	case Ceq:  return Cne;
+	case Csle: return Csgt;
+	case Cslt: return Csge;
+	case Csgt: return Csle;
+	case Csge: return Cslt;
+	case Cne:  return Ceq;
+	}
+}
+
 static void
 eref(Ref r, Fn *fn, FILE *f)
 {
@@ -187,9 +201,9 @@ eins(Ins i, Fn *fn, FILE *f)
 void
 emitfn(Fn *fn, FILE *f)
 {
-	char *js;
 	Blk *b, *s;
 	Ins *i;
+	int c;
 
 	fprintf(f,
 		".text\n"
@@ -216,19 +230,19 @@ emitfn(Fn *fn, FILE *f)
 			if (b->s1 != b->link)
 				fprintf(f, "\tjmp .L%s\n", b->s1->name);
 			break;
-		case JJez:
-			if (b->s1 == b->link) {
-				js = "jne";
-				s = b->s2;
-			} else if (b->s2 == b->link) {
-				js = "je";
-				s = b->s1;
-			} else
-				diag("emit: unhandled jump (1)");
-			eop("cmp $0,", b->jmp.arg, R, fn, f);
-			fprintf(f, "\t%s .L%s\n", js, s->name);
-			break;
 		default:
+			c = b->jmp.type - JXJc;
+			if (0 <= c && c <= NCmp) {
+				if (b->link == b->s2) {
+					s = b->s1;
+				} else if (b->link == b->s1) {
+					c = cneg(c);
+					s = b->s2;
+				} else
+					diag("emit: unhandled jump (1)");
+				fprintf(f, "\tj%s .L%s\n", ctoa[c], s->name);
+				break;
+			}
 			diag("emit: unhandled jump (2)");
 		}
 	}

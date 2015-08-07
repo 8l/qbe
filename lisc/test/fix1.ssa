@@ -1,7 +1,7 @@
 @start
 	%x =w copy 1
 @loop
-	jez %x, @isz, @noz
+	jnz %x, @noz, @isz
 @noz
 	%x =w copy 0
 	jmp @end

@@ -40,20 +40,6 @@ newtmp(int type, Fn *fn)
 }
 
 static int
-cneg(int cmp)
-{
-	switch (cmp) {
-	default:   diag("cneg: unhandled comparison");
-	case Ceq:  return Cne;
-	case Csle: return Csgt;
-	case Cslt: return Csge;
-	case Csgt: return Csle;
-	case Csge: return Cslt;
-	case Cne:  return Ceq;
-	}
-}
-
-static int
 islong(Ref r, Fn *fn)
 {
 	return rtype(r) == RTmp && fn->tmp[r.val].type == TLong;
@@ -131,6 +117,8 @@ sel(Ins i, Fn *fn)
 	case OCopy:
 		emit(i.op, i.to, i.arg[0], i.arg[1]);
 		break;
+	case ONop:
+		break;
 	default:
 		if (OCmp <= i.op && i.op <= OCmp1) {
 			c = i.op - OCmp;
@@ -150,6 +138,9 @@ flagi(Ins *i0, Ins *i)
 	while (i>i0)
 		switch ((--i)->op) {
 		default:
+			return 0;
+		case OAdd: /* <arch> */
+		case OSub:
 			return i;
 		case OCopy:
 		case OStore:
@@ -158,51 +149,48 @@ flagi(Ins *i0, Ins *i)
 	return 0;
 }
 
-static Ins *
+static void
 seljmp(Blk *b, Fn *fn)
 {
 	Ref r;
 	int c;
 	Ins *fi;
 
-	fi = &b->ins[b->nins];
-	if (b->jmp.type != JJez)
-		return fi;
+	if (b->jmp.type != JJnz)
+		return;
 	r = b->jmp.arg;
 	b->jmp.arg = R;
 	assert(!req(r, R));
 	if (rtype(r) == RCon) {
 		b->jmp.type = JJmp;
-		if (!req(r, CON_Z))
+		if (req(r, CON_Z))
 			b->s1 = b->s2;
 		b->s2 = 0;
-		return fi;
+		return;
 	}
-	fi = flagi(b->ins, fi);
+	fi = flagi(b->ins, &b->ins[b->nins]);
 	if (fi && req(fi->to, r)) {
-		assert(1 == fn->tmp[r.val].nuse);
-		if (fn->tmp[r.val].nuse == 1
-		&& OCmp <= fi->op && fi->op <= OCmp1) {
+		if (OCmp <= fi->op && fi->op <= OCmp1) {
 			c = fi->op - OCmp;
 			if (rtype(fi->arg[0]) == RCon)
 				c = COP(c);
-			b->jmp.type = JXJc + cneg(c);
-			selcmp(fi->arg, fn);
-			return fi;
-		}
-		/* what if it is a comparison
-		 * that is used more than once?
-		 * !!!
-		 */
-		b->jmp.type = JXJc + Ceq;
-		return fi+1;
+			b->jmp.type = JXJc + c;
+			if (fn->tmp[r.val].nuse == 1) {
+				assert(fn->tmp[r.val].ndef==1);
+				selcmp(fi->arg, fn);
+				*fi = (Ins){ONop, R, {R, R}};
+				/* !!! use counts are invalid after that !!! */
+				return;
+			}
+		} else
+			b->jmp.type = JXJc + Cne;
+	} else {
+		if (islong(r, fn))
+			emit(OXCmpl, R, CON_Z, r);
+		else
+			emit(OXCmpw, R, CON_Z, r);
+		b->jmp.type = JXJc + Cne;
 	}
-	if (islong(r, fn))
-		emit(OXCmpl, R, CON_Z, r);
-	else
-		emit(OXCmpw, R, CON_Z, r);
-	b->jmp.type = JXJc + Ceq;
-	return &b->ins[b->nins];
 }
 
 /* instruction selection
@@ -217,8 +205,8 @@ isel(Fn *fn)
 
 	for (b=fn->start; b; b=b->link) {
 		curi = &insb[NIns];
-		i = seljmp(b, fn);
-		while (i>b->ins) {
+		seljmp(b, fn);
+		for (i=&b->ins[b->nins]; i>b->ins;) {
 			sel(*--i, fn);
 		}
 		nins = &insb[NIns] - curi;

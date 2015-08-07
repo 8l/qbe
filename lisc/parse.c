@@ -53,7 +53,7 @@ typedef enum {
 	TCsle,
 	TPhi,
 	TJmp,
-	TJez,
+	TJnz,
 	TRet,
 	TW,
 	TL,
@@ -138,7 +138,7 @@ lex()
 		{ "csle", TCsle },
 		{ "phi", TPhi },
 		{ "jmp", TJmp },
-		{ "jez", TJez },
+		{ "jnz", TJnz },
 		{ "ret", TRet },
 		{ "w", TW },
 		{ "l", TL },
@@ -396,11 +396,11 @@ parseline(PState ps)
 	case TJmp:
 		curb->jmp.type = JJmp;
 		goto Jump;
-	case TJez:
-		curb->jmp.type = JJez;
+	case TJnz:
+		curb->jmp.type = JJnz;
 		r = parseref();
 		if (req(r, R))
-			err("invalid argument for jez jump");
+			err("invalid argument for jnz jump");
 		curb->jmp.arg = r;
 		expect(TComma);
 	Jump:
@@ -582,7 +582,7 @@ void
 printfn(Fn *fn, FILE *f)
 {
 	static char *jtoa[JLast] = {
-		[JJez]      = "jez",
+		[JJnz]      = "jnz",
 		[JXJc+Ceq]  = "xjeq",
 		[JXJc+Csle] = "xjsle",
 		[JXJc+Cslt] = "xjslt",
@@ -642,7 +642,7 @@ printfn(Fn *fn, FILE *f)
 			break;
 		default:
 			fprintf(f, "\t%s ", jtoa[b->jmp.type]);
-			if (b->jmp.type == JJez) {
+			if (b->jmp.type == JJnz) {
 				printref(b->jmp.arg, fn, f);
 				fprintf(f, ", ");
 			}

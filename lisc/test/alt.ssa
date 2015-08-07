@@ -9,15 +9,15 @@
 	%alt =w phi @start 0, @left %alt1, @right %alt1
 	%cnt =w phi @start 100, @left %cnt, @right %cnt1
 	%alt1 =w sub 1, %alt
-	jez %alt1, @left, @right
+	jnz %alt1, @right, @left
 @left
 	%x =w phi @loop 10, @left %x1
 	%x1 =w sub %x, 1
 	%z =w copy %x
-	jez %z, @loop, @left
+	jnz %z, @left, @loop
 @right
 	%cnt1 =w sub %cnt, %ten
-	jez %cnt1, @end, @loop
+	jnz %cnt1, @loop, @end
 @end
 	%ret =w add %cnt, %dum
 	ret

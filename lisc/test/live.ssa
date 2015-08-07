@@ -8,7 +8,7 @@
 @start
 	%b =w copy 0
 	%x =w copy 10
-	jez 0, @left, @loop
+	jnz 0, @loop, @left
 @left
 	jmp @inloop
 @loop

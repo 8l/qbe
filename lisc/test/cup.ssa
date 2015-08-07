@@ -5,6 +5,6 @@
 	%n0  =l phi @start -1988, @loop %n1
 	%n1  =l add 1, %n0
 	%cmp =w csle 1991, %n1
-	jez %cmp, @loop, @end
+	jnz %cmp, @end, @loop
 @end
 	ret
