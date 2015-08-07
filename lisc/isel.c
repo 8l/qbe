@@ -181,8 +181,6 @@ seljmp(Blk *b, Fn *fn)
 				assert(fn->tmp[r.val].ndef==1);
 				selcmp(fi->arg, fn);
 				*fi = (Ins){ONop, R, {R, R}};
-				/* !!! use counts are invalid after that !!! */
-				return;
 			}
 		} else
 			b->jmp.type = JXJc + Cne;
