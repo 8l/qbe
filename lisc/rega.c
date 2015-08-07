@@ -293,19 +293,16 @@ rega(Fn *fn)
 		cur.n = 0;
 		cur.bt = (Bits){{0}};
 		cur.br = (Bits){{0}};
-		b1 = 0;
-		if (b->s1 && b->s1->id > n) {
-			if (b->s1->loop > b->loop)
-				b1 = b->s1;
-			if (b->s2 && b->s2->id > n)
-			if (b->s2->loop > b1->loop)
-				b1 = b->s2;
-		}
+		b1 = b;
+		if (b->s1 && b1->loop < b->s1->loop)
+			b1 = b->s1;
+		if (b->s2 && b1->loop < b->s2->loop)
+			b1 = b->s1;
 		/* try to reuse the register
 		 * assignment of the most frequent
 		 * successor
 		 */
-		if (b1)
+		if (b1 != b)
 			for (t=0; t<fn->ntmp; t++)
 				if (BGET(b->out, t))
 				if ((r = rfind(&beg[b1->id], t)) != -1)
