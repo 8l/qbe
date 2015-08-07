@@ -138,6 +138,8 @@ flagi(Ins *i0, Ins *i)
 	while (i>i0)
 		switch ((--i)->op) {
 		default:
+			if (OCmp <= i->op && i->op <= OCmp1)
+				return i;
 			return 0;
 		case OAdd: /* <arch> */
 		case OSub:
