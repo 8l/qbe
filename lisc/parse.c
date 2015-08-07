@@ -80,7 +80,7 @@ static struct {
 static int lnum;
 
 static Tmp tmp[NTmp];
-static Con con[NCon];
+static Con con[NCon] = {[0] = {.type = CNum}};
 static int ntmp;
 static int ncon;
 static Phi **plink;
@@ -261,10 +261,11 @@ tmpref(char *v, int use)
 
 	for (t=0; t<ntmp; t++)
 		if (strcmp(v, tmp[t].name) == 0)
-			return TMP(t);
+			goto Found;
 	if (ntmp++ >= NTmp)
 		err("too many temporaries");
 	strcpy(tmp[t].name, v);
+Found:
 	tmp[t].ndef += !use;
 	tmp[t].nuse += use;
 	return TMP(t);
@@ -513,8 +514,8 @@ parsefn(FILE *f)
 		bmap[i] = 0;
 	for (i=0; i<NTmp; i++)
 		tmp[i] = (Tmp){.name = ""};
-	ntmp = 1;
-	ncon = 0;
+	ntmp = 1; /* first tmp is invalid */
+	ncon = 1; /* first con in 0 */
 	curi = insb;
 	curb = 0;
 	lnum = 1;
@@ -580,6 +581,15 @@ printref(Ref r, Fn *fn, FILE *f)
 void
 printfn(Fn *fn, FILE *f)
 {
+	static char *jtoa[JLast] = {
+		[JJez]      = "jez",
+		[JXJc+Ceq]  = "xjeq",
+		[JXJc+Csle] = "xjsle",
+		[JXJc+Cslt] = "xjslt",
+		[JXJc+Csgt] = "xjsgt",
+		[JXJc+Csge] = "xjsge",
+		[JXJc+Cne]  = "xjne",
+	};
 	Blk *b;
 	Phi *p;
 	Ins *i;
@@ -630,10 +640,13 @@ printfn(Fn *fn, FILE *f)
 			if (b->s1 != b->link)
 				fprintf(f, "\tjmp @%s\n", b->s1->name);
 			break;
-		case JJez:
-			fprintf(f, "\tjez ");
-			printref(b->jmp.arg, fn, f);
-			fprintf(f, ", @%s, @%s\n", b->s1->name, b->s2->name);
+		default:
+			fprintf(f, "\t%s ", jtoa[b->jmp.type]);
+			if (b->jmp.type == JJez) {
+				printref(b->jmp.arg, fn, f);
+				fprintf(f, ", ");
+			}
+			fprintf(f, "@%s, @%s\n", b->s1->name, b->s2->name);
 			break;
 		}
 	}

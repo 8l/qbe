@@ -97,6 +97,7 @@ enum {
 #define R        (Ref){0, 0}
 #define TMP(x)   (Ref){RTmp, x}
 #define CON(x)   (Ref){RCon, x}
+#define CON_Z    CON(0)          /* reserved zero constant */
 #define SLOT(x)  (Ref){RSlot, x}
 #define REG(x)   (Ref){RReg, x}
 
@@ -146,6 +147,9 @@ enum {
 	JRet,
 	JJmp,
 	JJez,
+	JXJc,
+	JXJc1 = JXJc + NCmp-1,
+	JLast
 };
 
 struct OpDesc {
