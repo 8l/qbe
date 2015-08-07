@@ -47,10 +47,10 @@ rporec(Blk *b, int x)
 	if (b->id >= 0)
 		return x;
 	b->id = 1;
-	if (b->s1)
-		x = rporec(b->s1, x);
 	if (b->s2)
 		x = rporec(b->s2, x);
+	if (b->s1)
+		x = rporec(b->s1, x);
 	b->id = x;
 	assert(x >= 0);
 	return x - 1;
