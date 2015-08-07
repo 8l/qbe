@@ -185,10 +185,7 @@ seljmp(Blk *b, Fn *fn)
 		} else
 			b->jmp.type = JXJc + Cne;
 	} else {
-		if (islong(r, fn))
-			emit(OXCmpl, R, CON_Z, r);
-		else
-			emit(OXCmpw, R, CON_Z, r);
+		selcmp((Ref[2]){r, CON_Z}, fn);
 		b->jmp.type = JXJc + Cne;
 	}
 }
