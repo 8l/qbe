@@ -3,27 +3,24 @@
 
 static char *rtoa[] = {
 	[RXX] = "OH GOD!",
-
 	[RAX] = "rax",
+	[RBX] = "rbx",
 	[RCX] = "rcx",
 	[RDX] = "rdx",
 	[RSI] = "rsi",
 	[RDI] = "rdi",
+	[RBP] = "rbp",
+	[RSP] = "rsp",
 	[R8] = "r8",
 	[R9] = "r9",
 	[R10] = "r10",
 	[R11] = "r11",
-
-	[RBX] = "rbx",
 	[R12] = "r12",
 	[R13] = "r13",
 	[R14] = "r14",
 	[R15] = "r15",
-
-	[RBP] = "rbp",
-	[RSP] = "rsp",
-
 	[EAX] = "eax",
+	[EBX] = "ebx",
 	[ECX] = "ecx",
 	[EDX] = "edx",
 	[ESI] = "esi",
@@ -32,36 +29,30 @@ static char *rtoa[] = {
 	[R9D] = "r9d",
 	[R10D] = "r10d",
 	[R11D] = "r11d",
-
-	[EBX] = "ebx",
 	[R12D] = "r12d",
 	[R13D] = "r13d",
 	[R14D] = "r14d",
 	[R15D] = "r15d",
 };
 
-static char *rbtoa[] = {
-	[RXX] = "OH GOD!",
-
-	[RAX] = "al",
-	[RCX] = "cl",
-	[RDX] = "dl",
-	[RSI] = "sil",
-	[RDI] = "dil",
-	[R8] = "r8b",
-	[R9] = "r9b",
-	[R10] = "r10b",
-	[R11] = "r11b",
-
-	[RBX] = "bl",
-	[R12] = "r12b",
-	[R13] = "r13b",
-	[R14] = "r14b",
-	[R15] = "r15b",
-
-	[RBP] = "bpl",
-	[RSP] = "spl",
-
+static struct { char *s, *b; } rsub[] = {
+	[RXX] = {"OH GOD!", "OH NO!"},
+	[RAX] = {"ax", "al"},
+	[RBX] = {"bx", "bl"},
+	[RCX] = {"cx", "cl"},
+	[RDX] = {"dx", "dl"},
+	[RSI] = {"si", "sil"},
+	[RDI] = {"di", "dil"},
+	[RBP] = {"bp", "bpl"},
+	[RSP] = {"sp", "spl"},
+	[R8 ] = {"r8w", "r8b"},
+	[R9 ] = {"r9w", "r9b"},
+	[R10] = {"r10w", "r10b"},
+	[R11] = {"r11w", "r11b"},
+	[R12] = {"r12w", "r12b"},
+	[R13] = {"r13w", "r13b"},
+	[R14] = {"r14w", "r14b"},
+	[R15] = {"r15w", "r15b"},
 };
 
 static char *ctoa[NCmp] = {
@@ -105,7 +96,7 @@ eref(Ref r, Fn *fn, FILE *f)
 		case CAddr:
 			fprintf(f, "$%s", c->label);
 			if (c->val)
-				fprintf(f, "%+"PRIi64, c->val);
+				fprintf(f, "%+"PRId64, c->val);
 			break;
 		case CNum:
 			fprintf(f, "$%"PRId64, c->val);
@@ -116,6 +107,19 @@ eref(Ref r, Fn *fn, FILE *f)
 		break;
 	default:
 		diag("emitref: invalid reference");
+	}
+}
+
+static void
+emem(Ref r, Fn *fn, FILE *f)
+{
+	if (rtype(r) == RSlot)
+		eref(r, fn, f);
+	else {
+		assert(rtype(r)!=RReg || BASE(r.val)==r.val);
+		fprintf(f, "(");
+		eref(r, fn, f);
+		fprintf(f, ")");
 	}
 }
 
@@ -135,9 +139,15 @@ static void
 eins(Ins i, Fn *fn, FILE *f)
 {
 	static char *otoa[OLast] = {
-		[OAdd] = "add",
-		[OSub] = "sub",
+		[OAdd]    = "add",
+		[OSub]    = "sub",
+		[OLoad]   = "mov",
+		[OLoadss] = "movsw",
+		[OLoadus] = "movzw",
+		[OLoadsb] = "movsb",
+		[OLoadub] = "movzb",
 	};
+	char *s;
 
 	switch (i.op) {
 	case OAdd:
@@ -157,13 +167,34 @@ eins(Ins i, Fn *fn, FILE *f)
 			eop("mov", i.arg[0], i.to, fn, f);
 		eop(otoa[i.op], i.arg[1], i.to, fn, f);
 		break;
-	case OStore:
-		i.to = i.arg[1];
-		/* fall through */
 	case OCopy:
-	case OLoad:
 		if (!req(i.arg[0], i.to))
 			eop("mov", i.arg[0], i.to, fn, f);
+		break;
+	case OStore:
+		s = rtoa[i.arg[0].val];
+		goto Store;
+	case OStores:
+		s = rsub[BASE(i.arg[0].val)].s;
+		goto Store;
+	case OStoreb:
+		s = rsub[BASE(i.arg[0].val)].b;
+	Store:
+		assert(rtype(i.arg[0]) == RReg);
+		fprintf(f, "\tmov %s, ", s);
+		emem(i.arg[1], fn, f);
+		fprintf(f, "\n");
+		break;
+	case OLoad:
+	case OLoadss:
+	case OLoadus:
+	case OLoadsb:
+	case OLoadub:
+		fprintf(f, "\t%s ", otoa[i.op]);
+		emem(i.arg[0], fn, f);
+		fprintf(f, ", ");
+		eref(i.to, fn, f);
+		fprintf(f, "\n");
 		break;
 	case OSwap:
 		eop("xchg", i.arg[0], i.arg[1], fn, f);
@@ -191,7 +222,7 @@ eins(Ins i, Fn *fn, FILE *f)
 			eop("mov $0,", i.to, R, fn, f);
 			fprintf(f, "\tset%s %%%s\n",
 				ctoa[i.op-OXSet],
-				rbtoa[BASE(i.to.val)]);
+				rsub[BASE(i.to.val)].b);
 			break;
 		}
 		diag("emit: unhandled instruction (3)");

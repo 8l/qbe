@@ -128,7 +128,13 @@ enum {
 	OCmp,
 	OCmp1 = OCmp + NCmp-1,
 	OStore,
+	OStores,
+	OStoreb,
 	OLoad,
+	OLoadss,
+	OLoadus,
+	OLoadsb,
+	OLoadub,
 	/* reserved instructions */
 	ONop,
 	OCopy,
