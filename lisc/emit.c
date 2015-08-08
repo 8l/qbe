@@ -138,7 +138,7 @@ eop(char *op, Ref a, Ref b, Fn *fn, FILE *f)
 static void
 eins(Ins i, Fn *fn, FILE *f)
 {
-	static char *otoa[OLast] = {
+	static char *otoa[NOp] = {
 		[OAdd]    = "add",
 		[OSub]    = "sub",
 		[OLoad]   = "mov",

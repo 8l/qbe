@@ -10,7 +10,7 @@ enum {
 
 Ins insb[NIns], *curi;
 
-OpDesc opdesc[OLast] = {
+OpDesc opdesc[NOp] = {
 	/*            NAME   ARTY NM */
 	[OAdd]    = { "add",    2, 2 },
 	[OSub]    = { "sub",    2, 2 },
@@ -24,8 +24,8 @@ OpDesc opdesc[OLast] = {
 	[OLoadus] = { "loadus", 1, 0 },
 	[OLoadsb] = { "loadsb", 1, 0 },
 	[OLoadub] = { "loadub", 1, 0 },
-	[ONop]    = { "nop",    0, 0 },
 	[OCopy]   = { "copy",   1, 1 },
+	[ONop]    = { "nop",    0, 0 },
 	[OSwap]   = { "swap",   2, 2 },
 	[OSign]   = { "sign",   1, 0 },
 	[OXDiv]   = { "xdiv",   1, 1 },
@@ -35,7 +35,6 @@ OpDesc opdesc[OLast] = {
 	#define X(c)                        \
 	[OCmp+C##c]  = { "c"    #c, 2, 0 }, \
 	[OXSet+C##c] = { "xset" #c, 0, 0 }
-
 	X(eq), X(sle), X(slt), X(sgt), X(sge), X(ne),
 	#undef X
 };
@@ -49,14 +48,7 @@ typedef enum {
 } PState;
 
 typedef enum {
-	TXXX,
-	TCopy,
-	TAdd,
-	TSub,
-	TDiv,
-	TRem,
-	TCeq,
-	TCsle,
+	TXXX = NPubOp,
 	TPhi,
 	TJmp,
 	TJnz,
@@ -135,13 +127,6 @@ lex()
 		char *str;
 		Token tok;
 	} tmap[] = {
-		{ "copy", TCopy },
-		{ "add", TAdd },
-		{ "sub", TSub },
-		{ "div", TDiv },
-		{ "rem", TRem },
-		{ "ceq", TCeq },
-		{ "csle", TCsle },
 		{ "phi", TPhi },
 		{ "jmp", TJmp },
 		{ "jnz", TJnz },
@@ -223,11 +208,15 @@ Alpha:
 		tokval.str = tok;
 		return t;
 	}
+	for (i=0; i<NPubOp; i++)
+		if (opdesc[i].name)
+		if (strcmp(tok, opdesc[i].name) == 0)
+			return i;
 	for (i=0; tmap[i].str; i++)
 		if (strcmp(tok, tmap[i].str) == 0)
 			return tmap[i].tok;
 	err("unknown keyword");
-	return -1;
+	return TXXX;
 }
 
 static Token
@@ -434,36 +423,14 @@ parseline(PState ps)
 	default:
 		err("class expected after =");
 	}
-	switch (next()) {
-	case TCopy:
-		op = OCopy;
-		break;
-	case TAdd:
-		op = OAdd;
-		break;
-	case TSub:
-		op = OSub;
-		break;
-	case TDiv:
-		op = ODiv;
-		break;
-	case TRem:
-		op = ORem;
-		break;
-	case TCeq:
-		op = OCmp+Ceq;
-		break;
-	case TCsle:
-		op = OCmp+Csle;
-		break;
-	case TPhi:
+	op = next();
+	if (op == TPhi) {
 		if (ps != PPhi)
 			err("unexpected phi instruction");
 		op = -1;
-		break;
-	default:
-		err("invalid instruction");
 	}
+	if (op >= NPubOp)
+		err("invalid instruction");
 	i = 0;
 	if (peek() != TNL)
 		for (;;) {
@@ -516,6 +483,7 @@ parsefn(FILE *f)
 	Fn *fn;
 
 	inf = f;
+	thead = TXXX;
 	for (i=0; i<NBlk; i++)
 		bmap[i] = 0;
 	for (i=0; i<NTmp; i++)

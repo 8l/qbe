@@ -120,6 +120,7 @@ enum {
 
 enum {
 	OXXX,
+
 	/* public instruction */
 	OAdd,
 	OSub,
@@ -135,9 +136,11 @@ enum {
 	OLoadus,
 	OLoadsb,
 	OLoadub,
-	/* reserved instructions */
-	ONop,
 	OCopy,
+	NPubOp,
+
+	/* reserved instructions */
+	ONop = NPubOp,
 	OSwap,
 	OSign,
 	OXDiv,
@@ -145,7 +148,7 @@ enum {
 	OXCmpl,
 	OXSet,
 	OXSet1 = OXSet + NCmp-1,
-	OLast
+	NOp
 };
 
 enum {
