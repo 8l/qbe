@@ -362,6 +362,16 @@ spill(Fn *fn)
 			}
 			w = (Bits){{0}};
 			setloc(&i->arg[0], &v, &w);
+			if (i->op == OXCmpw || i->op == OXCmpl)
+			if (rtype(i->arg[0]) == RSlot) {
+				/* <arch>
+				 * we make sure that comparisons
+				 * do not get their two operands
+				 * in memory slots
+				 */
+				assert(rtype(i->arg[1]) == RTmp);
+				BSET(w, i->arg[1].val);
+			}
 			setloc(&i->arg[1], &v, &w);
 			if (s)
 				emit(OStore, R, i->to, SLOT(s));
