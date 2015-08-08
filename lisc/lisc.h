@@ -161,7 +161,7 @@ enum {
 struct OpDesc {
 	char *name;
 	int arity;
-	B3 comm;
+	int nmem;
 };
 
 struct Ins {

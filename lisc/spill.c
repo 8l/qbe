@@ -223,7 +223,7 @@ limit(Bits *b, int k, Bits *fst)
 	return t;
 }
 
-static void
+static int
 setloc(Ref *pr, Bits *v, Bits *w)
 {
 	int t;
@@ -242,7 +242,7 @@ setloc(Ref *pr, Bits *v, Bits *w)
 		BSET(br, pr->val);
 	}
 	if (rtype(*pr) != RTmp)
-		return;
+		return 0;
 	t = pr->val;
 	BSET(*v, t);
 	if (limit(v, nreg, w) == t)
@@ -250,10 +250,13 @@ setloc(Ref *pr, Bits *v, Bits *w)
 		 * it was not live so we don't
 		 * have to reload it */
 		curi++;
-	if (!BGET(*v, t))
+	if (!BGET(*v, t)) {
 		*pr = slot(t);
-	else
+		return 1;
+	} else {
 		BSET(*w, t);
+		return 0;
+	}
 }
 
 /* spill code insertion
@@ -361,18 +364,13 @@ spill(Fn *fn)
 			case -1:;
 			}
 			w = (Bits){{0}};
-			setloc(&i->arg[0], &v, &w);
-			if (i->op == OXCmpw || i->op == OXCmpl)
-			if (rtype(i->arg[0]) == RSlot) {
-				/* <arch>
-				 * we make sure that comparisons
-				 * do not get their two operands
-				 * in memory slots
-				 */
-				assert(rtype(i->arg[1]) == RTmp);
+			j = opdesc[i->op].nmem;
+			if (!j && rtype(i->arg[0]) == RTmp)
+				BSET(w, i->arg[0].val);
+			j -= setloc(&i->arg[0], &v, &w);
+			if (!j && rtype(i->arg[1]) == RTmp)
 				BSET(w, i->arg[1].val);
-			}
-			setloc(&i->arg[1], &v, &w);
+			j -= setloc(&i->arg[1], &v, &w);
 			if (s)
 				emit(OStore, R, i->to, SLOT(s));
 			emit(i->op, i->to, i->arg[0], i->arg[1]);

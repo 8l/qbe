@@ -158,8 +158,6 @@ eins(Ins i, Fn *fn, FILE *f)
 				eop("add", i.arg[0], i.to, fn, f);
 				break;
 			}
-			if (opdesc[i.op].comm != T)
-				diag("emit: unhandled instruction (1)");
 			i.arg[1] = i.arg[0];
 			i.arg[0] = i.to;
 		}

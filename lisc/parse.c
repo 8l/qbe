@@ -11,24 +11,30 @@ enum {
 Ins insb[NIns], *curi;
 
 OpDesc opdesc[OLast] = {
-	/*            NAME  ARTY  C */
-	[OAdd]    = { "add",   2, T },
-	[OSub]    = { "sub",   2, F },
-	[ODiv]    = { "div",   2, U },
-	[ORem]    = { "rem",   2, U },
-	[OStore]  = { "store", 2, U },
-	[OLoad]   = { "load",  1, U },
-	[ONop]    = { "nop",   0, U },
-	[OCopy]   = { "copy",  1, U },
-	[OSwap]   = { "swap",  2, T },
-	[OSign]   = { "sign",  1, U },
-	[OXDiv]   = { "xdiv",  1, U },
-	[OXCmpw]  = { "xcmpw", 2, U },
-	[OXCmpl]  = { "xcmpl", 2, U },
+	/*            NAME   ARTY NM */
+	[OAdd]    = { "add",    2, 2 },
+	[OSub]    = { "sub",    2, 2 },
+	[ODiv]    = { "div",    2, 2 },
+	[ORem]    = { "rem",    2, 2 },
+	[OStore]  = { "store",  2, 0 },
+	[OStores] = { "stores", 2, 0 },
+	[OStoreb] = { "storeb", 2, 0 },
+	[OLoad]   = { "load",   1, 0 },
+	[OLoadss] = { "loadss", 1, 0 },
+	[OLoadus] = { "loadus", 1, 0 },
+	[OLoadsb] = { "loadsb", 1, 0 },
+	[OLoadub] = { "loadub", 1, 0 },
+	[ONop]    = { "nop",    0, 0 },
+	[OCopy]   = { "copy",   1, 1 },
+	[OSwap]   = { "swap",   2, 2 },
+	[OSign]   = { "sign",   1, 0 },
+	[OXDiv]   = { "xdiv",   1, 1 },
+	[OXCmpw]  = { "xcmpw",  2, 1 },
+	[OXCmpl]  = { "xcmpl",  2, 1 },
 
 	#define X(c)                        \
-	[OCmp+C##c]  = { "c"    #c, 2, U }, \
-	[OXSet+C##c] = { "xset" #c, 0, U }
+	[OCmp+C##c]  = { "c"    #c, 2, 0 }, \
+	[OXSet+C##c] = { "xset" #c, 0, 0 }
 
 	X(eq), X(sle), X(slt), X(sgt), X(sge), X(ne),
 	#undef X
