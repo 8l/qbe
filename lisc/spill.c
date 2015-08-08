@@ -184,16 +184,15 @@ emit(short op, Ref to, Ref arg0, Ref arg1)
 	*--curi = (Ins){op, to, {arg0, arg1}};
 }
 
-static Bits
+static int
 limit(Bits *b, int k, Bits *fst)
 {
 	static int *tarr, maxt;
 	int i, t, nt;
-	Bits res;
 
 	nt = bcnt(b);
 	if (nt <= k)
-		return *b;
+		return 0;
 	if (nt > maxt) {
 		free(tarr);
 		tarr = alloc(nt * sizeof tarr[0]);
@@ -201,8 +200,10 @@ limit(Bits *b, int k, Bits *fst)
 	}
 	i = 0;
 	for (t=0; t<ntmp; t++)
-		if (BGET(*b, t))
+		if (BGET(*b, t)) {
+			BCLR(*b, t);
 			tarr[i++] = t;
+		}
 	assert(i == nt);
 	if (!fst)
 		qsort(tarr, nt, sizeof tarr[0], tcmp0);
@@ -210,15 +211,16 @@ limit(Bits *b, int k, Bits *fst)
 		f = fst;
 		qsort(tarr, nt, sizeof tarr[0], tcmp1);
 	}
-	res = (Bits){{0}};
 	for (i=0; i<k && i<nt; i++)
-		BSET(res, tarr[i]);
+		BSET(*b, tarr[i]);
 	for (; i<nt; i++) {
 		slot(tarr[i]);
-		if (curi)
+		if (curi) {
 			emit(OLoad, TMP(tarr[i]), slot(tarr[i]), R);
+			t = tarr[i];
+		}
 	}
-	return res;
+	return t;
 }
 
 static void
@@ -243,9 +245,7 @@ setloc(Ref *pr, Bits *v, Bits *w)
 		return;
 	t = pr->val;
 	BSET(*v, t);
-	*v = limit(v, nreg, w);
-	if (curi->op == OLoad)
-	if (curi->to.val == t)
+	if (limit(v, nreg, w) == t)
 		/* if t was spilled by limit,
 		 * it was not live so we don't
 		 * have to reload it */
@@ -313,11 +313,11 @@ spill(Fn *fn)
 				for (z=0; z<BITS; z++)
 					w.t[z] &= ~v.t[z];
 				j = bcnt(&w);   /* live through */
-				w = limit(&w, NReg - (l - j), 0);
+				limit(&w, NReg - (l - j), 0);
 				for (z=0; z<BITS; z++)
 					v.t[z] |= w.t[z];
 			} else if (j > NReg)
-				v = limit(&v, NReg, 0);
+				limit(&v, NReg, 0);
 		} else if (s1) {
 			v = s1->in;
 			w = s1->in;
@@ -327,7 +327,7 @@ spill(Fn *fn)
 					w.t[z] &= s2->in.t[z];
 				}
 			assert(bcnt(&w) <= NReg);
-			v = limit(&v, NReg, &w);
+			limit(&v, NReg, &w);
 		}
 		b->out = v;
 		assert(bcnt(&v) <= NReg);
@@ -347,7 +347,7 @@ spill(Fn *fn)
 				if (BGET(v, j))
 					BCLR(v, j);
 				else
-					v = limit(&v, nreg-1, &w);
+					limit(&v, nreg-1, &w);
 				s = tmp[j].spill;
 				break;
 			case RReg:
@@ -356,13 +356,13 @@ spill(Fn *fn)
 					BCLR(br, j);
 					nreg++;
 				} else
-					v = limit(&v, nreg-1, &w);
+					limit(&v, nreg-1, &w);
 				break;
 			case -1:;
 			}
 			w = (Bits){{0}};
-			setloc(&i->arg[1], &v, &w);
 			setloc(&i->arg[0], &v, &w);
+			setloc(&i->arg[1], &v, &w);
 			if (s)
 				emit(OStore, R, i->to, SLOT(s));
 			emit(i->op, i->to, i->arg[0], i->arg[1]);
