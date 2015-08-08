@@ -172,7 +172,7 @@ eins(Ins i, Fn *fn, FILE *f)
 		if (req(i.to, REG(RDX)) && req(i.arg[0], REG(RAX)))
 			fprintf(f, "\tcqto\n");
 		else if (req(i.to, REG(EDX)) && req(i.arg[0], REG(EAX)))
-			fprintf(f, "\tcltq\n");
+			fprintf(f, "\tcltd\n");
 		else
 			diag("emit: unhandled instruction (2)");
 		break;
