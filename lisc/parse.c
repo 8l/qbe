@@ -365,7 +365,7 @@ parseline(PState ps)
 		err("label or end of file expected");
 	switch (t) {
 	default:
-		if (t == OStore || t == OCopy) {
+		if (t == OStore || t == OStores || t == OStoreb) {
 			/* operations without result */
 			r = R;
 			op = t;
