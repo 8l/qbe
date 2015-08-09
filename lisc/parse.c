@@ -561,7 +561,7 @@ printref(Ref r, Fn *fn, FILE *f)
 void
 printfn(Fn *fn, FILE *f)
 {
-	static char *jtoa[JLast] = {
+	static char *jtoa[NJmp] = {
 		[JJnz]      = "jnz",
 		[JXJc+Ceq]  = "xjeq",
 		[JXJc+Csle] = "xjsle",

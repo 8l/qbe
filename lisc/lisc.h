@@ -121,7 +121,7 @@ enum {
 enum {
 	OXXX,
 
-	/* public instruction */
+	/* public instructions */
 	OAdd,
 	OSub,
 	ODiv,
@@ -158,7 +158,7 @@ enum {
 	JJnz,
 	JXJc,
 	JXJc1 = JXJc + NCmp-1,
-	JLast
+	NJmp
 };
 
 struct OpDesc {
