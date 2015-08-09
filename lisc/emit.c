@@ -201,7 +201,11 @@ eins(Ins i, Fn *fn, FILE *f)
 	case OLoadus:
 	case OLoadsb:
 	case OLoadub:
-		fprintf(f, "\t%s ", otoa[i.op]);
+		fprintf(f, "\t%s", otoa[i.op]);
+		if (BASE(i.to.val) == i.to.val)
+			fprintf(f, "q ");
+		else
+			fprintf(f, "l ");
 		emem(i.arg[0], fn, f);
 		fprintf(f, ", ");
 		eref(i.to, fn, f);
