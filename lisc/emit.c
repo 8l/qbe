@@ -35,7 +35,8 @@ static char *rtoa[] = {
 	[R15D] = "r15d",
 };
 
-static struct { char *s, *b; } rsub[] = {
+enum { SSHORT, SBYTE };
+static char *rsub[][2] = {
 	[RXX] = {"OH GOD!", "OH NO!"},
 	[RAX] = {"ax", "al"},
 	[RBX] = {"bx", "bl"},
@@ -147,7 +148,12 @@ eins(Ins i, Fn *fn, FILE *f)
 		[OLoadsb] = "movsb",
 		[OLoadub] = "movzb",
 	};
-	char *s;
+	static char *stoa[] = {
+		[OStore  - OStore] = "l",
+		[OStores - OStore] = "w",
+		[OStoreb - OStore] = "b",
+	};
+	int r;
 
 	switch (i.op) {
 	case OAdd:
@@ -170,35 +176,23 @@ eins(Ins i, Fn *fn, FILE *f)
 			eop("mov", i.arg[0], i.to, fn, f);
 		break;
 	case OStore:
-		if (rtype(i.arg[0]) == RCon) {
+		/* todo, fix inconsistency */
+		if (rtype(i.arg[0]) == RCon)
 			fprintf(f, "\tmovl ");
-			eref(i.arg[0], fn, f);
-			fprintf(f, ", ");
-		} else {
-			assert(rtype(i.arg[0]) == RReg);
-			fprintf(f, "\tmov %%%s, ", rtoa[i.arg[0].val]);
-		}
-		goto Store;
+		else
+			fprintf(f, "\tmov ");
+		eref(i.arg[0], fn, f);
+	if (0) {
 	case OStores:
-		if (rtype(i.arg[0]) == RCon) {
-			fprintf(f, "\tmovw ");
-			eref(i.arg[0], fn, f);
-			fprintf(f, ", ");
-		} else {
-			assert(rtype(i.arg[0]) == RReg);
-			fprintf(f, "\tmovw %%%s, ", rsub[BASE(i.arg[0].val)].s);
-		}
-		goto Store;
 	case OStoreb:
-		if (rtype(i.arg[0]) == RCon) {
-			fprintf(f, "\tmovb ");
+		fprintf(f, "\tmov%s ", stoa[i.op - OStore]);
+		if (rtype(i.arg[0]) == RReg) {
+			r = BASE(i.arg[0].val);
+			fprintf(f, "%%%s", rsub[r][i.op - OStores]);
+		} else
 			eref(i.arg[0], fn, f);
-			fprintf(f, ", ");
-		} else {
-			assert(rtype(i.arg[0]) == RReg);
-			fprintf(f, "\tmovb %%%s, ", rsub[BASE(i.arg[0].val)].b);
-		}
-	Store:
+	}
+		fprintf(f, ", ");
 		emem(i.arg[1], fn, f);
 		fprintf(f, "\n");
 		break;
@@ -239,7 +233,7 @@ eins(Ins i, Fn *fn, FILE *f)
 			eop("mov $0,", i.to, R, fn, f);
 			fprintf(f, "\tset%s %%%s\n",
 				ctoa[i.op-OXSet],
-				rsub[BASE(i.to.val)].b);
+				rsub[BASE(i.to.val)][SBYTE]);
 			break;
 		}
 		diag("emit: unhandled instruction (3)");
