@@ -1,0 +1,25 @@
+# find the maximum value
+# in a nul-terminated array
+# of unsigned bytes
+#
+# b input array
+# a output max
+
+@start
+@loop
+	%max =w phi @start -1, @new %byt, @old %max
+	%id0 =l phi @start 0,  @new %id1, @old %id1
+	%loc =l add $b, %id0
+	%byt =w loadub %loc
+	%id1 =l add 1, %id0
+	jnz %byt, @iter, @end
+@iter
+	%cmp =w csle %max, %byt
+	jnz %cmp, @new, @old
+@new
+	jmp @loop
+@old
+	jmp @loop
+@end
+	store %max, $a
+	ret
