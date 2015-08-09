@@ -47,7 +47,7 @@ typedef enum {
 	PEnd,
 } PState;
 
-typedef enum {
+enum {
 	TXXX = NPubOp,
 	TPhi,
 	TJmp,
@@ -66,11 +66,11 @@ typedef enum {
 	TRParen,
 	TNL,
 	TEOF,
-} Token;
+};
 
 
 static FILE *inf;
-static Token thead;
+static int thead;
 static struct {
 	int64_t num;
 	char *str;
@@ -120,12 +120,12 @@ err(char *s)
 	diag(buf);
 }
 
-static Token
+static int
 lex()
 {
 	static struct {
 		char *str;
-		Token tok;
+		int tok;
 	} tmap[] = {
 		{ "phi", TPhi },
 		{ "jmp", TJmp },
@@ -137,7 +137,7 @@ lex()
 	};
 	static char tok[NString];
 	int c, i, sgn;
-	Token t;
+	int t;
 
 	do
 		c = fgetc(inf);
@@ -219,7 +219,7 @@ Alpha:
 	return TXXX;
 }
 
-static Token
+static int
 peek()
 {
 	if (thead == TXXX)
@@ -227,10 +227,10 @@ peek()
 	return thead;
 }
 
-static Token
+static int
 next()
 {
-	Token t;
+	int t;
 
 	t = peek();
 	thead = TXXX;
@@ -316,7 +316,7 @@ findblk(char *name)
 }
 
 static void
-expect(Token t)
+expect(int t)
 {
 	static char *names[] = {
 		[TLbl] = "label",
@@ -326,7 +326,7 @@ expect(Token t)
 		[TEOF] = 0,
 	};
 	char buf[128], *s1, *s2;
-	Token t1;
+	int t1;
 
 	t1 = next();
 	if (t == t1)
@@ -355,9 +355,8 @@ parseline(PState ps)
 	Blk *blk[NPred];
 	Phi *phi;
 	Ref r;
-	Token t;
 	Blk *b;
-	int op, i;
+	int t, op, i;
 
 	do
 		t = next();
@@ -366,6 +365,12 @@ parseline(PState ps)
 		err("label or end of file expected");
 	switch (t) {
 	default:
+		if (t == OStore || t == OCopy) {
+			/* operations without result */
+			r = R;
+			op = t;
+			goto DoOp;
+		}
 		err("label, instruction or jump expected");
 	case TEOF:
 		return PEnd;
@@ -424,6 +429,7 @@ parseline(PState ps)
 		err("class expected after =");
 	}
 	op = next();
+DoOp:
 	if (op == TPhi) {
 		if (ps != PPhi)
 			err("unexpected phi instruction");
