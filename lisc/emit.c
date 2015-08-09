@@ -170,16 +170,35 @@ eins(Ins i, Fn *fn, FILE *f)
 			eop("mov", i.arg[0], i.to, fn, f);
 		break;
 	case OStore:
-		s = rtoa[i.arg[0].val];
+		if (rtype(i.arg[0]) == RCon) {
+			fprintf(f, "\tmovl ");
+			eref(i.arg[0], fn, f);
+			fprintf(f, ", ");
+		} else {
+			assert(rtype(i.arg[0]) == RReg);
+			fprintf(f, "\tmov %%%s, ", rtoa[i.arg[0].val]);
+		}
 		goto Store;
 	case OStores:
-		s = rsub[BASE(i.arg[0].val)].s;
+		if (rtype(i.arg[0]) == RCon) {
+			fprintf(f, "\tmovw ");
+			eref(i.arg[0], fn, f);
+			fprintf(f, ", ");
+		} else {
+			assert(rtype(i.arg[0]) == RReg);
+			fprintf(f, "\tmovw %%%s, ", rsub[BASE(i.arg[0].val)].s);
+		}
 		goto Store;
 	case OStoreb:
-		s = rsub[BASE(i.arg[0].val)].b;
+		if (rtype(i.arg[0]) == RCon) {
+			fprintf(f, "\tmovb ");
+			eref(i.arg[0], fn, f);
+			fprintf(f, ", ");
+		} else {
+			assert(rtype(i.arg[0]) == RReg);
+			fprintf(f, "\tmovb %%%s, ", rsub[BASE(i.arg[0].val)].b);
+		}
 	Store:
-		assert(rtype(i.arg[0]) == RReg);
-		fprintf(f, "\tmov %s, ", s);
 		emem(i.arg[1], fn, f);
 		fprintf(f, "\n");
 		break;

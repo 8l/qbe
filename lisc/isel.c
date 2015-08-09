@@ -117,6 +117,33 @@ sel(Ins i, Fn *fn)
 	case OCopy:
 		emit(i.op, i.to, i.arg[0], i.arg[1]);
 		break;
+	case OStore:
+	case OStoreb:
+	case OStores:
+		r0 = i.arg[0];
+		goto Load;
+	case OLoad:
+	case OLoadss:
+	case OLoadus:
+	case OLoadsb:
+	case OLoadub:
+		r0 = i.arg[0];
+		if (rtype(r0) == RCon) {
+			t =  newtmp(TLong, fn);
+			r0 = TMP(t);
+		}
+	Load:
+		r1 = i.arg[1];
+		if (rtype(r1) == RCon) {
+			t = newtmp(TLong, fn);
+			r1 = TMP(t);
+		}
+		emit(i.op, i.to, r0, r1);
+		if (!req(r0, i.arg[0]))
+			emit(OCopy, r0, i.arg[0], R);
+		if (!req(r1, i.arg[1]))
+			emit(OCopy, r1, i.arg[1], R);
+		break;
 	case ONop:
 		break;
 	default:
