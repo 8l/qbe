@@ -72,7 +72,8 @@ radd(RMap *m, int t, int r)
 static Ref
 ralloc(RMap *m, int t)
 {
-	int r;
+	static int x;
+	int n, r;
 
 	if (BGET(m->bt, t)) {
 		r = rfind(m, t);
@@ -80,8 +81,13 @@ ralloc(RMap *m, int t)
 	} else {
 		r = tmp[t].hint;
 		if (r == -1 || BGET(m->br, r))
-			for (r=RAX; BGET(m->br, r); r++)
-				;
+			for (n=0;; x=(x+1)%NReg, n++) {
+				if (n > NReg)
+					diag("rega: no more regs");
+				r = RAX + x;
+				if (!BGET(m->br, r))
+					break;
+			}
 		radd(m, t, r);
 		if (tmp[t].hint == -1)
 			tmp[t].hint = r;
@@ -294,9 +300,9 @@ rega(Fn *fn)
 		cur.bt = (Bits){{0}};
 		cur.br = (Bits){{0}};
 		b1 = b;
-		if (b->s1 && b1->loop < b->s1->loop)
+		if (b->s1 && b1->loop <= b->s1->loop)
 			b1 = b->s1;
-		if (b->s2 && b1->loop < b->s2->loop)
+		if (b->s2 && b1->loop <= b->s2->loop)
 			b1 = b->s1;
 		/* try to reuse the register
 		 * assignment of the most frequent
