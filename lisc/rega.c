@@ -35,7 +35,7 @@ reg(int r, int t)
 	default:
 		assert(!"invalid temporary");
 	case TWord:
-		return REG(WORD(r));
+		return REG(RWORD(r));
 	case TLong:
 		return REG(r);
 	}
@@ -205,7 +205,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 	i1 = i+1;
 	if (rtype(i->to) == RReg)
 		for (;; i--) {
-			r = BASE(i->to.val);
+			r = RBASE(i->to.val);
 			rt = i->arg[0];
 			assert(rtype(rt) == RTmp);
 			assert(BGET(m->br, r));
@@ -220,7 +220,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 		}
 	else if (rtype(i->arg[0]) == RReg)
 		for (;; i--) {
-			r = BASE(i->arg[0].val);
+			r = RBASE(i->arg[0].val);
 			assert(req(i->to, R) || i->to.type == RTmp);
 			if (req(i->to, R)) {
 				if (BGET(m->br, r)) {
@@ -285,10 +285,10 @@ rega(Fn *fn)
 				continue;
 			if (rtype(i->arg[0]) == RTmp
 			&& rtype(i->to) == RReg)
-				tmp[i->arg[0].val].hint = BASE(i->to.val);
+				tmp[i->arg[0].val].hint = RBASE(i->to.val);
 			if (rtype(i->to) == RTmp
 			&& rtype(i->arg[0]) == RReg)
-				tmp[i->to.val].hint = BASE(i->arg[0].val);
+				tmp[i->to.val].hint = RBASE(i->arg[0].val);
 		}
 
 	/* 2. assign registers backwards */
@@ -343,7 +343,7 @@ rega(Fn *fn)
 				i->to = reg(r, i->to.val);
 				break;
 			case RReg:
-				r = BASE(i->to.val);
+				r = RBASE(i->to.val);
 				assert(BGET(cur.br, r));
 				BCLR(cur.br, r);
 				break;
@@ -363,7 +363,7 @@ rega(Fn *fn)
 				i->arg[0] = ralloc(&cur, t);
 				break;
 			case RReg:
-				BSET(cur.br, BASE(i->arg[0].val));
+				BSET(cur.br, RBASE(i->arg[0].val));
 				break;
 			}
 			switch (rtype(i->arg[1])) {
@@ -372,7 +372,7 @@ rega(Fn *fn)
 				i->arg[1] = ralloc(&cur, t);
 				break;
 			case RReg:
-				BSET(cur.br, BASE(i->arg[1].val));
+				BSET(cur.br, RBASE(i->arg[1].val));
 				break;
 			}
 		}

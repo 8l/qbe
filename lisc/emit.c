@@ -35,7 +35,7 @@ static char *rtoa[] = {
 	[R15D] = "r15d",
 };
 
-enum { SSHORT, SBYTE };
+enum { SShort, SByte };
 static char *rsub[][2] = {
 	[RXX] = {"OH GOD!", "OH NO!"},
 	[RAX] = {"ax", "al"},
@@ -128,7 +128,7 @@ emem(Ref r, Fn *fn, FILE *f)
 		econ(&fn->con[r.val], f);
 		break;
 	case RReg:
-		assert(BASE(r.val) == r.val);
+		assert(r.val < EAX);
 		fprintf(f, "(");
 		eref(r, fn, f);
 		fprintf(f, ")");
@@ -198,7 +198,7 @@ eins(Ins i, Fn *fn, FILE *f)
 	case OStoreb:
 		fprintf(f, "\tmov%s ", stoa[i.op - OStore]);
 		if (rtype(i.arg[0]) == RReg) {
-			r = BASE(i.arg[0].val);
+			r = RBASE(i.arg[0].val);
 			fprintf(f, "%%%s", rsub[r][i.op - OStores]);
 		} else
 			eref(i.arg[0], fn, f);
@@ -213,7 +213,7 @@ eins(Ins i, Fn *fn, FILE *f)
 	case OLoadsb:
 	case OLoadub:
 		fprintf(f, "\t%s", otoa[i.op]);
-		if (BASE(i.to.val) == i.to.val)
+		if (i.to.val < EAX)
 			fprintf(f, "q ");
 		else
 			fprintf(f, "l ");
@@ -248,7 +248,7 @@ eins(Ins i, Fn *fn, FILE *f)
 			eop("mov $0,", i.to, R, fn, f);
 			fprintf(f, "\tset%s %%%s\n",
 				ctoa[i.op-OXSet],
-				rsub[BASE(i.to.val)][SBYTE]);
+				rsub[RBASE(i.to.val)][SByte]);
 			break;
 		}
 		diag("emit: unhandled instruction (3)");
