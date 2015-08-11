@@ -1,59 +1,25 @@
 #include "lisc.h"
 
 
-static char *rtoa[] = {
-	[RXX ] = "OH GOD!",
-	[RAX ] = "rax",
-	[RBX ] = "rbx",
-	[RCX ] = "rcx",
-	[RDX ] = "rdx",
-	[RSI ] = "rsi",
-	[RDI ] = "rdi",
-	[RBP ] = "rbp",
-	[RSP ] = "rsp",
-	[R8  ] = "r8",
-	[R9  ] = "r9",
-	[R10 ] = "r10",
-	[R11 ] = "r11",
-	[R12 ] = "r12",
-	[R13 ] = "r13",
-	[R14 ] = "r14",
-	[R15 ] = "r15",
-	[EAX ] = "eax",
-	[EBX ] = "ebx",
-	[ECX ] = "ecx",
-	[EDX ] = "edx",
-	[ESI ] = "esi",
-	[EDI ] = "edi",
-	[R8D ] = "r8d",
-	[R9D ] = "r9d",
-	[R10D] = "r10d",
-	[R11D] = "r11d",
-	[R12D] = "r12d",
-	[R13D] = "r13d",
-	[R14D] = "r14d",
-	[R15D] = "r15d",
-};
-
-enum { SShort, SByte };
-static char *rsub[][2] = {
-	[RXX] = {"OH GOD!", "OH NO!"},
-	[RAX] = {"ax", "al"},
-	[RBX] = {"bx", "bl"},
-	[RCX] = {"cx", "cl"},
-	[RDX] = {"dx", "dl"},
-	[RSI] = {"si", "sil"},
-	[RDI] = {"di", "dil"},
-	[RBP] = {"bp", "bpl"},
-	[RSP] = {"sp", "spl"},
-	[R8 ] = {"r8w", "r8b"},
-	[R9 ] = {"r9w", "r9b"},
-	[R10] = {"r10w", "r10b"},
-	[R11] = {"r11w", "r11b"},
-	[R12] = {"r12w", "r12b"},
-	[R13] = {"r13w", "r13b"},
-	[R14] = {"r14w", "r14b"},
-	[R15] = {"r15w", "r15b"},
+enum { SLong, SWord, SShort, SByte };
+static char *rsub[][4] = {
+	[RXX] = {"BLACK CAT", "BROKEN MIRROR", "666", "NOOOO!"},
+	[RAX] = {"rax", "eax", "ax", "al"},
+	[RBX] = {"rbx", "ebx", "bx", "bl"},
+	[RCX] = {"rcx", "ecx", "cx", "cl"},
+	[RDX] = {"rdx", "edx", "dx", "dl"},
+	[RSI] = {"rsi", "esi", "si", "sil"},
+	[RDI] = {"rdi", "edi", "di", "dil"},
+	[RBP] = {"rbp", "ebp", "bp", "bpl"},
+	[RSP] = {"rsp", "esp", "sp", "spl"},
+	[R8 ] = {"r8" , "r8d", "r8w", "r8b"},
+	[R9 ] = {"r9" , "r9d", "r9w", "r9b"},
+	[R10] = {"r10", "r10d", "r10w", "r10b"},
+	[R11] = {"r11", "r11d", "r11w", "r11b"},
+	[R12] = {"r12", "r12d", "r12w", "r12b"},
+	[R13] = {"r13", "r13d", "r13w", "r13b"},
+	[R14] = {"r14", "r14d", "r14w", "r14b"},
+	[R15] = {"r15", "r15d", "r15w", "r15b"},
 };
 
 static char *ctoa[NCmp] = {
@@ -64,6 +30,15 @@ static char *ctoa[NCmp] = {
 	[Csge] = "ge",
 	[Cne ] = "ne",
 };
+
+static char *
+rtoa(int r)
+{
+	if (r < EAX)
+		return rsub[r][SLong];
+	else
+		return rsub[RBASE(r)][SWord];
+}
 
 static int
 cneg(int cmp)
@@ -101,7 +76,7 @@ eref(Ref r, Fn *fn, FILE *f)
 {
 	switch (rtype(r)) {
 	case RReg:
-		fprintf(f, "%%%s", rtoa[r.val]);
+		fprintf(f, "%%%s", rtoa(r.val));
 		break;
 	case RSlot:
 		fprintf(f, "-%d(%%rbp)", 8 * r.val);
@@ -160,9 +135,10 @@ eins(Ins i, Fn *fn, FILE *f)
 		[OLoadub] = "movzb",
 	};
 	static char *stoa[] = {
-		[OStore  - OStore] = "l",
-		[OStores - OStore] = "w",
-		[OStoreb - OStore] = "b",
+		[OStorel - OStorel] = "q",
+		[OStorew - OStorel] = "l",
+		[OStores - OStorel] = "w",
+		[OStoreb - OStorel] = "b",
 	};
 	int r;
 
@@ -186,23 +162,16 @@ eins(Ins i, Fn *fn, FILE *f)
 		if (!req(i.arg[0], i.to))
 			eop("mov", i.arg[0], i.to, fn, f);
 		break;
-	case OStore:
-		/* todo, fix inconsistency */
-		if (rtype(i.arg[0]) == RCon)
-			fprintf(f, "\tmovl ");
-		else
-			fprintf(f, "\tmov ");
-		eref(i.arg[0], fn, f);
-	if (0) {
+	case OStorel:
+	case OStorew:
 	case OStores:
 	case OStoreb:
-		fprintf(f, "\tmov%s ", stoa[i.op - OStore]);
+		fprintf(f, "\tmov%s ", stoa[i.op - OStorel]);
 		if (rtype(i.arg[0]) == RReg) {
 			r = RBASE(i.arg[0].val);
-			fprintf(f, "%%%s", rsub[r][i.op - OStores]);
+			fprintf(f, "%%%s", rsub[r][i.op - OStorel]);
 		} else
 			eref(i.arg[0], fn, f);
-	}
 		fprintf(f, ", ");
 		emem(i.arg[1], fn, f);
 		fprintf(f, "\n");

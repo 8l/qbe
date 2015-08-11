@@ -184,6 +184,15 @@ emit(short op, Ref to, Ref arg0, Ref arg1)
 	*--curi = (Ins){op, to, {arg0, arg1}};
 }
 
+static void
+store(Ref r, int s)
+{
+	if (tmp[r.val].type == TLong)
+		emit(OStorel, R, r, SLOT(s));
+	else
+		emit(OStorew, R, r, SLOT(s));
+}
+
 static int
 limit(Bits *b, int k, Bits *fst)
 {
@@ -372,7 +381,7 @@ spill(Fn *fn)
 				BSET(w, i->arg[1].val);
 			j -= setloc(&i->arg[1], &v, &w);
 			if (s)
-				emit(OStore, R, i->to, SLOT(s));
+				store(i->to, s);
 			emit(i->op, i->to, i->arg[0], i->arg[1]);
 		}
 
@@ -383,7 +392,7 @@ spill(Fn *fn)
 				BCLR(v, t);
 				s = tmp[t].spill;
 				if (s)
-					emit(OStore, R, p->to, SLOT(s));
+					store(p->to, s);
 			} else
 				p->to = slot(p->to.val);
 		}

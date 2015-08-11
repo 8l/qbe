@@ -115,7 +115,8 @@ sel(Ins i, Fn *fn)
 	case OAdd:
 	case OSub:
 	case OCopy:
-	case OStore:
+	case OStorel:
+	case OStorew:
 	case OStoreb:
 	case OStores:
 	case OLoad:
@@ -153,8 +154,15 @@ flagi(Ins *i0, Ins *i)
 		case OSub:
 			return i;
 		case OCopy: /* <arch> flag-transparent */
-		case OStore:
-		case OLoad:;
+		case OStorel:
+		case OStorew:
+		case OStoreb:
+		case OStores:
+		case OLoad:
+		case OLoadss:
+		case OLoadus:
+		case OLoadsb:
+		case OLoadub:;
 		}
 	return 0;
 }

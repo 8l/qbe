@@ -16,7 +16,8 @@ OpDesc opdesc[NOp] = {
 	[OSub]    = { "sub",    2, 2 },
 	[ODiv]    = { "div",    2, 2 },
 	[ORem]    = { "rem",    2, 2 },
-	[OStore]  = { "store",  2, 0 },
+	[OStorel] = { "storel", 2, 0 },
+	[OStorew] = { "storew", 2, 0 },
 	[OStores] = { "stores", 2, 0 },
 	[OStoreb] = { "storeb", 2, 0 },
 	[OLoad]   = { "load",   1, 0 },
@@ -365,7 +366,7 @@ parseline(PState ps)
 		err("label or end of file expected");
 	switch (t) {
 	default:
-		if (t == OStore || t == OStores || t == OStoreb) {
+		if (OStorel <= t && t <= OStoreb) {
 			/* operations without result */
 			r = R;
 			op = t;
