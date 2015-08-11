@@ -80,10 +80,25 @@ cneg(int cmp)
 }
 
 static void
+econ(Con *c, FILE *f)
+{
+	switch (c->type) {
+	case CAddr:
+		fprintf(f, "%s", c->label);
+		if (c->val)
+			fprintf(f, "%+"PRId64, c->val);
+		break;
+	case CNum:
+		fprintf(f, "%"PRId64, c->val);
+		break;
+	default:
+		diag("econ: invalid constant");
+	}
+}
+
+static void
 eref(Ref r, Fn *fn, FILE *f)
 {
-	Con *c;
-
 	switch (rtype(r)) {
 	case RReg:
 		fprintf(f, "%%%s", rtoa[r.val]);
@@ -92,19 +107,8 @@ eref(Ref r, Fn *fn, FILE *f)
 		fprintf(f, "-%d(%%rbp)", 8 * r.val);
 		break;
 	case RCon:
-		c = &fn->con[r.val];
-		switch (c->type) {
-		case CAddr:
-			fprintf(f, "$%s", c->label);
-			if (c->val)
-				fprintf(f, "%+"PRId64, c->val);
-			break;
-		case CNum:
-			fprintf(f, "$%"PRId64, c->val);
-			break;
-		default:
-			diag("emitref: invalid constant");
-		}
+		fprintf(f, "$");
+		econ(&fn->con[r.val], f);
 		break;
 	default:
 		diag("emitref: invalid reference");
@@ -114,10 +118,17 @@ eref(Ref r, Fn *fn, FILE *f)
 static void
 emem(Ref r, Fn *fn, FILE *f)
 {
-	if (rtype(r) == RSlot)
+	switch (rtype(r)) {
+	default:
+		diag("emem: invalid memory reference");
+	case RSlot:
 		eref(r, fn, f);
-	else {
-		assert(rtype(r)!=RReg || BASE(r.val)==r.val);
+		break;
+	case RCon:
+		econ(&fn->con[r.val], f);
+		break;
+	case RReg:
+		assert(BASE(r.val) == r.val);
 		fprintf(f, "(");
 		eref(r, fn, f);
 		fprintf(f, ")");
