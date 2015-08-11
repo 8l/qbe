@@ -1,4 +1,5 @@
 #include "lisc.h"
+#include <limits.h>
 
 /* For x86_64, we have to:
  *
@@ -24,7 +25,7 @@ emit(short op, Ref to, Ref arg0, Ref arg1)
 	*--curi = (Ins){op, to, {arg0, arg1}};
 }
 
-static int
+static Ref
 newtmp(int type, Fn *fn)
 {
 	static int n;
@@ -36,7 +37,29 @@ newtmp(int type, Fn *fn)
 		diag("isel: out of memory");
 	fn->tmp[t] = (Tmp){.type = type};
 	sprintf(fn->tmp[t].name, "isel%d", ++n);
-	return t;
+	return TMP(t);
+}
+
+static int
+noimm(Ref r, Fn *fn)
+{
+	int64_t val;
+
+	assert(rtype(r) == RCon);
+	switch (fn->con[r.val].type) {
+	default:
+		diag("isel: invalid constant");
+	case CAddr:
+		/* we only support the 'small'
+		 * code model of the ABI, this
+		 * means that we can always
+		 * address data with 32bits
+		 */
+		return 0;
+	case CNum:
+		val = fn->con[r.val].val;
+		return (val < INT32_MIN || val > INT32_MAX);
+	}
 }
 
 static int
@@ -49,34 +72,34 @@ static void
 selcmp(Ref arg[2], Fn *fn)
 {
 	Ref r;
-	int t;
+	int con, lng;
 
-	t = -1;
+	con = 0;
 	if (rtype(arg[0]) == RCon) {
 		r = arg[1];
 		arg[1] = arg[0];
 		arg[0] = r;
 		if (rtype(r) == RCon) {
-			/* todo, use the constant
-			 * size to dimension the
-			 * constant */
-			t = newtmp(TWord, fn);
-			arg[0] = TMP(t);
+			con = 1;
+			arg[0] = newtmp(TWord, fn);
 		}
 	}
-	if (islong(arg[0], fn) || islong(arg[1], fn))
-		emit(OXCmpl, R, arg[1], arg[0]);
-	else
-		emit(OXCmpw, R, arg[1], arg[0]);
-	if (t != -1)
-		emit(OCopy, TMP(t), r, R);
+	lng = islong(arg[0], fn) || islong(arg[1], fn);
+	emit(lng ? OXCmpl : OXCmpw, R, arg[1], arg[0]);
+	if (con)
+		emit(OCopy, arg[0], r, R);
+	r = arg[0];
+	if (lng && rtype(r) == RCon && noimm(r, fn)) {
+		curi->arg[0] = newtmp(TLong, fn);
+		emit(OCopy, curi->arg[0], r, R);
+	}
 }
 
 static void
 sel(Ins i, Fn *fn)
 {
 	Ref r0, r1, ra, rd;
-	int t, ty, c;
+	int n, ty, c;
 
 	switch (i.op) {
 	case ODiv:
@@ -102,8 +125,7 @@ sel(Ins i, Fn *fn)
 			/* immediates not allowed for
 			 * divisions in x86
 			 */
-			t = newtmp(ty, fn);
-			r0 = TMP(t);
+			r0 = newtmp(ty, fn);
 		} else
 			r0 = i.arg[1];
 		emit(OXDiv, R, r0, R);
@@ -112,10 +134,19 @@ sel(Ins i, Fn *fn)
 		if (rtype(i.arg[1]) == RCon)
 			emit(OCopy, r0, i.arg[1], R);
 		break;
+	case ONop:
+		break;
 	case OAdd:
 	case OSub:
 	case OCopy:
+		if (fn->tmp[i.to.val].type == TLong)
+			n = 2;
+		else
+			n = 0;
+		goto Emit;
 	case OStorel:
+		n = 1;
+		goto Emit;
 	case OStorew:
 	case OStoreb:
 	case OStores:
@@ -124,9 +155,20 @@ sel(Ins i, Fn *fn)
 	case OLoadus:
 	case OLoadsb:
 	case OLoadub:
+		n = 0;
+Emit:
 		emit(i.op, i.to, i.arg[0], i.arg[1]);
-		break;
-	case ONop:
+		while (n--) {
+			/* load constants that do not fit in
+			 * a 32bit signed integer into a
+			 * long temporary
+			 */
+			r0 = i.arg[n];
+			if (rtype(r0) == RCon && noimm(r0, fn)) {
+				curi->arg[n] = newtmp(TLong, fn);
+				emit(OCopy, curi->arg[n], r0, R);
+			}
+		}
 		break;
 	default:
 		if (OCmp <= i.op && i.op <= OCmp1) {
@@ -150,10 +192,10 @@ flagi(Ins *i0, Ins *i)
 			if (OCmp <= i->op && i->op <= OCmp1)
 				return i;
 			return 0;
-		case OAdd:  /* <arch> flag-setting */
+		case OAdd:  /* flag-setting */
 		case OSub:
 			return i;
-		case OCopy: /* <arch> flag-transparent */
+		case OCopy: /* flag-transparent */
 		case OStorel:
 		case OStorew:
 		case OStoreb:
