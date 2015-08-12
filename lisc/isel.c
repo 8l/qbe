@@ -72,22 +72,16 @@ static void
 selcmp(Ref arg[2], Fn *fn)
 {
 	Ref r;
-	int con, lng;
+	int lng;
 
-	con = 0;
 	if (rtype(arg[0]) == RCon) {
 		r = arg[1];
 		arg[1] = arg[0];
 		arg[0] = r;
-		if (rtype(r) == RCon) {
-			con = 1;
-			arg[0] = newtmp(TWord, fn);
-		}
+		assert(rtype(r) != RCon);
 	}
 	lng = islong(arg[0], fn) || islong(arg[1], fn);
 	emit(lng ? OXCmpl : OXCmpw, R, arg[1], arg[0]);
-	if (con)
-		emit(OCopy, arg[0], r, R);
 	r = arg[0];
 	if (lng && rtype(r) == RCon && noimm(r, fn)) {
 		curi->arg[0] = newtmp(TLong, fn);
