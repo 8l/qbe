@@ -126,6 +126,7 @@ enum {
 	OSub,
 	ODiv,
 	ORem,
+	OAnd,
 	OCmp,
 	OCmp1 = OCmp + NCmp-1,
 	OStorel,
@@ -138,6 +139,7 @@ enum {
 	OLoadsb,
 	OLoadub,
 	OCopy,
+	OAlloc,
 	NPubOp,
 
 	/* reserved instructions */

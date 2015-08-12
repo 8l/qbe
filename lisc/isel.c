@@ -42,6 +42,22 @@ newtmp(int type, Fn *fn)
 	return TMP(t);
 }
 
+static Ref
+newcon(int64_t val, Fn *fn)
+{
+	int c;
+
+	for (c=0; c<fn->ncon; c++)
+		if (fn->con[c].type == CNum && fn->con[c].val == val)
+			return CON(c);
+	fn->ncon++;
+	fn->con = realloc(fn->con, fn->ncon * sizeof fn->con[0]);
+	if (!fn->con)
+		diag("isel: out of memory");
+	fn->con[c] = (Con){.type = CNum, .val = val};
+	return CON(c);
+}
+
 static int
 noimm(Ref r, Fn *fn)
 {
@@ -96,6 +112,7 @@ sel(Ins i, Fn *fn)
 {
 	Ref r0, r1, ra, rd;
 	int n, ty, c;
+	int64_t val;
 
 	switch (i.op) {
 	case ODiv:
@@ -164,6 +181,29 @@ Emit:
 				curi->arg[n] = newtmp(TLong, fn);
 				emit(OCopy, curi->arg[n], r0, R);
 			}
+		}
+		break;
+	case OAlloc:
+		/* we need to make sure
+		 * the stack remains aligned
+		 * (rsp + 8 = 0) mod 16
+		 * as a consequence, the alloc
+		 * alignment is 8, we can change
+		 * that in the future
+		 */
+		if (rtype(i.arg[0]) == RCon) {
+			val = fn->con[i.arg[0].val].val;
+			val = (val + 15)  & ~INT64_C(15);
+			if (val < 0 || val > INT32_MAX)
+				diag("isel: alloc too large");
+			emit(OAlloc, i.to, newcon(val, fn), R);
+		} else {
+			/* r0 = (i.arg[0] + 15) & -16 */
+			r0 = newtmp(TLong, fn);
+			r1 = newtmp(TLong, fn);
+			emit(OAlloc, i.to, r0, R);
+			emit(OAnd, r0, r1, newcon(-16, fn));
+			emit(OAdd, r1, i.arg[0], newcon(15, fn));
 		}
 		break;
 	default:

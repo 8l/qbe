@@ -128,6 +128,7 @@ eins(Ins i, Fn *fn, FILE *f)
 	static char *otoa[NOp] = {
 		[OAdd]    = "add",
 		[OSub]    = "sub",
+		[OAnd]    = "and",
 		[OLoad]   = "mov",
 		[OLoadss] = "movsw",
 		[OLoadus] = "movzw",
@@ -140,12 +141,13 @@ eins(Ins i, Fn *fn, FILE *f)
 		[OStores - OStorel] = "w",
 		[OStoreb - OStorel] = "b",
 	};
-	int r;
+	int reg;
 	int64_t val;
 
 	switch (i.op) {
 	case OAdd:
 	case OSub:
+	case OAnd:
 		if (req(i.to, i.arg[1])) {
 			if (i.op == OSub) {
 				eop("neg", i.to, R, fn, f);
@@ -177,8 +179,8 @@ eins(Ins i, Fn *fn, FILE *f)
 	case OStoreb:
 		fprintf(f, "\tmov%s ", stoa[i.op - OStorel]);
 		if (rtype(i.arg[0]) == RReg) {
-			r = RBASE(i.arg[0].val);
-			fprintf(f, "%%%s", rsub[r][i.op - OStorel]);
+			reg = RBASE(i.arg[0].val);
+			fprintf(f, "%%%s", rsub[reg][i.op - OStorel]);
 		} else
 			eref(i.arg[0], fn, f);
 		fprintf(f, ", ");
@@ -199,6 +201,11 @@ eins(Ins i, Fn *fn, FILE *f)
 		fprintf(f, ", ");
 		eref(i.to, fn, f);
 		fprintf(f, "\n");
+		break;
+	case OAlloc:
+		eop("sub", i.arg[0], REG(RSP), fn, f);
+		if (!req(i.to, R))
+			eop("mov", REG(RSP), i.to, fn ,f);
 		break;
 	case OSwap:
 		eop("xchg", i.arg[0], i.arg[1], fn, f);
