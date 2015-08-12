@@ -223,10 +223,12 @@ eins(Ins i, Fn *fn, FILE *f)
 		break;
 	default:
 		if (OXSet <= i.op && i.op <= OXSet1) {
-			eop("mov $0,", i.to, R, fn, f);
 			fprintf(f, "\tset%s %%%s\n",
 				ctoa[i.op-OXSet],
 				rsub[RBASE(i.to.val)][SByte]);
+			fprintf(f, "\tmovzb %%%s, %%%s\n",
+				rsub[RBASE(i.to.val)][SByte],
+				rtoa(i.to.val));
 			break;
 		}
 		diag("emit: unhandled instruction (3)");
