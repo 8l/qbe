@@ -4,7 +4,9 @@
 /* For x86_64, we have to:
  *
  * - check that constants are used only in
- *   places allowed by the machine
+ *   places allowed
+ *
+ * - ensure immutables always fit in 32b
  *
  * - explicit machine register contraints
  *   on instructions like division.
