@@ -6,7 +6,7 @@
  * - check that constants are used only in
  *   places allowed
  *
- * - ensure immutables always fit in 32b
+ * - ensure immediates always fit in 32b
  *
  * - explicit machine register contraints
  *   on instructions like division.
@@ -80,11 +80,11 @@ selcmp(Ref arg[2], Fn *fn)
 		r = arg[1];
 		arg[1] = arg[0];
 		arg[0] = r;
-		assert(rtype(r) != RCon);
 	}
+	assert(rtype(arg[0]) != RCon);
 	lng = islong(arg[0], fn) || islong(arg[1], fn);
 	emit(lng ? OXCmpl : OXCmpw, R, arg[1], arg[0]);
-	r = arg[0];
+	r = arg[1];
 	if (lng && rtype(r) == RCon && noimm(r, fn)) {
 		curi->arg[0] = newtmp(TLong, fn);
 		emit(OCopy, curi->arg[0], r, R);
