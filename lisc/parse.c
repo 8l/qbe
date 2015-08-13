@@ -257,7 +257,7 @@ tmpref(char *v, int use)
 {
 	int t;
 
-	for (t=0; t<ntmp; t++)
+	for (t=Tmp0; t<ntmp; t++)
 		if (strcmp(v, tmp[t].name) == 0)
 			goto Found;
 	if (ntmp++ >= NTmp)
@@ -496,9 +496,12 @@ parsefn(FILE *f)
 	for (i=0; i<NBlk; i++)
 		bmap[i] = 0;
 	for (i=0; i<NTmp; i++)
-		tmp[i] = (Tmp){.name = ""};
-	ntmp = 1; /* first tmp is invalid */
-	ncon = 1; /* first con in 0 */
+		if (i < Tmp0)
+			tmp[i] = (Tmp){.type = TReg};
+		else
+			tmp[i] = (Tmp){.name = ""};
+	ntmp = Tmp0;
+	ncon = 1; /* first constant must be 0 */
 	curi = insb;
 	curb = 0;
 	lnum = 1;
@@ -531,11 +534,15 @@ printref(Ref r, Fn *fn, FILE *f)
 		[TUndef] = "?",
 		[TWord] = "w",
 		[TLong] = "l",
+		[TReg] = "",
 	};
 
 	switch (r.type) {
 	case RTmp:
-		fprintf(f, "%%%s", fn->tmp[r.val].name);
+		if (r.val < Tmp0)
+			fprintf(f, "R%d", r.val);
+		else
+			fprintf(f, "%%%s", fn->tmp[r.val].name);
 		return ttoa[fn->tmp[r.val].type];
 	case RCon:
 		switch (fn->con[r.val].type) {
@@ -553,9 +560,6 @@ printref(Ref r, Fn *fn, FILE *f)
 		break;
 	case RSlot:
 		fprintf(f, "$%d", r.val);
-		break;
-	case RReg:
-		fprintf(f, "R%d", r.val);
 		break;
 	}
 	return "";

@@ -75,7 +75,10 @@ static void
 eref(Ref r, Fn *fn, FILE *f)
 {
 	switch (rtype(r)) {
-	case RReg:
+	default:
+		diag("emitref: invalid reference");
+	case RTmp:
+		assert(r.val < Tmp0);
 		fprintf(f, "%%%s", rtoa(r.val));
 		break;
 	case RSlot:
@@ -85,8 +88,6 @@ eref(Ref r, Fn *fn, FILE *f)
 		fprintf(f, "$");
 		econ(&fn->con[r.val], f);
 		break;
-	default:
-		diag("emitref: invalid reference");
 	}
 }
 
@@ -102,7 +103,7 @@ emem(Ref r, Fn *fn, FILE *f)
 	case RCon:
 		econ(&fn->con[r.val], f);
 		break;
-	case RReg:
+	case RTmp:
 		assert(r.val < EAX);
 		fprintf(f, "(");
 		eref(r, fn, f);
@@ -178,7 +179,8 @@ eins(Ins i, Fn *fn, FILE *f)
 	case OStores:
 	case OStoreb:
 		fprintf(f, "\tmov%s ", stoa[i.op - OStorel]);
-		if (rtype(i.arg[0]) == RReg) {
+		if (rtype(i.arg[0]) == RTmp) {
+			assert(i.arg[0].val < Tmp0);
 			reg = RBASE(i.arg[0].val);
 			fprintf(f, "%%%s", rsub[reg][i.op - OStorel]);
 		} else
@@ -203,17 +205,17 @@ eins(Ins i, Fn *fn, FILE *f)
 		fprintf(f, "\n");
 		break;
 	case OAlloc:
-		eop("sub", i.arg[0], REG(RSP), fn, f);
+		eop("sub", i.arg[0], TMP(RSP), fn, f);
 		if (!req(i.to, R))
-			eop("mov", REG(RSP), i.to, fn ,f);
+			eop("mov", TMP(RSP), i.to, fn ,f);
 		break;
 	case OSwap:
 		eop("xchg", i.arg[0], i.arg[1], fn, f);
 		break;
 	case OSign:
-		if (req(i.to, REG(RDX)) && req(i.arg[0], REG(RAX)))
+		if (req(i.to, TMP(RDX)) && req(i.arg[0], TMP(RAX)))
 			fprintf(f, "\tcqto\n");
-		else if (req(i.to, REG(EDX)) && req(i.arg[0], REG(EAX)))
+		else if (req(i.to, TMP(EDX)) && req(i.arg[0], TMP(EAX)))
 			fprintf(f, "\tcltd\n");
 		else
 			diag("emit: unhandled instruction (2)");

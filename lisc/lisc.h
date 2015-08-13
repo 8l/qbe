@@ -18,7 +18,7 @@ typedef struct Fn Fn;
 
 typedef enum { U, F, T } B3;
 
-enum {
+enum Reg {
 	RXX,
 
 	RAX, /* caller-save */
@@ -56,8 +56,9 @@ enum {
 	R14D,
 	R15D,
 
-	// NReg = R15 - RAX + 1
-	NReg = 3 /* for test purposes */
+	Tmp0, /* first non-reg temporary */
+
+	NReg = RDX - RAX + 1
 };
 
 #define RWORD(r) (r + (EAX-RAX))
@@ -90,7 +91,6 @@ enum {
 	RTmp,
 	RCon,
 	RSlot,
-	RReg,
 	NRef = (1<<14) - 1
 };
 
@@ -99,14 +99,13 @@ enum {
 #define CON(x)   (Ref){RCon, x}
 #define CON_Z    CON(0)          /* reserved zero constant */
 #define SLOT(x)  (Ref){RSlot, x}
-#define REG(x)   (Ref){RReg, x}
 
 static inline int req(Ref a, Ref b)
 { return a.type == b.type && a.val == b.val; }
 static inline int rtype(Ref r)
 { return req(r, R) ? -1 : r.type; }
 
-enum {
+enum Cmp {
 	Ceq,
 	Csle,
 	Cslt,
@@ -118,7 +117,7 @@ enum {
 
 #define COP(c) (c==Ceq||c==Cne ? c : NCmp-1 - c)
 
-enum {
+enum Op {
 	OXXX,
 
 	/* public instructions */
@@ -154,7 +153,7 @@ enum {
 	NOp
 };
 
-enum {
+enum Jmp {
 	JXXX,
 	JRet,
 	JJmp,
@@ -211,6 +210,7 @@ struct Tmp {
 		TUndef,
 		TWord,
 		TLong,
+		TReg,
 	} type;
 	char name[NString];
 	uint ndef, nuse;

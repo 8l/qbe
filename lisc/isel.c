@@ -122,12 +122,12 @@ sel(Ins i, Fn *fn)
 		default:
 			diag("isel: invalid division");
 		case TWord:
-			ra = REG(EAX);
-			rd = REG(EDX);
+			ra = TMP(EAX);
+			rd = TMP(EDX);
 			break;
 		case TLong:
-			ra = REG(RAX);
-			rd = REG(RDX);
+			ra = TMP(RAX);
+			rd = TMP(RDX);
 			break;
 		}
 		r0 = i.op == ODiv ? ra : rd;
@@ -230,6 +230,7 @@ flagi(Ins *i0, Ins *i)
 			return 0;
 		case OAdd:  /* flag-setting */
 		case OSub:
+		case OAnd:
 			return i;
 		case OCopy: /* flag-transparent */
 		case OStorel:

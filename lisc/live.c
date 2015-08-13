@@ -1,24 +1,14 @@
 #include "lisc.h"
 
 static void
-bset(Ref r, Blk *b, Bits *rb, int *nlv)
+bset(Ref r, Blk *b, int *nlv)
 {
-	Bits *bs;
-
-	switch (rtype(r)) {
-	case RTmp:
-		bs = &b->in;
-		BSET(b->gen, r.val);
-		break;
-	case RReg:
-		bs = rb;
-		break;
-	default:
+	if (rtype(r) != RTmp)
 		return;
-	}
-	if (!BGET(*bs, r.val)) {
+	BSET(b->gen, r.val);
+	if (!BGET(b->in, r.val)) {
 		++*nlv;
-		BSET(*bs, r.val);
+		BSET(b->in, r.val);
 	}
 }
 
@@ -33,7 +23,7 @@ filllive(Fn *f)
 	Phi *p;
 	int z, n, chg, nlv;
 	uint a;
-	Bits tb, rb;
+	Bits tb;
 
 	assert(f->ntmp <= NBit*BITS);
 	for (b=f->start; b; b=b->link) {
@@ -56,28 +46,18 @@ Again:
 		chg |= memcmp(&b->out, &tb, sizeof(Bits));
 
 		b->in = b->out;
-		rb = (Bits){{0}};
 		nlv = bcnt(&b->in);
-		bset(b->jmp.arg, b, &rb, &nlv);
+		bset(b->jmp.arg, b, &nlv);
 		b->nlive = nlv;
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			i--;
-			switch (rtype(i->to)) {
-			default:
-				diag("live: unhandled destination");
-			case RTmp:
+			if (!req(i->to, R)) {
+				assert(rtype(i->to) == RTmp);
 				nlv -= BGET(b->in, i->to.val);
 				BCLR(b->in, i->to.val);
-				break;
-			case RReg:
-				nlv -= BGET(rb, i->to.val);
-				BCLR(rb, i->to.val);
-				break;
-			case -1:
-				break;
 			}
-			bset(i->arg[0], b, &rb, &nlv);
-			bset(i->arg[1], b, &rb, &nlv);
+			bset(i->arg[0], b, &nlv);
+			bset(i->arg[1], b, &nlv);
 			if (nlv > b->nlive)
 				b->nlive = nlv;
 		}

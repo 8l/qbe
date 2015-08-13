@@ -34,7 +34,7 @@ tmpuse(Ref r, int use, int loop, Fn *fn)
 {
 	Tmp *t;
 
-	if (rtype(r) != RTmp)
+	if (rtype(r) != RTmp || r.val < Tmp0)
 		return;
 	t = &fn->tmp[r.val];
 	t->nuse += use;
@@ -77,7 +77,7 @@ fillcost(Fn *fn)
 		}
 	}
 	for (t=fn->tmp; t-fn->tmp < fn->ntmp; t++) {
-		t->cost = 0;
+		t->cost = t-fn->tmp < Tmp0 ? 1e6 : 0;
 		t->nuse = 0;
 		t->ndef = 0;
 	}
@@ -104,7 +104,7 @@ fillcost(Fn *fn)
 	}
 	if (debug['S']) {
 		fprintf(stderr, "\n> Spill costs:\n");
-		for (n=0; n<fn->ntmp; n++)
+		for (n=Tmp0; n<fn->ntmp; n++)
 			fprintf(stderr, "\t%-10s %d\n",
 				fn->tmp[n].name,
 				fn->tmp[n].cost);
@@ -145,8 +145,6 @@ static Bits *f;  /* temps to prioritize in registers (for tcmp1) */
 static Tmp *tmp; /* current temporaries (for tcmpX) */
 static int ntmp; /* current # of temps (for limit) */
 static uint ns;  /* current # of spill slots */
-static int nreg; /* # of registers available */
-static Bits br;  /* live registers */
 
 static int
 tcmp0(const void *pa, const void *pb)
@@ -168,6 +166,8 @@ slot(int t)
 {
 	int s;
 
+	if (t < Tmp0)
+		diag("spill: cannot spill register");
 	s = tmp[t].spill;
 	if (!s) {
 		s = ++ns;
@@ -237,24 +237,11 @@ setloc(Ref *pr, Bits *v, Bits *w)
 {
 	int t;
 
-	/* <arch>
-	 *   here we assume that the
-	 *   machine can always support
-	 *   instructions of the kind
-	 *   reg = op slot, slot
-	 *   if not, we need to add
-	 *   't' to 'w' before calling
-	 *   limit
-	 */
-	if (rtype(*pr) == RReg) {
-		nreg -= !BGET(br, pr->val);
-		BSET(br, pr->val);
-	}
 	if (rtype(*pr) != RTmp)
 		return 0;
 	t = pr->val;
 	BSET(*v, t);
-	if (limit(v, nreg, w) == t)
+	if (limit(v, NReg, w) == t)
 		/* if t was spilled by limit,
 		 * it was not live so we don't
 		 * have to reload it */
@@ -300,7 +287,6 @@ spill(Fn *fn)
 	for (n=fn->nblk-1; n>=0; n--) {
 		/* invariant: m>n => in,out of m updated */
 		b = fn->rpo[n];
-		assert(bcnt(&br) == 0);
 
 		/* 1. find temporaries in registers at
 		 * the end of the block (put them in v) */
@@ -345,32 +331,19 @@ spill(Fn *fn)
 		assert(bcnt(&v) <= NReg);
 
 		/* 2. process the block instructions */
-		nreg = NReg;
 		curi = &insb[NIns];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
-			assert(bcnt(&v) <= nreg);
+			assert(bcnt(&v) <= NReg);
 			i--;
 			s = 0;
-			switch (rtype(i->to)) {
-			default:
-				diag("spill: unhandled destination");
-			case RTmp:
+			if (!req(i->to, R)) {
+				assert(rtype(i->to) == RTmp);
 				j = i->to.val;
 				if (BGET(v, j))
 					BCLR(v, j);
 				else
-					limit(&v, nreg-1, &w);
+					limit(&v, NReg-1, &w);
 				s = tmp[j].spill;
-				break;
-			case RReg:
-				j = i->to.val;
-				if (BGET(br, j)) {
-					BCLR(br, j);
-					nreg++;
-				} else
-					limit(&v, nreg-1, &w);
-				break;
-			case -1:;
 			}
 			w = (Bits){{0}};
 			j = opdesc[i->op].nmem;
