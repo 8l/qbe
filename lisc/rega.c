@@ -5,8 +5,7 @@ typedef struct RMap RMap;
 struct RMap {
 	int t[NReg];
 	int r[NReg];
-	Bits bt;
-	Bits br;
+	Bits b;
 	int n;
 };
 
@@ -59,12 +58,13 @@ rref(RMap *m, int t)
 static void
 radd(RMap *m, int t, int r)
 {
+	assert(t >= Tmp0 && "invalid temporary");
 	assert(RAX <= r && r < RAX + NReg && "invalid register");
-	assert(!BGET(m->bt, t) && "temp has mapping");
-	assert(!BGET(m->br, r) && "reg already allocated");
+	assert(!BGET(m->b, t) && "temp has mapping");
+	assert(!BGET(m->b, r) && "reg already allocated");
 	assert(m->n <= NReg && "too many mappings");
-	BSET(m->bt, t);
-	BSET(m->br, r);
+	BSET(m->b, t);
+	BSET(m->b, r);
 	m->t[m->n] = t;
 	m->r[m->n] = r;
 	m->n++;
@@ -77,20 +77,20 @@ ralloc(RMap *m, int t)
 	int n, r;
 
 	if (t < Tmp0) {
-		BSET(m->br, t);
+		assert(BGET(m->b, RBASE(t)));
 		return TMP(t);
 	}
-	if (BGET(m->bt, t)) {
+	if (BGET(m->b, t)) {
 		r = rfind(m, t);
 		assert(r != -1);
 	} else {
 		r = tmp[t].hint;
-		if (r == -1 || BGET(m->br, r))
+		if (r == -1 || BGET(m->b, r))
 			for (n=0;; x=(x+1)%NReg, n++) {
 				if (n > NReg)
 					diag("rega: no more regs");
 				r = RAX + x;
-				if (!BGET(m->br, r))
+				if (!BGET(m->b, r))
 					break;
 			}
 		radd(m, t, r);
@@ -107,17 +107,17 @@ rfree(RMap *m, int t)
 
 	if (t < Tmp0) {
 		t = RBASE(t);
-		assert(BGET(m->br, t));
-		BCLR(m->br, t);
+		assert(BGET(m->b, t));
+		BCLR(m->b, t);
 		return t;
 	}
-	if (!BGET(m->bt, t))
+	if (!BGET(m->b, t))
 		return -1;
 	for (i=0; m->t[i] != t; i++)
 		assert(i+1 < m->n);
 	r = m->r[i];
-	BCLR(m->bt, t);
-	BCLR(m->br, r);
+	BCLR(m->b, t);
+	BCLR(m->b, r);
 	m->n--;
 	memmove(&m->t[i], &m->t[i+1], (m->n-i) * sizeof m->t[0]);
 	memmove(&m->r[i], &m->r[i+1], (m->n-i) * sizeof m->r[0]);
@@ -224,10 +224,10 @@ dopm(Blk *b, Ins *i, RMap *m)
 		for (;; i--) {
 			r = RBASE(i->to.val);
 			rt = i->arg[0];
-			assert(rtype(rt) == RTmp);
-			assert(BGET(m->br, r));
+			assert(rtype(rt) == RTmp && rt.val >= Tmp0);
+			assert(BGET(m->b, r));
 			/* todo, assert that r is not mapped */
-			BCLR(m->br, r);
+			BCLR(m->b, r);
 			rt = ralloc(m, rt.val);
 			pmadd(rt, i->to);
 			if (i==b->ins
@@ -239,20 +239,20 @@ dopm(Blk *b, Ins *i, RMap *m)
 		for (;; i--) {
 			r = RBASE(i->arg[0].val);
 			if (req(i->to, R)) {
-				if (BGET(m->br, r)) {
+				if (BGET(m->b, r)) {
 					for (n=0; m->r[n] != r; n++)
 						assert(n+1 < m->n);
 					t = m->t[n];
 					rfree(m, t);
-					BSET(m->br, r);
+					BSET(m->b, r);
 					rt = ralloc(m, t);
 					pmadd(rt, i->arg[0]);
 				}
-			} else if (BGET(m->bt, i->to.val)) {
+			} else if (BGET(m->b, i->to.val)) {
 				rt = reg(rfree(m, i->to.val), i->to.val);
 				pmadd(i->arg[0], rt);
 			}
-			BSET(m->br, r);
+			BSET(m->b, r);
 			if (i==b->ins
 			|| (i-1)->op!=OCopy
 			|| isreg((i-1)->arg[0]))
@@ -311,8 +311,7 @@ rega(Fn *fn)
 	for (n=fn->nblk-1; n>=0; n--) {
 		b = fn->rpo[n];
 		cur.n = 0;
-		cur.bt = (Bits){{0}};
-		cur.br = (Bits){{0}};
+		cur.b = (Bits){{0}};
 		b1 = b;
 		if (b->s1 && b1->loop <= b->s1->loop)
 			b1 = b->s1;
@@ -331,7 +330,7 @@ rega(Fn *fn)
 			for (t=Tmp0; t<fn->ntmp; t++)
 				if (x==1 || tmp[t].hint!=-1)
 				if (BGET(b->out, t))
-				if (!BGET(cur.bt, t))
+				if (!BGET(cur.b, t))
 					ralloc(&cur, t);
 		/* process instructions */
 		end[n] = cur;
@@ -371,7 +370,7 @@ rega(Fn *fn)
 				i->arg[1] = ralloc(&cur, t);
 			}
 		}
-		b->in = cur.bt;
+		b->in = cur.b;
 		for (p=b->phi; p; p=p->link)
 			if (rtype(p->to) == RTmp)
 				BCLR(b->in, p->to.val);
