@@ -26,7 +26,6 @@ OpDesc opdesc[NOp] = {
 	[OLoadus] = { "loadus", 1, 0 },
 	[OLoadsb] = { "loadsb", 1, 0 },
 	[OLoadub] = { "loadub", 1, 0 },
-	[OAlloc]  = { "alloc",  1, 1 },
 	[OCopy]   = { "copy",   1, 1 },
 	[ONop]    = { "nop",    0, 0 },
 	[OSwap]   = { "swap",   2, 2 },
@@ -34,6 +33,9 @@ OpDesc opdesc[NOp] = {
 	[OXDiv]   = { "xdiv",   1, 1 },
 	[OXCmpw]  = { "xcmpw",  2, 1 },
 	[OXCmpl]  = { "xcmpl",  2, 1 },
+	[OAlloc]   = { "alloc4",  1, 1 },
+	[OAlloc+1] = { "alloc8",  1, 1 },
+	[OAlloc+2] = { "alloc16", 1, 1 },
 
 	#define X(c)                        \
 	[OCmp+C##c]  = { "c"    #c, 2, 0 }, \
@@ -559,7 +561,10 @@ printref(Ref r, Fn *fn, FILE *f)
 		}
 		break;
 	case RSlot:
-		fprintf(f, "$%d", r.val);
+		fprintf(f, "S%d", r.val);
+		break;
+	case RMem:
+		fprintf(f, "M%d", r.val);
 		break;
 	}
 	return "";

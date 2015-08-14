@@ -1,15 +1,15 @@
 #include "lisc.h"
 #include <limits.h>
 
-/* For x86_64, we have to:
+/* For x86_64, do the following:
  *
  * - check that constants are used only in
  *   places allowed
- *
  * - ensure immediates always fit in 32b
- *
  * - explicit machine register contraints
  *   on instructions like division.
+ * - implement fast locals (the streak of
+ *   constant allocX in the first basic block)
  *
  * - lower calls (future, I have to think
  *   about their representation and the
@@ -111,8 +111,24 @@ static void
 sel(Ins i, Fn *fn)
 {
 	Ref r0, r1, ra, rd;
-	int n, ty, c;
+	int n, ty, c, s;
 	int64_t val;
+	struct {
+		Ref r;
+		int s;
+	} cpy[2];
+
+	for (n=0; n<2; n++) {
+		r0 = i.arg[n];
+		cpy[n].s = 0;
+		if (rtype(r0) == RTmp)
+		if ((s = fn->tmp[r0.val].spill)) {
+			r0 = newtmp(TLong, fn);
+			i.arg[n] = r0;
+			cpy[n].r = r0;
+			cpy[n].s = s;
+		}
+	}
 
 	switch (i.op) {
 	case ODiv:
@@ -158,16 +174,24 @@ sel(Ins i, Fn *fn)
 			n = 0;
 		goto Emit;
 	case OStorel:
-		n = 1;
-		goto Emit;
 	case OStorew:
 	case OStoreb:
 	case OStores:
+		if (cpy[1].s) {
+			i.arg[1] = MEM(cpy[1].s);
+			cpy[1].s = 0;
+		}
+		n = i.op == OStorel;
+		goto Emit;
 	case OLoad:
 	case OLoadss:
 	case OLoadus:
 	case OLoadsb:
 	case OLoadub:
+		if (cpy[0].s) {
+			i.arg[0] = MEM(cpy[0].s);
+			cpy[0].s = 0;
+		}
 		n = 0;
 Emit:
 		emit(i.op, i.to, i.arg[0], i.arg[1]);
@@ -184,27 +208,31 @@ Emit:
 		}
 		break;
 	case OAlloc:
-		/* we need to make sure
+	case OAlloc+1:
+	case OAlloc+2: /* == OAlloc1 */
+		/* if this is not a fast alloc
+		 * we need to make sure
 		 * the stack remains aligned
 		 * (rsp + 8 = 0) mod 16
-		 * as a consequence, the alloc
-		 * alignment is 8, we can change
-		 * that in the future
 		 */
+		if (req(i.to, R))
+			break;
 		if (rtype(i.arg[0]) == RCon) {
 			val = fn->con[i.arg[0].val].val;
 			val = (val + 15)  & ~INT64_C(15);
 			if (val < 0 || val > INT32_MAX)
 				diag("isel: alloc too large");
 			emit(OAlloc, i.to, newcon(val, fn), R);
-		} else {
+		} else if (i.op < OAlloc1) {
 			/* r0 = (i.arg[0] + 15) & -16 */
 			r0 = newtmp(TLong, fn);
 			r1 = newtmp(TLong, fn);
 			emit(OAlloc, i.to, r0, R);
 			emit(OAnd, r0, r1, newcon(-16, fn));
 			emit(OAdd, r1, i.arg[0], newcon(15, fn));
-		}
+		} else
+			/* todo, support it! */
+			diag("isel: unsupported alloc alignment");
 		break;
 	default:
 		if (OCmp <= i.op && i.op <= OCmp1) {
@@ -217,6 +245,10 @@ Emit:
 		}
 		diag("isel: non-exhaustive implementation");
 	}
+
+	for (n=0; n<2; n++)
+		if (cpy[n].s)
+			emit(OCopy, cpy[n].r, MEM(cpy[n].s), R);
 }
 
 static Ins *
@@ -285,6 +317,63 @@ seljmp(Blk *b, Fn *fn)
 	}
 }
 
+int
+slot_(int sz, int al /* log2 */, Fn *fn)
+{
+	enum { N = sizeof fn->slot / sizeof fn->slot[0] };
+	int j, k, s, l, a, ret;
+	int *sa;
+
+	sa = fn->slot;
+	a = 1 << al;
+	l = sz;
+
+	if (l > a) {
+		/* for large slots, we just
+		 * tack them on the next max
+		 * alignment slot available
+		 * todo, could sophisticate
+		 */
+		l = (l + a-1) & ~(a-1);
+		s = sa[N-1] + l;
+		ret = s;
+		for (j=0, k=1; j<N; j++, k*=2) {
+			l = (l + k-1) & ~(k-1);
+			sa[j] = sa[N-1] + l;
+		}
+	} else {
+		j = al;
+		s = sa[j] + a;
+		ret = s;
+	Shift:
+		if (j < N-1 && s < sa[j+1])
+			/* ........-----------...
+			 * ^       ^          ^
+			 * sa[j]  sa[j]+a    sa[j+1]
+			 *
+			 * we have to skip to the
+			 * next large whole
+			 */
+			s = sa[j+1];
+
+		for (k=0; k<=j; k++)
+			/* move all smaller holes
+			 * that we contain with us
+			 */
+			if (sa[k] == sa[j])
+				sa[k] = s;
+
+		if (j < N-1 && s > sa[j+1]) {
+			/* we were in a bigger hole,
+			 * it needs to shift further
+			 */
+			s = sa[++j] + (a *= 2);
+			goto Shift;
+		}
+	}
+	return ret;
+}
+
 /* instruction selection
  * requires use counts (as given by parsing)
  */
@@ -293,18 +382,53 @@ isel(Fn *fn)
 {
 	Blk *b;
 	Ins *i;
-	uint nins;
+	Phi *p;
+	Ref *a;
+	int n, al, s;
+	int64_t sz;
 
+	/* 1. assign slots to fast allocs */
+	for (n=Tmp0; n<fn->ntmp; n++)
+		fn->tmp[n].spill = 0;
+	fn->slot[0] = 0;
+	fn->slot[1] = 0;
+	fn->slot[2] = 2;
+	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
+		if (OAlloc <= i->op && i->op <= OAlloc1) {
+			if (rtype(i->arg[0]) != RCon)
+				break;
+			sz = fn->con[i->arg[0].val].val;
+			if (sz < 0 || sz >= INT_MAX-3)
+				diag("isel: invalid alloc size");
+			sz = (sz + 3) / 4;
+			al = i->op - OAlloc;
+			s = slot_(sz, al, fn);
+			assert(s > 0);
+			fn->tmp[i->to.val].spill = s;
+			i->to = R;
+		}
+
+
+	/* 2. select machine instructions */
 	for (b=fn->start; b; b=b->link) {
+
+		/* 2.1. process block instructions */
 		curi = &insb[NIns];
 		seljmp(b, fn);
 		for (i=&b->ins[b->nins]; i>b->ins;) {
 			sel(*--i, fn);
 		}
-		nins = &insb[NIns] - curi;
+		n = &insb[NIns] - curi;
 		free(b->ins);
-		b->ins = alloc(nins * sizeof b->ins[0]);
-		memcpy(b->ins, curi, nins * sizeof b->ins[0]);
-		b->nins = nins;
+		b->ins = alloc(n * sizeof b->ins[0]);
+		memcpy(b->ins, curi, n * sizeof b->ins[0]);
+		b->nins = n;
+
+		/* 2.2. fix fast local references in phis */
+		for (p=b->phi; p; p=p->link)
+			for (a=p->arg; a-p->arg < p->narg; a++)
+				if (rtype(*a) == RTmp)
+				if ((s = fn->tmp[a->val].spill))
+					*a = MEM(s);
 	}
 }

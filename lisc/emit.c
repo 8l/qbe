@@ -76,13 +76,14 @@ eref(Ref r, Fn *fn, FILE *f)
 {
 	switch (rtype(r)) {
 	default:
-		diag("emitref: invalid reference");
+		diag("emit: invalid reference");
 	case RTmp:
 		assert(r.val < Tmp0);
 		fprintf(f, "%%%s", rtoa(r.val));
 		break;
+	case RMem:
 	case RSlot:
-		fprintf(f, "-%d(%%rbp)", 8 * r.val);
+		fprintf(f, "-%d(%%rbp)", 4 * r.val);
 		break;
 	case RCon:
 		fprintf(f, "$");
@@ -94,9 +95,18 @@ eref(Ref r, Fn *fn, FILE *f)
 static void
 emem(Ref r, Fn *fn, FILE *f)
 {
+	/* this function is now a hack
+	 * when full memory references
+	 * are supported, constants and
+	 * temporaries will not have
+	 * multiple meanings as they do
+	 * now
+	 */
+
 	switch (rtype(r)) {
 	default:
-		diag("emem: invalid memory reference");
+		diag("emit: invalid memory reference");
+	case RMem:
 	case RSlot:
 		eref(r, fn, f);
 		break;
@@ -171,7 +181,10 @@ eins(Ins i, Fn *fn, FILE *f)
 				break;
 			}
 		}
-		if (!req(i.arg[0], i.to))
+		if (rtype(i.arg[0]) == RMem) {
+			assert(rtype(i.to)==RTmp && i.to.val<EAX);
+			eop("lea", i.arg[0], i.to, fn, f);
+		} else if (!req(i.arg[0], i.to))
 			eop("mov", i.arg[0], i.to, fn, f);
 		break;
 	case OStorel:
@@ -258,8 +271,6 @@ emitfn(Fn *fn, FILE *f)
 		"liscf:\n"
 		"\tpush %%rbp\n"
 		"\tmov %%rsp, %%rbp\n"
-		"\tsub $%u, %%rsp\n",
-		fn->nspill * 8
 	);
 	for (b=fn->start; b; b=b->link) {
 		fprintf(f, ".L%s:\n", b->name);

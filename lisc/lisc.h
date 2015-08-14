@@ -90,6 +90,7 @@ struct Ref {
 enum {
 	RTmp,
 	RCon,
+	RMem,
 	RSlot,
 	NRef = (1<<14) - 1
 };
@@ -98,6 +99,7 @@ enum {
 #define TMP(x)   (Ref){RTmp, x}
 #define CON(x)   (Ref){RCon, x}
 #define CON_Z    CON(0)          /* reserved zero constant */
+#define MEM(x)   (Ref){RMem, x}
 #define SLOT(x)  (Ref){RSlot, x}
 
 static inline int req(Ref a, Ref b)
@@ -139,6 +141,7 @@ enum Op {
 	OLoadub,
 	OCopy,
 	OAlloc,
+	OAlloc1 = OAlloc + 2,
 	NPubOp,
 
 	/* reserved instructions */
@@ -237,7 +240,7 @@ struct Fn {
 	int ncon;
 	int nblk;
 	Blk **rpo;
-	uint nspill;
+	int slot[3];
 };
 
 
@@ -262,6 +265,7 @@ void ssafix(Fn *, int);
 void filllive(Fn *);
 
 /* isel.c */
+int slot_(int, int, Fn *);
 void isel(Fn *);
 
 /* spill.c */
