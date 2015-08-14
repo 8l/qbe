@@ -352,7 +352,8 @@ rega(Fn *fn)
 				}
 				if (i->to.val >= Tmp0)
 					i->to = reg(r, i->to.val);
-			}
+			} else
+				r = 0;
 			if (rtype(i->arg[0]) == RTmp) {
 				/* <arch>
 				 *   on Intel, we attempt to
