@@ -107,6 +107,14 @@ selcmp(Ref arg[2], Fn *fn)
 	}
 }
 
+static int
+rslot(Ref r, Fn *fn)
+{
+	if (rtype(r) != RTmp)
+		return 0;
+	return fn->tmp[r.val].spill;
+}
+
 static void
 sel(Ins i, Fn *fn)
 {
@@ -121,8 +129,8 @@ sel(Ins i, Fn *fn)
 	for (n=0; n<2; n++) {
 		r0 = i.arg[n];
 		cpy[n].s = 0;
-		if (rtype(r0) == RTmp)
-		if ((s = fn->tmp[r0.val].spill)) {
+		s = rslot(r0, fn);
+		if (s) {
 			r0 = newtmp(TLong, fn);
 			i.arg[n] = r0;
 			cpy[n].r = r0;
@@ -380,19 +388,18 @@ slot_(int sz, int al /* log2 */, Fn *fn)
 void
 isel(Fn *fn)
 {
-	Blk *b;
+	Blk *b, **sb;
 	Ins *i;
 	Phi *p;
-	Ref *a;
+	uint a;
 	int n, al, s;
 	int64_t sz;
 
-	/* 1. assign slots to fast allocs */
+	/* assign slots to fast allocs */
 	for (n=Tmp0; n<fn->ntmp; n++)
 		fn->tmp[n].spill = 0;
-	fn->slot[0] = 0;
-	fn->slot[1] = 0;
-	fn->slot[2] = 2;
+	memcpy(fn->slot, (int[3]){0, 0, 2}, 3 * sizeof(int));
+
 	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
 		if (OAlloc <= i->op && i->op <= OAlloc1) {
 			if (rtype(i->arg[0]) != RCon)
@@ -403,16 +410,21 @@ isel(Fn *fn)
 			sz = (sz + 3) / 4;
 			al = i->op - OAlloc;
 			s = slot_(sz, al, fn);
-			assert(s > 0);
 			fn->tmp[i->to.val].spill = s;
 			i->to = R;
 		}
 
-
-	/* 2. select machine instructions */
 	for (b=fn->start; b; b=b->link) {
-
-		/* 2.1. process block instructions */
+		for (sb=(Blk*[3]){b->s1, b->s2, 0}; *sb; sb++)
+			for (p=(*sb)->phi; p; p=p->link) {
+				for (a=0; p->blk[a] != b; a++)
+					assert(a+1 < p->narg);
+				s = rslot(p->arg[a], fn);
+				if (s) {
+					p->arg[a] = newtmp(TLong, fn);
+					emit(OCopy, p->arg[a], MEM(s), R);
+				}
+			}
 		curi = &insb[NIns];
 		seljmp(b, fn);
 		for (i=&b->ins[b->nins]; i>b->ins;) {
@@ -423,12 +435,5 @@ isel(Fn *fn)
 		b->ins = alloc(n * sizeof b->ins[0]);
 		memcpy(b->ins, curi, n * sizeof b->ins[0]);
 		b->nins = n;
-
-		/* 2.2. fix fast local references in phis */
-		for (p=b->phi; p; p=p->link)
-			for (a=p->arg; a-p->arg < p->narg; a++)
-				if (rtype(*a) == RTmp)
-				if ((s = fn->tmp[a->val].spill))
-					*a = MEM(s);
 	}
 }
