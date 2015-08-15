@@ -232,7 +232,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 			pmadd(rt, i->to);
 			if (i==b->ins
 			|| (i-1)->op!=OCopy
-			|| isreg((i-1)->to))
+			|| !isreg((i-1)->to))
 				break;
 		}
 	else if (isreg(i->arg[0]))
@@ -255,7 +255,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 			BSET(m->b, r);
 			if (i==b->ins
 			|| (i-1)->op!=OCopy
-			|| isreg((i-1)->arg[0]))
+			|| !isreg((i-1)->arg[0]))
 				break;
 		}
 	else
