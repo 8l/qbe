@@ -175,6 +175,7 @@ sel(Ins i, Fn *fn)
 		break;
 	case OAdd:
 	case OSub:
+	case OAnd:
 	case OCopy:
 		if (fn->tmp[i.to.val].type == TLong)
 			n = 2;
