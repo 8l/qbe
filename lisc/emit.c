@@ -94,14 +94,6 @@ eref(Ref r, Fn *fn, FILE *f)
 static void
 emem(Ref r, Fn *fn, FILE *f)
 {
-	/* this function is now a hack
-	 * when full memory references
-	 * are supported, constants and
-	 * temporaries will not have
-	 * multiple meanings as they do
-	 * now
-	 */
-
 	switch (rtype(r)) {
 	default:
 		diag("emit: invalid memory reference");
@@ -113,9 +105,8 @@ emem(Ref r, Fn *fn, FILE *f)
 		break;
 	case RTmp:
 		assert(r.val < EAX);
-		fprintf(f, "(");
-		eref(r, fn, f);
-		fprintf(f, ")");
+		fprintf(f, "(%%%s)", rtoa(r.val));
+		break;
 	}
 }
 
