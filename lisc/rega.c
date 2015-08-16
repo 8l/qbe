@@ -73,8 +73,7 @@ radd(RMap *m, int t, int r)
 static Ref
 ralloc(RMap *m, int t)
 {
-	static int x;
-	int n, r;
+	int r;
 
 	if (t < Tmp0) {
 		assert(BGET(m->b, RBASE(t)));
@@ -86,13 +85,9 @@ ralloc(RMap *m, int t)
 	} else {
 		r = tmp[t].hint;
 		if (r == -1 || BGET(m->b, r))
-			for (n=0;; x=(x+1)%NReg, n++) {
-				if (n > NReg)
+			for (r=RAX; BGET(m->b, r); r++)
+				if (r+1 == RAX+NReg)
 					diag("rega: no more regs");
-				r = RAX + x;
-				if (!BGET(m->b, r))
-					break;
-			}
 		radd(m, t, r);
 		if (tmp[t].hint == -1)
 			tmp[t].hint = r;
