@@ -238,17 +238,17 @@ dopm(Blk *b, Ins *i, RMap *m)
 	else if (isreg(i->arg[0]))
 		for (;; i--) {
 			r = RBASE(i->arg[0].val);
-			if (req(i->to, R)) {
-				if (BGET(m->b, r)) {
-					for (n=0; m->r[n] != r; n++)
-						assert(n+1 < m->n);
-					t = m->t[n];
-					rfree(m, t);
-					BSET(m->b, r);
-					rt = ralloc(m, t);
-					pmadd(rt, i->arg[0]);
-				}
-			} else if (BGET(m->b, i->to.val)) {
+			if (BGET(m->b, r)) {
+				for (n=0; m->r[n] != r; n++)
+					assert(n+1 < m->n);
+				t = m->t[n];
+				rfree(m, t);
+				BSET(m->b, r);
+				rt = ralloc(m, t);
+				BCLR(m->b, r);
+				pmadd(rt, i->arg[0]);
+			}
+			if (!req(i->to, R) && BGET(m->b, i->to.val)) {
 				rt = reg(rfree(m, i->to.val), i->to.val);
 				pmadd(i->arg[0], rt);
 			}
