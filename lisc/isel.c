@@ -173,6 +173,10 @@ sel(Ins i, Fn *fn)
 		break;
 	case ONop:
 		break;
+	case OXTestw:
+	case OXTestl:
+		n = 2;
+		goto Emit;
 	case OAdd:
 	case OSub:
 	case OAnd:
@@ -318,15 +322,26 @@ seljmp(Blk *b, Fn *fn)
 				selcmp(fi->arg, fn);
 				*fi = (Ins){ONop, R, {R, R}};
 			}
-		} else {
-			if (fn->tmp[r.val].nuse == 1)
-				emit(OCopy, R, r, R);
-			b->jmp.type = JXJc + Cne;
+			return;
 		}
-	} else {
-		selcmp((Ref[2]){r, CON_Z}, fn);
-		b->jmp.type = JXJc + Cne;
+		if (fi->op == OAnd && fn->tmp[r.val].nuse == 1
+		&& (rtype(fi->arg[0]) == RTmp ||
+		    rtype(fi->arg[1]) == RTmp)) {
+			if (fn->tmp[r.val].type == TLong)
+				fi->op = OXTestl;
+			else
+				fi->op = OXTestw;
+			fi->to = R;
+			b->jmp.type = JXJc + Cne;
+			return;
+		}
+		if (fn->tmp[r.val].nuse > 1) {
+			b->jmp.type = JXJc + Cne;
+			return;
+		}
 	}
+	selcmp((Ref[2]){r, CON_Z}, fn);
+	b->jmp.type = JXJc + Cne;
 }
 
 int

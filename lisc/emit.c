@@ -145,6 +145,10 @@ eins(Ins i, Fn *fn, FILE *f)
 		[OLoadus] = "movzw",
 		[OLoadsb] = "movsb",
 		[OLoadub] = "movzb",
+		[OXCmpw]  = "cmpl",
+		[OXCmpl]  = "cmpq",
+		[OXTestw] = "testl",
+		[OXTestl] = "testq",
 	};
 	static char *stoa[] = {
 		[OStorel - OStorel] = "q",
@@ -240,8 +244,9 @@ eins(Ins i, Fn *fn, FILE *f)
 		break;
 	case OXCmpw:
 	case OXCmpl:
-		eop(i.op == OXCmpw ? "cmpl" : "cmpq",
-			i.arg[0], i.arg[1], fn, f);
+	case OXTestw:
+	case OXTestl:
+		eop(otoa[i.op], i.arg[0], i.arg[1], fn, f);
 		break;
 	case ONop:
 		break;

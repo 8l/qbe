@@ -58,7 +58,7 @@ enum Reg {
 
 	Tmp0, /* first non-reg temporary */
 
-	NReg = RDX - RAX + 1
+	NReg = R11 - RAX + 1
 };
 
 #define RWORD(r) (r + (EAX-RAX))
@@ -139,13 +139,14 @@ enum Op {
 	OLoadus,
 	OLoadsb,
 	OLoadub,
-	OCopy,
 	OAlloc,
 	OAlloc1 = OAlloc + 2,
+	OCopy,
 	NPubOp,
 
 	/* reserved instructions */
 	ONop = NPubOp,
+	OAddr,
 	OSwap,
 	OSign,
 	OXDiv,
@@ -153,6 +154,8 @@ enum Op {
 	OXCmpl,
 	OXSet,
 	OXSet1 = OXSet + NCmp-1,
+	OXTestw,
+	OXTestl,
 	NOp
 };
 
