@@ -191,7 +191,7 @@ sel(Ins i, Fn *fn)
 	case OStoreb:
 	case OStores:
 		if (cpy[1].s) {
-			i.arg[1] = MEM(cpy[1].s);
+			i.arg[1] = SLOT(cpy[1].s);
 			cpy[1].s = 0;
 		}
 		n = i.op == OStorel;
@@ -202,7 +202,7 @@ sel(Ins i, Fn *fn)
 	case OLoadsb:
 	case OLoadub:
 		if (cpy[0].s) {
-			i.arg[0] = MEM(cpy[0].s);
+			i.arg[0] = SLOT(cpy[0].s);
 			cpy[0].s = 0;
 		}
 		n = 0;
@@ -261,7 +261,7 @@ Emit:
 
 	for (n=0; n<2; n++)
 		if (cpy[n].s)
-			emit(OCopy, cpy[n].r, MEM(cpy[n].s), R);
+			emit(OAddr, cpy[n].r, SLOT(cpy[n].s), R);
 }
 
 static Ins *
@@ -441,7 +441,7 @@ isel(Fn *fn)
 				s = rslot(p->arg[a], fn);
 				if (s) {
 					p->arg[a] = newtmp(TLong, fn);
-					emit(OCopy, p->arg[a], MEM(s), R);
+					emit(OAddr, p->arg[a], SLOT(s), R);
 				}
 			}
 		curi = &insb[NIns];

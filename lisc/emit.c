@@ -81,7 +81,6 @@ eref(Ref r, Fn *fn, FILE *f)
 		assert(r.val < Tmp0);
 		fprintf(f, "%%%s", rtoa(r.val));
 		break;
-	case RMem:
 	case RSlot:
 		fprintf(f, "-%d(%%rbp)", 4 * r.val);
 		break;
@@ -106,7 +105,6 @@ emem(Ref r, Fn *fn, FILE *f)
 	switch (rtype(r)) {
 	default:
 		diag("emit: invalid memory reference");
-	case RMem:
 	case RSlot:
 		eref(r, fn, f);
 		break;
@@ -186,10 +184,6 @@ eins(Ins i, Fn *fn, FILE *f)
 					val, rsub[i.to.val][SWord]);
 				break;
 			}
-		}
-		if (rtype(i.arg[0]) == RMem) {
-			assert(rtype(i.to)==RTmp && i.to.val<EAX);
-			eop("lea", i.arg[0], i.to, fn, f);
 		} else if (!req(i.arg[0], i.to))
 			eop("mov", i.arg[0], i.to, fn, f);
 		break;
@@ -227,6 +221,11 @@ eins(Ins i, Fn *fn, FILE *f)
 		eop("sub", i.arg[0], TMP(RSP), fn, f);
 		if (!req(i.to, R))
 			eop("mov", TMP(RSP), i.to, fn ,f);
+		break;
+	case OAddr:
+		if (rtype(i.arg[0]) != RSlot)
+			diag("emit: invalid addr instruction");
+		eop("lea", i.arg[0], i.to, fn, f);
 		break;
 	case OSwap:
 		eop("xchg", i.arg[0], i.arg[1], fn, f);

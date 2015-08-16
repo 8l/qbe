@@ -35,6 +35,7 @@ OpDesc opdesc[NOp] = {
 	[OXCmpl]  = { "xcmpl",  2, 1 },
 	[OXTestw] = { "xtestw", 2, 1 },
 	[OXTestl] = { "xtestl", 2, 1 },
+	[OAddr]   = { "addr",   1, 0 },
 	[OAlloc]   = { "alloc4",  1, 1 },
 	[OAlloc+1] = { "alloc8",  1, 1 },
 	[OAlloc+2] = { "alloc16", 1, 1 },
@@ -564,9 +565,6 @@ printref(Ref r, Fn *fn, FILE *f)
 		break;
 	case RSlot:
 		fprintf(f, "S%d", r.val);
-		break;
-	case RMem:
-		fprintf(f, "M%d", r.val);
 		break;
 	}
 	return "";

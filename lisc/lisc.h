@@ -90,7 +90,6 @@ struct Ref {
 enum {
 	RTmp,
 	RCon,
-	RMem,
 	RSlot,
 	NRef = (1<<14) - 1
 };
@@ -99,7 +98,6 @@ enum {
 #define TMP(x)   (Ref){RTmp, x}
 #define CON(x)   (Ref){RCon, x}
 #define CON_Z    CON(0)          /* reserved zero constant */
-#define MEM(x)   (Ref){RMem, x}
 #define SLOT(x)  (Ref){RSlot, x}
 
 static inline int req(Ref a, Ref b)
