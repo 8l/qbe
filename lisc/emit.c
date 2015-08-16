@@ -173,6 +173,8 @@ eins(Ins i, Fn *fn, FILE *f)
 		eop(otoa[i.op], i.arg[1], i.to, fn, f);
 		break;
 	case OCopy:
+		if (req(i.to, R))
+			break;
 		if (i.to.val < EAX && rtype(i.arg[0]) == RCon) {
 			val = fn->con[i.arg[0].val].val;
 			if (0 <= val && val <= UINT32_MAX) {

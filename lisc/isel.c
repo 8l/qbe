@@ -318,8 +318,11 @@ seljmp(Blk *b, Fn *fn)
 				selcmp(fi->arg, fn);
 				*fi = (Ins){ONop, R, {R, R}};
 			}
-		} else
+		} else {
+			if (fn->tmp[r.val].nuse == 1)
+				emit(OCopy, R, r, R);
 			b->jmp.type = JXJc + Cne;
+		}
 	} else {
 		selcmp((Ref[2]){r, CON_Z}, fn);
 		b->jmp.type = JXJc + Cne;
