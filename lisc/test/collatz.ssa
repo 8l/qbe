@@ -15,8 +15,8 @@
 @cloop
 	%n0 =w phi @loop %n, @odd %n2, @even %n3
 	%c0 =w phi @loop 0, @odd %c1, @even %c1
-	%is1 =w ceq %n0, 1
-	jnz %is1, @endcl, @iter0
+	%no1 =w cne %n0, 1
+	jnz %no1, @iter0, @endcl
 @iter0
 	%ism =w cslt %n0, %n
 	jnz %ism, @getmemo, @iter1
