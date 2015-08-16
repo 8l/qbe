@@ -311,13 +311,14 @@ rega(Fn *fn)
 		if (b->s1 && b1->loop <= b->s1->loop)
 			b1 = b->s1;
 		if (b->s2 && b1->loop <= b->s2->loop)
-			b1 = b->s1;
+			b1 = b->s2;
 		/* try to reuse the register
 		 * assignment of the most frequent
 		 * successor
 		 */
 		if (b1 != b)
 			for (t=Tmp0; t<fn->ntmp; t++)
+				if (tmp[t].hint == -1)
 				if (BGET(b->out, t))
 				if ((r = rfind(&beg[b1->id], t)) != -1)
 					radd(&cur, t, r);
