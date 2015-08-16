@@ -233,7 +233,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 	else if (isreg(i->arg[0]))
 		for (;; i--) {
 			r = RBASE(i->arg[0].val);
-			if (BGET(m->b, r)) {
+			if (BGET(m->b, r) && rfind(m, i->to.val) != r) {
 				for (n=0; m->r[n] != r; n++)
 					assert(n+1 < m->n);
 				t = m->t[n];
