@@ -137,6 +137,7 @@ eins(Ins i, Fn *fn, FILE *f)
 	static char *otoa[NOp] = {
 		[OAdd]    = "add",
 		[OSub]    = "sub",
+		[OMul]    = "imul",
 		[OAnd]    = "and",
 		[OLoad]   = "mov",
 		[OLoadss] = "movsw",
@@ -154,10 +155,26 @@ eins(Ins i, Fn *fn, FILE *f)
 		[OStores - OStorel] = "w",
 		[OStoreb - OStorel] = "b",
 	};
+	Ref r0, r1;
 	int reg;
 	int64_t val;
 
 	switch (i.op) {
+	case OMul:
+		if (rtype(i.arg[1]) == RCon) {
+			r0 = i.arg[1];
+			r1 = i.arg[0];
+		} else {
+			r0 = i.arg[0];
+			r1 = i.arg[1];
+		}
+		if (rtype(r0) == RCon && rtype(r1) == RTmp) {
+			val = fn->con[r0.val].val;
+			fprintf(f, "\timul $%"PRId64", %%%s, %%%s\n",
+				val, rtoa(r1.val), rtoa(i.to.val));
+			break;
+		}
+		/* fall through */
 	case OAdd:
 	case OSub:
 	case OAnd:

@@ -179,6 +179,7 @@ sel(Ins i, Fn *fn)
 		goto Emit;
 	case OAdd:
 	case OSub:
+	case OMul:
 	case OAnd:
 	case OCopy:
 		if (fn->tmp[i.to.val].type == TLong)

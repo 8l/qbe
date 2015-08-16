@@ -16,6 +16,7 @@ OpDesc opdesc[NOp] = {
 	[OSub]    = { "sub",    2, 2 },
 	[ODiv]    = { "div",    2, 2 },
 	[ORem]    = { "rem",    2, 2 },
+	[OMul]    = { "mul",    2, 2 },
 	[OAnd]    = { "and",    2, 2 },
 	[OStorel] = { "storel", 2, 0 },
 	[OStorew] = { "storew", 2, 0 },

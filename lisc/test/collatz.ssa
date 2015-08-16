@@ -32,8 +32,7 @@
 	jnz %p, @odd, @even
 
 @odd
-	%nn   =w add %n0, %n0        # compute %n2 = 3 * %n0 + 1
-	%n1   =w add %n0, %nn
+	%n1   =w mul 3, %n0          # compute %n2 = 3 * %n0 + 1
 	%n2   =w add %n1, 1
 	jmp @cloop
 
@@ -42,17 +41,15 @@
 	jmp @cloop
 
 @getmemo
-	%idx00 =l add %n0, %n0
-	%idx0  =l add %idx00, %idx00
-	%loc0  =l add %idx0, %mem
-	%cn0   =w load %loc0
-	%c2  =w add %c0, %cn0
+	%idx0 =l mul %n0, 4
+	%loc0 =l add %idx0, %mem
+	%cn0  =w load %loc0
+	%c2   =w add %c0, %cn0
 
 @endcl
 	%c     =w phi @getmemo %c2, @cloop %c0
 
-	%idx10 =l add %n, %n
-	%idx1  =l add %idx10, %idx10
+	%idx1  =l mul %n, 4
 	%loc1  =l add %idx1, %mem
 	storew %c, %loc1             # memorize the result
 	%n9    =w add 1, %n

@@ -125,6 +125,7 @@ enum Op {
 	OSub,
 	ODiv,
 	ORem,
+	OMul,
 	OAnd,
 	OCmp,
 	OCmp1 = OCmp + NCmp-1,
