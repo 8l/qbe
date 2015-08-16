@@ -255,6 +255,22 @@ setloc(Ref *pr, Bits *v, Bits *w)
 	}
 }
 
+static Bits
+inregs(Blk *b, Blk *s) /* todo, move to live.c */
+{
+	Bits v;
+	Phi *p;
+	uint a;
+
+	v = s->in;
+	for (p=s->phi; p; p=p->link)
+		for (a=0; a<p->narg; a++)
+			if (p->blk[a] == b)
+			if (rtype(p->arg[a]) == RTmp)
+				BSET(v, p->arg[a].val);
+	return v;
+}
+
 /* spill code insertion
  * requires spill costs, rpo, liveness
  *
@@ -274,7 +290,7 @@ spill(Fn *fn)
 {
 	Blk *b, *s1, *s2, *hd;
 	int n, z, l, t;
-	Bits v, w;
+	Bits u, v, w;
 	Ins *i;
 	int j, s;
 	Phi *p;
@@ -317,13 +333,15 @@ spill(Fn *fn)
 			} else if (j > NReg)
 				limit(&v, NReg, 0);
 		} else if (s1) {
-			v = s1->in;
-			w = s1->in;
-			if (s2)
+			v = inregs(b, s1);
+			w = v;
+			if (s2) {
+				u = inregs(b, s2);
 				for (z=0; z<BITS; z++) {
-					v.t[z] |= s2->in.t[z];
-					w.t[z] &= s2->in.t[z];
+					v.t[z] |= u.t[z];
+					w.t[z] &= u.t[z];
 				}
+			}
 			assert(bcnt(&w) <= NReg);
 			limit(&v, NReg, &w);
 		}
