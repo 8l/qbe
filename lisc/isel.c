@@ -333,6 +333,11 @@ seljmp(Blk *b, Fn *fn)
 				fi->op = OXTestw;
 			fi->to = R;
 			b->jmp.type = JXJc + Cne;
+			if (rtype(fi->arg[1]) == RCon) {
+				r = fi->arg[1];
+				fi->arg[1] = fi->arg[0];
+				fi->arg[0] = r;
+			}
 			return;
 		}
 		if (fn->tmp[r.val].nuse > 1) {
