@@ -127,6 +127,8 @@ enum Op {
 	ORem,
 	OMul,
 	OAnd,
+	OSext,
+	OZext,
 	OCmp,
 	OCmp1 = OCmp + NCmp-1,
 	OStorel,

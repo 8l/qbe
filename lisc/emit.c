@@ -130,6 +130,8 @@ eins(Ins i, Fn *fn, FILE *f)
 		[OSub]    = "sub",
 		[OMul]    = "imul",
 		[OAnd]    = "and",
+		[OSext]   = "movslq",
+		[OZext]   = "movzlq",
 		[OLoad]   = "mov",
 		[OLoadss] = "movsw",
 		[OLoadus] = "movzw",
@@ -181,6 +183,13 @@ eins(Ins i, Fn *fn, FILE *f)
 		if (!req(i.to, i.arg[0]))
 			eop("mov", i.arg[0], i.to, fn, f);
 		eop(otoa[i.op], i.arg[1], i.to, fn, f);
+		break;
+	case OSext:
+	case OZext:
+		if (rtype(i.to) != RTmp || i.to.val >= EAX
+		|| (rtype(i.arg[0]) == RTmp && i.arg[0].val < EAX))
+			diag("emit: invalid extension");
+		eop(otoa[i.op], i.arg[0], i.to, fn, f);
 		break;
 	case OCopy:
 		if (req(i.to, R))
