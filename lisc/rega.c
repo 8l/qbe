@@ -324,9 +324,10 @@ rega(Fn *fn)
 					radd(&cur, t, r);
 		for (x=0; x<2; x++)
 			for (t=Tmp0; t<fn->ntmp; t++)
-				if (x==1 || tmp[t].hint!=-1)
 				if (BGET(b->out, t))
 				if (!BGET(cur.b, t))
+				if (x == 1
+				|| ((r=tmp[t].hint) != -1 && !BGET(cur.b, r)))
 					ralloc(&cur, t);
 		/* process instructions */
 		end[n] = cur;
