@@ -36,6 +36,9 @@ Passing:
    on the stack.
  - When all registers are taken, write arguments on the
    stack from right to left.
+ - When calling a variadic function, %al stores the number
+   of vector registers used to pass arguments (it must be
+   an upper bound and does not have to be exact).
  - Registers %rbx, %r12 - %r15 are callee-save.
 
 Returning.
