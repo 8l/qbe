@@ -14,31 +14,34 @@ Classification:
 1. The size of each argument gets rounded up to eightbytes.
    (It keeps the stack always 8 bytes aligned.)
 2. _Bool, char, short, int, long, long long and pointers
-   are in the INTEGER class
-3. float and double are in the SSE class
+   are in the INTEGER class.
+3. float and double are in the SSE class.
 4. If the size of an object is larger than two eightbytes
    or if contains unaligned fields, it has class MEMORY.
-5. Otherwise, pack all fields into two eighbytes and
-   recursively classify them.  If any of them is MEMORY
-   the result is MEMORY, if any is INTEGER the result
-   is INTEGER, otherwise the result is SSE.
+5. Otherwise, recursively classify fields and determine
+   the class of the two eightbytes using the classes of
+   their components.  If any of them is MEMORY the result
+   is MEMORY (but I don't think it can happen), if any is
+   INTEGER the result is INTEGER, otherwise the result
+   is SSE.
 
 Passing:
  - Classify arguments in order.
  - INTEGER arguments use in order %rdi %rsi %rdx %rcx
-   %r8 %r9
- - SSE arguments use in order %xmm0 - %xmm7
- - MEMORY gets passed on the stack
+   %r8 %r9.
+ - SSE arguments use in order %xmm0 - %xmm7.
+ - MEMORY gets passed on the stack.
  - When we run out of registers for an aggregate, revert
    the assignment for the first eightbytes and pass it
    on the stack.
  - When all registers are taken, write arguments on the
    stack from right to left.
+ - Registers %rbx, %r12 - %r15 are callee-save.
 
 Returning.
  - Classify the return type.
- - Use %rax and %rdx in order for INTEGER return values
- - Use %xmm0 and %xmm1 in order for SSE return values
+ - Use %rax and %rdx in order for INTEGER return values.
+ - Use %xmm0 and %xmm1 in order for SSE return values.
  - I the return value's class is MEMORY, the first
    argument of the function %rdi was a pointer to an
    area big enough to fit the return value.  The function
