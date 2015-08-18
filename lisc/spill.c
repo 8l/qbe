@@ -282,8 +282,6 @@ inregs(Blk *b, Blk *s) /* todo, move to live.c */
  * Be careful with:
  * - OCopy instructions to ensure register
  *   constraints
- * - Branching variables *must* be in
- *   register
  */
 void
 spill(Fn *fn)
