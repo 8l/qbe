@@ -357,13 +357,11 @@ seljmp(Blk *b, Fn *fn)
 }
 
 int
-slot_(int sz, int al /* log2 */, Fn *fn)
+slota(int sz, int al /* log2 */, int *sa)
 {
-	enum { N = sizeof fn->slot / sizeof fn->slot[0] };
+	enum { N = sizeof (Fn){0}.svec / sizeof (Fn){0}.svec[0] };
 	int j, k, s, l, a, ret;
-	int *sa;
 
-	sa = fn->slot;
 	a = 1 << al;
 	l = sz;
 
@@ -429,7 +427,7 @@ isel(Fn *fn)
 	/* assign slots to fast allocs */
 	for (n=Tmp0; n<fn->ntmp; n++)
 		fn->tmp[n].spill = 0;
-	memcpy(fn->slot, (int[3]){0, 0, 2}, 3 * sizeof(int));
+	memcpy(fn->svec, (int[3]){0, 0, 2}, 3 * sizeof(int));
 
 	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
 		if (OAlloc <= i->op && i->op <= OAlloc1) {
@@ -440,7 +438,7 @@ isel(Fn *fn)
 				diag("isel: invalid alloc size");
 			sz = (sz + 3) / 4;
 			al = i->op - OAlloc;
-			s = slot_(sz, al, fn);
+			s = slota(sz, al, fn->svec);
 			fn->tmp[i->to.val].spill = s;
 			i->to = R;
 		}

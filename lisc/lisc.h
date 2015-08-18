@@ -58,7 +58,7 @@ enum Reg {
 
 	Tmp0, /* first non-reg temporary */
 
-	NReg = R11 - RAX + 1
+	NReg = RDX - RAX + 1
 };
 
 #define RWORD(r) (r + (EAX-RAX))
@@ -244,7 +244,7 @@ struct Fn {
 	int ncon;
 	int nblk;
 	Blk **rpo;
-	int slot[3];
+	int svec[3];
 };
 
 
@@ -269,7 +269,7 @@ void ssafix(Fn *, int);
 void filllive(Fn *);
 
 /* isel.c */
-int slot_(int, int, Fn *);
+int slota(int, int, int *);
 void isel(Fn *);
 
 /* spill.c */

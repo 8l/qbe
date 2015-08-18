@@ -141,10 +141,10 @@ bcnt(Bits *b) /* glad I can pull it :) */
 }
 
 extern Ins insb[NIns], *curi; /* shared work buffer */
-static Bits *f;  /* temps to prioritize in registers (for tcmp1) */
-static Tmp *tmp; /* current temporaries (for tcmpX) */
-static int ntmp; /* current # of temps (for limit) */
-static uint ns;  /* current # of spill slots */
+static Bits *f;   /* temps to prioritize in registers (for tcmp1) */
+static Tmp *tmp;  /* current temporaries (for tcmpX) */
+static int ntmp;  /* current # of temps (for limit) */
+static int *svec; /* free slots vector */
 
 static int
 tcmp0(const void *pa, const void *pb)
@@ -170,7 +170,12 @@ slot(int t)
 		diag("spill: cannot spill register");
 	s = tmp[t].spill;
 	if (!s) {
-		s = ++ns;
+		if (tmp[t].type == TWord)
+			s = slota(1, 1, svec);
+		else if (tmp[t].type == TLong)
+			s = slota(2, 2, svec);
+		else
+			diag("spill: unknown type (1)");
 		tmp[t].spill = s;
 	}
 	return SLOT(s);
@@ -189,8 +194,10 @@ store(Ref r, int s)
 {
 	if (tmp[r.val].type == TLong)
 		emit(OStorel, R, r, SLOT(s));
-	else
+	else if (tmp[r.val].type == TWord)
 		emit(OStorew, R, r, SLOT(s));
+	else
+		diag("spill: unknown type (2)");
 }
 
 static int
@@ -293,7 +300,7 @@ spill(Fn *fn)
 	int j, s;
 	Phi *p;
 
-	ns = 0;
+	svec = fn->svec;
 	tmp = fn->tmp;
 	ntmp = fn->ntmp;
 	assert(ntmp < NBit*BITS);

@@ -280,12 +280,28 @@ eins(Ins i, Fn *fn, FILE *f)
 	}
 }
 
+static int
+framesz(Fn *fn)
+{
+	enum { N = sizeof (Fn){0}.svec / sizeof (Fn){0}.svec[0] };
+	int i, a, f;
+
+	f = 0;
+	for (i=N-1, a=1<<i; i>=0; i--, a/=2)
+		if (f == 0 || f - a == fn->svec[i])
+			f = fn->svec[i];
+	a = 1 << (N-2);
+	while (f % (2 * a) != a)
+		f += a - f % a;
+	return f * 16 / (1 << (N-1));
+}
+
 void
 emitfn(Fn *fn, FILE *f)
 {
 	Blk *b, *s;
 	Ins *i;
-	int c;
+	int c, fs;
 
 	fprintf(f,
 		".text\n"
@@ -295,6 +311,9 @@ emitfn(Fn *fn, FILE *f)
 		"\tpush %%rbp\n"
 		"\tmov %%rsp, %%rbp\n"
 	);
+	fs = framesz(fn);
+	if (fs)
+		fprintf(f, "\tsub $%d, %%rsp\n", fs);
 	for (b=fn->start; b; b=b->link) {
 		fprintf(f, ".L%s:\n", b->name);
 		for (i=b->ins; i-b->ins < b->nins; i++)
