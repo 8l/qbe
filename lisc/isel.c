@@ -175,7 +175,7 @@ sel(Ins i, Fn *fn)
 		break;
 	case OXTestw:
 	case OXTestl:
-		n = 2;
+		n = i.op == OXTestl ? 2 : 0;
 		goto Emit;
 	case OSext:
 	case OZext:
