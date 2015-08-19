@@ -351,22 +351,20 @@ rega(Fn *fn)
 					i->to = reg(r, i->to.val);
 			} else
 				r = 0;
-			if (rtype(i->arg[0]) == RTmp) {
-				/* <arch>
-				 *   on Intel, we attempt to
-				 *   use the same register
-				 *   for the return and the
-				 *   first argument
-				 */
-				t = i->arg[0].val;
-				if (tmp[t].hint == -1 && r)
-					tmp[t].hint = r;
-				i->arg[0] = ralloc(&cur, t);
-			}
-			if (rtype(i->arg[1]) == RTmp) {
-				t = i->arg[1].val;
-				i->arg[1] = ralloc(&cur, t);
-			}
+			for (x=0; x<2; x++)
+				if (rtype(i->arg[x]) == RTmp) {
+					/* <arch>
+				 	*   on Intel, we attempt to
+				 	*   use the same register
+				 	*   for the return and one
+				 	*   argument
+				 	*/
+					t = i->arg[x].val;
+					if (r && !BGET(cur.b, r))
+					if (tmp[t].hint == -1)
+						tmp[t].hint = r;
+					i->arg[x] = ralloc(&cur, t);
+				}
 		}
 		b->in = cur.b;
 		for (p=b->phi; p; p=p->link)
