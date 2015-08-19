@@ -191,6 +191,13 @@ eins(Ins i, Fn *fn, FILE *f)
 			diag("emit: invalid extension");
 		eop(otoa[i.op], i.arg[0], i.to, fn, f);
 		break;
+	case OTrunc:
+		if (rtype(i.to) != RTmp || i.to.val < EAX
+		|| (rtype(i.arg[0]) == RTmp && i.arg[0].val >= EAX))
+			diag("emit: invalid truncation");
+		if (rtype(i.arg[0]) == RTmp)
+			i.arg[0] = TMP(RWORD(i.arg[0].val));
+		/* fall through */
 	case OCopy:
 		if (req(i.to, R))
 			break;
