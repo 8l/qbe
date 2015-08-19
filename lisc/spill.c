@@ -171,9 +171,9 @@ slot(int t)
 	s = tmp[t].spill;
 	if (!s) {
 		if (tmp[t].type == TWord)
-			s = slota(1, 1, svec);
+			s = slota(1, 0, svec);
 		else if (tmp[t].type == TLong)
-			s = slota(2, 2, svec);
+			s = slota(2, 1, svec);
 		else
 			diag("spill: unknown type (1)");
 		tmp[t].spill = s;
