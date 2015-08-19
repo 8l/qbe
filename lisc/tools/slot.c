@@ -1,6 +1,6 @@
 /*% clang -g -Wall -o # %
  *
- * This is a test program for the slot
+ * This is a test program for the slota
  * routine in isel.c, it's a tricky beast
  * so when you modify it you can use this
  * test program to debug your changes.
@@ -15,10 +15,9 @@
 #define VARL 1
 
 enum { N = 3 };
-static int sa[N] = {0, 0, 2};
 
 static int
-slot(int sz, int al)
+slota(int sz, int al, int *sa)
 {
 	int j, k, s, l, a, ret;
 
@@ -76,6 +75,7 @@ enum { S = 300 };
 int
 main(int ac, char *av[])
 {
+	int sa[N] = {0, 0, 2};
 	char stk[S] = {0}, buf[4] = {0};
 	unsigned seed;
 	int i, a, l, s, itr;
@@ -105,7 +105,7 @@ main(int ac, char *av[])
 			l = 1 << a;
 			printf("[(%02d) xx %d] ", itr, a);
 		}
-		s = slot(l, a);
+		s = slota(l, a, sa);
 		if (s > S)
 			break;
 		if ((s+2) % (1 << a) != 0) {
