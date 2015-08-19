@@ -426,7 +426,7 @@ isel(Fn *fn)
 	/* assign slots to fast allocs */
 	for (n=Tmp0; n<fn->ntmp; n++)
 		fn->tmp[n].spill = 0;
-	memcpy(fn->svec, (int[3]){0, 0, 2}, 3 * sizeof(int));
+	memset(fn->svec, 0, sizeof fn->svec);
 
 	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
 		if (OAlloc <= i->op && i->op <= OAlloc1) {
