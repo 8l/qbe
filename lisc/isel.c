@@ -359,7 +359,6 @@ seljmp(Blk *b, Fn *fn)
 int
 slota(int sz, int al /* log2 */, int *sa)
 {
-	enum { N = sizeof (Fn){0}.svec / sizeof (Fn){0}.svec[0] };
 	int j, k, s, l, a, ret;
 
 	a = 1 << al;
@@ -372,18 +371,18 @@ slota(int sz, int al /* log2 */, int *sa)
 		 * todo, could sophisticate
 		 */
 		l = (l + a-1) & ~(a-1);
-		s = sa[N-1] + l;
+		s = sa[NAlign-1] + l;
 		ret = s;
-		for (j=0, k=1; j<N; j++, k*=2) {
+		for (j=0, k=1; j<NAlign; j++, k*=2) {
 			l = (l + k-1) & ~(k-1);
-			sa[j] = sa[N-1] + l;
+			sa[j] = sa[NAlign-1] + l;
 		}
 	} else {
 		j = al;
 		s = sa[j] + a;
 		ret = s;
 	Shift:
-		if (j < N-1 && s < sa[j+1])
+		if (j < NAlign-1 && s < sa[j+1])
 			/* ........-----------...
 			 * ^       ^          ^
 			 * sa[j]  sa[j]+a    sa[j+1]
@@ -400,7 +399,7 @@ slota(int sz, int al /* log2 */, int *sa)
 			if (sa[k] == sa[j])
 				sa[k] = s;
 
-		if (j < N-1 && s > sa[j+1]) {
+		if (j < NAlign-1 && s > sa[j+1]) {
 			/* we were in a bigger hole,
 			 * it needs to shift further
 			 */
@@ -436,7 +435,8 @@ isel(Fn *fn)
 			sz = fn->con[i->arg[0].val].val;
 			if (sz < 0 || sz >= INT_MAX-3)
 				diag("isel: invalid alloc size");
-			sz = (sz + 3) / 4;
+			n = 16 / (1 << (NAlign-1));
+			sz = (sz + n-1) / n;
 			al = i->op - OAlloc;
 			s = slota(sz, al, fn->svec);
 			fn->tmp[i->to.val].spill = s;

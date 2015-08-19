@@ -69,6 +69,7 @@ enum {
 	NPred   = 15,
 	NBlk    = 128,
 	NIns    = 256,
+	NAlign  = 3,
 
 	BITS    = 4,
 	NBit    = 64,
@@ -141,7 +142,7 @@ enum Op {
 	OLoadsb,
 	OLoadub,
 	OAlloc,
-	OAlloc1 = OAlloc + 2,
+	OAlloc1 = OAlloc + NAlign-1,
 	OCopy,
 	NPubOp,
 
@@ -244,7 +245,7 @@ struct Fn {
 	int ncon;
 	int nblk;
 	Blk **rpo;
-	int svec[3];
+	int svec[NAlign];
 };
 
 

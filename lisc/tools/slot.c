@@ -14,7 +14,7 @@
 
 #define VARL 1
 
-enum { N = 3 };
+enum { NAlign = 3 };
 
 static int
 slota(int sz, int al, int *sa)
@@ -31,18 +31,18 @@ slota(int sz, int al, int *sa)
 		 * todo, could sophisticate
 		 */
 		l = (l + a-1) & ~(a-1);
-		s = sa[N-1] + l;
+		s = sa[NAlign-1] + l;
 		ret = s;
-		for (j=0, k=1; j<N; j++, k*=2) {
+		for (j=0, k=1; j<NAlign; j++, k*=2) {
 			l = (l + k-1) & ~(k-1);
-			sa[j] = sa[N-1] + l;
+			sa[j] = sa[NAlign-1] + l;
 		}
 	} else {
 		j = al;
 		s = sa[j] + a;
 		ret = s;
 	Shift:
-		if (j < N-1 && s < sa[j+1])
+		if (j < NAlign-1 && s < sa[j+1])
 			/* ........-----------...
 			 * ^       ^          ^
 			 * sa[j]  sa[j]+a    sa[j+1]
@@ -59,7 +59,7 @@ slota(int sz, int al, int *sa)
 			if (sa[k] == sa[j])
 				sa[k] = s;
 
-		if (j < N-1 && s > sa[j+1]) {
+		if (j < NAlign-1 && s > sa[j+1]) {
 			/* we were in a bigger hole,
 			 * it needs to shift further
 			 */
@@ -75,7 +75,7 @@ enum { S = 300 };
 int
 main(int ac, char *av[])
 {
-	int sa[N] = {0, 0, 2};
+	int sa[NAlign] = {0, 0, 2};
 	char stk[S] = {0}, buf[4] = {0};
 	unsigned seed;
 	int i, a, l, s, itr;
@@ -97,7 +97,7 @@ main(int ac, char *av[])
 			printf("\n");
 		do
 			a = rand() % 4;
-		while (a >= N);
+		while (a >= NAlign);
 		if ((float)rand()/RAND_MAX < 0.1 && VARL) {
 			l = rand() % (S/20);
 			printf("[(%02d) %02d %d] ", itr, l, a);
@@ -135,7 +135,7 @@ end:
 	for (i=0; i<S; i++)
 		printf("%02d ", stk[i]);
 	printf("\n\n");
-	for (i=0; i<N; i++)
+	for (i=0; i<NAlign; i++)
 		printf("sa[%d] = %d\n", i, sa[i]);
 	exit(ret);
 }

@@ -283,17 +283,16 @@ eins(Ins i, Fn *fn, FILE *f)
 static int
 framesz(Fn *fn)
 {
-	enum { N = sizeof (Fn){0}.svec / sizeof (Fn){0}.svec[0] };
 	int i, a, f;
 
 	f = 0;
-	for (i=N-1, a=1<<i; i>=0; i--, a/=2)
+	for (i=NAlign-1, a=1<<i; i>=0; i--, a/=2)
 		if (f == 0 || f - a == fn->svec[i])
 			f = fn->svec[i];
-	a = 1 << (N-2);
-	while (f % (2 * a) != a)
+	a = 1 << (NAlign-2);
+	while ((f + a) % (2 * a) != a)
 		f += a - f % a;
-	return f * 16 / (1 << (N-1));
+	return f * 16 / (1 << (NAlign-1));
 }
 
 void
