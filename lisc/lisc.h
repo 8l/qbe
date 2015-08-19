@@ -113,7 +113,7 @@ enum Cmp {
 	Csgt, /* mirror opposite cmps! */
 	Csge,
 	Cne,
-	NCmp,
+	NCmp
 };
 
 #define COP(c) (c==Ceq||c==Cne ? c : NCmp-1 - c)
