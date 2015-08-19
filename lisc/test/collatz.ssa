@@ -2,8 +2,6 @@
 # https://projecteuler.net/problem=14
 # we use a fast local array to
 # memoize small collatz numbers
-#
-# todo, insert sign extensions
 
 @start
 	%mem =l alloc4 4000
