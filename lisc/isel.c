@@ -234,7 +234,7 @@ Emit:
 		/* if this is not a fast alloc
 		 * we need to make sure
 		 * the stack remains aligned
-		 * (rsp + 8 = 0) mod 16
+		 * (rsp = 0) mod 16
 		 */
 		if (req(i.to, R))
 			break;
@@ -244,16 +244,14 @@ Emit:
 			if (val < 0 || val > INT32_MAX)
 				diag("isel: alloc too large");
 			emit(OAlloc, i.to, newcon(val, fn), R);
-		} else if (i.op < OAlloc1) {
+		} else {
 			/* r0 = (i.arg[0] + 15) & -16 */
 			r0 = newtmp(TLong, fn);
 			r1 = newtmp(TLong, fn);
 			emit(OAlloc, i.to, r0, R);
 			emit(OAnd, r0, r1, newcon(-16, fn));
 			emit(OAdd, r1, i.arg[0], newcon(15, fn));
-		} else
-			/* todo, support it! */
-			diag("isel: unsupported alloc alignment");
+		}
 		break;
 	default:
 		if (OCmp <= i.op && i.op <= OCmp1) {
