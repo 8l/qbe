@@ -44,13 +44,19 @@ fillpreds(Fn *f)
 static int
 rporec(Blk *b, int x)
 {
-	if (b->id >= 0)
+	Blk *s1, *s2;
+
+	if (!b || b->id >= 0)
 		return x;
 	b->id = 1;
-	if (b->s2)
-		x = rporec(b->s2, x);
-	if (b->s1)
-		x = rporec(b->s1, x);
+	s1 = b->s1;
+	s2 = b->s2;
+	if (s1 && s2 && s1->loop > s2->loop) {
+		s1 = b->s2;
+		s2 = b->s1;
+	}
+	x = rporec(s1, x);
+	x = rporec(s2, x);
 	b->id = x;
 	assert(x >= 0);
 	return x - 1;
