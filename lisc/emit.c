@@ -261,6 +261,11 @@ eins(Ins i, Fn *fn, FILE *f)
 		break;
 	case OXCmpw:
 	case OXCmpl:
+		if (rtype(i.arg[1]) == RTmp && req(i.arg[0], CON_Z)) {
+			eop("test", i.arg[1], i.arg[1], fn, f);
+			break;
+		}
+		/* fall through */
 	case OXTestw:
 	case OXTestl:
 		eop(otoa[i.op], i.arg[0], i.arg[1], fn, f);
