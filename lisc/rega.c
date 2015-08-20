@@ -58,7 +58,7 @@ rref(RMap *m, int t)
 static void
 radd(RMap *m, int t, int r)
 {
-	assert(t >= Tmp0 && "invalid temporary");
+	assert((t >= Tmp0 || t == r) && "invalid temporary");
 	assert(RAX <= r && r < RAX + NReg && "invalid register");
 	assert(!BGET(m->b, t) && "temp has mapping");
 	assert(!BGET(m->b, r) && "reg already allocated");
@@ -100,12 +100,8 @@ rfree(RMap *m, int t)
 {
 	int i, r;
 
-	if (t < Tmp0) {
+	if (t < Tmp0)
 		t = RBASE(t);
-		assert(BGET(m->b, t));
-		BCLR(m->b, t);
-		return t;
-	}
 	if (!BGET(m->b, t))
 		return -1;
 	for (i=0; m->t[i] != t; i++)
@@ -162,8 +158,10 @@ pmrec(enum PMStat *status, int i)
 			switch (status[j]) {
 			case ToMove:
 				swp1 = pmrec(status, j);
-				assert(req(swp, R) || req(swp1, R));
-				swp = swp1;
+				if (!req(swp1, R)) {
+					assert(req(swp, R));
+					swp = swp1;
+				}
 				break;
 			case Moving:
 				assert(req(swp, R));
@@ -209,7 +207,7 @@ isreg(Ref r)
 static Ins *
 dopm(Blk *b, Ins *i, RMap *m)
 {
-	int n, r, t, nins;
+	int n, r, r1, t, nins;
 	Ref rt;
 	Ins *i1, *ib, *ip, *ir;
 
@@ -220,36 +218,45 @@ dopm(Blk *b, Ins *i, RMap *m)
 			r = RBASE(i->to.val);
 			rt = i->arg[0];
 			assert(rtype(rt) == RTmp && rt.val >= Tmp0);
-			assert(BGET(m->b, r));
-			/* todo, assert that r is not mapped */
-			BCLR(m->b, r);
+			rfree(m, r);
 			rt = ralloc(m, rt.val);
 			pmadd(rt, i->to);
-			if (i==b->ins
-			|| (i-1)->op!=OCopy
+			if (i == b->ins
+			|| (i-1)->op != OCopy
 			|| !isreg((i-1)->to))
 				break;
 		}
 	else if (isreg(i->arg[0]))
 		for (;; i--) {
 			r = RBASE(i->arg[0].val);
-			if (BGET(m->b, r) && rfind(m, i->to.val) != r) {
+			r1 = req(i->to, R) ? -1 : rfind(m, i->to.val);
+			if (BGET(m->b, r) && r1 != r) {
 				for (n=0; m->r[n] != r; n++)
 					assert(n+1 < m->n);
 				t = m->t[n];
 				rfree(m, t);
-				BSET(m->b, r);
-				rt = ralloc(m, t);
-				BCLR(m->b, r);
-				pmadd(rt, i->arg[0]);
+				if (m->n == NReg-1) {
+					rfree(m, i->to.val);
+					radd(m, i->to.val, r);
+					radd(m, t, r1);
+					rt = reg(r1, i->to.val);
+					pmadd(i->arg[0], rt);
+					pmadd(rt, i->arg[0]);
+				} else {
+					BSET(m->b, r);
+					rt = ralloc(m, t);
+					BCLR(m->b, r);
+					pmadd(rt, i->arg[0]);
+				}
 			}
+			/* invariant: r is unmapped or contains to i->to */
 			if (!req(i->to, R) && BGET(m->b, i->to.val)) {
 				rt = reg(rfree(m, i->to.val), i->to.val);
 				pmadd(i->arg[0], rt);
 			}
-			BSET(m->b, r);
-			if (i==b->ins
-			|| (i-1)->op!=OCopy
+			radd(m, r, r);
+			if (i == b->ins
+			|| (i-1)->op != OCopy
 			|| !isreg((i-1)->arg[0]))
 				break;
 		}
@@ -401,6 +408,7 @@ rega(Fn *fn)
 			if (!n)
 				continue;
 			b1 = blocka();
+			b1->loop = (b->loop+s->loop) / 2;
 			b1->link = blist;
 			blist = b1;
 			fn->nblk++;
