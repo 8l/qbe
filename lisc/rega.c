@@ -207,61 +207,59 @@ isreg(Ref r)
 static Ins *
 dopm(Blk *b, Ins *i, RMap *m)
 {
+	RMap m0;
 	int n, r, r1, t, nins;
-	Ref rt;
 	Ins *i1, *ib, *ip, *ir;
 
-	npm = 0;
+	m0 = *m;
 	i1 = i+1;
-	if (isreg(i->to))
-		for (;; i--) {
-			r = RBASE(i->to.val);
-			rt = i->arg[0];
-			assert(rtype(rt) == RTmp && rt.val >= Tmp0);
-			rfree(m, r);
-			rt = ralloc(m, rt.val);
-			pmadd(rt, i->to);
-			if (i == b->ins
-			|| (i-1)->op != OCopy
-			|| !isreg((i-1)->to))
-				break;
-		}
-	else if (isreg(i->arg[0]))
-		for (;; i--) {
-			r = RBASE(i->arg[0].val);
-			r1 = req(i->to, R) ? -1 : rfind(m, i->to.val);
-			if (BGET(m->b, r) && r1 != r) {
-				for (n=0; m->r[n] != r; n++)
-					assert(n+1 < m->n);
-				t = m->t[n];
-				rfree(m, t);
-				if (m->n == NReg-1) {
-					rfree(m, i->to.val);
-					radd(m, i->to.val, r);
-					radd(m, t, r1);
-					rt = reg(r1, i->to.val);
-					pmadd(i->arg[0], rt);
-					pmadd(rt, i->arg[0]);
-				} else {
-					BSET(m->b, r);
-					rt = ralloc(m, t);
-					BCLR(m->b, r);
-					pmadd(rt, i->arg[0]);
-				}
+	for (;; i--) {
+		r = RBASE(i->arg[0].val);
+		r1 = req(i->to, R) ? -1 : rfind(m, i->to.val);
+		if (!BGET(m->b, r)) {
+			/* r is not used by anybody,
+			 * i->to could have no register */
+			if (r1 != -1)
+				rfree(m, i->to.val);
+			radd(m, i->to.val, r);
+		} else if (r1 != r) {
+			/* r is used and not by i->to,
+			 * i->to could have no register */
+			for (n=0; m->r[n] != r; n++)
+				assert(n+1 < m->n);
+			t = m->t[n];
+			rfree(m, t);
+			if (m->n == NReg-1) {
+				/* swap the two locations */
+				assert(r1 != -1);
+				rfree(m, i->to.val);
+				radd(m, i->to.val, r);
+				radd(m, t, r1);
+			} else {
+				BSET(m->b, r);
+				ralloc(m, t);
+				BCLR(m->b, r);
 			}
-			/* invariant: r is unmapped or contains to i->to */
-			if (!req(i->to, R) && BGET(m->b, i->to.val)) {
-				rt = reg(rfree(m, i->to.val), i->to.val);
-				pmadd(i->arg[0], rt);
-			}
-			radd(m, r, r);
-			if (i == b->ins
-			|| (i-1)->op != OCopy
-			|| !isreg((i-1)->arg[0]))
-				break;
-		}
-	else
-		assert(!"no parallel move starting here");
+		} /* else r is already allocated for i->to */
+		if (i == b->ins
+		|| (i-1)->op != OCopy
+		|| !isreg((i-1)->arg[0]))
+			break;
+	}
+	assert(m0.n <= m->n);
+	for (npm=0, n=0; n<m->n; n++) {
+		t = m->t[n];
+		r1 = m->r[n];
+		r = rfind(&m0, t);
+		if (r != r1)
+			pmadd(reg(r1, t), reg(r, t));
+	}
+	for (ip=i; ip<i1; ip++) {
+		if (!req(ip->to, R))
+			rfree(m, ip->to.val);
+		r = RBASE(ip->arg[0].val);
+		radd(m, r, r);
+	}
 	pmgen();
 	nins = curi-insb;
 	ib = alloc((b->nins + nins - (i1-i)) * sizeof(Ins));
@@ -327,8 +325,7 @@ rega(Fn *fn)
 			b->jmp.arg = ralloc(&cur, b->jmp.arg.val);
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			i--;
-			if (i->op == OCopy /* par. moves are special */
-			&& (isreg(i->arg[0]) || isreg(i->to))) {
+			if (i->op == OCopy && isreg(i->arg[0])) {
 				i = dopm(b, i, &cur);
 				continue;
 			}
