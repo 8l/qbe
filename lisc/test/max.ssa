@@ -8,10 +8,9 @@
 @start
 @loop
 	%max =w phi @start -1, @new %byt, @old %max
-	%id0 =l phi @start 0,  @new %id1, @old %id1
-	%loc =l add $b, %id0
+	%loc =l phi @start $b,  @new %loc1, @old %loc1
 	%byt =w loadub %loc
-	%id1 =l add 1, %id0
+	%loc1 =l add 1, %loc
 	jnz %byt, @iter, @end
 @iter
 	%cmp =w csle %max, %byt

@@ -195,14 +195,16 @@ eins(Ins i, Fn *fn, FILE *f)
 	case OCopy:
 		if (req(i.to, R))
 			break;
-		if (i.to.val < EAX && rtype(i.arg[0]) == RCon) {
-			val = fn->con[i.arg[0].val].val;
-			if (0 <= val && val <= UINT32_MAX) {
-				fprintf(f, "\tmov $%"PRId64", %%%s\n",
-					val, rsub[i.to.val][SWord]);
-				break;
-			}
-		} else if (!req(i.arg[0], i.to))
+		if (i.to.val < EAX
+		&& rtype(i.arg[0]) == RCon
+		&& fn->con[i.arg[0].val].type == CNum
+		&& (val = fn->con[i.arg[0].val].val) >= 0
+		&& val <= UINT32_MAX) {
+			fprintf(f, "\tmov $%"PRId64", %%%s\n",
+				val, rsub[i.to.val][SWord]);
+			break;
+		}
+		if (!req(i.arg[0], i.to))
 			eop("mov", i.arg[0], i.to, fn, f);
 		break;
 	case OStorel:
