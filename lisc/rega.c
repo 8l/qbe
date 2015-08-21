@@ -219,50 +219,38 @@ dopm(Blk *b, Ins *i, RMap *m)
 	i1 = i+1;
 	for (;; i--) {
 		r = RBASE(i->arg[0].val);
-		r1 = req(i->to, R) ? -1 : rfind(m, i->to.val);
-		if (!BGET(m->b, r)) {
-			/* r is not used by anybody,
-			 * i->to could have no register */
-			if (r1 != -1)
-				rfree(m, i->to.val);
-			radd(m, i->to.val, r);
-		} else if (r1 != r) {
-			/* r is used and not by i->to,
-			 * i->to could have no register */
+		r1 = req(i->to, R) ? -1 : rfree(m, i->to.val);
+		if (BGET(m->b, r) && r1 != r) {
+			/* r is used and not by i->to, */
 			for (n=0; m->r[n] != r; n++)
 				assert(n+1 < m->n);
 			t = m->t[n];
 			rfree(m, t);
-			if (m->n == NReg-1) {
-				/* swap the two locations */
-				assert(r1 != -1);
-				rfree(m, i->to.val);
-				radd(m, i->to.val, r);
-				radd(m, t, r1);
-			} else {
-				BSET(m->b, r);
-				ralloc(m, t);
-				BCLR(m->b, r);
-			}
-		} /* else r is already allocated for i->to */
+			BSET(m->b, r);
+			ralloc(m, t);
+			BCLR(m->b, r);
+		}
+		t = r1 == -1 ? r : i->to.val;
+		radd(m, t, r);
 		if (i == b->ins
 		|| (i-1)->op != OCopy
 		|| !isreg((i-1)->arg[0]))
 			break;
 	}
 	assert(m0.n <= m->n);
-	for (npm=0, n=0; n<m->n; n++) {
-		t = m->t[n];
-		r1 = m->r[n];
-		r = rfind(&m0, t);
-		if (r != r1)
+	for (npm=0, n=0; n<m->n; n++)
+		if ((t = m->t[n]) >= Tmp0) {
+			r1 = m->r[n];
+			r = rfind(&m0, t);
+			assert(r != -1);
 			pmadd(reg(r1, t), reg(r, t));
-	}
+		}
 	for (ip=i; ip<i1; ip++) {
 		if (!req(ip->to, R))
 			rfree(m, ip->to.val);
 		r = RBASE(ip->arg[0].val);
-		radd(m, r, r);
+		if (rfind(m, r) == -1)
+			radd(m, r, r);
 	}
 	pmgen();
 #ifdef TEST_PMOV
