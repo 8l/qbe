@@ -1,24 +1,31 @@
-/*% cc -std=c99 -Wall -DTEST_PMOV -g -o # %
+/*% cc -O3 -std=c99 -Wall -DTEST_PMOV -o # %
+ *
+ * This is a test framwork for the dopm() function
+ * in rega.c, use it when you want to modify it or
+ * all the parallel move functions.
+ *
+ * You might need to decrease NReg to see it
+ * terminate, I used NReg == 7 at most.
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-static void assert_test(char *, int), fail(void);
+static void assert_test(char *, int), fail(void), iexec(int *);
 
 #include "../rega.c"
 
 static RMap mbeg;
 static Ins ins[NReg], *ip;
+static Blk dummyb = { .ins = ins };
 
 int
 main()
 {
-	Blk dummyb;
 	Ins *i1;
-	unsigned long long tm, rm;
+	unsigned long long tm, rm, cnt;
 	RMap mend;
-	int reg[NReg];
+	int reg[NReg], val[NReg+1];
 	int t, i, r, nr;
 
 	tmp = (Tmp[Tmp0+NReg]){{0}};
@@ -31,9 +38,7 @@ main()
 			sprintf(tmp[t].name, "tmp%d", t-Tmp0+1);
 		}
 
-	dummyb.ins = ins;
-	strcpy(dummyb.name, "dummy");
-
+	cnt = 0;
 	for (tm = 0; tm < 1ull << (2*NReg); tm++) {
 		mbeg.n = 0;
 		mbeg.b = (Bits){{0}};
@@ -63,7 +68,7 @@ main()
 			}
 
 		if (ip == ins)
-			/* cancel is the parallel move
+			/* cancel if the parallel move
 			 * is empty
 			 */
 			goto Nxt;
@@ -72,7 +77,6 @@ main()
 		 * in mbeg
 		 */
 		nr = ip - ins;
-		dummyb.nins = nr;
 		rm = (1ull << (nr+1)) - 1;
 		for (i=0; i<nr; i++)
 			reg[i] = i+1;
@@ -82,28 +86,51 @@ main()
 			 */
 			for (i=0, i1=ins; i1<ip; i1++, i++)
 				i1->arg[0] = TMP(reg[i]);
-#if 0
-			for (i=0; i<nr; i++)
-				printf("%d ", reg[i]);
-			printf("\n");
-#endif
 
 			/* compile the parallel move
 			 */
 			mend = mbeg;
 			dopm(&dummyb, ip-1, &mend);
+			cnt++;
 
-			// TODO
 			/* check that mend contain mappings for
 			 * source registers and does not map any
-			 * assigned temporary
+			 * assigned temporary, then check that
+			 * all temporaries in mend are mapped in
+			 * mbeg and not used in the copy
 			 */
+			for (i1=ins; i1<ip; i1++) {
+				r = i1->arg[0].val;
+				assert(rfree(&mend, r) == r);
+				t = i1->to.val;
+				assert(!BGET(mend.b, t));
+			}
+			for (i=0; i<mend.n; i++) {
+				t = mend.t[i];
+				assert(BGET(mbeg.b, t));
+				t -= Tmp0;
+				assert(((tm >> (2*t)) & 3) == 1);
+			}
 
-			// TODO
 			/* execute the code generated and check
 			 * that all assigned temporaries got their
-			 * value
+			 * value, and that all live variables's
+			 * content got preserved
 			 */
+			 for (i=1; i<=NReg; i++)
+			 	val[i] = i;
+			 iexec(val);
+			 for (i1=ins; i1<ip; i1++) {
+			 	t = i1->to.val;
+			 	r = rfind(&mbeg, t);
+			 	if (r != -1)
+			 		assert(val[r] == i1->arg[0].val);
+			 }
+			 for (i=0; i<mend.n; i++) {
+			 	t = mend.t[i];
+			 	r = mend.r[i];
+			 	assert(val[t-Tmp0+1] == r);
+			 }
 
 			/* find the next register assignment */
 			i = nr - 1;
@@ -133,11 +160,59 @@ main()
 		}
 	Nxt:	;
 	}
+	printf("%llu tests successful!\n", cnt);
 	exit(0);
 }
 
 
+/* execute what pmgen() wrote (swap, copy) */
+
+#define validr(r)           \
+	rtype(r) == RTmp && \
+	r.val > 0 &&        \
+	r.val <= NReg
+
+static void
+iexec(int val[])
+{
+	Ins *i;
+	int t;
+
+	for (i=insb; i<curi; i++)
+		switch (i->op) {
+		default:
+			assert(!"iexec: missing case\n");
+			exit(1);
+		case OSwap:
+			assert(validr(i->arg[0]));
+			assert(validr(i->arg[1]));
+			t = val[i->arg[0].val];
+			val[i->arg[0].val] = val[i->arg[1].val];
+			val[i->arg[1].val] = t;
+			break;
+		case OCopy:
+			assert(validr(i->to));
+			assert(validr(i->arg[0]));
+			val[i->to.val] = val[i->arg[0].val];
+			break;
+		}
+}
+
+
 /* failure diagnostics */
+
+static int re;
+
+static void
+replay()
+{
+	RMap mend;
+
+	re = 1;
+	mend = mbeg;
+	dopm(&dummyb, ip-1, &mend);
+}
+
 static void
 fail()
 {
@@ -155,6 +230,7 @@ fail()
 		printf("\t %s <- r%d\n",
 			tmp[i1->to.val].name,
 			i1->arg[0].val);
+	replay();
 	exit(1);
 }
 
@@ -163,7 +239,17 @@ assert_test(char *s, int x)
 {
 	if (x)
 		return;
+	if (re)
+		exit(1);
 	printf("!assertion failure: %s\n", s);
+	fail();
+}
+
+void diag(char *s)
+{
+	if (re)
+		exit(1);
+	printf("!diag failure: %s\n", s);
 	fail();
 }
 
@@ -172,11 +258,7 @@ assert_test(char *s, int x)
 char debug['Z'+1];
 Ins insb[NIns], *curi;
 
-void diag(char *s)
-{ printf("!diag failure: %s\n", s); fail(); }
-
 void *alloc(size_t n)
-{ return malloc(n); }
-
+{ return calloc(n, 1); }
 Blk *blocka()
-{ printf("!blocka called\n"); exit(1); }
+{ printf("!blocka\n"); exit(1); }
