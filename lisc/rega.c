@@ -261,6 +261,9 @@ dopm(Blk *b, Ins *i, RMap *m)
 		radd(m, r, r);
 	}
 	pmgen();
+#ifdef TEST_PMOV
+	return 0;
+#endif
 	nins = curi-insb;
 	ib = alloc((b->nins + nins - (i1-i)) * sizeof(Ins));
 	memcpy(ip = ib, b->ins, (i - b->ins) * sizeof(Ins));
