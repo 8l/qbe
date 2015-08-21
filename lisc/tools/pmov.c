@@ -4,15 +4,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+static void assert_test(char *, int), fail(void);
+
 #include "../rega.c"
+
+static RMap mbeg;
+static Ins ins[NReg], *ip;
 
 int
 main()
 {
 	Blk dummyb;
-	Ins ins[NReg], *ip, *i1;
+	Ins *i1;
 	unsigned long long tm, rm;
-	RMap mbeg, mend;
+	RMap mend;
 	int reg[NReg];
 	int t, i, r, nr;
 
@@ -131,12 +136,44 @@ main()
 	exit(0);
 }
 
+
+/* failure diagnostics */
+static void
+fail()
+{
+	Ins *i1;
+	int i;
+
+	printf("\nIn registers: ");
+	for (i=0; i<mbeg.n; i++)
+		printf("%s(r%d) ",
+			tmp[mbeg.t[i]].name,
+			mbeg.r[i]);
+	printf("\n");
+	printf("Parallel move:\n");
+	for (i1=ins; i1<ip; i1++)
+		printf("\t %s <- r%d\n",
+			tmp[i1->to.val].name,
+			i1->arg[0].val);
+	exit(1);
+}
+
+static void
+assert_test(char *s, int x)
+{
+	if (x)
+		return;
+	printf("!assertion failure: %s\n", s);
+	fail();
+}
+
+
 /* symbols required by the linker */
 char debug['Z'+1];
 Ins insb[NIns], *curi;
 
 void diag(char *s)
-{ printf("!diag failure: %s\n", s); exit(1); }
+{ printf("!diag failure: %s\n", s); fail(); }
 
 void *alloc(size_t n)
 { return malloc(n); }

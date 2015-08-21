@@ -1,4 +1,8 @@
 #include "lisc.h"
+#ifdef TEST_PMOV
+	#undef assert
+	#define assert(x) assert_test(#x, x)
+#endif
 
 
 typedef struct RMap RMap;
