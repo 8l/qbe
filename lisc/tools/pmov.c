@@ -50,10 +50,10 @@ main()
 		for (t=0; t<NReg; t++)
 			switch ((tm >> (2*t)) & 3) {
 			case 0:
-				/* not in copy, not in use */
+				/* not in copy, not in reg */
 				break;
 			case 1:
-				/* not in copy, in use */
+				/* not in copy, in reg */
 				radd(&mbeg, Tmp0+t, t+1);
 				break;
 			case 2:
