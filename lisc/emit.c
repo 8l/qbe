@@ -319,8 +319,17 @@ emitfn(Fn *fn, FILE *f)
 	fs = framesz(fn);
 	if (fs)
 		fprintf(f, "\tsub $%d, %%rsp\n", fs);
+	for (b=fn->start; b; b=b->link)
+		b->visit = 0;
 	for (b=fn->start; b; b=b->link) {
-		fprintf(f, ".L%s:\n", b->name);
+		if (b->s1 && b->link != b->s1)
+			b->s1->visit++;
+		if (b->s2 && b->link != b->s2)
+			b->s2->visit++;
+	}
+	for (b=fn->start; b; b=b->link) {
+		if (b->visit != 0)
+			fprintf(f, ".L%s:\n", b->name);
 		for (i=b->ins; i-b->ins < b->nins; i++)
 			eins(*i, fn, f);
 		switch (b->jmp.type) {
