@@ -278,6 +278,33 @@ inregs(Blk *b, Blk *s) /* todo, move to live.c */
 	return v;
 }
 
+static Ins *
+dopm(Blk *b, Ins *i, Bits *v)
+{
+	Ins *i1;
+
+	/* consecutive moves from
+	 * registers need to handled
+	 * as one large instruction
+	 */
+	i1 = i+1;
+	for (;; i--) {
+		if (!req(i->to, R))
+			BCLR(*v, i->to.val);
+		BSET(*v, i->arg[0].val);
+		if (i == b->ins
+		|| (i-1)->op != OCopy
+		|| !isreg((i-1)->arg[0]))
+			break;
+	}
+	limit(v, NReg, 0);
+	do {
+		i1--;
+		emit(OCopy, i1->to, i1->arg[0], R);
+	} while (i1 != i);
+	return i;
+}
+
 /* spill code insertion
  * requires spill costs, rpo, liveness
  *
@@ -359,14 +386,18 @@ spill(Fn *fn)
 			assert(bcnt(&v) <= NReg);
 			i--;
 			s = 0;
+			if (i->op == OCopy && isreg(i->arg[0])) {
+				i = dopm(b, i, &v);
+				continue;
+			}
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
-				j = i->to.val;
-				if (BGET(v, j))
-					BCLR(v, j);
+				t = i->to.val;
+				if (BGET(v, t))
+					BCLR(v, t);
 				else
 					limit(&v, NReg-1, &w);
-				s = tmp[j].spill;
+				s = tmp[t].spill;
 			}
 			w = (Bits){{0}};
 			j = opdesc[i->op].nmem;

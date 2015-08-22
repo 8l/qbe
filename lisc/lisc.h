@@ -280,6 +280,7 @@ void fillcost(Fn *);
 void spill(Fn *);
 
 /* rega.c */
+int isreg(Ref);
 void rega(Fn *);
 
 /* emit.c */
