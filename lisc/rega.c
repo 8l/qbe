@@ -202,7 +202,7 @@ pmgen()
 	free(status);
 }
 
-static int
+int
 isreg(Ref r)
 {
 	return rtype(r) == RTmp && r.val < Tmp0;
@@ -212,8 +212,8 @@ static Ins *
 dopm(Blk *b, Ins *i, RMap *m)
 {
 	RMap m0;
-	int n, r, r1, t, nins;
-	Ins *i1, *ib, *ip, *ir;
+	int n, r, r1, t;
+	Ins *i1, *ip;
 
 	m0 = *m;
 	i1 = i+1;
@@ -251,22 +251,14 @@ dopm(Blk *b, Ins *i, RMap *m)
 		r = RBASE(ip->arg[0].val);
 		if (rfind(m, r) == -1)
 			radd(m, r, r);
+		*ip = (Ins){ONop, R, {R, R}};
 	}
 	pmgen();
 #ifdef TEST_PMOV
 	return 0;
 #endif
-	nins = curi-insb;
-	ib = alloc((b->nins + nins - (i1-i)) * sizeof(Ins));
-	memcpy(ip = ib, b->ins, (i - b->ins) * sizeof(Ins));
-	ip += i - b->ins;
-	memcpy(ir = ip, insb, nins * sizeof(Ins));
-	ip += nins;
-	memcpy(ip, i1, (&b->ins[b->nins] - i1) * sizeof(Ins));
-	b->nins += nins - (i1-i);
-	free(b->ins);
-	b->ins = ib;
-	return ir;
+	assert(curi-insb <= i1-i);
+	return memcpy(i, insb, (curi-insb) * sizeof(Ins));
 }
 
 /* register allocation
