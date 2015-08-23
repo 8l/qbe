@@ -195,7 +195,8 @@ eins(Ins i, Fn *fn, FILE *f)
 	case OCopy:
 		if (req(i.to, R))
 			break;
-		if (i.to.val < EAX
+		if (rtype(i.to) == RTmp
+		&& i.to.val < EAX
 		&& rtype(i.arg[0]) == RCon
 		&& fn->con[i.arg[0].val].type == CNum
 		&& (val = fn->con[i.arg[0].val].val) >= 0
