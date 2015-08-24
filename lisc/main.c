@@ -113,7 +113,6 @@ main(int ac, char *av[])
 		rega(fn);
 		goto RPODump;
 	}
-	#if 0
 	case 'e': {
 		int n;
 
@@ -137,7 +136,6 @@ main(int ac, char *av[])
 		pr = 0;
 		break;
 	}
-	#endif
 	default:
 		break;
 	}

@@ -1,5 +1,5 @@
 #include "lisc.h"
-
+#include <stdarg.h>
 
 enum { SLong, SWord, SShort, SByte };
 static char *rsub[][4] = {
@@ -31,13 +31,91 @@ static char *ctoa[NCmp] = {
 	[Cne ] = "ne",
 };
 
-static char *
-rtoa(int r)
+static void
+emitf(Fn *fn, FILE *f, char *fmt, ...)
 {
-	if (r < EAX)
-		return rsub[r][SLong];
-	else
-		return rsub[RBASE(r)][SWord];
+	static char stoa[] = "qlwb";
+	va_list ap;
+	char c, *s, *s1;
+	int i, ty;
+	Ref ref;
+	Con *con;
+
+	va_start(ap, fmt);
+	ty = SWord;
+	s = fmt;
+Next:
+	while ((c = *s++) != '%')
+		if (!c) {
+			va_end(ap);
+			return;
+		} else
+			fputc(c, f);
+	switch ((c = *s++)) {
+	default:
+		diag("emit: unknown escape");
+	case 'w':
+	case 'W':
+		i = va_arg(ap, int);
+		ty = i ? SLong: SWord;
+	if (0) {
+	case 't':
+	case 'T':
+		ty = va_arg(ap, int);
+	}
+		if (c == 't' || c == 'w')
+			fputc(stoa[ty], f);
+		break;
+	case 's':
+		s1 = va_arg(ap, char *);
+		fputs(s1, f);
+		break;
+	case 'R':
+		ref = va_arg(ap, Ref);
+		switch (rtype(ref)) {
+		default:
+			diag("emit: invalid reference");
+		case RTmp:
+			assert(isreg(ref));
+			fprintf(f, "%%%s", rsub[ref.val][ty]);
+			break;
+		case RSlot:
+		Slot:
+			fprintf(f, "-%d(%%rbp)", 4 * ref.val);
+			break;
+		case RCon:
+			fputc('$', f);
+		Con:
+			con = &fn->con[ref.val];
+			switch (con->type) {
+			default:
+				diag("emit: invalid constant");
+			case CAddr:
+				fputs(con->label, f);
+				if (con->val)
+					fprintf(f, "%+"PRId64, con->val);
+				break;
+			case CNum:
+				fprintf(f, "%"PRId64, con->val);
+				break;
+			}
+			break;
+		}
+		break;
+	case 'M':
+		ref = va_arg(ap, Ref);
+		switch (rtype(ref)) {
+		default:    diag("emit: invalid memory reference");
+		case RSlot: goto Slot;
+		case RCon:  goto Con;
+		case RTmp:
+			assert(isreg(ref));
+			fprintf(f, "(%%%s)", rsub[ref.val][SLong]);
+			break;
+		}
+		break;
+	}
+	goto Next;
 }
 
 static int
@@ -55,74 +133,6 @@ cneg(int cmp)
 }
 
 static void
-econ(Con *c, FILE *f)
-{
-	switch (c->type) {
-	case CAddr:
-		fprintf(f, "%s", c->label);
-		if (c->val)
-			fprintf(f, "%+"PRId64, c->val);
-		break;
-	case CNum:
-		fprintf(f, "%"PRId64, c->val);
-		break;
-	default:
-		diag("econ: invalid constant");
-	}
-}
-
-static void
-eref(Ref r, Fn *fn, FILE *f)
-{
-	switch (rtype(r)) {
-	default:
-		diag("emit: invalid reference");
-	case RTmp:
-		assert(r.val < Tmp0);
-		fprintf(f, "%%%s", rtoa(r.val));
-		break;
-	case RSlot:
-		fprintf(f, "-%d(%%rbp)", 4 * r.val);
-		break;
-	case RCon:
-		fprintf(f, "$");
-		econ(&fn->con[r.val], f);
-		break;
-	}
-}
-
-static void
-emem(Ref r, Fn *fn, FILE *f)
-{
-	switch (rtype(r)) {
-	default:
-		diag("emit: invalid memory reference");
-	case RSlot:
-		eref(r, fn, f);
-		break;
-	case RCon:
-		econ(&fn->con[r.val], f);
-		break;
-	case RTmp:
-		assert(r.val < EAX);
-		fprintf(f, "(%%%s)", rtoa(r.val));
-		break;
-	}
-}
-
-static void
-eop(char *op, Ref a, Ref b, Fn *fn, FILE *f)
-{
-	fprintf(f, "\t%s ", op);
-	eref(a, fn, f);
-	if (!req(b, R)) {
-		fprintf(f, ", ");
-		eref(b, fn, f);
-	}
-	fprintf(f, "\n");
-}
-
-static void
 eins(Ins i, Fn *fn, FILE *f)
 {
 	static char *otoa[NOp] = {
@@ -130,26 +140,15 @@ eins(Ins i, Fn *fn, FILE *f)
 		[OSub]    = "sub",
 		[OMul]    = "imul",
 		[OAnd]    = "and",
-		[OSext]   = "movslq",
-		[OZext]   = "movzlq",
+		[OSext]   = "movsl",
+		[OZext]   = "movzl",
 		[OLoad]   = "mov",
 		[OLoadss] = "movsw",
 		[OLoadus] = "movzw",
 		[OLoadsb] = "movsb",
 		[OLoadub] = "movzb",
-		[OXCmpw]  = "cmpl",
-		[OXCmpl]  = "cmpq",
-		[OXTestw] = "testl",
-		[OXTestl] = "testq",
-	};
-	static char *stoa[] = {
-		[OStorel - OStorel] = "q",
-		[OStorew - OStorel] = "l",
-		[OStores - OStorel] = "w",
-		[OStoreb - OStorel] = "b",
 	};
 	Ref r0, r1;
-	int reg;
 	int64_t val;
 
 	switch (i.op) {
@@ -162,9 +161,7 @@ eins(Ins i, Fn *fn, FILE *f)
 			r1 = i.arg[1];
 		}
 		if (rtype(r0) == RCon && rtype(r1) == RTmp) {
-			val = fn->con[r0.val].val;
-			fprintf(f, "\timul $%"PRId64", %%%s, %%%s\n",
-				val, rtoa(r1.val), rtoa(i.to.val));
+			emitf(fn, f, "\timul%w %R, %R, %R\n", i.wide, r0, r1, i.to);
 			break;
 		}
 		/* fall through */
@@ -173,114 +170,89 @@ eins(Ins i, Fn *fn, FILE *f)
 	case OAnd:
 		if (req(i.to, i.arg[1])) {
 			if (i.op == OSub) {
-				eop("neg", i.to, R, fn, f);
-				eop("add", i.arg[0], i.to, fn, f);
+				emitf(fn, f, "\tneg%w %R\n", i.wide, i.to);
+				emitf(fn, f, "\tadd%w %R, %R\n",
+					i.wide, i.arg[0], i.to);
 				break;
 			}
 			i.arg[1] = i.arg[0];
 			i.arg[0] = i.to;
 		}
 		if (!req(i.to, i.arg[0]))
-			eop("mov", i.arg[0], i.to, fn, f);
-		eop(otoa[i.op], i.arg[1], i.to, fn, f);
+			emitf(fn, f, "\tmov%w %R, %R\n", i.wide, i.arg[0], i.to);
+		emitf(fn, f, "\t%s%w %R, %R\n", otoa[i.op], i.wide, i.arg[1], i.to);
 		break;
 	case OSext:
 	case OZext:
-		eop(otoa[i.op], i.arg[0], i.to, fn, f);
+		emitf(fn, f, "\t%sq %R, %W%R\n", otoa[i.op],
+			i.arg[0], i.wide, i.to.val);
 		break;
-	case OTrunc:
-		if (rtype(i.arg[0]) == RTmp)
-			i.arg[0] = TMP(RWORD(i.arg[0].val));
-		/* fall through */
 	case OCopy:
 		if (req(i.to, R))
 			break;
-		if (rtype(i.to) == RTmp
-		&& i.to.val < EAX
+		if (isreg(i.to)
+		&& i.wide
 		&& rtype(i.arg[0]) == RCon
 		&& fn->con[i.arg[0].val].type == CNum
 		&& (val = fn->con[i.arg[0].val].val) >= 0
 		&& val <= UINT32_MAX) {
-			fprintf(f, "\tmov $%"PRId64", %%%s\n",
-				val, rsub[i.to.val][SWord]);
-			break;
-		}
-		if (!req(i.arg[0], i.to))
-			eop("mov", i.arg[0], i.to, fn, f);
+			emitf(fn, f, "\tmovl %R, %R\n", i.arg[0], i.to);
+		} else if (!req(i.arg[0], i.to))
+			emitf(fn, f, "\tmov%w %R, %R\n", i.wide, i.arg[0], i.to);
 		break;
 	case OStorel:
 	case OStorew:
 	case OStores:
 	case OStoreb:
-		fprintf(f, "\tmov%s ", stoa[i.op - OStorel]);
-		if (rtype(i.arg[0]) == RTmp) {
-			assert(i.arg[0].val < Tmp0);
-			reg = RBASE(i.arg[0].val);
-			fprintf(f, "%%%s", rsub[reg][i.op - OStorel]);
-		} else
-			eref(i.arg[0], fn, f);
-		fprintf(f, ", ");
-		emem(i.arg[1], fn, f);
-		fprintf(f, "\n");
+		emitf(fn, f, "\tmov%t %R, %M\n", i.op - OStorel, i.arg[0], i.arg[1]);
 		break;
 	case OLoad:
 	case OLoadss:
 	case OLoadus:
 	case OLoadsb:
 	case OLoadub:
-		fprintf(f, "\t%s", otoa[i.op]);
-		if (i.to.val < EAX)
-			fprintf(f, "q ");
-		else
-			fprintf(f, "l ");
-		emem(i.arg[0], fn, f);
-		fprintf(f, ", ");
-		eref(i.to, fn, f);
-		fprintf(f, "\n");
+		emitf(fn, f, "\t%s%w %M, %R\n", otoa[i.op], i.wide, i.arg[0], i.to);
 		break;
 	case OAlloc:
-		eop("sub", i.arg[0], TMP(RSP), fn, f);
-		if (!req(i.to, R))
-			eop("mov", TMP(RSP), i.to, fn ,f);
+		emitf(fn, f, "\tsub%w %R, %R\n", 1, i.arg[0], TMP(RSP));
+		emitf(fn, f, "\tmov%w %R, %R\n", 1, TMP(RSP), i.to);
 		break;
 	case OAddr:
-		eop("lea", i.arg[0], i.to, fn, f);
+		emitf(fn, f, "\tlea%w %M, %R\n", i.wide, i.arg[0], i.to);
 		break;
 	case OSwap:
-		eop("xchg", i.arg[0], i.arg[1], fn, f);
+		emitf(fn, f, "\txchg%w %R, %R", i.wide, i.arg[0], i.arg[1]);
 		break;
 	case OSign:
-		if (req(i.to, TMP(RDX)) && req(i.arg[0], TMP(RAX)))
-			fprintf(f, "\tcqto\n");
-		else if (req(i.to, TMP(EDX)) && req(i.arg[0], TMP(EAX)))
-			fprintf(f, "\tcltd\n");
-		else
+		if (req(i.to, TMP(RDX)) && req(i.arg[0], TMP(RAX))) {
+			if (i.wide)
+				fprintf(f, "\tcqto\n");
+			else
+				fprintf(f, "\tcltd\n");
+		} else
 			diag("emit: unhandled instruction (2)");
 		break;
 	case OXDiv:
-		eop("idiv", i.arg[0], R, fn, f);
+		emitf(fn, f, "\tidiv%w %R\n", i.wide, i.arg[0]);
 		break;
-	case OXCmpw:
-	case OXCmpl:
-		if (rtype(i.arg[1]) == RTmp && req(i.arg[0], CON_Z)) {
-			eop("test", i.arg[1], i.arg[1], fn, f);
+	case OXCmp:
+		if (isreg(i.arg[1]) && req(i.arg[0], CON_Z)) {
+			emitf(fn, f, "\ttest%w %R, %R\n", i.wide, i.arg[1], i.arg[1]);
 			break;
 		}
-		/* fall through */
-	case OXTestw:
-	case OXTestl:
-		eop(otoa[i.op], i.arg[0], i.arg[1], fn, f);
+		emitf(fn, f, "\tcmp%w %R, %R\n", i.wide, i.arg[0], i.arg[1]);
+		break;
+	case OXTest:
+		emitf(fn, f, "\ttest%w %R, %R\n", i.wide, i.arg[0], i.arg[1]);
 		break;
 	case ONop:
 		break;
 	default:
 		if (OXSet <= i.op && i.op <= OXSet1) {
-			fprintf(f, "\tset%s %%%s\n",
-				ctoa[i.op-OXSet],
-				rsub[RBASE(i.to.val)][SByte]);
-			fprintf(f, "\tmovzb %%%s, %%%s\n",
-				rsub[RBASE(i.to.val)][SByte],
-				rtoa(i.to.val));
+			emitf(fn, f, "\tset%s%t %R\n",
+				ctoa[i.op-OXSet], SByte, i.to);
+			emitf(fn, f, "\tmovzb%w %T%R, %W%R\n",
+				i.wide, SByte, i.to, i.wide, i.to);
 			break;
 		}
 		diag("emit: unhandled instruction (3)");
@@ -320,17 +292,8 @@ emitfn(Fn *fn, FILE *f)
 	fs = framesz(fn);
 	if (fs)
 		fprintf(f, "\tsub $%d, %%rsp\n", fs);
-	for (b=fn->start; b; b=b->link)
-		b->visit = 0;
 	for (b=fn->start; b; b=b->link) {
-		if (b->s1 && b->link != b->s1)
-			b->s1->visit++;
-		if (b->s2 && b->link != b->s2)
-			b->s2->visit++;
-	}
-	for (b=fn->start; b; b=b->link) {
-		if (b->visit != 0)
-			fprintf(f, ".L%s:\n", b->name);
+		fprintf(f, ".L%s:\n", b->name);
 		for (i=b->ins; i-b->ins < b->nins; i++)
 			eins(*i, fn, f);
 		switch (b->jmp.type) {
