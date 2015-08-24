@@ -133,23 +133,26 @@ pmadd(Ref src, Ref dst, int w)
 enum PMStat { ToMove, Moving, Moved };
 
 static Ref
-pmrec(enum PMStat *status, int i)
+pmrec(enum PMStat *status, int i, int *w)
 {
 	Ref swp, swp1;
-	int j;
+	int j, w1;
 
 	if (req(pm[i].src, pm[i].dst))
 		return R;
 	status[i] = Moving;
+	*w |= pm[i].wide;
 	swp = R;
 	for (j=0; j<npm; j++) {
 		if (req(pm[j].src, pm[i].dst))
 			switch (status[j]) {
 			case ToMove:
-				swp1 = pmrec(status, j);
+				w1 = *w;
+				swp1 = pmrec(status, j, &w1);
 				if (!req(swp1, R)) {
 					assert(req(swp, R));
 					swp = swp1;
+					*w = w1;
 				}
 				break;
 			case Moving:
@@ -162,10 +165,10 @@ pmrec(enum PMStat *status, int i)
 	}
 	status[i] = Moved;
 	if (req(swp, R)) {
-		*curi++ = (Ins){OCopy, pm[i].dst, {pm[i].src, R}};
+		*curi++ = (Ins){OCopy, pm[i].wide, pm[i].dst, {pm[i].src}};
 		return R;
 	} else if (!req(swp, pm[i].src)) {
-		*curi++ = (Ins){OSwap, R, {pm[i].src, pm[i].dst}};
+		*curi++ = (Ins){OSwap, *w, R, {pm[i].src, pm[i].dst}};
 		return swp;
 	} else
 		return R;
@@ -175,15 +178,17 @@ pmrec(enum PMStat *status, int i)
 static void
 pmgen()
 {
-	int i;
+	int i, w;
 	enum PMStat *status;
 
 	status = alloc(npm * sizeof status[0]);
 	assert(!npm || status[npm-1] == ToMove);
 	curi = insb;
 	for (i=0; i<npm; i++)
-		if (status[i] == ToMove)
-			pmrec(status, i);
+		if (status[i] == ToMove) {
+			w = 0;
+			pmrec(status, i, &w);
+		}
 	free(status);
 }
 
@@ -222,7 +227,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 			r1 = m->r[n];
 			r = rfind(&m0, t);
 			assert(r != -1);
-			pmadd(TMP(r1), TMP(r));
+			pmadd(TMP(r1), TMP(r), tmp[t].wide);
 		}
 	for (ip=i; ip<i1; ip++) {
 		if (!req(ip->to, R))
@@ -307,7 +312,7 @@ rega(Fn *fn)
 				assert(rtype(i->to) == RTmp);
 				r = rfree(&cur, i->to.val);
 				if (r == -1) {
-					*i = (Ins){ONop, R, {R, R}};
+					*i = (Ins){.op = ONop};
 					continue;
 				}
 				if (i->to.val >= Tmp0)
@@ -364,13 +369,13 @@ rega(Fn *fn)
 				src = p->arg[a];
 				if (rtype(src) == RTmp)
 					src = rref(&end[b->id], src.val);
-				pmadd(src, dst);
+				pmadd(src, dst, p->wide);
 			}
 			for (t=Tmp0; t<fn->ntmp; t++)
 				if (BGET(s->in, t)) {
 					src = rref(&end[b->id], t);
 					dst = rref(&beg[s->id], t);
-					pmadd(src, dst);
+					pmadd(src, dst, tmp[t].wide);
 				}
 			pmgen();
 			/* todo, moving this out of

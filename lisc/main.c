@@ -101,7 +101,6 @@ main(int ac, char *av[])
 		printf("\n");
 		break;
 	}
-	#if 0
 	case 'a': {
 		fprintf(stderr, "[Testing Register Allocation]\n");
 		debug['R'] = 1;
@@ -114,6 +113,7 @@ main(int ac, char *av[])
 		rega(fn);
 		goto RPODump;
 	}
+	#if 0
 	case 'e': {
 		int n;
 
