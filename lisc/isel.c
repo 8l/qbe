@@ -159,9 +159,6 @@ sel(Ins i, Fn *fn)
 	case OZext:
 		n = 0;
 		goto Emit;
-	case OTrunc:
-		n = 1;
-		goto Emit;
 	case OAdd:
 	case OSub:
 	case OMul:
@@ -262,7 +259,6 @@ flagi(Ins *i0, Ins *i)
 		case OCopy: /* flag-transparent */
 		case OSext:
 		case OZext:
-		case OTrunc:
 		case OStorel:
 		case OStorew:
 		case OStoreb:

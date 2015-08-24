@@ -20,7 +20,6 @@ OpDesc opdesc[NOp] = {
 	[OAnd]    = { "and",    2, 2 },
 	[OSext]   = { "sext",   1, 1 },
 	[OZext]   = { "zext",   1, 1 },
-	[OTrunc]  = { "trunc",  1, 1 },
 	[OStorel] = { "storel", 2, 0 },
 	[OStorew] = { "storew", 2, 0 },
 	[OStores] = { "stores", 2, 0 },

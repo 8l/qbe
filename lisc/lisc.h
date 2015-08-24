@@ -113,7 +113,6 @@ enum Op {
 	OAnd,
 	OSext,
 	OZext,
-	OTrunc,
 	OCmp,
 	OCmp1 = OCmp + NCmp-1,
 	OStorel,
