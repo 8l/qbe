@@ -243,7 +243,7 @@ Emit:
 
 	for (n=0; n<2; n++)
 		if (cpy[n].s)
-			emit(OAddr, 0, cpy[n].r, SLOT(cpy[n].s), R);
+			emit(OAddr, 1, cpy[n].r, SLOT(cpy[n].s), R);
 }
 
 static Ins *
@@ -426,7 +426,7 @@ isel(Fn *fn)
 				s = rslot(p->arg[a], fn);
 				if (s) {
 					p->arg[a] = newtmp(fn);
-					emit(OAddr, 0, p->arg[a], SLOT(s), R);
+					emit(OAddr, 1, p->arg[a], SLOT(s), R);
 				}
 			}
 		curi = &insb[NIns];
