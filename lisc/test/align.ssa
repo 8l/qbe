@@ -1,0 +1,8 @@
+@start
+	%x =l alloc16 16
+	%y =l add %x, 8
+	%m =w rem %y, 16
+	storew %m, %y
+	%n =w load %y
+	storew %n, $a
+	ret
