@@ -184,8 +184,7 @@ eins(Ins i, Fn *fn, FILE *f)
 		break;
 	case OSext:
 	case OZext:
-		emitf(fn, f, "\t%sq %R, %W%R\n", otoa[i.op],
-			i.arg[0], i.wide, i.to.val);
+		emitf(fn, f, "\t%sq %R, %W%R\n", otoa[i.op], i.arg[0], i.wide, i.to);
 		break;
 	case OCopy:
 		if (req(i.to, R))
@@ -221,7 +220,7 @@ eins(Ins i, Fn *fn, FILE *f)
 		emitf(fn, f, "\tlea%w %M, %R\n", i.wide, i.arg[0], i.to);
 		break;
 	case OSwap:
-		emitf(fn, f, "\txchg%w %R, %R", i.wide, i.arg[0], i.arg[1]);
+		emitf(fn, f, "\txchg%w %R, %R\n", i.wide, i.arg[0], i.arg[1]);
 		break;
 	case OSign:
 		if (req(i.to, TMP(RDX)) && req(i.arg[0], TMP(RAX))) {
