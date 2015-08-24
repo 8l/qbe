@@ -161,7 +161,8 @@ eins(Ins i, Fn *fn, FILE *f)
 			r1 = i.arg[1];
 		}
 		if (rtype(r0) == RCon && rtype(r1) == RTmp) {
-			emitf(fn, f, "\timul%w %R, %R, %R\n", i.wide, r0, r1, i.to);
+			emitf(fn, f, "\timul%w %R, %R, %R\n",
+				i.wide, r0, r1, i.to);
 			break;
 		}
 		/* fall through */
@@ -170,7 +171,8 @@ eins(Ins i, Fn *fn, FILE *f)
 	case OAnd:
 		if (req(i.to, i.arg[1])) {
 			if (i.op == OSub) {
-				emitf(fn, f, "\tneg%w %R\n", i.wide, i.to);
+				emitf(fn, f, "\tneg%w %R\n",
+					i.wide, i.to);
 				emitf(fn, f, "\tadd%w %R, %R\n",
 					i.wide, i.arg[0], i.to);
 				break;
@@ -179,12 +181,15 @@ eins(Ins i, Fn *fn, FILE *f)
 			i.arg[0] = i.to;
 		}
 		if (!req(i.to, i.arg[0]))
-			emitf(fn, f, "\tmov%w %R, %R\n", i.wide, i.arg[0], i.to);
-		emitf(fn, f, "\t%s%w %R, %R\n", otoa[i.op], i.wide, i.arg[1], i.to);
+			emitf(fn, f, "\tmov%w %R, %R\n",
+				i.wide, i.arg[0], i.to);
+		emitf(fn, f, "\t%s%w %R, %R\n", otoa[i.op],
+			i.wide, i.arg[1], i.to);
 		break;
 	case OSext:
 	case OZext:
-		emitf(fn, f, "\t%sq %R, %W%R\n", otoa[i.op], i.arg[0], i.wide, i.to);
+		emitf(fn, f, "\t%sq %R, %W%R\n", otoa[i.op],
+			i.arg[0], i.wide, i.to);
 		break;
 	case OCopy:
 		if (req(i.to, R))
@@ -195,32 +200,40 @@ eins(Ins i, Fn *fn, FILE *f)
 		&& fn->con[i.arg[0].val].type == CNum
 		&& (val = fn->con[i.arg[0].val].val) >= 0
 		&& val <= UINT32_MAX) {
-			emitf(fn, f, "\tmovl %R, %R\n", i.arg[0], i.to);
+			emitf(fn, f, "\tmovl %R, %R\n",
+				i.arg[0], i.to);
 		} else if (!req(i.arg[0], i.to))
-			emitf(fn, f, "\tmov%w %R, %R\n", i.wide, i.arg[0], i.to);
+			emitf(fn, f, "\tmov%w %R, %R\n",
+				i.wide, i.arg[0], i.to);
 		break;
 	case OStorel:
 	case OStorew:
 	case OStores:
 	case OStoreb:
-		emitf(fn, f, "\tmov%t %R, %M\n", i.op - OStorel, i.arg[0], i.arg[1]);
+		emitf(fn, f, "\tmov%t %R, %M\n",
+			i.op - OStorel, i.arg[0], i.arg[1]);
 		break;
 	case OLoad:
 	case OLoadss:
 	case OLoadus:
 	case OLoadsb:
 	case OLoadub:
-		emitf(fn, f, "\t%s%w %M, %R\n", otoa[i.op], i.wide, i.arg[0], i.to);
+		emitf(fn, f, "\t%s%w %M, %R\n", otoa[i.op],
+			i.wide, i.arg[0], i.to);
 		break;
 	case OAlloc:
-		emitf(fn, f, "\tsub%w %R, %R\n", 1, i.arg[0], TMP(RSP));
-		emitf(fn, f, "\tmov%w %R, %R\n", 1, TMP(RSP), i.to);
+		emitf(fn, f, "\tsub%w %R, %R\n",
+			1, i.arg[0], TMP(RSP));
+		emitf(fn, f, "\tmov%w %R, %R\n",
+			1, TMP(RSP), i.to);
 		break;
 	case OAddr:
-		emitf(fn, f, "\tlea%w %M, %R\n", i.wide, i.arg[0], i.to);
+		emitf(fn, f, "\tlea%w %M, %R\n",
+			i.wide, i.arg[0], i.to);
 		break;
 	case OSwap:
-		emitf(fn, f, "\txchg%w %R, %R\n", i.wide, i.arg[0], i.arg[1]);
+		emitf(fn, f, "\txchg%w %R, %R\n",
+			i.wide, i.arg[0], i.arg[1]);
 		break;
 	case OSign:
 		if (req(i.to, TMP(RDX)) && req(i.arg[0], TMP(RAX))) {
@@ -236,13 +249,16 @@ eins(Ins i, Fn *fn, FILE *f)
 		break;
 	case OXCmp:
 		if (isreg(i.arg[1]) && req(i.arg[0], CON_Z)) {
-			emitf(fn, f, "\ttest%w %R, %R\n", i.wide, i.arg[1], i.arg[1]);
+			emitf(fn, f, "\ttest%w %R, %R\n",
+				i.wide, i.arg[1], i.arg[1]);
 			break;
 		}
-		emitf(fn, f, "\tcmp%w %R, %R\n", i.wide, i.arg[0], i.arg[1]);
+		emitf(fn, f, "\tcmp%w %R, %R\n",
+			i.wide, i.arg[0], i.arg[1]);
 		break;
 	case OXTest:
-		emitf(fn, f, "\ttest%w %R, %R\n", i.wide, i.arg[0], i.arg[1]);
+		emitf(fn, f, "\ttest%w %R, %R\n",
+			i.wide, i.arg[0], i.arg[1]);
 		break;
 	case ONop:
 		break;
