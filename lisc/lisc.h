@@ -40,29 +40,10 @@ enum Reg {
 	RBP, /* reserved */
 	RSP,
 
-	EAX, /* 32bits */
-	ECX,
-	EDX,
-	ESI,
-	EDI,
-	R8D,
-	R9D,
-	R10D,
-	R11D,
-
-	EBX,
-	R12D,
-	R13D,
-	R14D,
-	R15D,
-
 	Tmp0, /* first non-reg temporary */
 
 	NReg = RDX - RAX + 1
 };
-
-#define RWORD(r) (r + (EAX-RAX))
-#define RBASE(r) (r < EAX ? r : r - (EAX-RAX))
 
 enum {
 	NString = 32,
@@ -105,6 +86,8 @@ static inline int req(Ref a, Ref b)
 { return a.type == b.type && a.val == b.val; }
 static inline int rtype(Ref r)
 { return req(r, R) ? -1 : r.type; }
+static inline int isreg(Ref r)
+{ return rtype(r) == RTmp && r.val < Tmp0; }
 
 enum Cmp {
 	Ceq,
@@ -153,12 +136,10 @@ enum Op {
 	OSwap,
 	OSign,
 	OXDiv,
-	OXCmpw,
-	OXCmpl,
+	OXCmp,
 	OXSet,
 	OXSet1 = OXSet + NCmp-1,
-	OXTestw,
-	OXTestl,
+	OXTest,
 	NOp
 };
 
@@ -179,7 +160,8 @@ struct OpDesc {
 };
 
 struct Ins {
-	short op;
+	uint16_t op:15;
+	uint16_t wide:1;
 	Ref to;
 	Ref arg[2];
 };
@@ -189,6 +171,7 @@ struct Phi {
 	Ref arg[NPred];
 	Blk *blk[NPred];
 	uint narg;
+	uint wide;
 	Phi *link;
 };
 
@@ -215,16 +198,19 @@ struct Blk {
 };
 
 struct Tmp {
+#if 0
 	enum {
 		TUndef,
 		TWord,
 		TLong,
 		TReg,
 	} type;
+#endif
 	char name[NString];
 	uint ndef, nuse;
 	uint cost;
-	uint spill;
+	short spill;
+	short wide;
 	int hint;
 };
 
@@ -280,7 +266,6 @@ void fillcost(Fn *);
 void spill(Fn *);
 
 /* rega.c */
-int isreg(Ref);
 void rega(Fn *);
 
 /* emit.c */

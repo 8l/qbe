@@ -35,10 +35,8 @@ OpDesc opdesc[NOp] = {
 	[OSwap]   = { "swap",   2, 2 },
 	[OSign]   = { "sign",   1, 0 },
 	[OXDiv]   = { "xdiv",   1, 1 },
-	[OXCmpw]  = { "xcmpw",  2, 1 },
-	[OXCmpl]  = { "xcmpl",  2, 1 },
-	[OXTestw] = { "xtestw", 2, 1 },
-	[OXTestl] = { "xtestl", 2, 1 },
+	[OXCmp]   = { "xcmp",  2, 1 },
+	[OXTest]  = { "xtest", 2, 1 },
 	[OAddr]   = { "addr",   1, 0 },
 	[OAlloc]   = { "alloc4",  1, 1 },
 	[OAlloc+1] = { "alloc8",  1, 1 },
@@ -368,7 +366,7 @@ parseline(PState ps)
 	Phi *phi;
 	Ref r;
 	Blk *b;
-	int t, op, i;
+	int t, op, i, w;
 
 	do
 		t = next();
@@ -432,10 +430,10 @@ parseline(PState ps)
 	expect(TEq);
 	switch (next()) {
 	case TW:
-		tmp[r.val].type = TWord;
+		w = 0;
 		break;
 	case TL:
-		tmp[r.val].type = TLong;
+		w = 1;
 		break;
 	default:
 		err("class expected after =");
@@ -476,6 +474,7 @@ DoOp:
 		if (curi - insb >= NIns)
 			err("too many instructions in block");
 		curi->op = op;
+		curi->wide = w;
 		curi->to = r;
 		curi->arg[0] = arg[0];
 		curi->arg[1] = arg[1];
@@ -484,6 +483,7 @@ DoOp:
 	} else {
 		phi = alloc(sizeof *phi);
 		phi->to = r;
+		phi->wide = w;
 		memcpy(phi->arg, arg, i * sizeof arg[0]);
 		memcpy(phi->blk, blk, i * sizeof blk[0]);
 		phi->narg = i;
@@ -504,11 +504,8 @@ parsefn(FILE *f)
 	thead = TXXX;
 	for (i=0; i<NBlk; i++)
 		bmap[i] = 0;
-	for (i=0; i<NTmp; i++)
-		if (i < Tmp0)
-			tmp[i] = (Tmp){.type = TReg};
-		else
-			tmp[i] = (Tmp){.name = ""};
+	for (i=Tmp0; i<NTmp; i++)
+		tmp[i] = (Tmp){.name = ""};
 	ntmp = Tmp0;
 	ncon = 1; /* first constant must be 0 */
 	curi = insb;
@@ -536,23 +533,16 @@ parsefn(FILE *f)
 	return fn;
 }
 
-static char *
+static void
 printref(Ref r, Fn *fn, FILE *f)
 {
-	static char *ttoa[] = {
-		[TUndef] = "?",
-		[TWord] = "w",
-		[TLong] = "l",
-		[TReg] = "",
-	};
-
 	switch (r.type) {
 	case RTmp:
 		if (r.val < Tmp0)
 			fprintf(f, "R%d", r.val);
 		else
 			fprintf(f, "%%%s", fn->tmp[r.val].name);
-		return ttoa[fn->tmp[r.val].type];
+		break;
 	case RCon:
 		switch (fn->con[r.val].type) {
 		case CAddr:
@@ -571,7 +561,6 @@ printref(Ref r, Fn *fn, FILE *f)
 		fprintf(f, "S%d", r.val);
 		break;
 	}
-	return "";
 }
 
 void
@@ -590,14 +579,13 @@ printfn(Fn *fn, FILE *f)
 	Phi *p;
 	Ins *i;
 	uint n;
-	char *cl;
 
 	for (b=fn->start; b; b=b->link) {
 		fprintf(f, "@%s\n", b->name);
 		for (p=b->phi; p; p=p->link) {
 			fprintf(f, "\t");
-			cl = printref(p->to, fn, f);
-			fprintf(f, " =%s phi ", cl);
+			printref(p->to, fn, f);
+			fprintf(f, " =%s phi ", p->wide ? "l" : "w");
 			assert(p->narg);
 			for (n=0;; n++) {
 				fprintf(f, "@%s ", p->blk[n]->name);
@@ -612,10 +600,12 @@ printfn(Fn *fn, FILE *f)
 		for (i=b->ins; i-b->ins < b->nins; i++) {
 			fprintf(f, "\t");
 			if (!req(i->to, R)) {
-				cl = printref(i->to, fn, f);
-				fprintf(f, " =%s ", cl);
+				printref(i->to, fn, f);
+				fprintf(f, " =");
 			}
 			assert(opdesc[i->op].name);
+			if (OStorel > i->op || i->op > OStoreb)
+				fprintf(f, i->wide ? "l " : "w ");
 			fprintf(f, "%s", opdesc[i->op].name);
 			n = opdesc[i->op].arity;
 			if (n > 0) {

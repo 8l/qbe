@@ -90,22 +90,22 @@ fillrpo(Fn *f)
 }
 
 static Ref *top, *bot;
-static Ref topdef(Blk *, Fn *);
+static Ref topdef(Blk *, Fn *, int);
 
 static Ref
-botdef(Blk *b, Fn *f)
+botdef(Blk *b, Fn *f, int w)
 {
 	Ref r;
 
 	if (!req(bot[b->id], R))
 		return bot[b->id];
-	r = topdef(b, f);
+	r = topdef(b, f, w);
 	bot[b->id] = r;
 	return r;
 }
 
 static Ref
-topdef(Blk *b, Fn *f)
+topdef(Blk *b, Fn *f, int w)
 {
 	uint i;
 	int t1;
@@ -116,7 +116,7 @@ topdef(Blk *b, Fn *f)
 		return top[b->id];
 	assert(b->npred && "invalid ssa program detected");
 	if (b->npred == 1) {
-		r = botdef(b->pred[0], f);
+		r = botdef(b->pred[0], f, w);
 		top[b->id] = r;
 		return r;
 	}
@@ -128,8 +128,9 @@ topdef(Blk *b, Fn *f)
 	p->link = b->phi;
 	b->phi = p;
 	p->to = r;
+	p->wide = w;
 	for (i=0; i<b->npred; i++) {
-		p->arg[i] = botdef(b->pred[i], f);
+		p->arg[i] = botdef(b->pred[i], f, w);
 		p->blk[i] = b->pred[i];
 	}
 	p->narg = i;
@@ -143,12 +144,13 @@ void
 ssafix(Fn *f, int t)
 {
 	uint n;
-	int t0, t1;
+	int t0, t1, w;
 	Ref rt;
 	Blk *b;
 	Phi *p;
 	Ins *i;
 
+	w = 0;
 	top = alloc(f->nblk * sizeof top[0]);
 	bot = alloc(f->nblk * sizeof bot[0]);
 	rt = TMP(t);
@@ -160,6 +162,7 @@ ssafix(Fn *f, int t)
 			if (req(p->to, rt)) {
 				t1 = f->ntmp++;
 				p->to = TMP(t1);
+				w |= p->wide;
 			}
 		for (i=b->ins; i-b->ins < b->nins; i++) {
 			if (t1) {
@@ -169,6 +172,7 @@ ssafix(Fn *f, int t)
 					i->arg[1] = TMP(t1);
 			}
 			if (req(i->to, rt)) {
+				w |= i->wide;
 				t1 = f->ntmp++;
 				i->to = TMP(t1);
 			}
@@ -182,15 +186,15 @@ ssafix(Fn *f, int t)
 		for (p=b->phi; p; p=p->link)
 			for (n=0; n<p->narg; n++)
 				if (req(p->arg[n], rt))
-					p->arg[n] = botdef(p->blk[n], f);
+					p->arg[n] = botdef(p->blk[n], f, w);
 		for (i=b->ins; i-b->ins < b->nins; i++) {
 			if (req(i->arg[0], rt))
-				i->arg[0] = topdef(b, f);
+				i->arg[0] = topdef(b, f, w);
 			if (req(i->arg[1], rt))
-				i->arg[1] = topdef(b, f);
+				i->arg[1] = topdef(b, f, w);
 		}
 		if (req(b->jmp.arg, rt))
-			b->jmp.arg = topdef(b, f);
+			b->jmp.arg = topdef(b, f, w);
 	}
 	/* add new temporaries */
 	f->tmp = realloc(f->tmp, f->ntmp * sizeof f->tmp[0]);

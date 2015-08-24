@@ -1,6 +1,5 @@
 #include "lisc.h"
 
-
 static void
 loopmark(Blk *hd, Blk *b, Phi *p)
 {
@@ -170,41 +169,37 @@ slot(int t)
 		diag("spill: cannot spill register");
 	s = tmp[t].spill;
 	if (!s) {
-		if (tmp[t].type == TWord)
-			s = slota(1, 0, svec);
-		else if (tmp[t].type == TLong)
+		if (tmp[t].wide)
 			s = slota(2, 1, svec);
 		else
-			diag("spill: unknown type (1)");
+			s = slota(1, 0, svec);
 		tmp[t].spill = s;
 	}
 	return SLOT(s);
 }
 
 static void
-emit(short op, Ref to, Ref arg0, Ref arg1)
+emit(Ins i)
 {
 	if (curi == insb)
 		diag("spill: too many instructions");
-	*--curi = (Ins){op, to, {arg0, arg1}};
+	*--curi = i;
 }
 
 static void
 store(Ref r, int s)
 {
-	if (tmp[r.val].type == TLong)
-		emit(OStorel, R, r, SLOT(s));
-	else if (tmp[r.val].type == TWord)
-		emit(OStorew, R, r, SLOT(s));
+	if (tmp[r.val].wide)
+		emit((Ins){OStorel, 0, R, {r, SLOT(s)}});
 	else
-		diag("spill: unknown type (2)");
+		emit((Ins){OStorew, 0, R, {r, SLOT(s)}});
 }
 
 static int
 limit(Bits *b, int k, Bits *fst)
 {
 	static int *tarr, maxt;
-	int i, t, nt;
+	int i, t, nt, w;
 
 	nt = bcnt(b);
 	if (nt <= k)
@@ -232,8 +227,9 @@ limit(Bits *b, int k, Bits *fst)
 	for (; i<nt; i++) {
 		slot(tarr[i]);
 		if (curi) {
-			emit(OLoad, TMP(tarr[i]), slot(tarr[i]), R);
 			t = tarr[i];
+			w = tmp[t].wide;
+			emit((Ins){OLoad, w, TMP(t), {slot(t)}});
 		}
 	}
 	return t;
@@ -298,10 +294,9 @@ dopm(Blk *b, Ins *i, Bits *v)
 			break;
 	}
 	limit(v, NReg, 0);
-	do {
-		i1--;
-		emit(OCopy, i1->to, i1->arg[0], R);
-	} while (i1 != i);
+	do
+		emit(*--i1);
+	while (i1 != i);
 	return i;
 }
 
@@ -331,6 +326,14 @@ spill(Fn *fn)
 	tmp = fn->tmp;
 	ntmp = fn->ntmp;
 	assert(ntmp < NBit*BITS);
+
+	for (b=fn->start; b; b=b->link) {
+		for (p=b->phi; p; p=p->link)
+			tmp[p->to.val].wide = p->wide;
+		for (i=b->ins; i-b->ins < b->nins; i++)
+			if (rtype(i->to) == RTmp)
+				tmp[i->to.val].wide = i->wide;
+	}
 
 	for (n=fn->nblk-1; n>=0; n--) {
 		/* invariant: m>n => in,out of m updated */
@@ -409,7 +412,7 @@ spill(Fn *fn)
 			j -= setloc(&i->arg[1], &v, &w);
 			if (s)
 				store(i->to, s);
-			emit(i->op, i->to, i->arg[0], i->arg[1]);
+			emit(*i);
 		}
 
 		for (p=b->phi; p; p=p->link) {

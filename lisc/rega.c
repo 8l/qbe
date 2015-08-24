@@ -4,7 +4,6 @@
 	#define assert(x) assert_test(#x, x)
 #endif
 
-
 typedef struct RMap RMap;
 struct RMap {
 	int t[NReg];
@@ -17,6 +16,7 @@ extern Ins insb[NIns], *curi;
 static Tmp *tmp;       /* function temporaries */
 static struct {
 	Ref src, dst;
+	int wide;
 } *pm;                 /* parallel move constructed */
 static int cpm, npm;   /* capacity and size of pm */
 
@@ -32,20 +32,6 @@ rfind(RMap *m, int t)
 }
 
 static Ref
-reg(int r, int t)
-{
-	assert(r < Tmp0);
-	switch (tmp[t].type) {
-	default:
-		diag("rega: invalid temporary");
-	case TWord:
-		return TMP(RWORD(r));
-	case TLong:
-		return TMP(r);
-	}
-}
-
-static Ref
 rref(RMap *m, int t)
 {
 	int r, s;
@@ -56,7 +42,7 @@ rref(RMap *m, int t)
 		assert(s && "should have spilled");
 		return SLOT(s);
 	} else
-		return reg(r, t);
+		return TMP(r);
 }
 
 static void
@@ -80,7 +66,7 @@ ralloc(RMap *m, int t)
 	int r;
 
 	if (t < Tmp0) {
-		assert(BGET(m->b, RBASE(t)));
+		assert(BGET(m->b, t));
 		return TMP(t);
 	}
 	if (BGET(m->b, t)) {
@@ -96,7 +82,7 @@ ralloc(RMap *m, int t)
 		if (tmp[t].hint == -1)
 			tmp[t].hint = r;
 	}
-	return reg(r, t);
+	return TMP(r);
 }
 
 static int
@@ -104,8 +90,6 @@ rfree(RMap *m, int t)
 {
 	int i, r;
 
-	if (t < Tmp0)
-		t = RBASE(t);
 	if (!BGET(m->b, t))
 		return -1;
 	for (i=0; m->t[i] != t; i++)
@@ -132,7 +116,7 @@ mdump(RMap *m)
 }
 
 static void
-pmadd(Ref src, Ref dst)
+pmadd(Ref src, Ref dst, int w)
 {
 	if (npm == cpm) {
 		cpm = cpm * 2 + 16;
@@ -142,6 +126,7 @@ pmadd(Ref src, Ref dst)
 	}
 	pm[npm].src = src;
 	pm[npm].dst = dst;
+	pm[npm].wide = w;
 	npm++;
 }
 
@@ -202,12 +187,6 @@ pmgen()
 	free(status);
 }
 
-int
-isreg(Ref r)
-{
-	return rtype(r) == RTmp && r.val < Tmp0;
-}
-
 static Ins *
 dopm(Blk *b, Ins *i, RMap *m)
 {
@@ -218,7 +197,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 	m0 = *m;
 	i1 = i+1;
 	for (;; i--) {
-		r = RBASE(i->arg[0].val);
+		r = i->arg[0].val;
 		r1 = req(i->to, R) ? -1 : rfree(m, i->to.val);
 		if (BGET(m->b, r) && r1 != r) {
 			/* r is used and not by i->to, */
@@ -243,12 +222,12 @@ dopm(Blk *b, Ins *i, RMap *m)
 			r1 = m->r[n];
 			r = rfind(&m0, t);
 			assert(r != -1);
-			pmadd(reg(r1, t), reg(r, t));
+			pmadd(TMP(r1), TMP(r));
 		}
 	for (ip=i; ip<i1; ip++) {
 		if (!req(ip->to, R))
 			rfree(m, ip->to.val);
-		r = RBASE(ip->arg[0].val);
+		r = ip->arg[0].val;
 		if (rfind(m, r) == -1)
 			radd(m, r, r);
 	}
@@ -295,9 +274,9 @@ rega(Fn *fn)
 			if (i->op != OCopy)
 				continue;
 			if (rtype(i->arg[0]) == RTmp && isreg(i->to))
-				tmp[i->arg[0].val].hint = RBASE(i->to.val);
+				tmp[i->arg[0].val].hint = i->to.val;
 			if (rtype(i->to) == RTmp && isreg(i->arg[0]))
-				tmp[i->to.val].hint = RBASE(i->arg[0].val);
+				tmp[i->to.val].hint = i->arg[0].val;
 		}
 
 	/* 2. assign registers backwards */
@@ -332,7 +311,7 @@ rega(Fn *fn)
 					continue;
 				}
 				if (i->to.val >= Tmp0)
-					i->to = reg(r, i->to.val);
+					i->to = TMP(r);
 			} else
 				r = 0;
 			for (x=0; x<2; x++)
@@ -378,7 +357,7 @@ rega(Fn *fn)
 					r = rfind(&beg[s->id], dst.val);
 					if (r == -1)
 						continue;
-					dst = reg(r, dst.val);
+					dst = TMP(r);
 				}
 				for (a=0; p->blk[a]!=b; a++)
 					assert(a+1 < p->narg);

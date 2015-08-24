@@ -101,6 +101,7 @@ main(int ac, char *av[])
 		printf("\n");
 		break;
 	}
+	#if 0
 	case 'a': {
 		fprintf(stderr, "[Testing Register Allocation]\n");
 		debug['R'] = 1;
@@ -136,6 +137,7 @@ main(int ac, char *av[])
 		pr = 0;
 		break;
 	}
+	#endif
 	default:
 		break;
 	}

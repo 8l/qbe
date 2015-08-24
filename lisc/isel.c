@@ -20,15 +20,15 @@
 extern Ins insb[NIns], *curi; /* shared work buffer */
 
 static void
-emit(short op, Ref to, Ref arg0, Ref arg1)
+emit(int op, int w, Ref to, Ref arg0, Ref arg1)
 {
 	if (curi == insb)
 		diag("isel: too many instructions");
-	*--curi = (Ins){op, to, {arg0, arg1}};
+	*--curi = (Ins){op, w, to, {arg0, arg1}};
 }
 
 static Ref
-newtmp(int type, Fn *fn)
+newtmp(Fn *fn)
 {
 	static int n;
 	int t;
@@ -37,7 +37,7 @@ newtmp(int type, Fn *fn)
 	fn->tmp = realloc(fn->tmp, fn->ntmp * sizeof fn->tmp[0]);
 	if (!fn->tmp)
 		diag("isel: out of memory");
-	fn->tmp[t] = (Tmp){.type = type};
+	memset(&fn->tmp[t], 0, sizeof fn->tmp[t]);
 	sprintf(fn->tmp[t].name, "isel%d", ++n);
 	return TMP(t);
 }
@@ -80,17 +80,10 @@ noimm(Ref r, Fn *fn)
 	}
 }
 
-static int
-islong(Ref r, Fn *fn)
-{
-	return rtype(r) == RTmp && fn->tmp[r.val].type == TLong;
-}
-
 static void
-selcmp(Ref arg[2], Fn *fn)
+selcmp(Ref arg[2], int w, Fn *fn)
 {
 	Ref r;
-	int lng;
 
 	if (rtype(arg[0]) == RCon) {
 		r = arg[1];
@@ -98,12 +91,11 @@ selcmp(Ref arg[2], Fn *fn)
 		arg[0] = r;
 	}
 	assert(rtype(arg[0]) != RCon);
-	lng = islong(arg[0], fn) || islong(arg[1], fn);
-	emit(lng ? OXCmpl : OXCmpw, R, arg[1], arg[0]);
+	emit(OXCmp, w, R, arg[1], arg[0]);
 	r = arg[1];
-	if (lng && rtype(r) == RCon && noimm(r, fn)) {
-		curi->arg[0] = newtmp(TLong, fn);
-		emit(OCopy, curi->arg[0], r, R);
+	if (w && rtype(r) == RCon && noimm(r, fn)) {
+		curi->arg[0] = newtmp(fn);
+		emit(OCopy, w, curi->arg[0], r, R);
 	}
 }
 
@@ -118,8 +110,8 @@ rslot(Ref r, Fn *fn)
 static void
 sel(Ins i, Fn *fn)
 {
-	Ref r0, r1, ra, rd;
-	int n, ty, c, s;
+	Ref r0, r1;
+	int n, c, s, w;
 	int64_t val;
 	struct {
 		Ref r;
@@ -131,52 +123,38 @@ sel(Ins i, Fn *fn)
 		cpy[n].s = 0;
 		s = rslot(r0, fn);
 		if (s) {
-			r0 = newtmp(TLong, fn);
+			r0 = newtmp(fn);
 			i.arg[n] = r0;
 			cpy[n].r = r0;
 			cpy[n].s = s;
 		}
 	}
 
+	w = i.wide;
 	switch (i.op) {
 	case ODiv:
 	case ORem:
-		ty = fn->tmp[i.to.val].type;
-		switch (ty) {
-		default:
-			diag("isel: invalid division");
-		case TWord:
-			ra = TMP(EAX);
-			rd = TMP(EDX);
-			break;
-		case TLong:
-			ra = TMP(RAX);
-			rd = TMP(RDX);
-			break;
-		}
-		r0 = i.op == ODiv ? ra : rd;
-		r1 = i.op == ODiv ? rd : ra;
-		emit(OCopy, i.to, r0, R);
-		emit(OCopy, R, r1, R);
+		if (i.op == ODiv)
+			r0 = TMP(RAX), r1 = TMP(RDX);
+		else
+			r0 = TMP(RDX), r1 = TMP(RAX);
+		emit(OCopy, w, i.to, r0, R);
+		emit(OCopy, w, R, r1, R);
 		if (rtype(i.arg[1]) == RCon) {
 			/* immediates not allowed for
 			 * divisions in x86
 			 */
-			r0 = newtmp(ty, fn);
+			r0 = newtmp(fn);
 		} else
 			r0 = i.arg[1];
-		emit(OXDiv, R, r0, R);
-		emit(OSign, rd, ra, R);
-		emit(OCopy, ra, i.arg[0], R);
+		emit(OXDiv, w, R, r0, R);
+		emit(OSign, w, TMP(RDX), TMP(RAX), R);
+		emit(OCopy, w, TMP(RAX), i.arg[0], R);
 		if (rtype(i.arg[1]) == RCon)
-			emit(OCopy, r0, i.arg[1], R);
+			emit(OCopy, w, r0, i.arg[1], R);
 		break;
 	case ONop:
 		break;
-	case OXTestw:
-	case OXTestl:
-		n = i.op == OXTestl ? 2 : 0;
-		goto Emit;
 	case OSext:
 	case OZext:
 		n = 0;
@@ -189,10 +167,8 @@ sel(Ins i, Fn *fn)
 	case OMul:
 	case OAnd:
 	case OCopy:
-		if (fn->tmp[i.to.val].type == TLong)
-			n = 2;
-		else
-			n = 0;
+	case OXTest:
+		n = w ? 2 : 0;
 		goto Emit;
 	case OStorel:
 	case OStorew:
@@ -215,7 +191,7 @@ sel(Ins i, Fn *fn)
 		}
 		n = 0;
 Emit:
-		emit(i.op, i.to, i.arg[0], i.arg[1]);
+		emit(i.op, w, i.to, i.arg[0], i.arg[1]);
 		while (n--) {
 			/* load constants that do not fit in
 			 * a 32bit signed integer into a
@@ -223,8 +199,8 @@ Emit:
 			 */
 			r0 = i.arg[n];
 			if (rtype(r0) == RCon && noimm(r0, fn)) {
-				curi->arg[n] = newtmp(TLong, fn);
-				emit(OCopy, curi->arg[n], r0, R);
+				curi->arg[n] = newtmp(fn);
+				emit(OCopy, 1, curi->arg[n], r0, R);
 			}
 		}
 		break;
@@ -243,14 +219,14 @@ Emit:
 			val = (val + 15)  & ~INT64_C(15);
 			if (val < 0 || val > INT32_MAX)
 				diag("isel: alloc too large");
-			emit(OAlloc, i.to, newcon(val, fn), R);
+			emit(OAlloc, 0, i.to, newcon(val, fn), R);
 		} else {
 			/* r0 = (i.arg[0] + 15) & -16 */
-			r0 = newtmp(TLong, fn);
-			r1 = newtmp(TLong, fn);
-			emit(OAlloc, i.to, r0, R);
-			emit(OAnd, r0, r1, newcon(-16, fn));
-			emit(OAdd, r1, i.arg[0], newcon(15, fn));
+			r0 = newtmp(fn);
+			r1 = newtmp(fn);
+			emit(OAlloc, 0, i.to, r0, R);
+			emit(OAnd, 1, r0, r1, newcon(-16, fn));
+			emit(OAdd, 1, r1, i.arg[0], newcon(15, fn));
 		}
 		break;
 	default:
@@ -258,8 +234,8 @@ Emit:
 			c = i.op - OCmp;
 			if (rtype(i.arg[0]) == RCon)
 				c = COP(c);
-			emit(OXSet+c, i.to, R, R);
-			selcmp(i.arg, fn);
+			emit(OXSet+c, 0, i.to, R, R);
+			selcmp(i.arg, w, fn);
 			break;
 		}
 		diag("isel: non-exhaustive implementation");
@@ -267,7 +243,7 @@ Emit:
 
 	for (n=0; n<2; n++)
 		if (cpy[n].s)
-			emit(OAddr, cpy[n].r, SLOT(cpy[n].s), R);
+			emit(OAddr, 0, cpy[n].r, SLOT(cpy[n].s), R);
 }
 
 static Ins *
@@ -327,19 +303,16 @@ seljmp(Blk *b, Fn *fn)
 				c = COP(c);
 			b->jmp.type = JXJc + c;
 			if (fn->tmp[r.val].nuse == 1) {
-				assert(fn->tmp[r.val].ndef==1);
-				selcmp(fi->arg, fn);
-				*fi = (Ins){ONop, R, {R, R}};
+				assert(fn->tmp[r.val].ndef == 1);
+				selcmp(fi->arg, fi->wide, fn);
+				*fi = (Ins){.op = ONop};
 			}
 			return;
 		}
 		if (fi->op == OAnd && fn->tmp[r.val].nuse == 1
 		&& (rtype(fi->arg[0]) == RTmp ||
 		    rtype(fi->arg[1]) == RTmp)) {
-			if (fn->tmp[r.val].type == TLong)
-				fi->op = OXTestl;
-			else
-				fi->op = OXTestw;
+			fi->op = OXTest;
 			fi->to = R;
 			b->jmp.type = JXJc + Cne;
 			if (rtype(fi->arg[1]) == RCon) {
@@ -354,7 +327,7 @@ seljmp(Blk *b, Fn *fn)
 			return;
 		}
 	}
-	selcmp((Ref[2]){r, CON_Z}, fn);
+	selcmp((Ref[2]){r, CON_Z}, 0, fn); /* fixme, add long branch if non-zero */
 	b->jmp.type = JXJc + Cne;
 }
 
@@ -452,8 +425,8 @@ isel(Fn *fn)
 					assert(a+1 < p->narg);
 				s = rslot(p->arg[a], fn);
 				if (s) {
-					p->arg[a] = newtmp(TLong, fn);
-					emit(OAddr, p->arg[a], SLOT(s), R);
+					p->arg[a] = newtmp(fn);
+					emit(OAddr, 0, p->arg[a], SLOT(s), R);
 				}
 			}
 		curi = &insb[NIns];
