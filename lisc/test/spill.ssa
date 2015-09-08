@@ -9,7 +9,8 @@
 # spill
 #
 
-@start
+function $test {
+ @start
 	%f =w copy 0      # here
 	%b =w copy 1
 	%c =w copy 2
@@ -18,3 +19,4 @@
 	%e =w copy %f     # and there
 	%g =w copy %a
 	ret
+}

@@ -1,10 +1,12 @@
-@start
+function $test {
+ @start
 	jmp @foo
-@baz
+ @baz
 	jnz 1, @end, @foo
-@bar
+ @bar
 	jmp @end
-@foo
+ @foo
 	jnz 0, @bar, @baz
-@end
+ @end
 	ret
+}

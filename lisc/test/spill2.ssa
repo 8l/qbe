@@ -4,11 +4,12 @@
 # run with NReg == 3, or
 # adapt it!
 
-@start
+function $test {
+ @start
 	%a =w copy 0
 	%b =w copy 0
 
-@loop
+ @loop
 	%c =w phi @start 0, @loop %f
 	%d =w phi @start 0, @loop %g
 	%e =w phi @start 0, @loop %h
@@ -17,6 +18,7 @@
 	%h =w add %e, %d
 	%x =w csle %a, %b
 	jnz %x, @loop, @end
-@end
-	ret
 
+ @end
+	ret
+}

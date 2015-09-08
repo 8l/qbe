@@ -3,14 +3,16 @@
 # ssa program because of the
 # swap of b and a
 
-@start
+function $test {
+ @start
 
-@loop
+ @loop
 	%a =w phi @start 380, @loop %r
 	%b =w phi @start 747, @loop %a
 	%r =w rem %b, %a
 	jnz %r, @loop, @end
 
-@end
+ @end
 	storew %a, $a
 	ret
+}

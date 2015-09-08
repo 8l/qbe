@@ -1,6 +1,7 @@
 # stupid spilling test
 
-@start
+function $test {
+ @start
 	%x1  =w copy 10
 	%x2  =w add %x1, %x1
 	%x3  =w sub %x2, %x1
@@ -18,3 +19,4 @@
 	%x15 =w sub %x14, %x2
 	%x16 =w add %x15, %x1
 	ret
+}
