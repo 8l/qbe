@@ -232,7 +232,7 @@ struct Fn {
 struct Type {
 	char name[NString];
 	int dark;
-	int size;
+	uint size;
 	int align;
 
 	struct {
