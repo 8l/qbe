@@ -273,9 +273,8 @@ nextnl()
 {
 	int t;
 
-	do
-		t = next();
-	while (t == TNL);
+	while ((t = next()) == TNL)
+		;
 	return t;
 }
 
@@ -542,7 +541,6 @@ parsefn()
 	ncon = 1; /* first constant must be 0 */
 	curi = insb;
 	curb = 0;
-	lnum = 1;
 	nblk = 0;
 	fn = alloc(sizeof *fn);
 	strcpy(fn->name, tokval.str);
@@ -576,6 +574,7 @@ parsety()
 	ty->align = -1;
 	if (nextnl() != TTyp ||  nextnl() != TEq)
 		err("type name, then = expected");
+	strcpy(ty->name, tokval.str);
 	t = nextnl();
 	if (t == TAlign) {
 		if (nextnl() != TNum)
@@ -599,9 +598,9 @@ parsety()
 		n = -1;
 		sz = 0;
 		al = 0;
-		do {
+		for (;;) {
 			flt = 0;
-			switch (nextnl()) {
+			switch (t) {
 			default: err("invalid size specifier");
 			case TD: flt = 1;
 			case TL: s = 8; a = 3; break;
@@ -627,14 +626,16 @@ parsety()
 			} else
 				c = 1;
 			while (c-- > 0) {
-				if (flt && ++n < NSeg) {
-					/* floating point segment */
-					ty->seg[n].flt = 1;
+				if (++n < NSeg) {
+					ty->seg[n].flt = flt;
 					ty->seg[n].len = s;
 				}
 				sz += a + s;
 			}
-		} while (t == TComma);
+			if (t != TComma)
+				break;
+			t = nextnl();
+		}
 		if (++n >= NSeg)
 			ty->dark = 1;
 		else
@@ -646,7 +647,7 @@ parsety()
 		a = (1 << al) - 1;
 		ty->size = (sz + a) & ~a;
 	}
-	if (t != TLBrace)
+	if (t != TRBrace)
 		err("expected closing }");
 }
 
@@ -657,6 +658,7 @@ parse(FILE *f)
 
 	fn = 0;
 	inf = f;
+	lnum = 1;
 	thead = TXXX;
 	for (;;)
 		switch (nextnl()) {

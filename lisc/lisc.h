@@ -230,6 +230,7 @@ struct Fn {
 };
 
 struct Type {
+	char name[NString];
 	int dark;
 	int size;
 	int align;
