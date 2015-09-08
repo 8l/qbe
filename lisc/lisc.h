@@ -15,7 +15,7 @@ typedef struct Blk Blk;
 typedef struct Tmp Tmp;
 typedef struct Con Con;
 typedef struct Fn Fn;
-typedef struct Type Type;
+typedef struct Typ Typ;
 
 typedef enum { U, F, T } B3;
 
@@ -91,13 +91,14 @@ static inline int rtype(Ref r)
 static inline int isreg(Ref r)
 { return rtype(r) == RTmp && r.val < Tmp0; }
 
+#define CMPS(X) \
+	X(eq) X(sle) X(slt) \
+	X(sgt) X(sge) X(ne) /* mirror opposite cmps! */
+
 enum Cmp {
-	Ceq,
-	Csle,
-	Cslt,
-	Csgt, /* mirror opposite cmps! */
-	Csge,
-	Cne,
+#define C(c) C##c,
+	CMPS(C)
+#undef C
 	NCmp
 };
 
@@ -229,7 +230,7 @@ struct Fn {
 	char name[NString];
 };
 
-struct Type {
+struct Typ {
 	char name[NString];
 	int dark;
 	uint size;

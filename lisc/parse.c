@@ -41,11 +41,11 @@ OpDesc opdesc[NOp] = {
 	[OAlloc+1] = { "alloc8",  1, 1 },
 	[OAlloc+2] = { "alloc16", 1, 1 },
 
-	#define X(c)                        \
+#define X(c) \
 	[OCmp+C##c]  = { "c"    #c, 2, 0 }, \
-	[OXSet+C##c] = { "xset" #c, 0, 0 }
-	X(eq), X(sle), X(slt), X(sgt), X(sge), X(ne),
-	#undef X
+	[OXSet+C##c] = { "xset" #c, 0, 0 },
+	CMPS(X)
+#undef X
 };
 
 typedef enum {
@@ -565,9 +565,9 @@ parsefn()
 }
 
 static void
-parsety()
+parsetyp()
 {
-	Type *ty;
+	Typ *ty;
 	int t, n, sz, al, s, a, c, flt;
 
 	ty = alloc(sizeof *ty);
@@ -671,7 +671,7 @@ parse(FILE *f)
 			fn = parsefn();
 			break;
 		case TType:
-			parsety();
+			parsetyp();
 			break;
 		case TEOF:
 			return fn;
@@ -716,20 +716,18 @@ printfn(Fn *fn, FILE *f)
 {
 	static char *jtoa[NJmp] = {
 		[JJnz]      = "jnz",
-		[JXJc+Ceq]  = "xjeq",
-		[JXJc+Csle] = "xjsle",
-		[JXJc+Cslt] = "xjslt",
-		[JXJc+Csgt] = "xjsgt",
-		[JXJc+Csge] = "xjsge",
-		[JXJc+Cne]  = "xjne",
+	#define X(c) [JXJc+C##c] = "xj" #c,
+		CMPS(X)
+	#undef X
 	};
 	Blk *b;
 	Phi *p;
 	Ins *i;
 	uint n;
 
+	fprintf(f, "function $%s {\n", fn->name);
 	for (b=fn->start; b; b=b->link) {
-		fprintf(f, "@%s\n", b->name);
+		fprintf(f, " @%s\n", b->name);
 		for (p=b->phi; p; p=p->link) {
 			fprintf(f, "\t");
 			printref(p->to, fn, f);
@@ -784,4 +782,5 @@ printfn(Fn *fn, FILE *f)
 			break;
 		}
 	}
+	fprintf(f, "}\n");
 }
