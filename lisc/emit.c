@@ -143,8 +143,8 @@ eins(Ins i, Fn *fn, FILE *f)
 		[OSext]   = "movsl",
 		[OZext]   = "movzl",
 		[OLoad]   = "mov",
-		[OLoadss] = "movsw",
-		[OLoadus] = "movzw",
+		[OLoadsh] = "movsw",
+		[OLoaduh] = "movzw",
 		[OLoadsb] = "movsb",
 		[OLoadub] = "movzb",
 	};
@@ -214,8 +214,8 @@ eins(Ins i, Fn *fn, FILE *f)
 			i.op - OStorel, i.arg[0], i.arg[1]);
 		break;
 	case OLoad:
-	case OLoadss:
-	case OLoadus:
+	case OLoadsh:
+	case OLoaduh:
 	case OLoadsb:
 	case OLoadub:
 		emitf(fn, f, "\t%s%w %M, %R\n", otoa[i.op],
@@ -298,11 +298,12 @@ emitfn(Fn *fn, FILE *f)
 
 	fprintf(f,
 		".text\n"
-		".globl liscf\n"
-		".type liscf, @function\n"
-		"liscf:\n"
+		".globl %s\n"
+		".type %s, @function\n"
+		"%s:\n"
 		"\tpush %%rbp\n"
-		"\tmov %%rsp, %%rbp\n"
+		"\tmov %%rsp, %%rbp\n",
+		fn->name, fn->name, fn->name
 	);
 	fs = framesz(fn);
 	if (fs)

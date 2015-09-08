@@ -15,6 +15,7 @@ typedef struct Blk Blk;
 typedef struct Tmp Tmp;
 typedef struct Con Con;
 typedef struct Fn Fn;
+typedef struct Type Type;
 
 typedef enum { U, F, T } B3;
 
@@ -51,6 +52,7 @@ enum {
 	NBlk    = 128,
 	NIns    = 256,
 	NAlign  = 3,
+	NSeg    = 32,
 
 	BITS    = 4,
 	NBit    = 64,
@@ -120,8 +122,8 @@ enum Op {
 	OStores,
 	OStoreb,
 	OLoad,
-	OLoadss,
-	OLoadus,
+	OLoadsh,
+	OLoaduh,
 	OLoadsb,
 	OLoadub,
 	OAlloc,
@@ -197,14 +199,6 @@ struct Blk {
 };
 
 struct Tmp {
-#if 0
-	enum {
-		TUndef,
-		TWord,
-		TLong,
-		TReg,
-	} type;
-#endif
 	char name[NString];
 	uint ndef, nuse;
 	uint cost;
@@ -232,6 +226,18 @@ struct Fn {
 	int nblk;
 	Blk **rpo;
 	int svec[NAlign];
+	char name[NString];
+};
+
+struct Type {
+	int dark;
+	int size;
+	int align;
+
+	struct {
+		uint flt:1;
+		uint len:31;
+	} seg[NSeg];
 };
 
 
@@ -244,7 +250,7 @@ extern OpDesc opdesc[];
 void diag(char *);
 void *alloc(size_t);
 Blk *blocka(void);
-Fn *parsefn(FILE *);
+Fn *parse(FILE *);
 void printfn(Fn *, FILE *);
 
 /* ssa.c */

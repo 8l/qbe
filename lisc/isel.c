@@ -178,8 +178,8 @@ sel(Ins i, Fn *fn)
 		n = i.op == OStorel;
 		goto Emit;
 	case OLoad:
-	case OLoadss:
-	case OLoadus:
+	case OLoadsh:
+	case OLoaduh:
 	case OLoadsb:
 	case OLoadub:
 		if (cpy[0].s) {
@@ -264,8 +264,8 @@ flagi(Ins *i0, Ins *i)
 		case OStoreb:
 		case OStores:
 		case OLoad:
-		case OLoadss:
-		case OLoadus:
+		case OLoadsh:
+		case OLoaduh:
 		case OLoadsb:
 		case OLoadub:;
 		}

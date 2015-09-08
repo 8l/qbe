@@ -24,7 +24,7 @@ main(int ac, char *av[])
 	int opt, pr;
 	Fn *fn;
 
-	fn = parsefn(stdin);
+	fn = parse(stdin);
 
 	pr = 1;
 	opt = 0;

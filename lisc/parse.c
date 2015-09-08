@@ -25,8 +25,8 @@ OpDesc opdesc[NOp] = {
 	[OStores] = { "stores", 2, 0 },
 	[OStoreb] = { "storeb", 2, 0 },
 	[OLoad]   = { "load",   1, 0 },
-	[OLoadss] = { "loadss", 1, 0 },
-	[OLoadus] = { "loadus", 1, 0 },
+	[OLoadsh] = { "loadsh", 1, 0 },
+	[OLoaduh] = { "loaduh", 1, 0 },
 	[OLoadsb] = { "loadsb", 1, 0 },
 	[OLoadub] = { "loadub", 1, 0 },
 	[OCopy]   = { "copy",   1, 1 },
@@ -34,8 +34,8 @@ OpDesc opdesc[NOp] = {
 	[OSwap]   = { "swap",   2, 2 },
 	[OSign]   = { "sign",   1, 0 },
 	[OXDiv]   = { "xdiv",   1, 1 },
-	[OXCmp]   = { "xcmp",  2, 1 },
-	[OXTest]  = { "xtest", 2, 1 },
+	[OXCmp]   = { "xcmp",   2, 1 },
+	[OXTest]  = { "xtest",  2, 1 },
 	[OAddr]   = { "addr",   1, 0 },
 	[OAlloc]   = { "alloc4",  1, 1 },
 	[OAlloc+1] = { "alloc8",  1, 1 },
@@ -62,17 +62,27 @@ enum {
 	TJmp,
 	TJnz,
 	TRet,
-	TW,
+	TFunc,
+	TType,
+	TAlign,
 	TL,
+	TW,
+	TH,
+	TB,
+	TD,
+	TS,
 
 	TNum,
 	TTmp,
 	TLbl,
-	TAddr,
+	TGlo,
+	TTyp,
 	TEq,
 	TComma,
 	TLParen,
 	TRParen,
+	TLBrace,
+	TRBrace,
 	TNL,
 	TEOF,
 };
@@ -140,8 +150,15 @@ lex()
 		{ "jmp", TJmp },
 		{ "jnz", TJnz },
 		{ "ret", TRet },
-		{ "w", TW },
+		{ "function", TFunc },
+		{ "type", TType },
+		{ "align", TAlign },
 		{ "l", TL },
+		{ "w", TW },
+		{ "h", TS },
+		{ "b", TB },
+		{ "d", TD },
+		{ "s", TS },
 		{ 0, TXXX }
 	};
 	static char tok[NString];
@@ -160,19 +177,23 @@ lex()
 		return TLParen;
 	case ')':
 		return TRParen;
+	case '{':
+		return TLBrace;
+	case '}':
+		return TRBrace;
 	case '=':
 		return TEq;
 	case '%':
 		t = TTmp;
-		c = fgetc(inf);
 		goto Alpha;
 	case '@':
 		t = TLbl;
-		c = fgetc(inf);
 		goto Alpha;
 	case '$':
-		t = TAddr;
-		c = fgetc(inf);
+		t = TGlo;
+		goto Alpha;
+	case ':':
+		t = TTyp;
 		goto Alpha;
 	case '#':
 		while (fgetc(inf) != '\n')
@@ -201,7 +222,8 @@ lex()
 		return TNum;
 	}
 	t = TXXX;
-Alpha:
+	if (0)
+Alpha:		c = fgetc(inf);
 	if (!isalpha(c))
 		err("lexing failure");
 	i = 0;
@@ -243,6 +265,17 @@ next()
 
 	t = peek();
 	thead = TXXX;
+	return t;
+}
+
+static int
+nextnl()
+{
+	int t;
+
+	do
+		t = next();
+	while (t == TNL);
 	return t;
 }
 
@@ -288,7 +321,7 @@ parseref()
 		c = (Con){.type = CNum, .val = tokval.num};
 		strcpy(c.label, "");
 	if (0) {
-	case TAddr:
+	case TGlo:
 		c = (Con){.type = CAddr, .val = 0};
 		strcpy(c.label, tokval.str);
 	}
@@ -367,11 +400,9 @@ parseline(PState ps)
 	Blk *b;
 	int t, op, i, w;
 
-	do
-		t = next();
-	while (t == TNL);
-	if (ps == PLbl && t != TLbl && t != TEOF)
-		err("label or end of file expected");
+	t = nextnl();
+	if (ps == PLbl && t != TLbl && t != TRBrace)
+		err("label or } expected");
 	switch (t) {
 	default:
 		if (OStorel <= t && t <= OStoreb) {
@@ -381,7 +412,7 @@ parseline(PState ps)
 			goto DoOp;
 		}
 		err("label, instruction or jump expected");
-	case TEOF:
+	case TRBrace:
 		return PEnd;
 	case TTmp:
 		break;
@@ -492,15 +523,17 @@ DoOp:
 	}
 }
 
-Fn *
-parsefn(FILE *f)
+static Fn *
+parsefn()
 {
 	int i;
 	PState ps;
 	Fn *fn;
 
-	inf = f;
-	thead = TXXX;
+	if (next() != TGlo)
+		err("function name expected");
+	if (nextnl() != TLBrace)
+		err("function must start with {");
 	for (i=0; i<NBlk; i++)
 		bmap[i] = 0;
 	for (i=Tmp0; i<NTmp; i++)
@@ -512,6 +545,7 @@ parsefn(FILE *f)
 	lnum = 1;
 	nblk = 0;
 	fn = alloc(sizeof *fn);
+	strcpy(fn->name, tokval.str);
 	blink = &fn->start;
 	ps = PLbl;
 	do
@@ -530,6 +564,119 @@ parsefn(FILE *f)
 	fn->nblk = nblk;
 	fn->rpo = 0;
 	return fn;
+}
+
+static void
+parsety()
+{
+	Type *ty;
+	int t, n, sz, al, s, a, c, flt;
+
+	ty = alloc(sizeof *ty);
+	ty->align = -1;
+	if (nextnl() != TTyp ||  nextnl() != TEq)
+		err("type name, then = expected");
+	t = nextnl();
+	if (t == TAlign) {
+		if (nextnl() != TNum)
+			err("alignment value expected");
+		for (al=0; tokval.num /= 2; al++)
+			;
+		ty->align = al;
+		t = nextnl();
+	}
+	if (t != TLBrace)
+		err("type body must start with {");
+	t = nextnl();
+	if (t == TNum) {
+		ty->dark = 1;
+		ty->size = tokval.num;
+		if (ty->align == -1)
+			err("dark types need alignment");
+		t = nextnl();
+	} else {
+		ty->dark = 0;
+		n = -1;
+		sz = 0;
+		al = 0;
+		do {
+			flt = 0;
+			switch (nextnl()) {
+			default: err("invalid size specifier");
+			case TD: flt = 1;
+			case TL: s = 8; a = 3; break;
+			case TS: flt = 1;
+			case TW: s = 4; a = 2; break;
+			case TH: s = 2; a = 1; break;
+			case TB: s = 1; a = 0; break;
+			}
+			if (a > al)
+				al = a;
+			if ((a = sz & s-1)) {
+				a = s - a;
+				if (++n < NSeg) {
+					/* padding segment */
+					ty->seg[n].flt = 0;
+					ty->seg[n].len = a;
+				}
+			}
+			t = nextnl();
+			if (t == TNum) {
+				c = tokval.num;
+				t = nextnl();
+			} else
+				c = 1;
+			while (c-- > 0) {
+				if (flt && ++n < NSeg) {
+					/* floating point segment */
+					ty->seg[n].flt = 1;
+					ty->seg[n].len = s;
+				}
+				sz += a + s;
+			}
+		} while (t == TComma);
+		if (++n >= NSeg)
+			ty->dark = 1;
+		else
+			ty->seg[n].len = 0;
+		if (ty->align == -1)
+			ty->align = al;
+		else
+			al = ty->align;
+		a = (1 << al) - 1;
+		ty->size = (sz + a) & ~a;
+	}
+	if (t != TLBrace)
+		err("expected closing }");
+}
+
+Fn *
+parse(FILE *f)
+{
+	Fn *fn;
+
+	fn = 0;
+	inf = f;
+	thead = TXXX;
+	for (;;)
+		switch (nextnl()) {
+		case TFunc:
+			if (fn)
+				/* todo, support multiple
+				 * functions per file
+				 */
+				diag("too many functions");
+			fn = parsefn();
+			break;
+		case TType:
+			parsety();
+			break;
+		case TEOF:
+			return fn;
+		default:
+			err("top-level definition expected");
+			break;
+		}
 }
 
 static void
