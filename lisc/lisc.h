@@ -75,6 +75,7 @@ enum {
 	RTmp,
 	RCon,
 	RSlot,
+	RTyp,
 	NRef = (1<<14) - 1
 };
 
@@ -83,6 +84,7 @@ enum {
 #define CON(x)   (Ref){RCon, x}
 #define CON_Z    CON(0)          /* reserved zero constant */
 #define SLOT(x)  (Ref){RSlot, x}
+#define TYP(x)   (Ref){RTyp, x}
 
 static inline int req(Ref a, Ref b)
 { return a.type == b.type && a.val == b.val; }
@@ -132,8 +134,13 @@ enum Op {
 	OCopy,
 	NPubOp,
 
+	/* function instructions */
+	OArg = NPubOp,
+	OArgc,
+	OCall,
+
 	/* reserved instructions */
-	ONop = NPubOp,
+	ONop,
 	OAddr,
 	OSwap,
 	OSign,

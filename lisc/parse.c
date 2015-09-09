@@ -37,6 +37,9 @@ OpDesc opdesc[NOp] = {
 	[OXCmp]   = { "xcmp",   2, 1 },
 	[OXTest]  = { "xtest",  2, 1 },
 	[OAddr]   = { "addr",   1, 0 },
+	[OArg]    = { "arg",    1, 0 },
+	[OArgc]   = { "argc",   1, 0 },
+	[OCall]   = { "call",    1, 0 },
 	[OAlloc]   = { "alloc4",  1, 1 },
 	[OAlloc+1] = { "alloc8",  1, 1 },
 	[OAlloc+2] = { "alloc16", 1, 1 },
@@ -58,6 +61,7 @@ typedef enum {
 
 enum {
 	TXXX = NPubOp,
+	TCall,
 	TPhi,
 	TJmp,
 	TJnz,
@@ -146,6 +150,7 @@ lex()
 		char *str;
 		int tok;
 	} tmap[] = {
+		{ "call", TCall },
 		{ "phi", TPhi },
 		{ "jmp", TJmp },
 		{ "jnz", TJnz },
@@ -278,6 +283,29 @@ nextnl()
 	return t;
 }
 
+static void
+expect(int t)
+{
+	static char *names[] = {
+		[TLbl] = "label",
+		[TComma] = ",",
+		[TEq] = "=",
+		[TNL] = "newline",
+		[TEOF] = 0,
+	};
+	char buf[128], *s1, *s2;
+	int t1;
+
+	t1 = next();
+	if (t == t1)
+		return;
+	s1 = names[t] ? names[t] : "??";
+	s2 = names[t1] ? names[t1] : "??";
+	snprintf(buf, sizeof buf,
+		"%s expected (got %s instead)", s1, s2);
+	err(buf);
+}
+
 Blk *
 blocka()
 {
@@ -338,6 +366,54 @@ parseref()
 	}
 }
 
+static int
+parsecls(char *ty)
+{
+	switch (next()) {
+	default:
+		err("invalid class specifier");
+	case TW:
+		return 0;
+	case TL:
+		return 1;
+	case TTyp:
+		strcpy(ty, tokval.str);
+		return 2;
+	}
+}
+
+static void
+parseargl()
+{
+	char ty[NString];
+	int w, t;
+	Ref r;
+
+	expect(TLParen);
+	if (peek() == TRParen) {
+		next();
+		return;
+	}
+	for (;;) {
+		if (curi - insb >= NIns)
+			err("too many instructions (1)");
+		w = parsecls(ty);
+		r = parseref();
+		if (req(r, R))
+			err("invalid reference argument");
+		if (w == 2)
+			*curi = (Ins){OArgc, 0, R, {TYP(0), r}};
+		else
+			*curi = (Ins){OArg, w, R, {r, R}};
+		curi++;
+		t = next();
+		if (t == TRParen)
+			break;
+		if (t != TComma)
+			err(", or ) expected");
+	}
+}
+
 static Blk *
 findblk(char *name)
 {
@@ -354,29 +430,6 @@ findblk(char *name)
 		strcpy(bmap[i]->name, name);
 	}
 	return bmap[i];
-}
-
-static void
-expect(int t)
-{
-	static char *names[] = {
-		[TLbl] = "label",
-		[TComma] = "comma",
-		[TEq] = "=",
-		[TNL] = "newline",
-		[TEOF] = 0,
-	};
-	char buf[128], *s1, *s2;
-	int t1;
-
-	t1 = next();
-	if (t == t1)
-		return;
-	s1 = names[t] ? names[t] : "??";
-	s2 = names[t1] ? names[t1] : "??";
-	snprintf(buf, sizeof buf,
-		"%s expected (got %s instead)", s1, s2);
-	err(buf);
 }
 
 static void
@@ -398,6 +451,7 @@ parseline(PState ps)
 	Ref r;
 	Blk *b;
 	int t, op, i, w;
+	char ty[NString];
 
 	t = nextnl();
 	if (ps == PLbl && t != TLbl && t != TRBrace)
@@ -407,6 +461,7 @@ parseline(PState ps)
 		if (OStorel <= t && t <= OStoreb) {
 			/* operations without result */
 			r = R;
+			w = 0;
 			op = t;
 			goto DoOp;
 		}
@@ -457,16 +512,7 @@ parseline(PState ps)
 	}
 	r = tmpref(tokval.str, 0);
 	expect(TEq);
-	switch (next()) {
-	case TW:
-		w = 0;
-		break;
-	case TL:
-		w = 1;
-		break;
-	default:
-		err("class expected after =");
-	}
+	w = parsecls(ty);
 	op = next();
 DoOp:
 	if (op == TPhi) {
@@ -474,6 +520,21 @@ DoOp:
 			err("unexpected phi instruction");
 		op = -1;
 	}
+	if (op == TCall) {
+		/* do eet! */
+		arg[0] = parseref();
+		parseargl();
+		expect(TNL);
+		op = OCall;
+		if (w == 2) {
+			w = 0;
+			arg[1] = TYP(0);
+		} else
+			arg[1] = R;
+		goto Ins;
+	}
+	if (w == 2)
+		err("size class must be w or l");
 	if (op >= NPubOp)
 		err("invalid instruction");
 	i = 0;
@@ -493,15 +554,16 @@ DoOp:
 			if (t == TNL)
 				break;
 			if (t != TComma)
-				err("comma or end of line expected");
+				err(", or end of line expected");
 			next();
 		}
 	next();
 	if (op != -1 && i != opdesc[op].arity)
 		err("invalid arity");
 	if (op != -1) {
+	Ins:
 		if (curi - insb >= NIns)
-			err("too many instructions in block");
+			err("too many instructions (2)");
 		curi->op = op;
 		curi->wide = w;
 		curi->to = r;
@@ -708,6 +770,9 @@ printref(Ref r, Fn *fn, FILE *f)
 	case RSlot:
 		fprintf(f, "S%d", r.val);
 		break;
+	case RTyp:
+		fprintf(f, ":%d", r.val);
+		break;
 	}
 }
 
@@ -748,17 +813,19 @@ printfn(Fn *fn, FILE *f)
 			if (!req(i->to, R)) {
 				printref(i->to, fn, f);
 				fprintf(f, " =");
+				fprintf(f, i->wide ? "l " : "w ");
 			}
 			assert(opdesc[i->op].name);
-			if (OStorel > i->op || i->op > OStoreb)
-				fprintf(f, i->wide ? "l " : "w ");
 			fprintf(f, "%s", opdesc[i->op].name);
-			n = opdesc[i->op].arity;
-			if (n > 0) {
+			if (req(i->to, R))
+			if (i->op < OStorel || i->op > OStoreb)
+			if (i->op != OArgc)
+				fprintf(f, i->wide ? "l" : "w");
+			if (!req(i->arg[0], R)) {
 				fprintf(f, " ");
 				printref(i->arg[0], fn, f);
 			}
-			if (n > 1) {
+			if (!req(i->arg[1], R)) {
 				fprintf(f, ", ");
 				printref(i->arg[1], fn, f);
 			}
