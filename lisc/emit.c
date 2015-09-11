@@ -249,10 +249,7 @@ eins(Ins i, Fn *fn, FILE *f)
 				1, TMP(RSP), i.to);
 		break;
 	case OXPush:
-		emitf(fn, f, "\tpush%w %R\n", 1, i.arg[0]);
-		break;
-	case OXMovs:
-		emitf(fn, f, "\trep movsb\n");
+		emitf(fn, f, "\tpush%w %R\n", i.wide, i.arg[0]);
 		break;
 	case OXDiv:
 		emitf(fn, f, "\tidiv%w %R\n", i.wide, i.arg[0]);

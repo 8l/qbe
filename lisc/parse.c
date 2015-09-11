@@ -33,7 +33,6 @@ OpDesc opdesc[NOp] = {
 	[ONop]    = { "nop",    0, 0 },
 	[OSwap]   = { "swap",   2, 2 },
 	[OSign]   = { "sign",   1, 0 },
-	[OXMovs]  = { "xmovs",  0, 0 },
 	[OXPush]  = { "xpush",  1, 1 },
 	[OSAlloc] = { "salloc", 1, 0 },
 	[OXDiv]   = { "xdiv",   1, 1 },
@@ -684,7 +683,7 @@ parsetyp()
 			}
 			if (a > al)
 				al = a;
-			if ((a = sz & s-1)) {
+			if ((a = sz & (s-1))) {
 				a = s - a;
 				if (++n < NSeg) {
 					/* padding segment */
@@ -830,7 +829,8 @@ printfn(Fn *fn, FILE *f)
 			assert(opdesc[i->op].name);
 			fprintf(f, "%s", opdesc[i->op].name);
 			if (req(i->to, R))
-			if (i->op == OXCmp || i->op == OXTest)
+			if (i->op == OXCmp || i->op == OXTest
+			||  i->op == OXPush)
 				fprintf(f, i->wide ? "l" : "w");
 			if (!req(i->arg[0], R)) {
 				fprintf(f, " ");

@@ -155,7 +155,6 @@ sel(Ins i, Fn *fn)
 		n = 1;
 		goto Emit;
 	case OCall:
-	case OXMovs:
 	case OSAlloc:
 	case OCopy:
 	case OSext:
@@ -446,23 +445,22 @@ classify(AInfo *a, Typ *t)
 static void
 selcall(Fn *fn, Ins *i0, Ins *i1)
 {
-	static int ireg[8] = { RDI, RSI, RDX, RCX, R8, R9, R10, R11 };
+	static int ireg[6] = {RDI, RSI, RDX, RCX, R8, R9};
 	Ins *i;
 	AInfo *ai, *a;
 	int nint, nsse, ni, ns, n;
 	uint stk, sz;
-	Ref r;
+	Ref r, r1;
 
 	ai = alloc((i1-i0) * sizeof ai[0]);
 
 	nint = 6;
 	nsse = 8;
-	stk = 0;
 	for (i=i0, a=ai; i<i1; i++, a++) {
 		if (i->op == OArgc) {
 			classify(a, &typ[i->arg[0].val]);
 			if (a->inmem)
-				goto Mem;
+				continue;
 			ni = ns = 0;
 			for (n=0; n<2; n++)
 				switch (a->rty[n]) {
@@ -476,72 +474,79 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 			if (nint > ni && nsse > ns) {
 				nint -= ni;
 				nsse -= ns;
-			} else {
+			} else
 				a->inmem = 1;
-			Mem:
-				stk += a->size;
-				if (a->align == 4 && stk % 16)
-					stk += 8;
-			}
 		} else {
 			if (nint > 0) {
 				nint--;
 				a->inmem = 0;
-			} else {
-				stk += 8;
+			} else
 				a->inmem = 1;
-			}
 			a->align = 3;
 			a->size = 8;
 			a->rty[0] = RInt;
 		}
 	}
 
-	if (!req(i1->arg[1], R))
+	for (stk=0, a=&ai[i1-i0]; a>ai;)
+		if ((--a)->inmem) {
+			assert(a->align <= 4);
+			stk += a->size;
+			if (a->align == 4)
+				stk += stk & 15;
+		}
+	stk += stk & 15;
+
+	if (rtype(i1->arg[1]) == RTyp)
 		diag("struct-returning function not implemented");
-	if (stk)
-		emit(OSAlloc, 0, R, newcon(-(int64_t)stk, fn), R);
-	for (n=0; n<2; n++) {
-		r = TMP(ireg[n]);
-		emit(OCopy, 0, R, r, R);
-	}
+
 	emit(OCopy, i1->wide, i1->to, TMP(RAX), R);
-	emit(OCall, 0, R, i->arg[0], R);
-	emit(OCopy, 0, TMP(RAX), CON_Z, R);
-	if (stk % 16)
-		emit(OXPush, 1, R, TMP(RAX), R);
+#if 1
+	for (n=0; n<6; n++) {
+		emit(OCopy, 0, R, TMP(ireg[n]), R);
+	}
+#endif
+	r = newcon(-(int64_t)stk, fn);
+	emit(OSAlloc, 0, R, r, R);
+	emit(OCall, 0, TMP(RAX), i->arg[0], R);
 
 	for (i=i0, a=ai, ni=0; i<i1; i++, a++) {
 		if (a->inmem)
 			continue;
 		if (i->op == OArgc) {
-			diag("aggregate in registers not implemented");
+			if (a->size > 8) {
+				r = TMP(ireg[ni+1]);
+				r1 = newtmp(fn);
+				emit(OLoad, 1, r, r1, R);
+				r = newcon(8, fn);
+				emit(OAdd, 1, r1, i->arg[1], r);
+				r = TMP(ireg[ni]);
+				ni += 2;
+			} else
+				r = TMP(ireg[ni++]);
+			emit(OLoad, 1, r, i->arg[1], R);
 		} else {
 			r = TMP(ireg[ni++]);
 			emit(OCopy, i->wide, r, i->arg[0], R);
 		}
 	}
 
-	stk = 0;
 	for (i=i0, a=ai; i<i1; i++, a++) {
 		if (!a->inmem)
 			continue;
 		sz = a->size;
 		if (a->align == 4 && stk % 16)
 			sz += 8;
-		stk += sz;
+		stk -= sz;
 		if (i->op == OArgc) {
-			emit(OCopy, 0, R, TMP(RCX), R);
-			emit(OCopy, 0, R, TMP(RDI), R);
-			emit(OCopy, 0, R, TMP(RSI), R);
-			emit(OXMovs, 0, R, R, R);
-			emit(OCopy, 1, TMP(RCX), newcon(a->size, fn), R);
-			emit(OCopy, 1, TMP(RDI), TMP(RSP), R);
-			emit(OCopy, 1, TMP(RSI), i->arg[1], R);
-			emit(OSAlloc, 0, R, newcon(sz, fn), R);
+			assert(!"argc todo 2");
 		} else {
 			emit(OXPush, 1, R, i->arg[0], R);
 		}
+	}
+	if (stk) {
+		assert(stk == 8);
+		emit(OXPush, 1, R, CON_Z, R);
 	}
 
 	free(ai);

@@ -147,7 +147,6 @@ enum Op {
 	OSign,
 	OSAlloc,
 	OXPush,
-	OXMovs,
 	OXDiv,
 	OXCmp,
 	OXSet,
