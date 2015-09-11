@@ -3,6 +3,7 @@
 
 /* For x86_64, do the following:
  *
+ * - lower calls
  * - check that constants are used only in
  *   places allowed
  * - ensure immediates always fit in 32b
@@ -10,11 +11,6 @@
  *   on instructions like division.
  * - implement fast locals (the streak of
  *   constant allocX in the first basic block)
- *
- * - lower calls (future, I have to think
- *   about their representation and the
- *   way I deal with structs/unions in the
- *   ABI)
  */
 
 extern Ins insb[NIns], *curi; /* shared work buffer */
@@ -155,6 +151,13 @@ sel(Ins i, Fn *fn)
 		break;
 	case ONop:
 		break;
+	case OXPush:
+		n = 1;
+		goto Emit;
+	case OCall:
+	case OXMovs:
+	case OSAlloc:
+	case OCopy:
 	case OSext:
 	case OZext:
 		n = 0;
@@ -163,7 +166,6 @@ sel(Ins i, Fn *fn)
 	case OSub:
 	case OMul:
 	case OAnd:
-	case OCopy:
 	case OXTest:
 		n = w ? 2 : 0;
 		goto Emit;
@@ -221,7 +223,7 @@ Emit:
 			/* r0 = (i.arg[0] + 15) & -16 */
 			r0 = newtmp(fn);
 			r1 = newtmp(fn);
-			emit(OAlloc, 0, i.to, r0, R);
+			emit(OSAlloc, 0, i.to, r0, R);
 			emit(OAnd, 1, r0, r1, newcon(-16, fn));
 			emit(OAdd, 1, r1, i.arg[0], newcon(15, fn));
 		}
@@ -381,6 +383,170 @@ slota(int sz, int al /* log2 */, int *sa)
 	return ret;
 }
 
+typedef struct AInfo AInfo;
+
+enum {
+	RNone,
+	RInt,
+	RSse,
+};
+
+struct AInfo {
+	int inmem;
+	int align;
+	uint size;
+	int rty[2];
+};
+
+static void
+classify(AInfo *a, Typ *t)
+{
+	int e, s, n, rty;
+	uint sz, al;
+
+	sz = t->size;
+	al = 1u << t->align;
+
+	/* the ABI requires sizes to be rounded
+	 * up to the nearest multiple of 8, moreover
+	 * it makes it easy load and store structures
+	 * in registers
+	 */
+	if (al < 8)
+		al = 8;
+	if (sz & (al-1))
+		sz = (sz + al-1) & -al;
+
+	a->size = sz;
+	a->align = t->align;
+
+	if (t->dark || sz > 16) {
+		/* large or unaligned structures are
+		 * required to be passed in memory
+		 */
+		a->inmem = 1;
+		return;
+	}
+
+	for (e=0, s=0; e<2; e++) {
+		rty = RNone;
+		for (n=0; n<8 && t->seg[s].len; s++) {
+			if (t->seg[s].flt) {
+				if (rty == RNone)
+					rty = RSse;
+			} else
+				rty = RInt;
+			n += t->seg[s].len;
+		}
+		assert(n <= 8);
+		a->rty[e] = rty;
+	}
+}
+
+static void
+selcall(Fn *fn, Ins *i0, Ins *i1)
+{
+	static int ireg[8] = { RDI, RSI, RDX, RCX, R8, R9, R10, R11 };
+	Ins *i;
+	AInfo *ai, *a;
+	int nint, nsse, ni, ns, n;
+	uint stk, sz;
+	Ref r;
+
+	ai = alloc((i1-i0) * sizeof ai[0]);
+
+	nint = 6;
+	nsse = 8;
+	stk = 0;
+	for (i=i0, a=ai; i<i1; i++, a++) {
+		if (i->op == OArgc) {
+			classify(a, &typ[i->arg[0].val]);
+			if (a->inmem)
+				goto Mem;
+			ni = ns = 0;
+			for (n=0; n<2; n++)
+				switch (a->rty[n]) {
+				case RInt:
+					ni++;
+					break;
+				case RSse:
+					ns++;
+					break;
+				}
+			if (nint > ni && nsse > ns) {
+				nint -= ni;
+				nsse -= ns;
+			} else {
+				a->inmem = 1;
+			Mem:
+				stk += a->size;
+				if (a->align == 4 && stk % 16)
+					stk += 8;
+			}
+		} else {
+			if (nint > 0) {
+				nint--;
+				a->inmem = 0;
+			} else {
+				stk += 8;
+				a->inmem = 1;
+			}
+			a->align = 3;
+			a->size = 8;
+			a->rty[0] = RInt;
+		}
+	}
+
+	if (!req(i1->arg[1], R))
+		diag("struct-returning function not implemented");
+	if (stk)
+		emit(OSAlloc, 0, R, newcon(-(int64_t)stk, fn), R);
+	for (n=0; n<2; n++) {
+		r = TMP(ireg[n]);
+		emit(OCopy, 0, R, r, R);
+	}
+	emit(OCopy, i1->wide, i1->to, TMP(RAX), R);
+	emit(OCall, 0, R, i->arg[0], R);
+	emit(OCopy, 0, TMP(RAX), CON_Z, R);
+	if (stk % 16)
+		emit(OXPush, 1, R, TMP(RAX), R);
+
+	for (i=i0, a=ai, ni=0; i<i1; i++, a++) {
+		if (a->inmem)
+			continue;
+		if (i->op == OArgc) {
+			diag("aggregate in registers not implemented");
+		} else {
+			r = TMP(ireg[ni++]);
+			emit(OCopy, i->wide, r, i->arg[0], R);
+		}
+	}
+
+	stk = 0;
+	for (i=i0, a=ai; i<i1; i++, a++) {
+		if (!a->inmem)
+			continue;
+		sz = a->size;
+		if (a->align == 4 && stk % 16)
+			sz += 8;
+		stk += sz;
+		if (i->op == OArgc) {
+			emit(OCopy, 0, R, TMP(RCX), R);
+			emit(OCopy, 0, R, TMP(RDI), R);
+			emit(OCopy, 0, R, TMP(RSI), R);
+			emit(OXMovs, 0, R, R, R);
+			emit(OCopy, 1, TMP(RCX), newcon(a->size, fn), R);
+			emit(OCopy, 1, TMP(RDI), TMP(RSP), R);
+			emit(OCopy, 1, TMP(RSI), i->arg[1], R);
+			emit(OSAlloc, 0, R, newcon(sz, fn), R);
+		} else {
+			emit(OXPush, 1, R, i->arg[0], R);
+		}
+	}
+
+	free(ai);
+}
+
 /* instruction selection
  * requires use counts (as given by parsing)
  */
@@ -388,11 +554,35 @@ void
 isel(Fn *fn)
 {
 	Blk *b, **sb;
-	Ins *i;
+	Ins *i, *i0;
 	Phi *p;
 	uint a;
 	int n, al, s;
 	int64_t sz;
+
+	/* lower function calls */
+	for (b=fn->start; b; b=b->link) {
+		curi = &insb[NIns];
+		for (i=&b->ins[b->nins]; i>b->ins;) {
+			if ((--i)->op == OCall) {
+				i0 = i;
+				for (i0=i; i0>b->ins; i0--)
+					if ((i0-1)->op != OArg)
+					if ((i0-1)->op != OArgc)
+						break;
+				selcall(fn, i0, i);
+				i = i0;
+				continue;
+			}
+			assert(i->op != OArg && i->op != OArgc);
+			emit(i->op, i->wide, i->to, i->arg[0], i->arg[1]);
+		}
+		n = &insb[NIns] - curi;
+		free(b->ins);
+		b->ins = alloc(n * sizeof b->ins[0]);
+		memcpy(b->ins, curi, n * sizeof b->ins[0]);
+		b->nins = n;
+	}
 
 	/* assign slots to fast allocs */
 	for (n=Tmp0; n<fn->ntmp; n++)

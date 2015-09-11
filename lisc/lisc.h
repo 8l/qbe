@@ -43,7 +43,7 @@ enum Reg {
 
 	Tmp0, /* first non-reg temporary */
 
-	NReg = RDX - RAX + 1
+	NReg = R11 - RAX + 1
 };
 
 enum {
@@ -53,6 +53,7 @@ enum {
 	NIns    = 256,
 	NAlign  = 3,
 	NSeg    = 32,
+	NTyp    = 128,
 
 	BITS    = 4,
 	NBit    = 64,
@@ -144,6 +145,9 @@ enum Op {
 	OAddr,
 	OSwap,
 	OSign,
+	OSAlloc,
+	OXPush,
+	OXMovs,
 	OXDiv,
 	OXCmp,
 	OXSet,
@@ -246,7 +250,7 @@ struct Typ {
 	struct {
 		uint flt:1;
 		uint len:31;
-	} seg[NSeg];
+	} seg[NSeg+1];
 };
 
 
@@ -255,7 +259,8 @@ extern char debug['Z'+1];
 void dumpts(Bits *, Tmp *, FILE *);
 
 /* parse.c */
-extern OpDesc opdesc[];
+extern Typ typ[NTyp];
+extern OpDesc opdesc[NOp];
 void diag(char *);
 void *alloc(size_t);
 Blk *blocka(void);

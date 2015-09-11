@@ -33,6 +33,9 @@ OpDesc opdesc[NOp] = {
 	[ONop]    = { "nop",    0, 0 },
 	[OSwap]   = { "swap",   2, 2 },
 	[OSign]   = { "sign",   1, 0 },
+	[OXMovs]  = { "xmovs",  0, 0 },
+	[OXPush]  = { "xpush",  1, 1 },
+	[OSAlloc] = { "salloc", 1, 0 },
 	[OXDiv]   = { "xdiv",   1, 1 },
 	[OXCmp]   = { "xcmp",   2, 1 },
 	[OXTest]  = { "xtest",  2, 1 },
@@ -50,6 +53,9 @@ OpDesc opdesc[NOp] = {
 	CMPS(X)
 #undef X
 };
+
+Typ typ[NTyp];
+static int ntyp;
 
 typedef enum {
 	PXXX,
@@ -367,26 +373,31 @@ parseref()
 }
 
 static int
-parsecls(char *ty)
+parsecls(int *tyn)
 {
+	int i;
+
 	switch (next()) {
 	default:
 		err("invalid class specifier");
+	case TTyp:
+		for (i=0; i<ntyp; i++)
+			if (strcmp(tokval.str, typ[i].name) == 0) {
+				*tyn = i;
+				return 2;
+			}
+		err("undefined type");
 	case TW:
 		return 0;
 	case TL:
 		return 1;
-	case TTyp:
-		strcpy(ty, tokval.str);
-		return 2;
 	}
 }
 
 static void
 parseargl()
 {
-	char ty[NString];
-	int w, t;
+	int w, t, ty;
 	Ref r;
 
 	expect(TLParen);
@@ -397,12 +408,12 @@ parseargl()
 	for (;;) {
 		if (curi - insb >= NIns)
 			err("too many instructions (1)");
-		w = parsecls(ty);
+		w = parsecls(&ty);
 		r = parseref();
 		if (req(r, R))
 			err("invalid reference argument");
 		if (w == 2)
-			*curi = (Ins){OArgc, 0, R, {TYP(0), r}};
+			*curi = (Ins){OArgc, 0, R, {TYP(ty), r}};
 		else
 			*curi = (Ins){OArg, w, R, {r, R}};
 		curi++;
@@ -450,8 +461,7 @@ parseline(PState ps)
 	Phi *phi;
 	Ref r;
 	Blk *b;
-	int t, op, i, w;
-	char ty[NString];
+	int t, op, i, w, ty;
 
 	t = nextnl();
 	if (ps == PLbl && t != TLbl && t != TRBrace)
@@ -512,7 +522,7 @@ parseline(PState ps)
 	}
 	r = tmpref(tokval.str, 0);
 	expect(TEq);
-	w = parsecls(ty);
+	w = parsecls(&ty);
 	op = next();
 DoOp:
 	if (op == TPhi) {
@@ -521,14 +531,13 @@ DoOp:
 		op = -1;
 	}
 	if (op == TCall) {
-		/* do eet! */
 		arg[0] = parseref();
 		parseargl();
 		expect(TNL);
 		op = OCall;
 		if (w == 2) {
 			w = 0;
-			arg[1] = TYP(0);
+			arg[1] = TYP(ty);
 		} else
 			arg[1] = R;
 		goto Ins;
@@ -632,7 +641,9 @@ parsetyp()
 	Typ *ty;
 	int t, n, sz, al, s, a, c, flt;
 
-	ty = alloc(sizeof *ty);
+	if (ntyp >= NTyp)
+		err("too many type definitions");
+	ty = &typ[ntyp++];
 	ty->align = -1;
 	if (nextnl() != TTyp ||  nextnl() != TEq)
 		err("type name, then = expected");
@@ -722,6 +733,7 @@ parse(FILE *f)
 	inf = f;
 	lnum = 1;
 	thead = TXXX;
+	ntyp = 0;
 	for (;;)
 		switch (nextnl()) {
 		case TFunc:
@@ -771,7 +783,7 @@ printref(Ref r, Fn *fn, FILE *f)
 		fprintf(f, "S%d", r.val);
 		break;
 	case RTyp:
-		fprintf(f, ":%d", r.val);
+		fprintf(f, ":%s", typ[r.val].name);
 		break;
 	}
 }
@@ -818,8 +830,7 @@ printfn(Fn *fn, FILE *f)
 			assert(opdesc[i->op].name);
 			fprintf(f, "%s", opdesc[i->op].name);
 			if (req(i->to, R))
-			if (i->op < OStorel || i->op > OStoreb)
-			if (i->op != OArgc)
+			if (i->op == OXCmp || i->op == OXTest)
 				fprintf(f, i->wide ? "l" : "w");
 			if (!req(i->arg[0], R)) {
 				fprintf(f, " ");

@@ -221,11 +221,8 @@ eins(Ins i, Fn *fn, FILE *f)
 		emitf(fn, f, "\t%s%w %M, %R\n", otoa[i.op],
 			i.wide, i.arg[0], i.to);
 		break;
-	case OAlloc:
-		emitf(fn, f, "\tsub%w %R, %R\n",
-			1, i.arg[0], TMP(RSP));
-		emitf(fn, f, "\tmov%w %R, %R\n",
-			1, TMP(RSP), i.to);
+	case OCall:
+		emitf(fn, f, "\tcall%w %R\n", 1, i.arg[0]);
 		break;
 	case OAddr:
 		emitf(fn, f, "\tlea%w %M, %R\n",
@@ -243,6 +240,19 @@ eins(Ins i, Fn *fn, FILE *f)
 				fprintf(f, "\tcltd\n");
 		} else
 			diag("emit: unhandled instruction (2)");
+		break;
+	case OSAlloc:
+		emitf(fn, f, "\tsub%w %R, %R\n",
+			1, i.arg[0], TMP(RSP));
+		if (!req(i.to, R))
+			emitf(fn, f, "\tmov%w %R, %R\n",
+				1, TMP(RSP), i.to);
+		break;
+	case OXPush:
+		emitf(fn, f, "\tpush%w %R\n", 1, i.arg[0]);
+		break;
+	case OXMovs:
+		emitf(fn, f, "\trep movsb\n");
 		break;
 	case OXDiv:
 		emitf(fn, f, "\tidiv%w %R\n", i.wide, i.arg[0]);
