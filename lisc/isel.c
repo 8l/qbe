@@ -514,6 +514,8 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 		if (a->inmem)
 			continue;
 		if (i->op == OArgc) {
+			if (a->rty[0] == RSse || a->rty[1] == RSse)
+				diag("isel: unsupported float struct");
 			if (a->size > 8) {
 				r = TMP(ireg[ni+1]);
 				r1 = newtmp(fn);
