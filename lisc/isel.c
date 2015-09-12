@@ -492,7 +492,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 		if ((--a)->inmem) {
 			assert(a->align <= 4);
 			stk += a->size;
-			if (a->align == 4)
+			if (a->align == 4) /* todo, bigger alignments */
 				stk += stk & 15;
 		}
 	stk += stk & 15;
@@ -537,7 +537,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 		if (!a->inmem)
 			continue;
 		sz = a->size;
-		if (a->align == 4 && stk % 16)
+		if (a->align == 4 && (stk-sz) % 16)
 			sz += 8;
 		stk -= sz;
 		if (i->op == OArgc) {
