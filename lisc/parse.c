@@ -12,43 +12,43 @@ Ins insb[NIns], *curi;
 
 OpDesc opdesc[NOp] = {
 	/*            NAME   ARTY NM */
-	[OAdd]    = { "add",    2, 2 },
-	[OSub]    = { "sub",    2, 2 },
-	[ODiv]    = { "div",    2, 2 },
-	[ORem]    = { "rem",    2, 2 },
-	[OMul]    = { "mul",    2, 2 },
-	[OAnd]    = { "and",    2, 2 },
-	[OSext]   = { "sext",   1, 1 },
-	[OZext]   = { "zext",   1, 1 },
-	[OStorel] = { "storel", 2, 0 },
-	[OStorew] = { "storew", 2, 0 },
-	[OStores] = { "stores", 2, 0 },
-	[OStoreb] = { "storeb", 2, 0 },
-	[OLoad]   = { "load",   1, 0 },
-	[OLoadsh] = { "loadsh", 1, 0 },
-	[OLoaduh] = { "loaduh", 1, 0 },
-	[OLoadsb] = { "loadsb", 1, 0 },
-	[OLoadub] = { "loadub", 1, 0 },
-	[OCopy]   = { "copy",   1, 1 },
-	[ONop]    = { "nop",    0, 0 },
-	[OSwap]   = { "swap",   2, 2 },
-	[OSign]   = { "sign",   1, 0 },
-	[OXPush]  = { "xpush",  1, 1 },
-	[OSAlloc] = { "salloc", 1, 0 },
-	[OXDiv]   = { "xdiv",   1, 1 },
-	[OXCmp]   = { "xcmp",   2, 1 },
-	[OXTest]  = { "xtest",  2, 1 },
-	[OAddr]   = { "addr",   1, 0 },
-	[OArg]    = { "arg",    1, 0 },
-	[OArgc]   = { "argc",   1, 0 },
-	[OCall]   = { "call",    1, 0 },
-	[OAlloc]   = { "alloc4",  1, 1 },
-	[OAlloc+1] = { "alloc8",  1, 1 },
-	[OAlloc+2] = { "alloc16", 1, 1 },
+	[OAdd]    = { "add",    2 },
+	[OSub]    = { "sub",    2 },
+	[ODiv]    = { "div",    2 },
+	[ORem]    = { "rem",    2 },
+	[OMul]    = { "mul",    2 },
+	[OAnd]    = { "and",    2 },
+	[OSext]   = { "sext",   1 },
+	[OZext]   = { "zext",   1 },
+	[OStorel] = { "storel", 0 },
+	[OStorew] = { "storew", 0 },
+	[OStores] = { "stores", 0 },
+	[OStoreb] = { "storeb", 0 },
+	[OLoad]   = { "load",   0 },
+	[OLoadsh] = { "loadsh", 0 },
+	[OLoaduh] = { "loaduh", 0 },
+	[OLoadsb] = { "loadsb", 0 },
+	[OLoadub] = { "loadub", 0 },
+	[OCopy]   = { "copy",   1 },
+	[ONop]    = { "nop",    0 },
+	[OSwap]   = { "swap",   2 },
+	[OSign]   = { "sign",   0 },
+	[OXPush]  = { "xpush",  1 },
+	[OSAlloc] = { "salloc", 0 },
+	[OXDiv]   = { "xdiv",   1 },
+	[OXCmp]   = { "xcmp",   1 },
+	[OXTest]  = { "xtest",  1 },
+	[OAddr]   = { "addr",   0 },
+	[OArg]    = { "arg",    0 },
+	[OArgc]   = { "argc",   0 },
+	[OCall]   = { "call",   0 },
+	[OAlloc]   = { "alloc4",  1 },
+	[OAlloc+1] = { "alloc8",  1 },
+	[OAlloc+2] = { "alloc16", 1 },
 
 #define X(c) \
-	[OCmp+C##c]  = { "c"    #c, 2, 0 }, \
-	[OXSet+C##c] = { "xset" #c, 0, 0 },
+	[OCmp+C##c]  = { "c"    #c, 0 }, \
+	[OXSet+C##c] = { "xset" #c, 0 },
 	CMPS(X)
 #undef X
 };
@@ -566,8 +566,6 @@ DoOp:
 			next();
 		}
 	next();
-	if (op != -1 && i != opdesc[op].arity)
-		err("invalid arity");
 	if (op != -1) {
 	Ins:
 		if (curi - insb >= NIns)
@@ -796,6 +794,12 @@ printfn(Fn *fn, FILE *f)
 		CMPS(X)
 	#undef X
 	};
+	static char prcls[NOp] = {
+		[OXCmp] = 1,
+		[OXTest] = 1,
+		[OXPush] = 1,
+		[OXDiv] = 1,
+	};
 	Blk *b;
 	Phi *p;
 	Ins *i;
@@ -828,9 +832,7 @@ printfn(Fn *fn, FILE *f)
 			}
 			assert(opdesc[i->op].name);
 			fprintf(f, "%s", opdesc[i->op].name);
-			if (req(i->to, R))
-			if (i->op == OXCmp || i->op == OXTest
-			||  i->op == OXPush)
+			if (req(i->to, R) && prcls[i->op])
 				fprintf(f, i->wide ? "l" : "w");
 			if (!req(i->arg[0], R)) {
 				fprintf(f, " ");

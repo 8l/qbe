@@ -43,7 +43,7 @@ enum Reg {
 
 	Tmp0, /* first non-reg temporary */
 
-	NReg = R11 - RAX + 1
+	NReg = R12 - RAX + 1
 };
 
 enum {
@@ -167,7 +167,6 @@ enum Jmp {
 
 struct OpDesc {
 	char *name;
-	int arity;
 	int nmem;
 };
 
