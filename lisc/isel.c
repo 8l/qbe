@@ -445,7 +445,7 @@ classify(AInfo *a, Typ *t)
 static void
 selcall(Fn *fn, Ins *i0, Ins *i1)
 {
-	static int ireg[6] = {RDI, RSI, RDX, RCX, R8, R9};
+	static int ireg[8] = {RDI, RSI, RDX, RCX, R8, R9, R10, R11};
 	Ins *i;
 	AInfo *ai, *a;
 	int nint, nsse, ni, ns, n;
@@ -501,11 +501,9 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 		diag("struct-returning function not implemented");
 
 	emit(OCopy, i1->wide, i1->to, TMP(RAX), R);
-#if 1
-	for (n=0; n<6; n++) {
+	for (n=0; n<8; n++) {
 		emit(OCopy, 0, R, TMP(ireg[n]), R);
 	}
-#endif
 	r = newcon(-(int64_t)stk, fn);
 	emit(OSAlloc, 0, R, r, R);
 	emit(OCall, 0, TMP(RAX), i->arg[0], R);
@@ -532,13 +530,15 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 			emit(OCopy, i->wide, r, i->arg[0], R);
 		}
 	}
+	for (; ni < 8; ni++)
+		emit(OCopy, 1, TMP(ireg[ni]), R, R);
 
 	for (i=i0, a=ai; i<i1; i++, a++) {
 		if (!a->inmem)
 			continue;
 		sz = a->size;
-		if (a->align == 4 && (stk-sz) % 16)
-			sz += 8;
+		if (a->align == 4)
+			sz += (stk-sz) & 15;
 		stk -= sz;
 		if (i->op == OArgc) {
 			assert(!"argc todo 2");

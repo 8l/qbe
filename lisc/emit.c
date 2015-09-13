@@ -192,7 +192,7 @@ eins(Ins i, Fn *fn, FILE *f)
 			i.arg[0], i.wide, i.to);
 		break;
 	case OCopy:
-		if (req(i.to, R))
+		if (req(i.to, R) || req(i.arg[0], R))
 			break;
 		if (isreg(i.to)
 		&& i.wide
