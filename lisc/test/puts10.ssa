@@ -1,0 +1,16 @@
+function $test {
+@start
+	%y  =l alloc4 4
+	%y1 =l add %y, 1
+	storeb 0, %y1
+@loop	
+	%n =w phi @start 0, @loop %n1
+	%c =w add %n, 48
+	storeb %c, %y
+	%r =w call $puts(l %y)
+	%n1 =w add %n, 1
+	%cmp =w csle %n1, 9
+	jnz %cmp, @loop, @end
+@end
+	ret
+}
