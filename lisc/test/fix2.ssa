@@ -1,15 +1,15 @@
 function $test {
- @start
+@start
 	%x =w copy 1
- @loop
+@loop
 	jnz %x, @noz, @isz
- @noz
+@noz
 	%x =w copy 0
 	jnz %x, @loop, @end
- @isz
+@isz
 	%x =w copy 1
 	jmp @loop
- @end
+@end
 	%z =w add 10, %x
 	ret
 }

@@ -807,7 +807,7 @@ printfn(Fn *fn, FILE *f)
 
 	fprintf(f, "function $%s {\n", fn->name);
 	for (b=fn->start; b; b=b->link) {
-		fprintf(f, " @%s\n", b->name);
+		fprintf(f, "@%s\n", b->name);
 		for (p=b->phi; p; p=p->link) {
 			fprintf(f, "\t");
 			printref(p->to, fn, f);

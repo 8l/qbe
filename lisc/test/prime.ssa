@@ -2,25 +2,25 @@
 # store it in a
 
 function $test {
- @start
- @loop
+@start
+@loop
 	%n =w phi @start 5, @tloop %n, @yes %n1
 	%p =w phi @start 13, @tloop %p1, @yes %p1
 	%p1 =w add %p, 2
- @tloop
+@tloop
 	%t =w phi @loop 3, @next %t1
 	%r =w rem %p, %t
 	jnz %r, @next, @loop
- @next
+@next
 	%t1 =w add 2, %t
 	%tsq =w mul %t1, %t1
 	%c0 =w csgt %tsq, %p
 	jnz %c0, @yes, @tloop
- @yes
+@yes
 	%n1 =w add 1, %n
 	%c1 =w ceq 10001, %n1
 	jnz %c1, @end, @loop
- @end
+@end
 	storew %p, $a
 	ret
 }

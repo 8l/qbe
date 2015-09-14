@@ -1,5 +1,5 @@
 function $test {
- @start
+@start
 	%x =l alloc16 16
 	%y =l add %x, 8
 	%m =w rem %y, 16

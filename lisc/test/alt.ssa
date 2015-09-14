@@ -3,23 +3,23 @@
 # handling of looping constructs
 
 function $test {
- @start
+@start
 	%ten =w copy 10
 	%dum =w copy 0  # dummy live-through temporary
- @loop
+@loop
 	%alt =w phi @start 0, @left %alt1, @right %alt1
 	%cnt =w phi @start 100, @left %cnt, @right %cnt1
 	%alt1 =w sub 1, %alt
 	jnz %alt1, @right, @left
- @left
+@left
 	%x =w phi @loop 10, @left %x1
 	%x1 =w sub %x, 1
 	%z =w copy %x
 	jnz %z, @left, @loop
- @right
+@right
 	%cnt1 =w sub %cnt, %ten
 	jnz %cnt1, @loop, @end
- @end
+@end
 	%ret =w add %cnt, %dum
 	ret
 }

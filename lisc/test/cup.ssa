@@ -1,12 +1,12 @@
 # counts up from -1988 to 1991
 
 function $test {
- @start
- @loop
+@start
+@loop
 	%n0  =l phi @start -1988, @loop %n1
 	%n1  =l add 1, %n0
 	%cmp =l csle 1991, %n1
 	jnz %cmp, @end, @loop
- @end
+@end
 	ret
 }

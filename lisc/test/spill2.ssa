@@ -5,11 +5,11 @@
 # adapt it!
 
 function $test {
- @start
+@start
 	%a =w copy 0
 	%b =w copy 0
 
- @loop
+@loop
 	%c =w phi @start 0, @loop %f
 	%d =w phi @start 0, @loop %g
 	%e =w phi @start 0, @loop %h
@@ -19,6 +19,6 @@ function $test {
 	%x =w csle %a, %b
 	jnz %x, @loop, @end
 
- @end
+@end
 	ret
 }

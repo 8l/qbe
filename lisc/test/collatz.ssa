@@ -4,39 +4,39 @@
 # memoize small collatz numbers
 
 function $test {
- @start
+@start
 	%mem =l alloc4 4000
- @loop
+@loop
 	%n =w phi @start 1, @newm %n9, @oldm %n9
 	%cmax =w phi @start 0, @newm %c, @oldm %cmax
 	%fin =w cslt %n, 1000
 	jnz %fin, @cloop, @end
- @cloop
+@cloop
 	%n0 =w phi @loop %n, @odd %n2, @even %n3
 	%c0 =w phi @loop 0, @odd %c1, @even %c1
 	%no1 =w cne %n0, 1
 	jnz %no1, @iter0, @endcl
- @iter0
+@iter0
 	%ism =w cslt %n0, %n
 	jnz %ism, @getmemo, @iter1
- @iter1
+@iter1
 	%c1 =w add %c0, 1
 	%p =w and %n0, 1
 	jnz %p, @odd, @even
- @odd
+@odd
 	%n1 =w mul 3, %n0
 	%n2 =w add %n1, 1
 	jmp @cloop
- @even
+@even
 	%n3 =w div %n0, 2
 	jmp @cloop
- @getmemo                     # get the count for n0 in mem
+@getmemo                     # get the count for n0 in mem
 	%n0l =l sext %n0
 	%idx0 =l mul %n0l, 4
 	%loc0 =l add %idx0, %mem
 	%cn0 =w load %loc0
 	%c2 =w add %c0, %cn0
- @endcl                       # store the count for n in mem
+@endcl                       # store the count for n in mem
 	%c =w phi @getmemo %c2, @cloop %c0
 	%nl =l sext %n
 	%idx1 =l mul %nl, 4
@@ -45,11 +45,11 @@ function $test {
 	%n9 =w add 1, %n
 	%big =w csle %cmax, %c
 	jnz %big, @newm, @oldm
- @newm
+@newm
 	jmp @loop
- @oldm
+@oldm
 	jmp @loop
- @end
+@end
 	storew %cmax, $a
 	ret
 }

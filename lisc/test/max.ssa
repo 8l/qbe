@@ -6,21 +6,21 @@
 # a output max
 
 function $test {
- @start
- @loop
+@start
+@loop
 	%max =w phi @start -1, @new %byt, @old %max
 	%loc =l phi @start $b,  @new %loc1, @old %loc1
 	%byt =w loadub %loc
 	%loc1 =l add 1, %loc
 	jnz %byt, @iter, @end
- @iter
+@iter
 	%cmp =w csle %max, %byt
 	jnz %cmp, @new, @old
- @new
+@new
 	jmp @loop
- @old
+@old
 	jmp @loop
- @end
+@end
 	storew %max, $a
 	ret
 }
