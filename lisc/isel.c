@@ -500,13 +500,15 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 	if (rtype(i1->arg[1]) == RTyp)
 		diag("struct-returning function not implemented");
 
-	emit(OCopy, i1->wide, i1->to, TMP(RAX), R);
-	for (n=0; n<8; n++) {
+	for (n=0; n<8; n++)
 		emit(OCopy, 0, R, TMP(ireg[n]), R);
-	}
+	emit(OCopy, i1->wide, i1->to, TMP(RAX), R);
 	r = newcon(-(int64_t)stk, fn);
 	emit(OSAlloc, 0, R, r, R);
-	emit(OCall, 0, TMP(RAX), i->arg[0], R);
+	emit(OCall, 0, R, i->arg[0], R);
+	emit(OCopy, 1, TMP(RAX), R, R);
+	for (n=6-nint; n<8; n++)
+		emit(OCopy, 1, TMP(ireg[n]), R, R);
 
 	for (i=i0, a=ai, ni=0; i<i1; i++, a++) {
 		if (a->inmem)
@@ -530,8 +532,6 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 			emit(OCopy, i->wide, r, i->arg[0], R);
 		}
 	}
-	for (; ni < 8; ni++)
-		emit(OCopy, 1, TMP(ireg[ni]), R, R);
 
 	for (i=i0, a=ai; i<i1; i++, a++) {
 		if (!a->inmem)
