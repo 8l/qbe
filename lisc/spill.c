@@ -277,7 +277,6 @@ inregs(Blk *b, Blk *s) /* todo, move to live.c */
 static Ins *
 dopm(Blk *b, Ins *i, Bits *v)
 {
-	int j;
 	Ins *i1;
 
 	/* consecutive moves from
@@ -295,9 +294,8 @@ dopm(Blk *b, Ins *i, Bits *v)
 			break;
 	}
 	if (i > b->ins && (i-1)->op == OCall) {
-		calldef(*--i, &j);
-		limit(v, NReg - NRSave + j, 0);
 		v->t[0] &= ~calldef(*i, 0);
+		limit(v, NReg - NRSave, 0);
 		v->t[0] |= calluse(*i, 0);
 		setloc(&i->arg[0], v, &(Bits){{0}});
 	} else
