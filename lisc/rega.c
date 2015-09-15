@@ -320,10 +320,10 @@ rega(Fn *fn)
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			switch ((--i)->op) {
 			case OCall:
-				rs = calldef(*i, 0) | callclb(*i, 0);
-				for (r=0; r<NReg; r++)
-					if ((1ll << r) & rs)
-						rfree(&cur, r);
+				rs = calluse(*i, 0);
+				for (r=0; r<NRSave; r++)
+					if (!((1ll << rsave[r]) & rs))
+						rfree(&cur, rsave[r]);
 				continue;
 			case OCopy:
 				if (!isreg(i->arg[0]))
