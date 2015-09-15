@@ -277,6 +277,7 @@ inregs(Blk *b, Blk *s) /* todo, move to live.c */
 static Ins *
 dopm(Blk *b, Ins *i, Bits *v)
 {
+	int j;
 	Ins *i1;
 
 	/* consecutive moves from
@@ -293,7 +294,14 @@ dopm(Blk *b, Ins *i, Bits *v)
 		|| !isreg((i-1)->arg[0]))
 			break;
 	}
-	limit(v, NReg, 0);
+	if (i > b->ins && (i-1)->op == OCall) {
+		calldef(*--i, &j);
+		limit(v, NReg - NRSave + j, 0);
+		v->t[0] &= ~calldef(*i, 0);
+		v->t[0] |= calluse(*i, 0);
+		setloc(&i->arg[0], v, &(Bits){{0}});
+	} else
+		limit(v, NReg, 0);
 	do
 		emit(*--i1);
 	while (i1 != i);
@@ -388,21 +396,21 @@ spill(Fn *fn)
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			assert(bcnt(&v) <= NReg);
 			i--;
-			s = 0;
 			if (i->op == OCopy && isreg(i->arg[0])) {
 				i = dopm(b, i, &v);
 				continue;
 			}
+			s = 0;
+			w = (Bits){{0}};
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
 				t = i->to.val;
 				if (BGET(v, t))
 					BCLR(v, t);
 				else
-					limit(&v, NReg-1, &w);
+					limit(&v, NReg-1, 0);
 				s = tmp[t].spill;
 			}
-			w = (Bits){{0}};
 			j = opdesc[i->op].nmem;
 			if (!j && rtype(i->arg[0]) == RTmp)
 				BSET(w, i->arg[0].val);

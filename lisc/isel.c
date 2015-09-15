@@ -442,10 +442,51 @@ classify(AInfo *a, Typ *t)
 	}
 }
 
+int rsave[NRSave] = {RDI, RSI, RDX, RCX, R8, R9, R10, R11, RAX};
+
+uint64_t calldef(Ins i, int *p)
+{
+	uint64_t b;
+	int n;
+
+	n = i.arg[1].val & 15;
+	b = 1ll << RAX;
+	if (n == 2)
+		b |= 1ll << RDX;
+	if (p)
+		*p = n;
+	return b;
+}
+
+uint64_t calluse(Ins i, int *p)
+{
+	uint64_t b;
+	int j, n;
+
+	n = (i.arg[1].val >> 4) & 15;
+	for (j = 0, b = 0; j < n; j++)
+		b |= 1ll << rsave[j];
+	if (p)
+		*p = n;
+	return b;
+}
+
+uint64_t callclb(Ins i, int *p)
+{
+	uint64_t b;
+	int j, n;
+
+	n = (i.arg[1].val >> 4) & 15;
+	for (j = n, b = 0; j < NRSave; j++)
+		b |= 1ll << rsave[j];
+	if (p)
+		*p = n;
+	return b;
+}
+
 static void
 selcall(Fn *fn, Ins *i0, Ins *i1)
 {
-	static int ireg[8] = {RDI, RSI, RDX, RCX, R8, R9, R10, R11};
 	Ins *i;
 	AInfo *ai, *a;
 	int nint, nsse, ni, ns, n;
@@ -497,20 +538,15 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 		}
 	stk += stk & 15;
 
-	if (rtype(i1->arg[1]) == RTyp)
+	if (!req(i1->arg[1], R))
 		diag("struct-returning function not implemented");
 
 	if (stk) {
 		r = newcon(-(int64_t)stk, fn);
 		emit(OSAlloc, 0, R, r, R);
 	}
-	for (n=0; n<8; n++)
-		emit(OCopy, 0, R, TMP(ireg[n]), R);
 	emit(OCopy, i1->wide, i1->to, TMP(RAX), R);
-	emit(OCall, 0, R, i->arg[0], R);
-	emit(OCopy, 1, TMP(RAX), R, R);
-	for (n=6-nint; n<8; n++)
-		emit(OCopy, 1, TMP(ireg[n]), R, R);
+	emit(OCall, 0, R, i->arg[0], CALL(1 + ((6-nint) << 4)));
 
 	for (i=i0, a=ai, ni=0; i<i1; i++, a++) {
 		if (a->inmem)
@@ -519,18 +555,18 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 			if (a->rty[0] == RSse || a->rty[1] == RSse)
 				diag("isel: unsupported float struct");
 			if (a->size > 8) {
-				r = TMP(ireg[ni+1]);
+				r = TMP(rsave[ni+1]);
 				r1 = newtmp(fn);
 				emit(OLoad, 1, r, r1, R);
 				r = newcon(8, fn);
 				emit(OAdd, 1, r1, i->arg[1], r);
-				r = TMP(ireg[ni]);
+				r = TMP(rsave[ni]);
 				ni += 2;
 			} else
-				r = TMP(ireg[ni++]);
+				r = TMP(rsave[ni++]);
 			emit(OLoad, 1, r, i->arg[1], R);
 		} else {
-			r = TMP(ireg[ni++]);
+			r = TMP(rsave[ni++]);
 			emit(OCopy, i->wide, r, i->arg[0], R);
 		}
 	}

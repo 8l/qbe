@@ -779,8 +779,11 @@ printref(Ref r, Fn *fn, FILE *f)
 	case RSlot:
 		fprintf(f, "S%d", r.val);
 		break;
-	case RTyp:
-		fprintf(f, ":%s", typ[r.val].name);
+	case RAlt:
+		if (r.val & RCallm)
+			fprintf(f, "%x", r.val & (RCallm-1));
+		else
+			fprintf(f, ":%s", typ[r.val].name);
 		break;
 	}
 }

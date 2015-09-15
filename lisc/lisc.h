@@ -43,7 +43,8 @@ enum Reg {
 
 	Tmp0, /* first non-reg temporary */
 
-	NReg = R12 - RAX + 1
+	NReg = R12 - RAX + 1,
+	NRSave = 9,
 };
 
 enum {
@@ -76,7 +77,8 @@ enum {
 	RTmp,
 	RCon,
 	RSlot,
-	RTyp,
+	RAlt,
+	RCallm = 0x1000,
 	NRef = (1<<14) - 1
 };
 
@@ -85,7 +87,8 @@ enum {
 #define CON(x)   (Ref){RCon, x}
 #define CON_Z    CON(0)          /* reserved zero constant */
 #define SLOT(x)  (Ref){RSlot, x}
-#define TYP(x)   (Ref){RTyp, x}
+#define TYP(x)   (Ref){RAlt, x}
+#define CALL(x)  (Ref){RAlt, x|RCallm}
 
 static inline int req(Ref a, Ref b)
 { return a.type == b.type && a.val == b.val; }
@@ -274,6 +277,10 @@ void ssafix(Fn *, int);
 void filllive(Fn *);
 
 /* isel.c */
+extern int rsave[NRSave];
+uint64_t calldef(Ins, int *);
+uint64_t calluse(Ins, int *);
+uint64_t callclb(Ins, int *);
 int slota(int, int, int *);
 void isel(Fn *);
 

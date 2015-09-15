@@ -192,36 +192,50 @@ pmgen()
 	free(status);
 }
 
+static void
+move(int r, Ref to, RMap *m)
+{
+	int n, t, r1;
+
+	r1 = req(to, R) ? -1 : rfree(m, to.val);
+	if (BGET(m->b, r) && r1 != r) {
+		/* r is used and not by to */
+		for (n=0; m->r[n] != r; n++)
+			assert(n+1 < m->n);
+		t = m->t[n];
+		rfree(m, t);
+		BSET(m->b, r);
+		ralloc(m, t);
+		BCLR(m->b, r);
+	}
+	t = r1 == -1 ? r : to.val;
+	radd(m, t, r);
+}
+
 static Ins *
 dopm(Blk *b, Ins *i, RMap *m)
 {
 	RMap m0;
 	int n, r, r1, t, nins;
 	Ins *i1, *ib, *ip, *ir;
+	uint64_t def;
 
 	m0 = *m;
 	i1 = i+1;
 	for (;; i--) {
-		r = i->arg[0].val;
-		r1 = req(i->to, R) ? -1 : rfree(m, i->to.val);
-		if (BGET(m->b, r) && r1 != r) {
-			/* r is used and not by i->to, */
-			for (n=0; m->r[n] != r; n++)
-				assert(n+1 < m->n);
-			t = m->t[n];
-			rfree(m, t);
-			BSET(m->b, r);
-			ralloc(m, t);
-			BCLR(m->b, r);
-		}
-		t = r1 == -1 ? r : i->to.val;
-		radd(m, t, r);
+		move(i->arg[0].val, i->to, m);
 		if (i == b->ins
 		|| (i-1)->op != OCopy
 		|| !isreg((i-1)->arg[0]))
 			break;
 	}
 	assert(m0.n <= m->n);
+	if (i > b->ins && (i-1)->op == OCall) {
+		def = calldef(*i, 0);
+		for (r=0; r<NRSave; r++)
+			if (!((1ll << rsave[r]) & def))
+				move(rsave[r], R, m);
+	}
 	for (npm=0, n=0; n<m->n; n++)
 		if ((t = m->t[n]) >= Tmp0) {
 			r1 = m->r[n];
@@ -266,6 +280,7 @@ rega(Fn *fn)
 	Phi *p;
 	uint a;
 	Ref src, dst;
+	uint64_t rs;
 
 	tmp = fn->tmp;
 	end = alloc(fn->nblk * sizeof end[0]);
@@ -303,8 +318,16 @@ rega(Fn *fn)
 		if (rtype(b->jmp.arg) == RTmp)
 			b->jmp.arg = ralloc(&cur, b->jmp.arg.val);
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
-			i--;
-			if (i->op == OCopy && isreg(i->arg[0])) {
+			switch ((--i)->op) {
+			case OCall:
+				rs = calldef(*i, 0) | callclb(*i, 0);
+				for (r=0; r<NReg; r++)
+					if ((1ll << r) & rs)
+						rfree(&cur, r);
+				continue;
+			case OCopy:
+				if (!isreg(i->arg[0]))
+					break;
 				i = dopm(b, i, &cur);
 				continue;
 			}

@@ -63,6 +63,7 @@ main(int ac, char *av[])
 		Blk *b;
 
 		fprintf(stderr, "[Testing Liveness]\n");
+		isel(fn);
 		fillrpo(fn);
 		filllive(fn);
 		for (b=fn->start; b; b=b->link) {

@@ -21,7 +21,7 @@ filllive(Fn *f)
 	Blk *b;
 	Ins *i;
 	Phi *p;
-	int z, n, chg, nlv;
+	int z, m, n, chg, nlv;
 	uint a;
 	Bits tb;
 
@@ -50,7 +50,15 @@ Again:
 		bset(b->jmp.arg, b, &nlv);
 		b->nlive = nlv;
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
-			i--;
+			if ((--i)->op == OCall) {
+				b->in.t[0] &= ~calldef(*i, &m);
+				nlv -= m;
+				if (nlv + NRSave > b->nlive)
+					b->nlive = nlv + NRSave;
+				b->in.t[0] |= calluse(*i, &m);
+				nlv += m;
+				bset(i->arg[0], b, &nlv);
+			}
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
 				nlv -= BGET(b->in, i->to.val);
