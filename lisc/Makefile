@@ -12,4 +12,4 @@ $(OBJ): lisc.h
 clean:
 	rm -f $(BIN) $(OBJ)
 syndoc:
-	unison doc ssh://qcar@h/data/d/ssa-doc
+	unison -auto doc ssh://qcar@h/data/d/ssa-doc
