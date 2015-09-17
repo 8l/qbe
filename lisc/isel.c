@@ -683,11 +683,11 @@ isel(Fn *fn)
 			break;
 	selpar(fn, b->ins, i);
 	i0 = i;
-	n = b->nins - (i0-b->ins);
+	n = b->nins - (i-b->ins);
 	b->nins = n + (curi-insb);
 	i = alloc(b->nins * sizeof i[0]);
 	memcpy(i, insb, (curi-insb) * sizeof i[0]);
-	memcpy(&i[n], i0, n * sizeof i[0]);
+	memcpy(&i[curi-insb], i0, n * sizeof i[0]);
 	free(b->ins);
 	b->ins = i;
 
