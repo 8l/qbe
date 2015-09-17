@@ -638,14 +638,15 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 			;
 		r1 = newtmp(fn);
 		r = TMP(a->rty[0]);
-		*curi++ = (Ins){OAlloc+al, 1, r1, {R}};
+		r2 = newcon(a->size, fn);
+		*curi++ = (Ins){OAlloc+al, 1, r1, {r2}};
 		*curi++ = (Ins){OStorel, 0, R, {r, r1}};
 		if (a->size > 8) {
-			r1 = newtmp(fn);
+			r = newtmp(fn);
 			r2 = newcon(8, fn);
-			*curi++ = (Ins){OAdd, 1, r1, {r, r2}};
-			r = TMP(a->rty[1]);
-			*curi++ = (Ins){OStorel, 0, R, {r, r1}};
+			*curi++ = (Ins){OAdd, 1, r, {r1, r2}};
+			r1 = TMP(a->rty[1]);
+			*curi++ = (Ins){OStorel, 0, R, {r1, r}};
 		}
 	}
 	for (a=&ac[i1-i0], stk=0; a>ac;) {
