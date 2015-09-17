@@ -139,7 +139,9 @@ enum Op {
 	NPubOp,
 
 	/* function instructions */
-	OArg = NPubOp,
+	OPar = NPubOp,
+	OParc,
+	OArg,
 	OArgc,
 	OCall,
 

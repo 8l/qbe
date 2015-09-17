@@ -382,7 +382,14 @@ slota(int sz, int al /* log2 */, int *sa)
 	return ret;
 }
 
-typedef struct AInfo AInfo;
+typedef struct AClass AClass;
+
+struct AClass {
+	int inmem;
+	int align;
+	uint size;
+	int rty[2];
+};
 
 enum {
 	RNone,
@@ -390,15 +397,8 @@ enum {
 	RSse,
 };
 
-struct AInfo {
-	int inmem;
-	int align;
-	uint size;
-	int rty[2];
-};
-
 static void
-classify(AInfo *a, Typ *t)
+aclass(AClass *a, Typ *t)
 {
 	int e, s, n, rty;
 	uint sz, al;
@@ -413,8 +413,7 @@ classify(AInfo *a, Typ *t)
 	 */
 	if (al < 8)
 		al = 8;
-	if (sz & (al-1))
-		sz = (sz + al-1) & -al;
+	sz = (sz + al-1) & -al;
 
 	a->size = sz;
 	a->align = t->align;
@@ -440,6 +439,50 @@ classify(AInfo *a, Typ *t)
 		assert(n <= 8);
 		a->rty[e] = rty;
 	}
+}
+
+static int
+classify(Ins *i0, Ins *i1, AClass *ac, int op)
+{
+	int nint, ni, nsse, ns, n;
+	AClass *a;
+	Ins *i;
+
+	nint = 6;
+	nsse = 8;
+	for (i=i0, a=ac; i<i1; i++, a++) {
+		if (i->op == op) {
+			if (nint > 0) {
+				nint--;
+				a->inmem = 0;
+			} else
+				a->inmem = 2;
+			a->align = 3;
+			a->size = 8;
+			a->rty[0] = RInt;
+		} else {
+			aclass(a, &typ[i->arg[0].val]);
+			if (a->inmem)
+				continue;
+			ni = ns = 0;
+			for (n=0; n<2; n++)
+				switch (a->rty[n]) {
+				case RInt:
+					ni++;
+					break;
+				case RSse:
+					ns++;
+					break;
+				}
+			if (nint > ni && nsse > ns) {
+				nint -= ni;
+				nsse -= ns;
+			} else
+				a->inmem = 1;
+		}
+	}
+
+	return (6-nint) << 4;
 }
 
 int rsave[NRSave] = {RDI, RSI, RDX, RCX, R8, R9, R10, R11, RAX};
@@ -488,48 +531,15 @@ static void
 selcall(Fn *fn, Ins *i0, Ins *i1)
 {
 	Ins *i;
-	AInfo *ai, *a;
-	int nint, nsse, ni, ns, n;
+	AClass *ac, *a;
+	int ci, ni;
 	uint stk, sz;
 	Ref r, r1;
 
-	ai = alloc((i1-i0) * sizeof ai[0]);
+	ac = alloc((i1-i0) * sizeof ac[0]);
+	ci = classify(i0, i1, ac, OArg);
 
-	nint = 6;
-	nsse = 8;
-	for (i=i0, a=ai; i<i1; i++, a++) {
-		if (i->op == OArgc) {
-			classify(a, &typ[i->arg[0].val]);
-			if (a->inmem)
-				continue;
-			ni = ns = 0;
-			for (n=0; n<2; n++)
-				switch (a->rty[n]) {
-				case RInt:
-					ni++;
-					break;
-				case RSse:
-					ns++;
-					break;
-				}
-			if (nint > ni && nsse > ns) {
-				nint -= ni;
-				nsse -= ns;
-			} else
-				a->inmem = 1;
-		} else {
-			if (nint > 0) {
-				nint--;
-				a->inmem = 0;
-			} else
-				a->inmem = 1;
-			a->align = 3;
-			a->size = 8;
-			a->rty[0] = RInt;
-		}
-	}
-
-	for (stk=0, a=&ai[i1-i0]; a>ai;)
+	for (stk=0, a=&ac[i1-i0]; a>ac;)
 		if ((--a)->inmem) {
 			assert(a->align <= 4);
 			stk += a->size;
@@ -540,15 +550,14 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 
 	if (!req(i1->arg[1], R))
 		diag("struct-returning function not implemented");
-
 	if (stk) {
 		r = newcon(-(int64_t)stk, fn);
 		emit(OSAlloc, 0, R, r, R);
 	}
 	emit(OCopy, i1->wide, i1->to, TMP(RAX), R);
-	emit(OCall, 0, R, i->arg[0], CALL(1 + ((6-nint) << 4)));
+	emit(OCall, 0, R, i1->arg[0], CALL(1 + ci));
 
-	for (i=i0, a=ai, ni=0; i<i1; i++, a++) {
+	for (i=i0, a=ac, ni=0; i<i1; i++, a++) {
 		if (a->inmem)
 			continue;
 		if (i->op == OArgc) {
@@ -570,8 +579,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 			emit(OCopy, i->wide, r, i->arg[0], R);
 		}
 	}
-
-	for (i=i0, a=ai; i<i1; i++, a++) {
+	for (i=i0, a=ac; i<i1; i++, a++) {
 		if (!a->inmem)
 			continue;
 		sz = a->size;
@@ -579,7 +587,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 			sz += (stk-sz) & 15;
 		stk -= sz;
 		if (i->op == OArgc) {
-			assert(!"argc todo 2");
+			assert(!"argc todo 1");
 		} else {
 			emit(OXPush, 1, R, i->arg[0], R);
 		}
@@ -589,7 +597,71 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 		emit(OXPush, 1, R, CON_Z, R);
 	}
 
-	free(ai);
+	free(ac);
+}
+
+static void
+selpar(Fn *fn, Ins *i0, Ins *i1)
+{
+	AClass *ac, *a;
+	Ins *i;
+	int ni, stk, al;
+	Ref r, r1, r2;
+
+	ac = alloc((i1-i0) * sizeof ac[0]);
+	classify(i0, i1, ac, OPar);
+
+	curi = insb;
+	for (i=i0, a=ac, ni=0; i<i1; i++, a++) {
+		if (a->inmem)
+			continue;
+		r = TMP(rsave[ni++]);
+		if (i->op == OParc) {
+			if (a->rty[0] == RSse || a->rty[1] == RSse)
+				diag("isel: unsupported float struct");
+			r1 = newtmp(fn);
+			*curi++ = (Ins){OCopy, 1, r1, {r}};
+			a->rty[0] = r1.val;
+			if (a->size > 8) {
+				r = TMP(rsave[ni++]);
+				r1 = newtmp(fn);
+				*curi++ = (Ins){OCopy, 1, r1, {r}};
+				a->rty[1] = r1.val;
+			}
+		} else
+			*curi++ = (Ins){OCopy, i->wide, i->to, {r}};
+	}
+	for (i=i0, a=ac; i<i1; i++, a++) {
+		if (i->op != OParc || a->inmem)
+			continue;
+		for (al=0; a->align >> (al+2); al++) /* careful here, this is because base alloc is aligned at 4 */
+			;
+		r1 = newtmp(fn);
+		r = TMP(a->rty[0]);
+		*curi++ = (Ins){OAlloc+al, 1, r1, {R}};
+		*curi++ = (Ins){OStorel, 0, R, {r, r1}};
+		if (a->size > 8) {
+			r1 = newtmp(fn);
+			r2 = newcon(8, fn);
+			*curi++ = (Ins){OAdd, 1, r1, {r, r2}};
+			r = TMP(a->rty[1]);
+			*curi++ = (Ins){OStorel, 0, R, {r, r1}};
+		}
+	}
+	for (a=&ac[i1-i0], stk=0; a>ac;) {
+		i = &i0[--a - ac];
+		switch (a->inmem) {
+		case 1:
+			assert(!"argc todo 2");
+			break;
+		case 2:
+			stk += 2;
+			fn->tmp[i->to.val].spill = -stk;
+			break;
+		}
+	}
+
+	free(ac);
 }
 
 /* instruction selection
@@ -604,6 +676,20 @@ isel(Fn *fn)
 	uint a;
 	int n, al, s;
 	int64_t sz;
+
+	/* lower arguments */
+	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
+		if (i->op != OPar && i->op != OParc)
+			break;
+	selpar(fn, b->ins, i);
+	i0 = i;
+	n = b->nins - (i0-b->ins);
+	b->nins = n + (curi-insb);
+	i = alloc(b->nins * sizeof i[0]);
+	memcpy(i, insb, (curi-insb) * sizeof i[0]);
+	memcpy(&i[n], i0, n * sizeof i[0]);
+	free(b->ins);
+	b->ins = i;
 
 	/* lower function calls */
 	for (b=fn->start; b; b=b->link) {

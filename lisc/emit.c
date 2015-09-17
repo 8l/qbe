@@ -81,7 +81,7 @@ Next:
 			break;
 		case RSlot:
 		Slot:
-			fprintf(f, "-%d(%%rbp)", 4 * ref.val);
+			fprintf(f, "%d(%%rbp)", -4 * ref.val);
 			break;
 		case RCon:
 			fputc('$', f);
