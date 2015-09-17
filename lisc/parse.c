@@ -39,6 +39,8 @@ OpDesc opdesc[NOp] = {
 	[OXCmp]   = { "xcmp",   1 },
 	[OXTest]  = { "xtest",  1 },
 	[OAddr]   = { "addr",   0 },
+	[OPar]    = { "par",    0 },
+	[OParc]   = { "parc",   0 },
 	[OArg]    = { "arg",    0 },
 	[OArgc]   = { "argc",   0 },
 	[OCall]   = { "call",   0 },
@@ -291,11 +293,15 @@ nextnl()
 static void
 expect(int t)
 {
-	static char *names[] = {
+	static char *ttoa[] = {
 		[TLbl] = "label",
 		[TComma] = ",",
 		[TEq] = "=",
 		[TNL] = "newline",
+		[TLParen] = "(",
+		[TRParen] = ")",
+		[TLBrace] = "{",
+		[TRBrace] = "}",
 		[TEOF] = 0,
 	};
 	char buf[128], *s1, *s2;
@@ -304,8 +310,8 @@ expect(int t)
 	t1 = next();
 	if (t == t1)
 		return;
-	s1 = names[t] ? names[t] : "??";
-	s2 = names[t1] ? names[t1] : "??";
+	s1 = ttoa[t] ? ttoa[t] : "??";
+	s2 = ttoa[t1] ? ttoa[t1] : "??";
 	snprintf(buf, sizeof buf,
 		"%s expected (got %s instead)", s1, s2);
 	err(buf);
@@ -394,7 +400,7 @@ parsecls(int *tyn)
 }
 
 static void
-parseargl()
+parserefl(int arg)
 {
 	int w, t, ty;
 	Ref r;
@@ -411,10 +417,18 @@ parseargl()
 		r = parseref();
 		if (req(r, R))
 			err("invalid reference argument");
+		if (!arg && rtype(r) != RTmp)
+			err("invalid function parameter");
 		if (w == 2)
-			*curi = (Ins){OArgc, 0, R, {TYP(ty), r}};
+			if (arg)
+				*curi = (Ins){OArgc, 0, R, {TYP(ty), r}};
+			else
+				*curi = (Ins){OParc, 0, r, {TYP(ty)}};
 		else
-			*curi = (Ins){OArg, w, R, {r, R}};
+			if (arg)
+				*curi = (Ins){OArg, w, R, {r}};
+			else
+				*curi = (Ins){OPar, w, r, {R}};
 		curi++;
 		t = next();
 		if (t == TRParen)
@@ -531,7 +545,7 @@ DoOp:
 	}
 	if (op == TCall) {
 		arg[0] = parseref();
-		parseargl();
+		parserefl(1);
 		expect(TNL);
 		op = OCall;
 		if (w == 2) {
@@ -599,20 +613,21 @@ parsefn()
 
 	if (next() != TGlo)
 		err("function name expected");
-	if (nextnl() != TLBrace)
-		err("function must start with {");
 	for (i=0; i<NBlk; i++)
 		bmap[i] = 0;
 	for (i=Tmp0; i<NTmp; i++)
 		tmp[i] = (Tmp){.name = ""};
 	ntmp = Tmp0;
 	ncon = 1; /* first constant must be 0 */
-	curi = insb;
 	curb = 0;
 	nblk = 0;
+	curi = insb;
 	fn = alloc(sizeof *fn);
 	strcpy(fn->name, tokval.str);
 	blink = &fn->start;
+	parserefl(0);
+	if (nextnl() != TLBrace)
+		err("function body must start with {");
 	ps = PLbl;
 	do
 		ps = parseline(ps);
@@ -798,6 +813,7 @@ printfn(Fn *fn, FILE *f)
 	#undef X
 	};
 	static char prcls[NOp] = {
+		[OArg] = 1,
 		[OXCmp] = 1,
 		[OXTest] = 1,
 		[OXPush] = 1,
