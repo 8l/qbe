@@ -88,7 +88,7 @@ enum {
 #define CON_Z    CON(0)          /* reserved zero constant */
 #define SLOT(x)  (Ref){RSlot, x}
 #define TYP(x)   (Ref){RAlt, x}
-#define CALL(x)  (Ref){RAlt, x|RCallm}
+#define CALL(x)  (Ref){RAlt, (x)|RCallm}
 
 static inline int req(Ref a, Ref b)
 { return a.type == b.type && a.val == b.val; }
