@@ -612,9 +612,18 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	classify(i0, i1, ac, OPar);
 
 	curi = insb;
-	for (i=i0, a=ac, ni=0; i<i1; i++, a++) {
-		if (a->inmem)
+	ni = 0;
+	stk = -2;
+	for (i=i0, a=ac; i<i1; i++, a++) {
+		switch (a->inmem) {
+		case 1:
+			assert(!"argc todo 2");
 			continue;
+		case 2:
+			stk -= 2;
+			*curi++ = (Ins){OLoad, i->wide, i->to, {SLOT(stk)}};
+			continue;
+		}
 		r = TMP(rsave[ni++]);
 		if (i->op == OParc) {
 			if (a->rty[0] == RSse || a->rty[1] == RSse)
@@ -649,18 +658,6 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 			*curi++ = (Ins){OStorel, 0, R, {r1, r}};
 		}
 	}
-	for (a=&ac[i1-i0], stk=0; a>ac;) {
-		i = &i0[--a - ac];
-		switch (a->inmem) {
-		case 1:
-			assert(!"argc todo 2");
-			break;
-		case 2:
-			stk += 2;
-			fn->tmp[i->to.val].spill = -stk;
-			break;
-		}
-	}
 
 	free(ac);
 }
@@ -677,6 +674,10 @@ isel(Fn *fn)
 	uint a;
 	int n, al, s;
 	int64_t sz;
+
+	for (n=Tmp0; n<fn->ntmp; n++)
+		fn->tmp[n].spill = 0;
+	memset(fn->svec, 0, sizeof fn->svec);
 
 	/* lower arguments */
 	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
@@ -717,10 +718,6 @@ isel(Fn *fn)
 	}
 
 	/* assign slots to fast allocs */
-	for (n=Tmp0; n<fn->ntmp; n++)
-		fn->tmp[n].spill = 0;
-	memset(fn->svec, 0, sizeof fn->svec);
-
 	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
 		if (OAlloc <= i->op && i->op <= OAlloc1) {
 			if (rtype(i->arg[0]) != RCon)
