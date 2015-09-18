@@ -1,4 +1,4 @@
-function $test {
+function $test() {
 @start
 	%x =l alloc16 16
 	%y =l add %x, 8

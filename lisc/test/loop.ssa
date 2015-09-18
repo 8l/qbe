@@ -1,7 +1,7 @@
 # simple looping program
 # sums all integers from 100 to 0
 
-function $test {
+function $test() {
 @start
 
 @loop

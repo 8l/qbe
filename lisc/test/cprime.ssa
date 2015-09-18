@@ -2,7 +2,7 @@
 # compiler from the C program
 # following in comments
 
-function $test {
+function $test() {
 @start
 	%v0 =l alloc8 4
 	%v1 =l alloc8 4

@@ -4,7 +4,7 @@
 # run with NReg == 3, or
 # adapt it!
 
-function $test {
+function $test() {
 @start
 	%a =w copy 0
 	%b =w copy 0

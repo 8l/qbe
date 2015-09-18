@@ -2,7 +2,7 @@
 # flow graph that exposes poor
 # handling of looping constructs
 
-function $test {
+function $test() {
 @start
 	%ten =w copy 10
 	%dum =w copy 0  # dummy live-through temporary

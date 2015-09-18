@@ -9,7 +9,7 @@
 # spill
 #
 
-function $test {
+function $test() {
 @start
 	%f =w copy 0      # here
 	%b =w copy 1

@@ -1,6 +1,6 @@
 # counts up from -1988 to 1991
 
-function $test {
+function $test() {
 @start
 @loop
 	%n0  =l phi @start -1988, @loop %n1

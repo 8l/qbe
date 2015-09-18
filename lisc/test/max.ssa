@@ -5,7 +5,7 @@
 # b input array
 # a output max
 
-function $test {
+function $test() {
 @start
 @loop
 	%max =w phi @start -1, @new %byt, @old %max

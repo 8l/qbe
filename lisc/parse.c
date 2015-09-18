@@ -824,7 +824,7 @@ printfn(Fn *fn, FILE *f)
 	Ins *i;
 	uint n;
 
-	fprintf(f, "function $%s {\n", fn->name);
+	fprintf(f, "function $%s() {\n", fn->name);
 	for (b=fn->start; b; b=b->link) {
 		fprintf(f, "@%s\n", b->name);
 		for (p=b->phi; p; p=p->link) {

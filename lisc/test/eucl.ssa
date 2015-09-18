@@ -3,7 +3,7 @@
 # ssa program because of the
 # swap of b and a
 
-function $test {
+function $test() {
 @start
 
 @loop

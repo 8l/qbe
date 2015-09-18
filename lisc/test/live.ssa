@@ -5,7 +5,7 @@
 #
 # nothing should ever be live at the entry
 
-function $test {
+function $test() {
 @start
 	%b =w copy 0
 	%x =w copy 10

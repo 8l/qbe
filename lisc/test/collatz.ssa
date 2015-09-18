@@ -3,7 +3,7 @@
 # we use a fast local array to
 # memoize small collatz numbers
 
-function $test {
+function $test() {
 @start
 	%mem =l alloc4 4000
 @loop
