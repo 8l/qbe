@@ -80,9 +80,11 @@ Next:
 			fprintf(f, "%%%s", rsub[ref.val][ty]);
 			break;
 		case RSlot:
-		Slot:
-			fprintf(f, "%d(%%rbp)", -4 * ref.val);
+		Slot: {
+			struct { int i:14; } x = {ref.val}; /* fixme, HACK */
+			fprintf(f, "%d(%%rbp)", -4 * x.i);
 			break;
+		}
 		case RCon:
 			fputc('$', f);
 		Con:
