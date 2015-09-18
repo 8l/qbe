@@ -1,0 +1,28 @@
+function $main(w %argc, l %argv) {
+@start
+	%fmt =l alloc8 8
+	storel 1663398693, %fmt             # "%s%c"
+	%av0 =l add %argv, 8
+	%ac0 =w sub %argc, 1
+@loop
+	%av =l phi @start %av0, @loop2 %av1
+	%ac =w phi @start %ac0, @loop2 %ac1
+	%c0 =w ceq %ac, 0
+	jnz %c0, @end, @loop1
+@loop1
+	%c1 =w ceq %ac, 1
+	jnz %c1, @last, @nolast
+@last
+	jmp @loop2
+@nolast
+	jmp @loop2
+@loop2
+	%sep =w phi @last 10, @nolast 32
+	%arg =l load %av
+	%r =w call $printf(l %fmt, l %arg, w %sep)
+	%av1 =l add %av, 8
+	%ac1 =w sub %ac, 1
+	jmp @loop
+@end
+	ret
+}
