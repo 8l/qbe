@@ -324,7 +324,7 @@ seljmp(Blk *b, Fn *fn)
 			return;
 		}
 	}
-	selcmp((Ref[2]){r, CON_Z}, 0, fn); /* fixme, add long branch if non-zero */
+	selcmp((Ref[2]){r, CON_Z}, 0, fn); /* todo, add long branch if non-zero */
 	b->jmp.type = JXJc + Cne;
 }
 
