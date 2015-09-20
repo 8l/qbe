@@ -5,6 +5,7 @@
 #include <string.h>
 
 typedef unsigned int uint;
+typedef unsigned long long ulong;
 
 typedef struct Bits Bits;
 typedef struct Ref Ref;
@@ -45,6 +46,7 @@ enum Reg {
 
 	NReg = R12 - RAX + 1,
 	NRSave = 9,
+	NRClob = 5,
 };
 
 enum {
@@ -61,12 +63,13 @@ enum {
 };
 
 struct Bits {
-	uint64_t t[BITS];
+	ulong t[BITS];
 };
 
+#define BIT(n)     (1ull << (n))
 #define BGET(b, n) (1&((b).t[n/NBit]>>(n%NBit)))
-#define BSET(b, n) ((b).t[n/NBit] |= 1ll<<(n%NBit))
-#define BCLR(b, n) ((b).t[n/NBit] &= ~(1ll<<(n%NBit)))
+#define BSET(b, n) ((b).t[n/NBit] |= BIT(n%NBit))
+#define BCLR(b, n) ((b).t[n/NBit] &= ~BIT(n%NBit))
 
 struct Ref {
 	uint16_t type:2;
@@ -240,6 +243,7 @@ struct Fn {
 	int ncon;
 	int nblk;
 	Blk **rpo;
+	ulong reg;
 	int svec[NAlign];
 	char name[NString];
 };
@@ -280,9 +284,10 @@ void filllive(Fn *);
 
 /* isel.c */
 extern int rsave[NRSave];
-uint64_t calldef(Ins, int *);
-uint64_t calluse(Ins, int *);
-uint64_t callclb(Ins, int *);
+extern int rclob[NRClob];
+ulong calldef(Ins, int *);
+ulong calluse(Ins, int *);
+ulong callclb(Ins, int *);
 int slota(int, int, int *);
 void isel(Fn *);
 

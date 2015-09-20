@@ -13,6 +13,7 @@ struct RMap {
 };
 
 extern Ins insb[NIns], *curi;
+static ulong regu;     /* registers used */
 static Tmp *tmp;       /* function temporaries */
 static struct {
 	Ref src, dst;
@@ -58,6 +59,7 @@ radd(RMap *m, int t, int r)
 	m->t[m->n] = t;
 	m->r[m->n] = r;
 	m->n++;
+	regu |= BIT(r);
 }
 
 static Ref
@@ -218,7 +220,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 	RMap m0;
 	int n, r, r1, t, nins;
 	Ins *i1, *ib, *ip, *ir;
-	uint64_t def;
+	ulong def;
 
 	m0 = *m;
 	i1 = i+1;
@@ -233,7 +235,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 	if (i > b->ins && (i-1)->op == OCall) {
 		def = calldef(*i, 0);
 		for (r=0; r<NRSave; r++)
-			if (!((1ll << rsave[r]) & def))
+			if (!(BIT(rsave[r]) & def))
 				move(rsave[r], R, m);
 	}
 	for (npm=0, n=0; n<m->n; n++)
@@ -280,8 +282,9 @@ rega(Fn *fn)
 	Phi *p;
 	uint a;
 	Ref src, dst;
-	uint64_t rs;
+	ulong rs;
 
+	regu = 0;
 	tmp = fn->tmp;
 	end = alloc(fn->nblk * sizeof end[0]);
 	beg = alloc(fn->nblk * sizeof beg[0]);
@@ -322,7 +325,7 @@ rega(Fn *fn)
 			case OCall:
 				rs = calluse(*i, 0);
 				for (r=0; r<NRSave; r++)
-					if (!((1ll << rsave[r]) & rs))
+					if (!(BIT(rsave[r]) & rs))
 						rfree(&cur, rsave[r]);
 				continue;
 			case OCopy:
@@ -430,6 +433,7 @@ rega(Fn *fn)
 			b->phi = p->link;
 			free(p);
 		}
+	fn->reg = regu;
 
 	free(end);
 	free(beg);

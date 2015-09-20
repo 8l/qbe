@@ -286,14 +286,17 @@ eins(Ins i, Fn *fn, FILE *f)
 static int
 framesz(Fn *fn)
 {
-	int i, a, f;
+	int i, o, a, f;
 
+	for (i=0, o=0; i<NRClob; i++)
+		o ^= 1 & (fn->reg >> rclob[i]);
 	f = 0;
 	for (i=NAlign-1, a=1<<i; i>=0; i--, a/=2)
 		if (f == 0 || f - a == fn->svec[i])
 			f = fn->svec[i];
 	a = 1 << (NAlign-2);
-	while ((f + a) % (2 * a) != a)
+	o *= a;
+	while ((f + o) % (2 * a))
 		f += a - f % a;
 	return f * 16 / (1 << (NAlign-1));
 }
@@ -303,7 +306,7 @@ emitfn(Fn *fn, FILE *f)
 {
 	Blk *b, *s;
 	Ins *i;
-	int c, fs;
+	int r, j, c, fs;
 
 	fprintf(f,
 		".text\n"
@@ -317,12 +320,23 @@ emitfn(Fn *fn, FILE *f)
 	fs = framesz(fn);
 	if (fs)
 		fprintf(f, "\tsub $%d, %%rsp\n", fs);
+	for (j=0; j<NRClob; j++) {
+		r = rclob[j];
+		if (fn->reg & BIT(r))
+			emitf(fn, f, "\tpush%w %R\n", 1, TMP(r));
+	}
+
 	for (b=fn->start; b; b=b->link) {
 		fprintf(f, ".L%s:\n", b->name);
 		for (i=b->ins; i-b->ins < b->nins; i++)
 			eins(*i, fn, f);
 		switch (b->jmp.type) {
 		case JRet:
+			for (j=NRClob; j>=0; j--) {
+				r = rclob[j];
+				if (fn->reg & BIT(r))
+					emitf(fn, f, "\tpop%w %R\n", 1, TMP(r));
+			}
 			fprintf(f,
 				"\tleave\n"
 				"\tret\n"

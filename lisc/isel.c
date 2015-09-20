@@ -486,42 +486,46 @@ classify(Ins *i0, Ins *i1, AClass *ac, int op)
 }
 
 int rsave[NRSave] = {RDI, RSI, RDX, RCX, R8, R9, R10, R11, RAX};
+int rclob[NRClob] = {RBX, R12, R13, R14, R15};
 
-uint64_t calldef(Ins i, int *p)
+ulong
+calldef(Ins i, int *p)
 {
-	uint64_t b;
+	ulong b;
 	int n;
 
 	n = i.arg[1].val & 15;
-	b = 1ll << RAX;
+	b = BIT(RAX);
 	if (n == 2)
-		b |= 1ll << RDX;
+		b |= BIT(RDX);
 	if (p)
 		*p = n;
 	return b;
 }
 
-uint64_t calluse(Ins i, int *p)
+ulong
+calluse(Ins i, int *p)
 {
-	uint64_t b;
+	ulong b;
 	int j, n;
 
 	n = (i.arg[1].val >> 4) & 15;
 	for (j = 0, b = 0; j < n; j++)
-		b |= 1ll << rsave[j];
+		b |= BIT(rsave[j]);
 	if (p)
 		*p = n;
 	return b;
 }
 
-uint64_t callclb(Ins i, int *p)
+ulong
+callclb(Ins i, int *p)
 {
-	uint64_t b;
+	ulong b;
 	int j, n;
 
 	n = (i.arg[1].val >> 4) & 15;
 	for (j = n, b = 0; j < NRSave; j++)
-		b |= 1ll << rsave[j];
+		b |= BIT(rsave[j]);
 	if (p)
 		*p = n;
 	return b;
