@@ -306,7 +306,7 @@ emitfn(Fn *fn, FILE *f)
 {
 	Blk *b, *s;
 	Ins *i;
-	int r, j, c, fs;
+	int *r, c, fs;
 
 	fprintf(f,
 		".text\n"
@@ -320,11 +320,9 @@ emitfn(Fn *fn, FILE *f)
 	fs = framesz(fn);
 	if (fs)
 		fprintf(f, "\tsub $%d, %%rsp\n", fs);
-	for (j=0; j<NRClob; j++) {
-		r = rclob[j];
-		if (fn->reg & BIT(r))
-			emitf(fn, f, "\tpush%w %R\n", 1, TMP(r));
-	}
+	for (r=rclob; r-rclob < NRClob; r++)
+		if (fn->reg & BIT(*r))
+			emitf(fn, f, "\tpush%w %R\n", 1, TMP(*r));
 
 	for (b=fn->start; b; b=b->link) {
 		fprintf(f, ".L%s:\n", b->name);
@@ -332,11 +330,9 @@ emitfn(Fn *fn, FILE *f)
 			eins(*i, fn, f);
 		switch (b->jmp.type) {
 		case JRet:
-			for (j=NRClob; j>=0; j--) {
-				r = rclob[j];
-				if (fn->reg & BIT(r))
-					emitf(fn, f, "\tpop%w %R\n", 1, TMP(r));
-			}
+			for (r=&rclob[NRClob]; r>rclob;)
+				if (fn->reg & BIT(*--r))
+					emitf(fn, f, "\tpop%w %R\n", 1, TMP(*r));
 			fprintf(f,
 				"\tleave\n"
 				"\tret\n"
