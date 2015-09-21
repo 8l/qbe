@@ -327,24 +327,28 @@ rega(Fn *fn)
 				for (r=0; r<NRSave; r++)
 					if (!(BIT(rsave[r]) & rs))
 						rfree(&cur, rsave[r]);
-				continue;
+				r = 0;
+				break;
 			case OCopy:
-				if (!isreg(i->arg[0]))
-					break;
-				i = dopm(b, i, &cur);
-				continue;
-			}
-			if (!req(i->to, R)) {
-				assert(rtype(i->to) == RTmp);
-				r = rfree(&cur, i->to.val);
-				if (r == -1) {
-					*i = (Ins){.op = ONop};
+				if (isreg(i->arg[0])) {
+					i = dopm(b, i, &cur);
 					continue;
 				}
-				if (i->to.val >= Tmp0)
-					i->to = TMP(r);
-			} else
-				r = 0;
+				/* fall through */
+			default:
+				if (!req(i->to, R)) {
+					assert(rtype(i->to) == RTmp);
+					r = rfree(&cur, i->to.val);
+					if (r == -1) {
+						*i = (Ins){.op = ONop};
+						continue;
+					}
+					if (i->to.val >= Tmp0)
+						i->to = TMP(r);
+				} else
+					r = 0;
+				break;
+			}
 			for (x=0; x<2; x++)
 				if (rtype(i->arg[x]) == RTmp) {
 					/* <arch>
