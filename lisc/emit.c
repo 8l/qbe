@@ -224,7 +224,16 @@ eins(Ins i, Fn *fn, FILE *f)
 			i.wide, i.arg[0], i.to);
 		break;
 	case OCall:
-		emitf(fn, f, "call%w %R", 1, i.arg[0]);
+		switch (rtype(i.arg[0])) {
+		default:
+			diag("emit: invalid call instruction");
+		case RCon:
+			emitf(fn, f, "callq %M", i.arg[0]);
+			break;
+		case RTmp:
+			emitf(fn, f, "call%w *%R", 1, i.arg[0]);
+			break;
+		}
 		break;
 	case OAddr:
 		emitf(fn, f, "lea%w %M, %R", i.wide, i.arg[0], i.to);
