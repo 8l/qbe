@@ -515,8 +515,12 @@ parseline(PState ps)
 			JRetc, JRet0
 		}[rcls];
 		curb->jmp.rettyn = rtyn;
-		if (rcls < 3)
-			curb->jmp.arg = parseref();
+		if (rcls < 3) {
+			r = parseref();
+			if (req(r, R))
+				err("return value expected");
+			curb->jmp.arg = r;
+		}
 		goto Close;
 	case TJmp:
 		curb->jmp.type = JJmp;
