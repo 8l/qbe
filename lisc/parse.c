@@ -116,6 +116,8 @@ static Blk *bmap[NBlk+1];
 static Blk *curb;
 static Blk **blink;
 static int nblk;
+static int rcls;
+static int rtyn;
 
 
 void *
@@ -508,7 +510,13 @@ parseline(PState ps)
 		expect(TNL);
 		return PPhi;
 	case TRet:
-		curb->jmp.type = JRet;
+		curb->jmp.type = (int[]){
+			JRetw, JRetl,
+			JRetc, JRet0
+		}[rcls];
+		curb->jmp.rettyn = rtyn;
+		if (rcls < 3)
+			curb->jmp.arg = parseref();
 		goto Close;
 	case TJmp:
 		curb->jmp.type = JJmp;
@@ -611,6 +619,10 @@ parsefn()
 	PState ps;
 	Fn *fn;
 
+	if (peek() != TGlo)
+		rcls = parsecls(&rtyn);
+	else
+		rcls = 3;
 	if (next() != TGlo)
 		err("function name expected");
 	for (i=0; i<NBlk; i++)
@@ -807,6 +819,10 @@ void
 printfn(Fn *fn, FILE *f)
 {
 	static char *jtoa[NJmp] = {
+		[JRet0]     = "ret",
+		[JRetw]     = "retw",
+		[JRetl]     = "retl",
+		[JRetc]     = "retc",
 		[JJnz]      = "jnz",
 	#define X(c) [JXJc+C##c] = "xj" #c,
 		CMPS(X)
@@ -865,8 +881,15 @@ printfn(Fn *fn, FILE *f)
 			fprintf(f, "\n");
 		}
 		switch (b->jmp.type) {
-		case JRet:
-			fprintf(f, "\tret\n");
+		case JRet0:
+		case JRetw:
+		case JRetl:
+		case JRetc:
+			fprintf(f, "\t%s", jtoa[b->jmp.type]);
+			if (b->jmp.type != JRet0) {
+				fprintf(f, " ");
+				printref(b->jmp.arg, fn, f);
+			}
 			break;
 		case JJmp:
 			if (b->s1 != b->link)

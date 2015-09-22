@@ -332,7 +332,7 @@ emitfn(Fn *fn, FILE *f)
 		for (i=b->ins; i-b->ins < b->nins; i++)
 			eins(*i, fn, f);
 		switch (b->jmp.type) {
-		case JRet:
+		case JRet0:
 			for (r=&rclob[NRClob]; r>rclob;)
 				if (fn->reg & BIT(*--r))
 					emitf(fn, f, "pop%w %R", 1, TMP(*r));

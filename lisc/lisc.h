@@ -165,7 +165,10 @@ enum Op {
 
 enum Jmp {
 	JXXX,
-	JRet,
+	JRet0,
+	JRetw,
+	JRetl,
+	JRetc,
 	JJmp,
 	JJnz,
 	JXJc,
@@ -201,6 +204,7 @@ struct Blk {
 	struct {
 		short type;
 		Ref arg;
+		int rettyn;
 	} jmp;
 	Blk *s1;
 	Blk *s2;
