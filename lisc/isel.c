@@ -277,11 +277,27 @@ static void
 seljmp(Blk *b, Fn *fn)
 {
 	Ref r;
-	int c;
+	int c, w;
 	Ins *fi;
 
-	if (b->jmp.type != JJnz)
+	switch (b->jmp.type) {
+	default:
 		return;
+	case JRetc:
+		assert(!"retc todo");
+	case JRetw:
+		w = 0;
+	if (0) {
+	case JRetl:
+		w = 1;
+	}
+		b->jmp.type = JRet0;
+		r = b->jmp.arg;
+		b->jmp.arg = R;
+		emit(OCopy, w, TMP(RAX), r, R);
+		return;
+	case JJnz:;
+	}
 	r = b->jmp.arg;
 	b->jmp.arg = R;
 	assert(!req(r, R));
