@@ -814,6 +814,7 @@ printfn(Fn *fn, FILE *f)
 	};
 	static char prcls[NOp] = {
 		[OArg] = 1,
+		[OSwap] = 1,
 		[OXCmp] = 1,
 		[OXTest] = 1,
 		[OXPush] = 1,
