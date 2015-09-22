@@ -890,6 +890,7 @@ printfn(Fn *fn, FILE *f)
 				fprintf(f, " ");
 				printref(b->jmp.arg, fn, f);
 			}
+			fprintf(f, "\n");
 			break;
 		case JJmp:
 			if (b->s1 != b->link)
