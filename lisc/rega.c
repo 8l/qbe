@@ -339,7 +339,7 @@ rega(Fn *fn)
 				if (!req(i->to, R)) {
 					assert(rtype(i->to) == RTmp);
 					r = rfree(&cur, i->to.val);
-					if (r == -1) {
+					if (r == -1 && !isreg(i->to)) {
 						*i = (Ins){.op = ONop};
 						continue;
 					}
