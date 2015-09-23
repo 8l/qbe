@@ -286,11 +286,8 @@ seljmp(Blk *b, Fn *fn)
 	case JRetc:
 		assert(!"retc todo");
 	case JRetw:
-		w = 0;
-	if (0) {
 	case JRetl:
-		w = 1;
-	}
+		w = b->jmp.type == JRetl;
 		b->jmp.type = JRet0;
 		r = b->jmp.arg;
 		b->jmp.arg = R;
