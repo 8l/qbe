@@ -5,11 +5,18 @@
 #endif
 
 typedef struct RMap RMap;
+typedef struct Trace Trace;
+
 struct RMap {
 	int t[NReg];
 	int r[NReg];
 	Bits b;
 	int n;
+};
+
+struct Trace {
+	Blk *b;
+	ulong w;
 };
 
 extern Ins insb[NIns], *curi;
@@ -20,6 +27,13 @@ static struct {
 	int wide;
 } *pm;                 /* parallel move constructed */
 static int cpm, npm;   /* capacity and size of pm */
+
+static int *
+hint(int t)
+{
+	t = phirepr(tmp, t);
+	return &tmp[t].hint;
+}
 
 static int
 rfind(RMap *m, int t)
@@ -75,14 +89,14 @@ ralloc(RMap *m, int t)
 		r = rfind(m, t);
 		assert(r != -1);
 	} else {
-		r = tmp[t].hint;
+		r = *hint(t);
 		if (r == -1 || BGET(m->b, r))
 			for (r=RAX; BGET(m->b, r); r++)
 				if (r+1 == RAX+NReg)
 					diag("rega: no more regs");
 		radd(m, t, r);
-		if (tmp[t].hint == -1)
-			tmp[t].hint = r;
+		if (*hint(t) == -1)
+			*hint(t) = r;
 	}
 	return TMP(r);
 }
@@ -275,7 +289,6 @@ doblk(Blk *b, RMap *cur)
 	int t, x, r;
 	ulong rs;
 	Ins *i;
-	Phi *p;
 
 	if (rtype(b->jmp.arg) == RTmp)
 		b->jmp.arg = ralloc(cur, b->jmp.arg.val);
@@ -318,15 +331,17 @@ doblk(Blk *b, RMap *cur)
 			 	*/
 				t = i->arg[x].val;
 				if (r && !BGET(cur->b, r))
-				if (tmp[t].hint == -1)
-					tmp[t].hint = r;
+				if (*hint(t) == -1)
+					*hint(t) = r;
 				i->arg[x] = ralloc(cur, t);
 			}
 	}
-	b->in = cur->b;
-	for (p=b->phi; p; p=p->link)
-		if (rtype(p->to) == RTmp)
-			BCLR(b->in, p->to.val);
+}
+
+static int
+trcmp(const void *a, const void *b)
+{
+	return ((Trace *)b)->w - ((Trace *)a)->w;
 }
 
 /* register allocation
@@ -336,12 +351,14 @@ void
 rega(Fn *fn)
 {
 	int n, t, r, x;
+	ulong w;
 	Blk *b, *b1, *s, ***ps, *blist;
 	Ins *i;
 	RMap *end, *beg, cur;
 	Phi *p;
-	uint a;
+	uint u;
 	Ref src, dst;
+	Trace *tr;
 
 	regu = 0;
 	tmp = fn->tmp;
@@ -361,37 +378,82 @@ rega(Fn *fn)
 				tmp[i->to.val].hint = i->arg[0].val;
 		}
 
-	/* 2. assign registers following traces */
-	if (debug['R'])
-		fprintf(stderr, "> Register mappings:\n");
-
-	for (n=fn->nblk-1; n>=0; n--) {
+	/* 2. compute traces */
+	tr = alloc(fn->nblk * sizeof tr[0]);
+	for (n=0; n<fn->nblk; n++) {
 		b = fn->rpo[n];
+		b->visit = 0;
+		tr[n].b = b;
+		tr[n].w = b->loop;
+		for (u=0; u<b->npred; u++)
+			if (b->pred[u]->id < n)
+				tr[n].w += tr[b->pred[u]->id].w;
+	}
+	qsort(tr, fn->nblk, sizeof tr[0], trcmp);
+
+	/* 3. assign registers following traces */
+	if (debug['R'])
+		fprintf(stderr, "> Trace allocation:\n");
+	for (n=0; n<fn->nblk; n++) {
+		b = tr[n].b;
+		if (b->visit)
+			continue;
 		cur.n = 0;
 		cur.b = (Bits){{0}};
-		for (x=0; x<2; x++)
-			for (t=Tmp0; t<fn->ntmp; t++)
-				if (BGET(b->out, t))
-				if (!BGET(cur.b, t))
-				if (x == 1
-				|| ((r=tmp[t].hint) != -1 && !BGET(cur.b, r)))
-					ralloc(&cur, t);
-
-		end[n] = cur;
-		doblk(b, &cur);
-		beg[n] = cur;
-
-		if (debug['R']) {
+		if (debug['R'])
+			fprintf(stderr, "\t");
+		do {
+			if (debug['R'])
+				fprintf(stderr, " %s", b->name);
+			for (x=0; x<2; x++)
+				for (t=Tmp0; t<fn->ntmp; t++) {
+					assert(BGET(b->out, t) ||
+						!BGET(cur.b, t));
+					if (BGET(b->out, t))
+					if (!BGET(cur.b, t))
+					if (x==1 || (r=*hint(t)) != -1)
+					if (x==1 || !BGET(cur.b, r))
+						ralloc(&cur, t);
+				}
+			end[b->id] = cur;
+			doblk(b, &cur);
+			beg[b->id] = cur;
+			b->in = cur.b;
+			for (p=b->phi; p; p=p->link)
+				if (rtype(p->to) == RTmp) {
+					t = p->to.val;
+					BCLR(b->in, t);
+					rfree(&cur, t);
+				}
+			b->visit = 1;
+			for (s=0, w=0, u=0; u<b->npred; u++) {
+				b1 = b->pred[u];
+				if (b1->visit || b1->id >= b->id)
+					continue;
+				if (tr[b1->id].w > w) {
+					s = b1;
+					w = tr[b1->id].w;
+				}
+			}
+			b = s;
+		} while (b);
+		if (debug['R'])
+			fprintf(stderr, "\n");
+	}
+	if (debug['R'])  {
+		fprintf(stderr, "\n> Register mappings:\n");
+		for (n=0; n<fn->nblk; n++) {
+			b = fn->rpo[n];
 			fprintf(stderr, "\t%-10s beg", b->name);
 			mdump(&beg[n]);
 			fprintf(stderr, "\t           end");
 			mdump(&end[n]);
 		}
-	}
-	if (debug['R'])
 		fprintf(stderr, "\n");
+	}
+	free(tr);
 
-	/* 3. compose glue code */
+	/* 4. compose glue code */
 	blist = 0;
 	for (b=fn->start;; b=b->link) {
 		ps = (Blk**[3]){&b->s1, &b->s2, (Blk*[1]){0}};
@@ -406,9 +468,9 @@ rega(Fn *fn)
 						continue;
 					dst = TMP(r);
 				}
-				for (a=0; p->blk[a]!=b; a++)
-					assert(a+1 < p->narg);
-				src = p->arg[a];
+				for (u=0; p->blk[u]!=b; u++)
+					assert(u+1 < p->narg);
+				src = p->arg[u];
 				if (rtype(src) == RTmp)
 					src = rref(&end[b->id], src.val);
 				pmadd(src, dst, p->wide);
