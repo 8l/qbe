@@ -204,7 +204,6 @@ struct Blk {
 	struct {
 		short type;
 		Ref arg;
-		int rettyn;
 	} jmp;
 	Blk *s1;
 	Blk *s2;
@@ -246,6 +245,7 @@ struct Fn {
 	int ntmp;
 	int ncon;
 	int nblk;
+	int retty;
 	Blk **rpo;
 	ulong reg;
 	int svec[NAlign];

@@ -11,7 +11,7 @@ enum {
 Ins insb[NIns], *curi;
 
 OpDesc opdesc[NOp] = {
-	/*            NAME   ARTY NM */
+	/*            NAME     NM */
 	[OAdd]    = { "add",    2 },
 	[OSub]    = { "sub",    2 },
 	[ODiv]    = { "div",    2 },
@@ -117,7 +117,6 @@ static Blk *curb;
 static Blk **blink;
 static int nblk;
 static int rcls;
-static int rtyn;
 
 
 void *
@@ -514,7 +513,6 @@ parseline(PState ps)
 			JRetw, JRetl,
 			JRetc, JRet0
 		}[rcls];
-		curb->jmp.rettyn = rtyn;
 		if (rcls < 3) {
 			r = parseref();
 			if (req(r, R))
@@ -623,24 +621,24 @@ parsefn()
 	PState ps;
 	Fn *fn;
 
-	if (peek() != TGlo)
-		rcls = parsecls(&rtyn);
-	else
-		rcls = 3;
-	if (next() != TGlo)
-		err("function name expected");
-	for (i=0; i<NBlk; i++)
-		bmap[i] = 0;
-	for (i=Tmp0; i<NTmp; i++)
-		tmp[i] = (Tmp){.name = ""};
 	ntmp = Tmp0;
 	ncon = 1; /* first constant must be 0 */
 	curb = 0;
 	nblk = 0;
 	curi = insb;
 	fn = alloc(sizeof *fn);
-	strcpy(fn->name, tokval.str);
 	blink = &fn->start;
+	for (i=0; i<NBlk; i++)
+		bmap[i] = 0;
+	for (i=Tmp0; i<NTmp; i++)
+		tmp[i] = (Tmp){.name = ""};
+	if (peek() != TGlo)
+		rcls = parsecls(&fn->retty);
+	else
+		rcls = 3;
+	if (next() != TGlo)
+		err("function name expected");
+	strcpy(fn->name, tokval.str);
 	parserefl(0);
 	if (nextnl() != TLBrace)
 		err("function body must start with {");
