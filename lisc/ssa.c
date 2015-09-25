@@ -89,6 +89,52 @@ fillrpo(Fn *f)
 	}
 }
 
+/* gets the representant for the phi class of t
+ */
+int
+phirepr(Tmp *tmp, int t)
+{
+	int tp;
+
+	tp = tmp[t].phi;
+	if (tp == 0)
+		tp = t;
+	else if (tp != t) {
+		tp = phirepr(tmp, tp);
+		tmp[t].phi = tp;
+	}
+	return tp;
+}
+
+/* fill union find data for phi classes
+ */
+void
+fillphi(Fn *fn)
+{
+	Blk *b;
+	Phi *p;
+	uint a;
+	int t, ta;
+	Tmp *tmp;
+
+	tmp = fn->tmp;
+	for (t=Tmp0; t<fn->ntmp; t++)
+		tmp[t].phi = 0;
+	for (b=fn->start; b; b=b->link)
+		for (p=b->phi; p; p=p->link) {
+			t = p->to.val;
+			if (tmp[t].phi == 0)
+				tmp[t].phi = t;
+			for (a=0; a<p->narg; a++) {
+				if (rtype(p->arg[a]) != RTmp)
+					continue;
+				ta = p->arg[a].val;
+				ta = phirepr(tmp, ta);
+				tmp[ta].phi = t;
+			}
+		}
+}
+
 static Ref *top, *bot;
 static Ref topdef(Blk *, Fn *, int);
 

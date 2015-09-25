@@ -110,6 +110,7 @@ main(int ac, char *av[])
 		fillpreds(fn);
 		filllive(fn);
 		fillcost(fn);
+		fillphi(fn);
 		spill(fn);
 		rega(fn);
 		goto RPODump;
@@ -123,6 +124,7 @@ main(int ac, char *av[])
 		fillpreds(fn);
 		filllive(fn);
 		fillcost(fn);
+		fillphi(fn);
 		spill(fn);
 		rega(fn);
 		fillrpo(fn);

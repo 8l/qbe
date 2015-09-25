@@ -226,6 +226,7 @@ struct Tmp {
 	short spill;
 	short wide;
 	int hint;
+	int phi;
 };
 
 struct Con {
@@ -281,6 +282,8 @@ void printfn(Fn *, FILE *);
 /* ssa.c */
 void fillpreds(Fn *);
 void fillrpo(Fn *);
+int phirepr(Tmp *, int);
+void fillphi(Fn *);
 void ssafix(Fn *, int);
 
 /* live.c */
