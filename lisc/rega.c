@@ -269,8 +269,68 @@ dopm(Blk *b, Ins *i, RMap *m)
 	return ir;
 }
 
+static void
+doblk(Blk *b, RMap *cur)
+{
+	int t, x, r;
+	ulong rs;
+	Ins *i;
+	Phi *p;
+
+	if (rtype(b->jmp.arg) == RTmp)
+		b->jmp.arg = ralloc(cur, b->jmp.arg.val);
+	for (i=&b->ins[b->nins]; i!=b->ins;) {
+		switch ((--i)->op) {
+		case OCall:
+			rs = calluse(*i, 0);
+			for (r=0; r<NRSave; r++)
+				if (!(BIT(rsave[r]) & rs))
+					rfree(cur, rsave[r]);
+			r = 0;
+			break;
+		case OCopy:
+			if (isreg(i->arg[0])) {
+				i = dopm(b, i, cur);
+				continue;
+			}
+			/* fall through */
+		default:
+			if (!req(i->to, R)) {
+				assert(rtype(i->to) == RTmp);
+				r = rfree(cur, i->to.val);
+				if (r == -1 && !isreg(i->to)) {
+					*i = (Ins){.op = ONop};
+					continue;
+				}
+				if (i->to.val >= Tmp0)
+					i->to = TMP(r);
+			} else
+				r = 0;
+			break;
+		}
+		for (x=0; x<2; x++)
+			if (rtype(i->arg[x]) == RTmp) {
+				/* <arch>
+			 	*   on Intel, we attempt to
+			 	*   use the same register
+			 	*   for the return and one
+			 	*   argument
+			 	*/
+				t = i->arg[x].val;
+				if (r && !BGET(cur->b, r))
+				if (tmp[t].hint == -1)
+					tmp[t].hint = r;
+				i->arg[x] = ralloc(cur, t);
+			}
+	}
+	b->in = cur->b;
+	for (p=b->phi; p; p=p->link)
+		if (rtype(p->to) == RTmp)
+			BCLR(b->in, p->to.val);
+}
+
 /* register allocation
- * depends on rpo, cost, (and obviously spill)
+ * depends on rpo, phi, cost, (and obviously spill)
  */
 void
 rega(Fn *fn)
@@ -282,7 +342,6 @@ rega(Fn *fn)
 	Phi *p;
 	uint a;
 	Ref src, dst;
-	ulong rs;
 
 	regu = 0;
 	tmp = fn->tmp;
@@ -302,9 +361,10 @@ rega(Fn *fn)
 				tmp[i->to.val].hint = i->arg[0].val;
 		}
 
-	/* 2. assign registers backwards */
+	/* 2. assign registers following traces */
 	if (debug['R'])
 		fprintf(stderr, "> Register mappings:\n");
+
 	for (n=fn->nblk-1; n>=0; n--) {
 		b = fn->rpo[n];
 		cur.n = 0;
@@ -316,59 +376,11 @@ rega(Fn *fn)
 				if (x == 1
 				|| ((r=tmp[t].hint) != -1 && !BGET(cur.b, r)))
 					ralloc(&cur, t);
-		/* process instructions */
+
 		end[n] = cur;
-		if (rtype(b->jmp.arg) == RTmp)
-			b->jmp.arg = ralloc(&cur, b->jmp.arg.val);
-		for (i=&b->ins[b->nins]; i!=b->ins;) {
-			switch ((--i)->op) {
-			case OCall:
-				rs = calluse(*i, 0);
-				for (r=0; r<NRSave; r++)
-					if (!(BIT(rsave[r]) & rs))
-						rfree(&cur, rsave[r]);
-				r = 0;
-				break;
-			case OCopy:
-				if (isreg(i->arg[0])) {
-					i = dopm(b, i, &cur);
-					continue;
-				}
-				/* fall through */
-			default:
-				if (!req(i->to, R)) {
-					assert(rtype(i->to) == RTmp);
-					r = rfree(&cur, i->to.val);
-					if (r == -1 && !isreg(i->to)) {
-						*i = (Ins){.op = ONop};
-						continue;
-					}
-					if (i->to.val >= Tmp0)
-						i->to = TMP(r);
-				} else
-					r = 0;
-				break;
-			}
-			for (x=0; x<2; x++)
-				if (rtype(i->arg[x]) == RTmp) {
-					/* <arch>
-				 	*   on Intel, we attempt to
-				 	*   use the same register
-				 	*   for the return and one
-				 	*   argument
-				 	*/
-					t = i->arg[x].val;
-					if (r && !BGET(cur.b, r))
-					if (tmp[t].hint == -1)
-						tmp[t].hint = r;
-					i->arg[x] = ralloc(&cur, t);
-				}
-		}
-		b->in = cur.b;
-		for (p=b->phi; p; p=p->link)
-			if (rtype(p->to) == RTmp)
-				BCLR(b->in, p->to.val);
+		doblk(b, &cur);
 		beg[n] = cur;
+
 		if (debug['R']) {
 			fprintf(stderr, "\t%-10s beg", b->name);
 			mdump(&beg[n]);
