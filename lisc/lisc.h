@@ -5,7 +5,7 @@
 #include <string.h>
 
 typedef unsigned int uint;
-typedef unsigned long long ulong;
+typedef unsigned long ulong;
 
 typedef struct Bits Bits;
 typedef struct Ref Ref;
@@ -66,7 +66,7 @@ struct Bits {
 	ulong t[BITS];
 };
 
-#define BIT(n)     (1ull << (n))
+#define BIT(n)     (1ul << (n))
 #define BGET(b, n) (1&((b).t[n/NBit]>>(n%NBit)))
 #define BSET(b, n) ((b).t[n/NBit] |= BIT(n%NBit))
 #define BCLR(b, n) ((b).t[n/NBit] &= ~BIT(n%NBit))
