@@ -258,22 +258,6 @@ setloc(Ref *pr, Bits *v, Bits *w)
 	}
 }
 
-static Bits
-inregs(Blk *b, Blk *s) /* todo, move to live.c */
-{
-	Bits v;
-	Phi *p;
-	uint a;
-
-	v = s->in;
-	for (p=s->phi; p; p=p->link)
-		for (a=0; a<p->narg; a++)
-			if (p->blk[a] == b)
-			if (rtype(p->arg[a]) == RTmp)
-				BSET(v, p->arg[a].val);
-	return v;
-}
-
 static Ins *
 dopm(Blk *b, Ins *i, Bits *v)
 {
@@ -374,10 +358,10 @@ spill(Fn *fn)
 			} else if (j > NReg)
 				limit(&v, NReg, 0);
 		} else if (s1) {
-			v = inregs(b, s1);
+			v = liveon(b, s1);
 			w = v;
 			if (s2) {
-				u = inregs(b, s2);
+				u = liveon(b, s2);
 				for (z=0; z<BITS; z++) {
 					v.t[z] |= u.t[z];
 					w.t[z] &= u.t[z];

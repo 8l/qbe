@@ -1,5 +1,23 @@
 #include "lisc.h"
 
+Bits
+liveon(Blk *b, Blk *s)
+{
+	Bits v;
+	Phi *p;
+	uint a;
+
+	v = s->in;
+	for (p=s->phi; p; p=p->link) {
+		BCLR(v, p->to.val);
+		for (a=0; a<p->narg; a++)
+			if (p->blk[a] == b)
+			if (rtype(p->arg[a]) == RTmp)
+				BSET(v, p->arg[a].val);
+	}
+	return v;
+}
+
 static void
 bset(Ref r, Blk *b, int *nlv)
 {
@@ -20,10 +38,8 @@ filllive(Fn *f)
 {
 	Blk *b;
 	Ins *i;
-	Phi *p;
 	int z, m, n, chg, nlv;
-	uint a;
-	Bits tb;
+	Bits u, v;
 
 	assert(f->ntmp <= NBit*BITS);
 	for (b=f->start; b; b=b->link) {
@@ -36,14 +52,18 @@ Again:
 	for (n=f->nblk-1; n>=0; n--) {
 		b = f->rpo[n];
 
-		tb = b->out;
-		if (b->s1)
+		u = b->out;
+		if (b->s1) {
+			v = liveon(b, b->s1);
 			for (z=0; z<BITS; z++)
-				b->out.t[z] |= b->s1->in.t[z];
-		if (b->s2)
+				b->out.t[z] |= v.t[z];
+		}
+		if (b->s2) {
+			v = liveon(b, b->s2);
 			for (z=0; z<BITS; z++)
-				b->out.t[z] |= b->s2->in.t[z];
-		chg |= memcmp(&b->out, &tb, sizeof(Bits));
+				b->out.t[z] |= v.t[z];
+		}
+		chg |= memcmp(&b->out, &u, sizeof(Bits));
 
 		b->in = b->out;
 		nlv = bcnt(&b->in);
@@ -57,7 +77,6 @@ Again:
 					b->nlive = nlv + NRSave;
 				b->in.t[0] |= calluse(*i, &m);
 				nlv += m;
-				bset(i->arg[0], b, &nlv);
 			}
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
@@ -68,13 +87,6 @@ Again:
 			bset(i->arg[1], b, &nlv);
 			if (nlv > b->nlive)
 				b->nlive = nlv;
-		}
-
-		for (p=b->phi; p; p=p->link) {
-			BCLR(b->in, p->to.val);
-			for (a=0; a<p->narg; a++)
-				if (rtype(p->arg[a]) == RTmp)
-					BSET(p->blk[a]->out, p->arg[a].val);
 		}
 	}
 	if (chg) {

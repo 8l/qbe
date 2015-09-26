@@ -287,6 +287,7 @@ void fillphi(Fn *);
 void ssafix(Fn *, int);
 
 /* live.c */
+Bits liveon(Blk *, Blk *);
 void filllive(Fn *);
 
 /* isel.c */
