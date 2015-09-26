@@ -107,6 +107,7 @@ phirepr(Tmp *tmp, int t)
 }
 
 /* fill union find data for phi classes
+ * requires live
  */
 void
 fillphi(Fn *fn)
@@ -129,6 +130,13 @@ fillphi(Fn *fn)
 				if (rtype(p->arg[a]) != RTmp)
 					continue;
 				ta = p->arg[a].val;
+				if (BGET(b->in, ta))
+					/* do not merge the
+					 * classes of phi args
+					 * that outlive the phi
+					 * node
+					 */
+					continue;
 				ta = phirepr(tmp, ta);
 				tmp[ta].phi = t;
 			}
