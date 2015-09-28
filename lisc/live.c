@@ -38,9 +38,8 @@ filllive(Fn *f)
 {
 	Blk *b;
 	Ins *i;
-	int t, z, m, n, chg, nlv;
+	int z, m, n, chg, nlv;
 	Bits u, v;
-	ulong regs;
 
 	assert(f->ntmp <= NBit*BITS);
 	for (b=f->start; b; b=b->link) {
@@ -48,8 +47,6 @@ filllive(Fn *f)
 		b->out = (Bits){{0}};
 		b->gen = (Bits){{0}};
 	}
-	for (t=Tmp0; t<f->ntmp; t++)
-		f->tmp[t].intr = 0;
 	chg = 1;
 Again:
 	for (n=f->nblk-1; n>=0; n--) {
@@ -90,10 +87,6 @@ Again:
 			bset(i->arg[1], b, &nlv);
 			if (nlv > b->nlive)
 				b->nlive = nlv;
-			if ((regs = b->in.t[0] & (BIT(Tmp0) - 1)))
-				for (t=Tmp0; t<f->ntmp; t++)
-					if (BGET(b->in, t))
-						f->tmp[t].intr |= regs;
 		}
 	}
 	if (chg) {

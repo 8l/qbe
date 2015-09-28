@@ -225,7 +225,6 @@ struct Tmp {
 	uint cost;
 	short spill;
 	short wide;
-	ulong intr;
 	int hint;
 	int phi;
 };

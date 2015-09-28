@@ -5,18 +5,12 @@
 #endif
 
 typedef struct RMap RMap;
-typedef struct Trace Trace;
 
 struct RMap {
 	int t[NReg];
 	int r[NReg];
 	Bits b;
 	int n;
-};
-
-struct Trace {
-	Blk *b;
-	ulong w;
 };
 
 extern Ins insb[NIns], *curi;
@@ -88,16 +82,16 @@ ralloc(RMap *m, int t)
 	if (BGET(m->b, t)) {
 		r = rfind(m, t);
 		assert(r != -1);
-	} else {
-		r = *hint(t);
-		if (r == -1 || BGET(m->b, r))
-			for (r=RAX; BGET(m->b, r); r++)
-				if (r+1 == RAX+NReg)
-					diag("rega: no more regs");
-		radd(m, t, r);
-		if (*hint(t) == -1)
-			*hint(t) = r;
+		return TMP(r);
 	}
+	r = *hint(t);
+	if (r == -1 || BGET(m->b, r))
+		for (r=RAX; BGET(m->b, r); r++)
+			if (r+1 == RAX+NReg)
+				diag("rega: no more regs");
+	radd(m, t, r);
+	if (*hint(t) == -1)
+		*hint(t) = r;
 	return TMP(r);
 }
 
@@ -324,24 +318,22 @@ doblk(Blk *b, RMap *cur)
 		for (x=0; x<2; x++)
 			if (rtype(i->arg[x]) == RTmp) {
 				/* <arch>
-			 	*   on Intel, we attempt to
-			 	*   use the same register
-			 	*   for the return and one
-			 	*   argument
-			 	*/
+				 *   on Intel, we attempt to
+				 *   use the same register
+				 *   for the return and one
+				 *   argument
+				 */
 				t = i->arg[x].val;
+#if 0
+			 	/* might not be a so good idea...
+				 */
 				if (r && !BGET(cur->b, r))
 				if (*hint(t) == -1)
 					*hint(t) = r;
+#endif
 				i->arg[x] = ralloc(cur, t);
 			}
 	}
-}
-
-static int
-trcmp(const void *a, const void *b)
-{
-	return ((Trace *)b)->w - ((Trace *)a)->w;
 }
 
 /* register allocation
@@ -351,94 +343,46 @@ void
 rega(Fn *fn)
 {
 	int n, t, r, x;
-	ulong w;
 	Blk *b, *b1, *s, ***ps, *blist;
 	Ins *i;
 	RMap *end, *beg, cur;
 	Phi *p;
 	uint u;
 	Ref src, dst;
-	Trace *tr;
 
+	/* 1. setup */
 	regu = 0;
 	tmp = fn->tmp;
 	end = alloc(fn->nblk * sizeof end[0]);
 	beg = alloc(fn->nblk * sizeof beg[0]);
-
-	/* 1. gross hinting setup */
 	for (t=Tmp0; t<fn->ntmp; t++)
 		tmp[t].hint = -1;
-	for (b=fn->start; b; b=b->link)
-		for (i=b->ins; i-b->ins < b->nins; i++) {
-			if (i->op != OCopy)
-				continue;
-			if (rtype(i->arg[0]) == RTmp && isreg(i->to))
-				tmp[i->arg[0].val].hint = i->to.val;
-			if (rtype(i->to) == RTmp && isreg(i->arg[0]))
-				tmp[i->to.val].hint = i->arg[0].val;
-		}
 
-	/* 2. compute traces */
-	tr = alloc(fn->nblk * sizeof tr[0]);
-	for (n=0; n<fn->nblk; n++) {
+	/* 2. assign registers following post-order */
+	for (n=fn->nblk-1; n>=0; n--) {
 		b = fn->rpo[n];
-		b->visit = 0;
-		tr[n].b = b;
-		tr[n].w = b->loop;
-		for (u=0; u<b->npred; u++)
-			if (b->pred[u]->id < n)
-				tr[n].w += tr[b->pred[u]->id].w;
-	}
-	qsort(tr, fn->nblk, sizeof tr[0], trcmp);
-
-	/* 3. assign registers following traces */
-	if (debug['R'])
-		fprintf(stderr, "> Trace allocation:\n");
-	for (n=0; n<fn->nblk; n++) {
-		b = tr[n].b;
-		if (b->visit)
-			continue;
 		cur.n = 0;
 		cur.b = (Bits){{0}};
-		if (debug['R'])
-			fprintf(stderr, "\t");
-		do {
-			if (debug['R'])
-				fprintf(stderr, " %s", b->name);
-			for (x=0; x<2; x++)
-				for (t=Tmp0; t<fn->ntmp; t++) {
-					assert(BGET(b->out, t) ||
-						!BGET(cur.b, t));
-					if (BGET(b->out, t))
-					if (!BGET(cur.b, t))
-					if (x==1 || (r=*hint(t)) != -1)
-					if (x==1 || !BGET(cur.b, r))
-						ralloc(&cur, t);
-				}
-			end[b->id] = cur;
-			doblk(b, &cur);
-			beg[b->id] = cur;
-			b->in = cur.b;
-			for (p=b->phi; p; p=p->link)
-				if (rtype(p->to) == RTmp) {
-					t = p->to.val;
-					BCLR(b->in, t);
-					rfree(&cur, t);
-				}
-			b->visit = 1;
-			for (s=0, w=0, u=0; u<b->npred; u++) {
-				b1 = b->pred[u];
-				if (b1->visit || b1->id >= b->id)
-					continue;
-				if (tr[b1->id].w > w) {
-					s = b1;
-					w = tr[b1->id].w;
-				}
+		for (x=0; x<2; x++)
+			for (t=Tmp0; t<fn->ntmp; t++) {
+				assert(BGET(b->out, t) ||
+					!BGET(cur.b, t));
+				if (BGET(b->out, t))
+				if (!BGET(cur.b, t))
+				if (x || (r=*hint(t)) != -1)
+				if (x || !BGET(cur.b, r))
+					ralloc(&cur, t);
 			}
-			b = s;
-		} while (b);
-		if (debug['R'])
-			fprintf(stderr, "\n");
+		end[n] = cur;
+		doblk(b, &cur);
+		beg[n] = cur;
+		b->in = cur.b;
+		for (p=b->phi; p; p=p->link)
+			if (rtype(p->to) == RTmp) {
+				t = p->to.val;
+				BCLR(b->in, t);
+				/* rfree(&cur, t); */
+			}
 	}
 	if (debug['R'])  {
 		fprintf(stderr, "\n> Register mappings:\n");
@@ -451,9 +395,8 @@ rega(Fn *fn)
 		}
 		fprintf(stderr, "\n");
 	}
-	free(tr);
 
-	/* 4. compose glue code */
+	/* 3. compose glue code */
 	blist = 0;
 	for (b=fn->start;; b=b->link) {
 		ps = (Blk**[3]){&b->s1, &b->s2, (Blk*[1]){0}};
