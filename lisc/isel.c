@@ -99,7 +99,7 @@ static int
 rslot(Ref r, Fn *fn)
 {
 	if (rtype(r) != RTmp)
-		return 0;
+		return -1;
 	return fn->tmp[r.val].spill;
 }
 
@@ -116,9 +116,9 @@ sel(Ins i, Fn *fn)
 
 	for (n=0; n<2; n++) {
 		r0 = i.arg[n];
-		cpy[n].s = 0;
+		cpy[n].s = -1;
 		s = rslot(r0, fn);
-		if (s) {
+		if (s >= 0) {
 			r0 = newtmp(fn);
 			i.arg[n] = r0;
 			cpy[n].r = r0;
@@ -172,9 +172,9 @@ sel(Ins i, Fn *fn)
 	case OStorew:
 	case OStoreb:
 	case OStores:
-		if (cpy[1].s) {
+		if (cpy[1].s >= 0) {
 			i.arg[1] = SLOT(cpy[1].s);
-			cpy[1].s = 0;
+			cpy[1].s = -1;
 		}
 		n = i.op == OStorel;
 		goto Emit;
@@ -183,9 +183,9 @@ sel(Ins i, Fn *fn)
 	case OLoaduh:
 	case OLoadsb:
 	case OLoadub:
-		if (cpy[0].s) {
+		if (cpy[0].s >= 0) {
 			i.arg[0] = SLOT(cpy[0].s);
-			cpy[0].s = 0;
+			cpy[0].s = -1;
 		}
 		n = 0;
 Emit:
@@ -205,13 +205,10 @@ Emit:
 	case OAlloc:
 	case OAlloc+1:
 	case OAlloc+2: /* == OAlloc1 */
-		/* if this is not a fast alloc
-		 * we need to make sure
+		/* we need to make sure
 		 * the stack remains aligned
 		 * (rsp = 0) mod 16
 		 */
-		if (req(i.to, R))
-			break;
 		if (rtype(i.arg[0]) == RCon) {
 			val = fn->con[i.arg[0].val].val;
 			val = (val + 15)  & ~INT64_C(15);
@@ -240,7 +237,7 @@ Emit:
 	}
 
 	for (n=0; n<2; n++)
-		if (cpy[n].s)
+		if (cpy[n].s >= 0)
 			emit(OAddr, 1, cpy[n].r, SLOT(cpy[n].s), R);
 }
 
@@ -576,6 +573,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 
 	curi = insb;
 	ni = 0;
+	assert(NAlign == 3);
 	stk = -2;
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		switch (a->inmem) {
@@ -695,7 +693,7 @@ isel(Fn *fn)
 				sz /= 4;
 				fn->tmp[i->to.val].spill = fn->stk0;
 				fn->stk0 -= sz;
-				i->to = R;
+				*i = (Ins){.op = ONop};
 			}
 
 	for (b=fn->start; b; b=b->link) {
@@ -704,7 +702,7 @@ isel(Fn *fn)
 				for (a=0; p->blk[a] != b; a++)
 					assert(a+1 < p->narg);
 				s = rslot(p->arg[a], fn);
-				if (s) {
+				if (s >= 0) {
 					p->arg[a] = newtmp(fn);
 					emit(OAddr, 1, p->arg[a], SLOT(s), R);
 				}

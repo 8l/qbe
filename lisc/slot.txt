@@ -9,6 +9,15 @@ Plan for new slot computations:
   and spills (stk0, stk1)
 - maybe it's time to include small alignments
 - use Tmp.spill == -1 to mark unallocated slots
+- issue: how do we reach for the arguments?
+  1. an answer to that could be proper support
+     for memory references accesses
+  2. a more hackish solution is to keep using
+     negative numbers (but not -1) for argument
+     slots and add a special case in emit.c
+- could be time to clean the tests on the size
+  of allocs (there are two and they are non-
+  uniform)
 
 Layout:
 

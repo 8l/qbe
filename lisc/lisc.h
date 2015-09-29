@@ -296,7 +296,6 @@ extern int rclob[NRClob];
 ulong calldef(Ins, int *);
 ulong calluse(Ins, int *);
 ulong callclb(Ins, int *);
-int slota(int, int, int *);
 void isel(Fn *);
 
 /* spill.c */
