@@ -249,7 +249,7 @@ struct Fn {
 	int retty;
 	Blk **rpo;
 	ulong reg;
-	int svec[NAlign];
+	int stk0, stk1;
 	char name[NString];
 };
 

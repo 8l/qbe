@@ -341,60 +341,6 @@ seljmp(Blk *b, Fn *fn)
 	b->jmp.type = JXJc + Cne;
 }
 
-int
-slota(int sz, int al /* log2 */, int *sa)
-{
-	int j, k, s, l, a, ret;
-
-	a = 1 << al;
-	l = sz;
-
-	if (l > a) {
-		/* for large slots, we just
-		 * tack them on the next max
-		 * alignment slot available
-		 * todo, could sophisticate
-		 */
-		l = (l + a-1) & ~(a-1);
-		s = sa[NAlign-1] + l;
-		ret = s;
-		for (j=0, k=1; j<NAlign; j++, k*=2) {
-			l = (l + k-1) & ~(k-1);
-			sa[j] = sa[NAlign-1] + l;
-		}
-	} else {
-		j = al;
-		s = sa[j] + a;
-		ret = s;
-	Shift:
-		if (j < NAlign-1 && s < sa[j+1])
-			/* ........-----------...
-			 * ^       ^          ^
-			 * sa[j]  sa[j]+a    sa[j+1]
-			 *
-			 * we have to skip to the
-			 * next large whole
-			 */
-			s = sa[j+1];
-
-		for (k=0; k<=j; k++)
-			/* move all smaller holes
-			 * that we contain with us
-			 */
-			if (sa[k] == sa[j])
-				sa[k] = s;
-
-		if (j < NAlign-1 && s > sa[j+1]) {
-			/* we were in a bigger hole,
-			 * it needs to shift further
-			 */
-			s = sa[++j] + (a *= 2);
-			goto Shift;
-		}
-	}
-	return ret;
-}
-
 typedef struct AClass AClass;
 
 struct AClass {
@@ -693,8 +639,8 @@ isel(Fn *fn)
 	int64_t sz;
 
 	for (n=Tmp0; n<fn->ntmp; n++)
-		fn->tmp[n].spill = 0;
-	memset(fn->svec, 0, sizeof fn->svec);
+		fn->tmp[n].spill = -1;
+	fn->stk0 = 0;
 
 	/* lower arguments */
 	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
@@ -735,20 +681,22 @@ isel(Fn *fn)
 	}
 
 	/* assign slots to fast allocs */
-	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
-		if (OAlloc <= i->op && i->op <= OAlloc1) {
-			if (rtype(i->arg[0]) != RCon)
-				break;
-			sz = fn->con[i->arg[0].val].val;
-			if (sz < 0 || sz >= INT_MAX-3)
-				diag("isel: invalid alloc size");
-			n = 16 / (1 << (NAlign-1));
-			sz = (sz + n-1) / n;
-			al = i->op - OAlloc;
-			s = slota(sz, al, fn->svec);
-			fn->tmp[i->to.val].spill = s;
-			i->to = R;
-		}
+	b = fn->start;
+	assert(NAlign == 3 && "change n=4 and sz /= 4 below");
+	for (al=OAlloc, n=4; al<=OAlloc1; al++, n*=2)
+		for (i=b->ins; i-b->ins < b->nins; i++)
+			if (i->op == al) {
+				if (rtype(i->arg[0]) != RCon)
+					break;
+				sz = fn->con[i->arg[0].val].val;
+				if (sz < 0 || sz >= INT_MAX-3)
+					diag("isel: invalid alloc size");
+				sz = (sz + n-1) & -n;
+				sz /= 4;
+				fn->tmp[i->to.val].spill = fn->stk0;
+				fn->stk0 -= sz;
+				i->to = R;
+			}
 
 	for (b=fn->start; b; b=b->link) {
 		for (sb=(Blk*[3]){b->s1, b->s2, 0}; *sb; sb++)

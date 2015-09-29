@@ -1,0 +1,33 @@
+Plan for new slot computations:
+
+- reverse the allocation of all stack slots
+  so that isel slots go below spill locations
+- the fast allocs must be allocated by decreasing
+  alignment constraints
+- instead of the svec vector, we simply need two
+  numbers that contain the size of both the locals
+  and spills (stk0, stk1)
+- maybe it's time to include small alignments
+- use Tmp.spill == -1 to mark unallocated slots
+
+Layout:
+
+  ---------- rbp = 0 [16]
+  | << padding 1 >>
+  | .. spills   ..
+  |                <- enforce align 16
+  | .. align 16 ..
+  | .. align  8 ..
+  | .. align  4 ..
+  | << padding 0 >>
+  ---------- rsp = 0 [16]
+
+  padding 0: inserted at last minute by the code
+             emitter to respect the ABI
+  padding 1: inserted at the beginning of spill
+             it can be 4 or 0
+
+Examples:
+
+  if the first local is aligned 4 of size 4, its slot
+  number will be set 0, to emit the proper offset to
