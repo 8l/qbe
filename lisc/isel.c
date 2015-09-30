@@ -660,7 +660,6 @@ isel(Fn *fn)
 		curi = &insb[NIns];
 		for (i=&b->ins[b->nins]; i>b->ins;) {
 			if ((--i)->op == OCall) {
-				i0 = i;
 				for (i0=i; i0>b->ins; i0--)
 					if ((i0-1)->op != OArg)
 					if ((i0-1)->op != OArgc)
