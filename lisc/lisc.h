@@ -44,7 +44,7 @@ enum Reg {
 
 	Tmp0, /* first non-reg temporary */
 
-	NReg = RDX - RAX + 1,
+	NReg = RBX - RAX + 1,
 	NRSave = 9,
 	NRClob = 5,
 };
