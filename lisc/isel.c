@@ -34,6 +34,7 @@ newtmp(Fn *fn)
 	if (!fn->tmp)
 		diag("isel: out of memory");
 	memset(&fn->tmp[t], 0, sizeof fn->tmp[t]);
+	fn->tmp[t].spill = -1;
 	sprintf(fn->tmp[t].name, "isel%d", ++n);
 	return TMP(t);
 }
@@ -636,7 +637,7 @@ isel(Fn *fn)
 	int n, al, s;
 	int64_t sz;
 
-	for (n=Tmp0; n<fn->ntmp; n++)
+	for (n=0; n<fn->ntmp; n++)
 		fn->tmp[n].spill = -1;
 	fn->slot = 0;
 
