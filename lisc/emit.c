@@ -297,8 +297,7 @@ framesz(Fn *fn)
 	for (i=0, o=0; i<NRClob; i++)
 		o ^= 1 & (fn->reg >> rclob[i]);
 	f = fn->slot;
-	if (f & 3)
-		f += 4 - (f & 3);
+	f = (f + 3) & -4;
 	return 4*f + 8*o;
 }
 
