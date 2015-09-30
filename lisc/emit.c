@@ -83,8 +83,10 @@ Next:
 			break;
 		case RSlot:
 		Slot: {
-			struct { int i:14; } x = {ref.val}; /* fixme, HACK */
-			fprintf(f, "%d(%%rbp)", -4 * x.i);
+			struct { int i:14; } x = {ref.val}; /* fixme */
+			assert(NAlign == 3);
+			assert(fn->slot >= x.i);
+			fprintf(f, "%d(%%rbp)", -4 * (fn->slot - x.i));
 			break;
 		}
 		case RCon:
@@ -289,19 +291,15 @@ eins(Ins i, Fn *fn, FILE *f)
 static int
 framesz(Fn *fn)
 {
-	int i, o, a, f;
+	int i, o, f;
 
+	assert(NAlign == 3);
 	for (i=0, o=0; i<NRClob; i++)
 		o ^= 1 & (fn->reg >> rclob[i]);
-	f = 0;
-	for (i=NAlign-1, a=1<<i; i>=0; i--, a/=2)
-		if (f == 0 || f - a == fn->svec[i])
-			f = fn->svec[i];
-	a = 1 << (NAlign-2);
-	o *= a;
-	while ((f + o) % (2 * a))
-		f += a - f % a;
-	return f * 16 / (1 << (NAlign-1));
+	f = fn->slot;
+	if (f & 3)
+		f += 4 - (f & 3);
+	return 4*f + 8*o;
 }
 
 void

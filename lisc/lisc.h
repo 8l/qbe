@@ -44,7 +44,7 @@ enum Reg {
 
 	Tmp0, /* first non-reg temporary */
 
-	NReg = R12 - RAX + 1,
+	NReg = RDX - RAX + 1,
 	NRSave = 9,
 	NRClob = 5,
 };
@@ -249,7 +249,7 @@ struct Fn {
 	int retty;
 	Blk **rpo;
 	ulong reg;
-	int stk0, stk1;
+	int slot;
 	char name[NString];
 };
 

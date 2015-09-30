@@ -143,7 +143,9 @@ extern Ins insb[NIns], *curi; /* shared work buffer */
 static Bits *f;   /* temps to prioritize in registers (for tcmp1) */
 static Tmp *tmp;  /* current temporaries (for tcmpX) */
 static int ntmp;  /* current # of temps (for limit) */
-static int *svec; /* free slots vector */
+static int locs;  /* stack size used by locals */
+static int slot4; /* next slot of 4 bytes */
+static int slot8; /* ditto, 8 bytes */
 
 static int
 tcmp0(const void *pa, const void *pb)
@@ -168,11 +170,28 @@ slot(int t)
 	if (t < Tmp0)
 		diag("spill: cannot spill register");
 	s = tmp[t].spill;
-	if (!s) {
-		if (tmp[t].wide)
-			s = slota(2, 1, svec);
-		else
-			s = slota(1, 0, svec);
+	if (s == -1) {
+		assert(NAlign == 3);
+		/* nice logic to pack stack slots
+		 * on demand, there can be only
+		 * one hole and slot4 points to it
+		 *
+		 * invariant: slot4 <= slot8
+		 */
+		if (tmp[t].wide) {
+			s = slot8;
+			if (slot4 == slot8)
+				slot4 += 2;
+			slot8 += 2;
+		} else {
+			s = slot4;
+			if (slot4 == slot8) {
+				slot8 += 2;
+				slot4 += 1;
+			} else
+				slot4 = slot8;
+		}
+		s += locs;
 		tmp[t].spill = s;
 	}
 	return SLOT(s);
@@ -312,9 +331,11 @@ spill(Fn *fn)
 	int j, s;
 	Phi *p;
 
-	svec = fn->svec;
 	tmp = fn->tmp;
 	ntmp = fn->ntmp;
+	locs = fn->slot;
+	slot4 = 0;
+	slot8 = 0;
 	assert(ntmp < NBit*BITS);
 
 	for (b=fn->start; b; b=b->link) {
@@ -382,7 +403,7 @@ spill(Fn *fn)
 				i = dopm(b, i, &v);
 				continue;
 			}
-			s = 0;
+			s = -1;
 			w = (Bits){{0}};
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
@@ -400,7 +421,7 @@ spill(Fn *fn)
 			if (!j && rtype(i->arg[1]) == RTmp)
 				BSET(w, i->arg[1].val);
 			j -= setloc(&i->arg[1], &v, &w);
-			if (s)
+			if (s != -1)
 				store(i->to, s);
 			emit(*i);
 		}
@@ -411,7 +432,7 @@ spill(Fn *fn)
 			if (BGET(v, t)) {
 				BCLR(v, t);
 				s = tmp[t].spill;
-				if (s)
+				if (s != -1)
 					store(p->to, s);
 			} else
 				p->to = slot(p->to.val);
@@ -422,4 +443,9 @@ spill(Fn *fn)
 		b->ins = alloc(b->nins * sizeof(Ins));
 		memcpy(b->ins, curi, b->nins * sizeof(Ins));
 	}
+
+	/* align the locals to a 16 byte boundary */
+	assert(NAlign == 3);
+	slot8 += slot8 & 3;
+	fn->slot += slot8;
 }

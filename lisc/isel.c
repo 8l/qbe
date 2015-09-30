@@ -118,7 +118,7 @@ sel(Ins i, Fn *fn)
 		r0 = i.arg[n];
 		cpy[n].s = -1;
 		s = rslot(r0, fn);
-		if (s >= 0) {
+		if (s != -1) {
 			r0 = newtmp(fn);
 			i.arg[n] = r0;
 			cpy[n].r = r0;
@@ -172,7 +172,7 @@ sel(Ins i, Fn *fn)
 	case OStorew:
 	case OStoreb:
 	case OStores:
-		if (cpy[1].s >= 0) {
+		if (cpy[1].s != -1) {
 			i.arg[1] = SLOT(cpy[1].s);
 			cpy[1].s = -1;
 		}
@@ -183,7 +183,7 @@ sel(Ins i, Fn *fn)
 	case OLoaduh:
 	case OLoadsb:
 	case OLoadub:
-		if (cpy[0].s >= 0) {
+		if (cpy[0].s != -1) {
 			i.arg[0] = SLOT(cpy[0].s);
 			cpy[0].s = -1;
 		}
@@ -237,7 +237,7 @@ Emit:
 	}
 
 	for (n=0; n<2; n++)
-		if (cpy[n].s >= 0)
+		if (cpy[n].s != -1)
 			emit(OAddr, 1, cpy[n].r, SLOT(cpy[n].s), R);
 }
 
@@ -638,7 +638,7 @@ isel(Fn *fn)
 
 	for (n=Tmp0; n<fn->ntmp; n++)
 		fn->tmp[n].spill = -1;
-	fn->stk0 = 0;
+	fn->slot = 0;
 
 	/* lower arguments */
 	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
@@ -691,8 +691,8 @@ isel(Fn *fn)
 					diag("isel: invalid alloc size");
 				sz = (sz + n-1) & -n;
 				sz /= 4;
-				fn->tmp[i->to.val].spill = fn->stk0;
-				fn->stk0 -= sz;
+				fn->tmp[i->to.val].spill = fn->slot;
+				fn->slot += sz;
 				*i = (Ins){.op = ONop};
 			}
 
@@ -702,7 +702,7 @@ isel(Fn *fn)
 				for (a=0; p->blk[a] != b; a++)
 					assert(a+1 < p->narg);
 				s = rslot(p->arg[a], fn);
-				if (s >= 0) {
+				if (s != -1) {
 					p->arg[a] = newtmp(fn);
 					emit(OAddr, 1, p->arg[a], SLOT(s), R);
 				}

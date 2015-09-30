@@ -48,7 +48,7 @@ rref(RMap *m, int t)
 	r = rfind(m, t);
 	if (r == -1) {
 		s = tmp[t].spill;
-		assert(s && "should have spilled");
+		assert(s != -1 && "should have spilled");
 		return SLOT(s);
 	} else
 		return TMP(r);
