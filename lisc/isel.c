@@ -605,9 +605,10 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		if (i->op != OParc || a->inmem)
 			continue;
-		for (al=0; a->align >> (al+2); al++) /* careful here, this is because base alloc is aligned at 4 */
+		assert(NAlign == 3);
+		for (al=0; a->align >> (al+2); al++)
 			;
-		r1 = newtmp(fn);
+		r1 = i->to;
 		r = TMP(a->rty[0]);
 		r2 = newcon(a->size, fn);
 		*curi++ = (Ins){OAlloc+al, 1, r1, {r2}};
