@@ -83,10 +83,16 @@ Next:
 			break;
 		case RSlot:
 		Slot: {
+			int off;
 			struct { int i:14; } x = {ref.val}; /* fixme */
 			assert(NAlign == 3);
-			assert(fn->slot >= x.i);
-			fprintf(f, "%d(%%rbp)", -4 * (fn->slot - x.i));
+			if (x.i < 0)
+				off = -4 * x.i;
+			else {
+				assert(fn->slot >= x.i);
+				off = -4 * (fn->slot - x.i);
+			}
+			fprintf(f, "%d(%%rbp)", off);
 			break;
 		}
 		case RCon:
