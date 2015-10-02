@@ -386,10 +386,10 @@ Again:
 		}
 		break;
 	case While:
-		x = expr(s->p1);
 		l = lbl;
 		lbl += 3;
 		fprintf(of, "@l%d\n", l);
+		x = expr(s->p1);
 		fprintf(of, "\tjnz ");                  /* ditto */
 		psymb(x);
 		fprintf(of, ", @l%d, @l%d\n", l+1, l+2);
