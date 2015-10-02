@@ -224,7 +224,7 @@ Scale:
 	if (irtyp(r->ctyp) != 'l')
 		sext(r);
 	sz = SIZE(DREF(l->ctyp));
-	fprintf(of, "\t%%t%d =l mul %d, ", sz, tmp);
+	fprintf(of, "\t%%t%d =l mul %d, ", tmp, sz);
 	psymb(*r);
 	fprintf(of, "\n");
 	r->u.n = tmp++;
