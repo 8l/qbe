@@ -1,0 +1,9 @@
+{
+	int x;
+	int *p;
+
+	x = 0;
+	p = &x;
+	while (x < 10)
+		*p = x + 1;
+}
