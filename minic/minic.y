@@ -242,8 +242,8 @@ expr(Node *n)
 		['%'] = "rem",
 		['<'] = "cslt",  /* meeeeh, careful with pointers */
 		['l'] = "csle",
-		['e'] = "cseq",
-		['n'] = "csne",
+		['e'] = "ceq",
+		['n'] = "cne",
 	};
 	Symb sr, s0, s1;
 
