@@ -466,17 +466,19 @@ mkstmt(int t, void *p1, void *p2, void *p3)
 
 %%
 
-prog: init '{' dcls stmts '}'
+prog: prot '{' dcls stmts '}'
 {
 	stmt($4);
 	fprintf(of, "\tret\n");
+	fprintf(of, "}\n\n");
 };
 
-init:
+prot: IDENT '(' ')'
 {
 	varclr();
 	lbl = 0;
 	tmp = 0;
+	fprintf(of, "function %s() {\n", $1->u.v);
 	fprintf(of, "@l%d\n", lbl++);
 };
 
