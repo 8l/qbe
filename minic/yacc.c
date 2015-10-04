@@ -851,7 +851,7 @@ nexttk()
 char *
 cpycode()
 {
-	int c, nest, len, pos;
+	int c, nest, in, len, pos;
 	char *s;
 
 	len = 64;
@@ -859,17 +859,26 @@ cpycode()
 	s[0] = '{';
 	pos = 1;
 	nest = 1;
+	in = 0;
 
 	while (nest) {
 		c = fgetc(fin);
-		if (c == '{')
-			nest++;
-		if (c == '}')
-			nest--;
-		if (c == EOF)
-			die("syntax error, unclosed code block");
-		if (c == '\n')
-			lineno++;
+		if (in) {
+			if (c == in)
+			if (s[pos-1] != '\\')
+				in = 0;
+		} else {
+			if (c == '"' || c == '\'')
+				in = c;
+			if (c == '{')
+				nest++;
+			if (c == '}')
+				nest--;
+			if (c == EOF)
+				die("syntax error, unclosed code block");
+			if (c == '\n')
+				lineno++;
+		}
 		if (pos>=len)
 		if (!(s=realloc(s, len=2*len+1)))
 			die("out of memory");
