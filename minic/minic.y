@@ -231,6 +231,16 @@ Scale:
 	return l->ctyp;
 }
 
+void
+load(Symb d, Symb s)
+{
+	fprintf(of, "\t");
+	psymb(d);
+	fprintf(of, " =%c load ", irtyp(d.ctyp));
+	psymb(s);
+	fprintf(of, "\n");
+}
+
 Symb
 expr(Node *n)
 {
@@ -245,7 +255,8 @@ expr(Node *n)
 		['e'] = "ceq",
 		['n'] = "cne",
 	};
-	Symb sr, s0, s1;
+	Symb sr, s0, s1, sl;
+	int o;
 
 	sr.t = Tmp;
 	sr.u.n = tmp++;
@@ -253,11 +264,9 @@ expr(Node *n)
 	switch (n->op) {
 
 	case 'V':
-		sr.ctyp = varctyp(n->u.v);
-		fprintf(of, "\t");
-		psymb(sr);
-		fprintf(of, " =%c ", irtyp(sr.ctyp));
-		fprintf(of, "load %%%s\n", n->u.v);
+		s0 = lval(n);
+		sr.ctyp = s0.ctyp;
+		load(sr, s0);
 		break;
 
 	case 'N':
@@ -271,11 +280,7 @@ expr(Node *n)
 		if (KIND(s0.ctyp) != PTR)
 			die("dereference of a non-pointer");
 		sr.ctyp = DREF(s0.ctyp);
-		fprintf(of, "\t");
-		psymb(sr);
-		fprintf(of, " =%c load ", irtyp(sr.ctyp));
-		psymb(s0);
-		fprintf(of, "\n");
+		load(sr, s0);
 		break;
 
 	case '&':
@@ -296,19 +301,29 @@ expr(Node *n)
 
 	case 'P':
 	case 'M':
-		die("unimplemented ++ and --");
-		break;
+		o = n->op == 'P' ? '+' : '-';
+		sl = lval(n->l);
+		s0.t = Tmp;
+		s0.u.n = tmp++;
+		s0.ctyp = sl.ctyp;
+		load(s0, sl);
+		s1.t = Con;
+		s1.u.n = 1;
+		s1.ctyp = INT;
+		goto Binop;
 
 	default:
 		s0 = expr(n->l);
 		s1 = expr(n->r);
-		sr.ctyp = prom(n->op, &s0, &s1);
+		o = n->op;
+	Binop:
+		sr.ctyp = prom(o, &s0, &s1);
 		if (strchr("ne<l", n->op))
 			sr.ctyp = INT;
 		fprintf(of, "\t");
 		psymb(sr);
 		fprintf(of, " =%c", irtyp(sr.ctyp));
-		fprintf(of, " %s ", otoa[(int)n->op]);
+		fprintf(of, " %s ", otoa[o]);
 	Args:
 		psymb(s0);
 		fprintf(of, ", ");
@@ -324,6 +339,14 @@ expr(Node *n)
 		psymb(sr);
 		fprintf(of, ", %d\n", SIZE(DREF(s0.ctyp)));
 		sr.u.n = tmp++;
+	}
+	if (n->op == 'P' || n->op == 'M') {
+		fprintf(of, "\tstore%c ", irtyp(sl.ctyp));
+		psymb(sr);
+		fprintf(of, ", ");
+		psymb(sl);
+		fprintf(of, "\n");
+		sr = s0;
 	}
 	return sr;
 }
@@ -457,12 +480,11 @@ mkstmt(int t, void *p1, void *p2, void *p3)
 %nonassoc '&'
 %left EQ NE
 %left '<' '>' LE GE
-%nonassoc PP MM
 %nonassoc '['
 
 %type <u> type
 %type <s> stmt stmts
-%type <n> expr
+%type <n> expr pref post
 
 %%
 
@@ -510,12 +532,8 @@ stmts: stmts stmt { $$ = mkstmt(Seq, $1, $2, 0); }
      |            { $$ = 0; }
      ;
 
-expr: NUM
-    | IDENT
-    | expr '[' expr ']' { $$ = mkidx($1, $3); }
+expr: pref
     | '(' expr ')'      { $$ = $2; }
-    | '*' expr          { $$ = mknode('@', $2, 0); }
-    | '&' expr          { $$ = mknode('&', $2, 0); }
     | expr '=' expr     { $$ = mknode('=', $1, $3); }
     | expr '+' expr     { $$ = mknode('+', $1, $3); }
     | expr '-' expr     { $$ = mknode('-', $1, $3); }
@@ -528,8 +546,18 @@ expr: NUM
     | expr GE expr      { $$ = mknode('l', $3, $1); }
     | expr EQ expr      { $$ = mknode('e', $1, $3); }
     | expr NE expr      { $$ = mknode('n', $1, $3); }
-    | expr PP           { $$ = mknode('P', $1, 0); }
-    | expr MM           { $$ = mknode('M', $1, 0); }
+    ;
+
+pref: post
+    | '*' pref          { $$ = mknode('@', $2, 0); }
+    | '&' pref          { $$ = mknode('&', $2, 0); }
+    ;
+
+post: NUM
+    | IDENT
+    | post '[' expr ']' { $$ = mkidx($1, $3); }
+    | post PP           { $$ = mknode('P', $1, 0); }
+    | post MM           { $$ = mknode('M', $1, 0); }
     ;
 
 %%
@@ -548,7 +576,7 @@ yylex()
 		{ "while", WHILE },
 		{ 0, 0 }
 	};
-	int i, c, c1, n, sgn;
+	int i, c, c1, n;
 	char v[NString], *p;
 
 	do
@@ -558,17 +586,8 @@ yylex()
 	if (c == EOF)
 		return 0;
 
-	if (isdigit(c) || c == '-') {
+	if (isdigit(c)) {
 		n = 0;
-		sgn = 1;
-		if (c == '-') {
-			sgn = -1;
-			c = getchar();
-			if (!isdigit(c)) {
-				ungetc(c, stdin);
-				return '-';
-			}
-		}
 		do {
 			n *= 10;
 			n += c-'0';
@@ -576,7 +595,7 @@ yylex()
 		} while (isdigit(c));
 		ungetc(c, stdin);
 		yylval.n = mknode('N', 0, 0);
-		yylval.n->u.n = n * sgn;
+		yylval.n->u.n = n;
 		return NUM;
 	}
 
