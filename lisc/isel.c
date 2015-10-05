@@ -13,16 +13,6 @@
  *   constant allocX in the first basic block)
  */
 
-extern Ins insb[NIns], *curi; /* shared work buffer */
-
-static void
-emit(int op, int w, Ref to, Ref arg0, Ref arg1)
-{
-	if (curi == insb)
-		diag("isel: too many instructions");
-	*--curi = (Ins){op, w, to, {arg0, arg1}};
-}
-
 static Ref
 newtmp(Fn *fn)
 {
@@ -190,7 +180,7 @@ sel(Ins i, Fn *fn)
 		}
 		n = 0;
 Emit:
-		emit(i.op, w, i.to, i.arg[0], i.arg[1]);
+		emiti(i);
 		while (n--) {
 			/* load constants that do not fit in
 			 * a 32bit signed integer into a

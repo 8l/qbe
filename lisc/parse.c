@@ -8,8 +8,6 @@ enum {
 	NCon = 256,
 };
 
-Ins insb[NIns], *curi;
-
 OpDesc opdesc[NOp] = {
 	/*            NAME     NM */
 	[OAdd]    = { "add",    2 },
@@ -54,9 +52,6 @@ OpDesc opdesc[NOp] = {
 	CMPS(X)
 #undef X
 };
-
-Typ typ[NTyp];
-static int ntyp;
 
 typedef enum {
 	PXXX,
@@ -117,30 +112,8 @@ static Blk *curb;
 static Blk **blink;
 static int nblk;
 static int rcls;
+static int ntyp;
 
-
-void *
-alloc(size_t n)
-{
-	void *p;
-
-	/* todo, export in util.c */
-	if (n == 0)
-		return 0;
-	p = calloc(1, n);
-	if (!p)
-		abort();
-	return p;
-}
-
-void
-diag(char *s)
-{
-	/* todo, export in util.c */
-	fputs(s, stderr);
-	fputc('\n', stderr);
-	abort();
-}
 
 static void
 err(char *s)
@@ -318,18 +291,6 @@ expect(int t)
 	err(buf);
 }
 
-Blk *
-blocka()
-{
-	static Blk zblock;
-	Blk *b;
-
-	b = alloc(sizeof *b);
-	*b = zblock;
-	b->id = nblk++;
-	return b;
-}
-
 static Ref
 tmpref(char *v, int use)
 {
@@ -452,6 +413,7 @@ findblk(char *name)
 		err("too many blocks");
 	if (!bmap[i]) {
 		bmap[i] = blocka();
+		nblk++;
 		strcpy(bmap[i]->name, name);
 	}
 	return bmap[i];

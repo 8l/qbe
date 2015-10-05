@@ -13,7 +13,6 @@ struct RMap {
 	int n;
 };
 
-extern Ins insb[NIns], *curi;
 static ulong regu;     /* registers used */
 static Tmp *tmp;       /* function temporaries */
 static struct {

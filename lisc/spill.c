@@ -111,35 +111,6 @@ fillcost(Fn *fn)
 	}
 }
 
-int
-bcnt(Bits *b) /* glad I can pull it :) */
-{
-	const uint64_t m1 = 0x5555555555555555;
-	const uint64_t m2 = 0x3333333333333333;
-	const uint64_t m3 = 0x0f0f0f0f0f0f0f0f;
-	const uint64_t m4 = 0x00ff00ff00ff00ff;
-	const uint64_t m5 = 0x0000ffff0000ffff;
-	const uint64_t m6 = 0x00000000ffffffff;
-	uint64_t tmp;
-	int z, i;
-
-	i = 0;
-	for (z=0; z<BITS; z++) {
-		tmp = b->t[z];
-		if (!tmp)
-			continue;
-		tmp = (tmp&m1) + (tmp>> 1&m1);
-		tmp = (tmp&m2) + (tmp>> 2&m2);
-		tmp = (tmp&m3) + (tmp>> 4&m3);
-		tmp = (tmp&m4) + (tmp>> 8&m4);
-		tmp = (tmp&m5) + (tmp>>16&m5);
-		tmp = (tmp&m6) + (tmp>>32&m6);
-		i += tmp;
-	}
-	return i;
-}
-
-extern Ins insb[NIns], *curi; /* shared work buffer */
 static Bits *f;   /* temps to prioritize in registers (for tcmp1) */
 static Tmp *tmp;  /* current temporaries (for tcmpX) */
 static int ntmp;  /* current # of temps (for limit) */
@@ -198,20 +169,12 @@ slot(int t)
 }
 
 static void
-emit(Ins i)
-{
-	if (curi == insb)
-		diag("spill: too many instructions");
-	*--curi = i;
-}
-
-static void
 store(Ref r, int s)
 {
 	if (tmp[r.val].wide)
-		emit((Ins){OStorel, 0, R, {r, SLOT(s)}});
+		emit(OStorel, 0, R, r, SLOT(s));
 	else
-		emit((Ins){OStorew, 0, R, {r, SLOT(s)}});
+		emit(OStorew, 0, R, r, SLOT(s));
 }
 
 static int
@@ -248,7 +211,7 @@ limit(Bits *b, int k, Bits *fst)
 		if (curi) {
 			t = tarr[i];
 			w = tmp[t].wide;
-			emit((Ins){OLoad, w, TMP(t), {slot(t)}});
+			emit(OLoad, w, TMP(t), slot(t), R);
 		}
 	}
 	return t;
@@ -304,7 +267,7 @@ dopm(Blk *b, Ins *i, Bits *v)
 	} else
 		limit(v, NReg, 0);
 	do
-		emit(*--i1);
+		emiti(*--i1);
 	while (i1 != i);
 	return i;
 }
@@ -423,7 +386,7 @@ spill(Fn *fn)
 			j -= setloc(&i->arg[1], &v, &w);
 			if (s != -1)
 				store(i->to, s);
-			emit(*i);
+			emiti(*i);
 		}
 
 		for (p=b->phi; p; p=p->link) {

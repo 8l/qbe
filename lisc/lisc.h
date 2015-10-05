@@ -18,8 +18,6 @@ typedef struct Con Con;
 typedef struct Fn Fn;
 typedef struct Typ Typ;
 
-typedef enum { U, F, T } B3;
-
 enum Reg {
 	RXX,
 
@@ -270,12 +268,18 @@ struct Typ {
 extern char debug['Z'+1];
 void dumpts(Bits *, Tmp *, FILE *);
 
-/* parse.c */
+/* util.c */
 extern Typ typ[NTyp];
-extern OpDesc opdesc[NOp];
+extern Ins insb[NIns], *curi;
 void diag(char *);
 void *alloc(size_t);
-Blk *blocka(void);
+Blk *blocka();
+void emit(int, int, Ref, Ref, Ref);
+void emiti(Ins);
+int bcnt(Bits *);
+
+/* parse.c */
+extern OpDesc opdesc[NOp];
 Fn *parse(FILE *);
 void printfn(Fn *, FILE *);
 
@@ -299,7 +303,6 @@ ulong callclb(Ins, int *);
 void isel(Fn *);
 
 /* spill.c */
-int bcnt(Bits *);
 void fillcost(Fn *);
 void spill(Fn *);
 
