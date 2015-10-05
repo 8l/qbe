@@ -1,7 +1,6 @@
 #include "lisc.h"
 
 Typ typ[NTyp];
-int ntyp;
 Ins insb[NIns], *curi;
 
 void
