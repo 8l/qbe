@@ -446,6 +446,18 @@ mkidx(Node *a, Node *i)
 	return n;
 }
 
+Node *
+mkneg(Node *n)
+{
+	static Node *z;
+
+	if (!z) {
+		z = mknode('N', 0, 0);
+		z->u.n = 0;
+	}
+	return mknode('-', z, n);
+}
+
 Stmt *
 mkstmt(int t, void *p1, void *p2, void *p3)
 {
@@ -533,7 +545,6 @@ stmts: stmts stmt { $$ = mkstmt(Seq, $1, $2, 0); }
      ;
 
 expr: pref
-    | '(' expr ')'      { $$ = $2; }
     | expr '=' expr     { $$ = mknode('=', $1, $3); }
     | expr '+' expr     { $$ = mknode('+', $1, $3); }
     | expr '-' expr     { $$ = mknode('-', $1, $3); }
@@ -549,12 +560,14 @@ expr: pref
     ;
 
 pref: post
+    | '-' pref          { $$ = mkneg($2); }
     | '*' pref          { $$ = mknode('@', $2, 0); }
     | '&' pref          { $$ = mknode('&', $2, 0); }
     ;
 
 post: NUM
     | IDENT
+    | '(' expr ')'      { $$ = $2; }
     | post '[' expr ']' { $$ = mkidx($1, $3); }
     | post PP           { $$ = mknode('P', $1, 0); }
     | post MM           { $$ = mknode('M', $1, 0); }
