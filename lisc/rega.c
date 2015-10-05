@@ -429,7 +429,7 @@ rega(Fn *fn)
 			n = curi-insb;
 			if (!n)
 				continue;
-			b1 = blocka();
+			b1 = balloc();
 			b1->loop = (b->loop+s->loop) / 2;
 			b1->link = blist;
 			blist = b1;

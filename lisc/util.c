@@ -25,7 +25,7 @@ alloc(size_t n)
 }
 
 Blk *
-blocka()
+balloc()
 {
 	static Blk z;
 	Blk *b;

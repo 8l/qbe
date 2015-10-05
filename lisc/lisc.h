@@ -273,7 +273,7 @@ extern Typ typ[NTyp];
 extern Ins insb[NIns], *curi;
 void diag(char *);
 void *alloc(size_t);
-Blk *blocka();
+Blk *balloc();
 void emit(int, int, Ref, Ref, Ref);
 void emiti(Ins);
 int bcnt(Bits *);

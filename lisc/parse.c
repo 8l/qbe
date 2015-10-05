@@ -412,7 +412,7 @@ findblk(char *name)
 	if (i == NBlk)
 		err("too many blocks");
 	if (!bmap[i]) {
-		bmap[i] = blocka();
+		bmap[i] = balloc();
 		nblk++;
 		strcpy(bmap[i]->name, name);
 	}
