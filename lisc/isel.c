@@ -679,6 +679,11 @@ isel(Fn *fn)
 		b->nins = n;
 	}
 
+	if (debug['C']) {
+		fprintf(stderr, "\n> After call lowering:\n");
+		printfn(fn, stderr);
+	}
+
 	/* assign slots to fast allocs */
 	b = fn->start;
 	assert(NAlign == 3 && "change n=4 and sz /= 4 below");
@@ -718,5 +723,10 @@ isel(Fn *fn)
 		b->ins = alloc(n * sizeof b->ins[0]);
 		memcpy(b->ins, curi, n * sizeof b->ins[0]);
 		b->nins = n;
+	}
+
+	if (debug['I']) {
+		fprintf(stderr, "\n> After instruction selection:\n");
+		printfn(fn, stderr);
 	}
 }

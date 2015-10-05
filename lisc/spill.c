@@ -60,7 +60,7 @@ fillcost(Fn *fn)
 		b->visit = -1;
 	}
 	if (debug['S'])
-		fprintf(stderr, "> Loop information:\n");
+		fprintf(stderr, "\n> Loop information:\n");
 	for (n=0; n<fn->nblk; n++) {
 		b = fn->rpo[n];
 		hd = 0;
@@ -448,4 +448,14 @@ spill(Fn *fn)
 	assert(NAlign == 3);
 	slot8 += slot8 & 3;
 	fn->slot += slot8;
+
+	if (debug['S']) {
+		fprintf(stderr, "\n> Block information:\n");
+		for (b=fn->start; b; b=b->link) {
+			printf("\t%-10s (% 5d) ", b->name, b->loop);
+			dumpts(&b->out, fn->tmp, stdout);
+		}
+		fprintf(stderr, "\n> After spilling:\n");
+		printfn(fn, stderr);
+	}
 }

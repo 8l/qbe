@@ -1,9 +1,13 @@
 #include "lisc.h"
-
+#include <ctype.h>
 
 char debug['Z'+1] = {
-	['S'] = 0, /* spiller */
-	['R'] = 0, /* reg. allocator */
+	['P'] = 0, /* parsing */
+	['C'] = 0, /* call lowering */
+	['I'] = 0, /* instruction selection */
+	['L'] = 0, /* liveness */
+	['S'] = 0, /* spilling */
+	['R'] = 0, /* reg. allocation */
 };
 
 void
@@ -12,7 +16,7 @@ dumpts(Bits *b, Tmp *tmp, FILE *f)
 	int t;
 
 	fprintf(f, "[");
-	for (t=0; t<BITS*NBit; t++)
+	for (t=Tmp0; t<BITS*NBit; t++)
 		if (BGET(*b, t))
 			fprintf(f, " %s", tmp[t].name);
 	fprintf(f, " ]\n");
@@ -21,129 +25,69 @@ dumpts(Bits *b, Tmp *tmp, FILE *f)
 int
 main(int ac, char *av[])
 {
-	int opt, pr;
+	char *o, *f;
+	FILE *inf;
 	Fn *fn;
+	int n, dbg;
 
-	fn = parse(stdin);
+	dbg = 0;
 
-	pr = 1;
-	opt = 0;
-	if (ac > 1 && av[1][0] == '-')
-		opt = av[1][1];
-
-	switch (opt) {
-	case 'f': {
-		int t, ntmp;
-
-		fprintf(stderr, "[Testing SSA Reconstruction:");
-		fillpreds(fn);
-		for (ntmp=fn->ntmp, t=0; t<ntmp; t++) {
-			fprintf(stderr, " %s", fn->tmp[t].name);
-			ssafix(fn, t);
+	if (ac > 1 && strncmp(av[1], "-d", 2) == 0) {
+		if (av[1][2] == 0) {
+			if (ac <= 2)
+				goto Usage;
+			o = av[2];
+			f = av[3];
+		} else {
+			o = &av[1][2];
+			f = av[2];
 		}
-		fprintf(stderr, "]\n");
-		break;
-	}
-	case 'r': {
-		int n;
+		for (; *o; o++)
+			if (isalpha(*o)) {
+				debug[toupper(*o)] = 1;
+				dbg = 1;
+			}
+	} else
+		f = av[1];
 
-		fprintf(stderr, "[Testing RPO]\n");
-	RPODump:
-		fillrpo(fn);
-		assert(fn->rpo[0] == fn->start);
-		for (n=0;; n++)
-			if (n == fn->nblk-1) {
-				fn->rpo[n]->link = 0;
-				break;
-			} else
-				fn->rpo[n]->link = fn->rpo[n+1];
-		break;
-	}
-	case 'l': {
-		Blk *b;
-
-		fprintf(stderr, "[Testing Liveness]\n");
-		isel(fn);
-		fillrpo(fn);
-		filllive(fn);
-		for (b=fn->start; b; b=b->link) {
-			printf("> Block %s\n", b->name);
-			printf("\t in:   ");
-			dumpts(&b->in, fn->tmp, stdout);
-			printf("\tout:   ");
-			dumpts(&b->out, fn->tmp, stdout);
-			printf("\tnlive: %d\n", b->nlive);
+	if (!f || strcmp(f, "-") == 0)
+		inf = stdin;
+	else {
+		inf = fopen(f, "r");
+		if (!inf) {
+			fprintf(stderr, "cannot open '%s'\n", f);
+			goto Usage;
 		}
-		pr = 0;
-		break;
 	}
-	case 'i': {
-		fprintf(stderr, "[Testing Instruction Selection]\n");
-		isel(fn);
-		break;
-	}
-	case 's': {
-		Blk *b;
 
-		fprintf(stderr, "[Testing Spilling]\n");
-		debug['S'] = 1;
-		isel(fn);
-		fillrpo(fn);
-		fillpreds(fn);
-		filllive(fn);
-		fillcost(fn);
-		spill(fn);
-		printf("> Block information:\n");
-		for (b=fn->start; b; b=b->link) {
-			printf("\t%-10s (% 5d) ",
-				b->name, b->loop);
-			dumpts(&b->out, fn->tmp, stdout);
-		}
-		printf("\n");
-		break;
+	fn = parse(inf);
+	if (debug['P']) {
+		fprintf(stderr, "\n> After parsing:\n");
+		printfn(fn, stderr);
 	}
-	case 'a': {
-		fprintf(stderr, "[Testing Register Allocation]\n");
-		debug['R'] = 1;
-		isel(fn);
-		fillrpo(fn);
-		fillpreds(fn);
-		filllive(fn);
-		fillcost(fn);
-		fillphi(fn);
-		spill(fn);
-		rega(fn);
-		goto RPODump;
-	}
-	case 'e': {
-		int n;
-
-		fprintf(stderr, "[Testing Code Emission]\n");
-		isel(fn);
-		fillrpo(fn);
-		fillpreds(fn);
-		filllive(fn);
-		fillcost(fn);
-		fillphi(fn);
-		spill(fn);
-		rega(fn);
-		fillrpo(fn);
-		assert(fn->rpo[0] == fn->start);
-		for (n=0;; n++)
-			if (n == fn->nblk-1) {
-				fn->rpo[n]->link = 0;
-				break;
-			} else
-				fn->rpo[n]->link = fn->rpo[n+1];
+	isel(fn);
+	fillrpo(fn);
+	fillpreds(fn);
+	filllive(fn);
+	fillcost(fn);
+	fillphi(fn);
+	spill(fn);
+	rega(fn);
+	fillrpo(fn);
+	assert(fn->rpo[0] == fn->start);
+	for (n=0;; n++)
+		if (n == fn->nblk-1) {
+			fn->rpo[n]->link = 0;
+			break;
+		} else
+			fn->rpo[n]->link = fn->rpo[n+1];
+	if (!dbg)
 		emitfn(fn, stdout);
-		pr = 0;
-		break;
-	}
-	default:
-		break;
-	}
-
-	if (pr)
-		printfn(fn, stdout);
+	else
+		fprintf(stderr, "\n");
 	exit(0);
+
+Usage:
+	fprintf(stderr, "usage: %s [-d PCILSR] {file.ssa, -}\n", av[0]);
+	exit(1);
 }

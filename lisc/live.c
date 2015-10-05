@@ -93,4 +93,15 @@ Again:
 		chg = 0;
 		goto Again;
 	}
+
+	if (debug['L']) {
+		fprintf(stderr, "\n> Liveness analysis:\n");
+		for (b=f->start; b; b=b->link) {
+			printf("\t%-10s in:  ", b->name);
+			dumpts(&b->in, f->tmp, stderr);
+			printf("\t          out: ");
+			dumpts(&b->out, f->tmp, stderr);
+			printf("\t          nlive: %d\n", b->nlive);
+		}
+	}
 }

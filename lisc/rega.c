@@ -458,4 +458,9 @@ rega(Fn *fn)
 
 	free(end);
 	free(beg);
+
+	if (debug['R']) {
+		fprintf(stderr, "\n> After register allocation\n");
+		printfn(fn, stderr);
+	}
 }
