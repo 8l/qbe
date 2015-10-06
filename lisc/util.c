@@ -72,3 +72,10 @@ vdup(void *pd, void *s, size_t sz)
 	free(*(void **)pd);
 	memcpy(*(void **)pd = alloc(sz), s, sz);
 }
+
+Ins *
+icpy(Ins *d, Ins *s, ulong n)
+{
+	memcpy(d, s, n * sizeof(Ins));
+	return d + n;
+}

@@ -225,8 +225,8 @@ static Ins *
 dopm(Blk *b, Ins *i, RMap *m)
 {
 	RMap m0;
-	int n, r, r1, t, nins;
-	Ins *i1, *ib, *ip, *ir;
+	int n, r, r1, t;
+	Ins *i0, *i1, *ip, *ir;
 	ulong def;
 
 	m0 = *m;
@@ -263,16 +263,14 @@ dopm(Blk *b, Ins *i, RMap *m)
 #ifdef TEST_PMOV
 	return 0;
 #endif
-	nins = curi-insb;
-	ib = alloc((b->nins + nins - (i1-i)) * sizeof(Ins));
-	memcpy(ip = ib, b->ins, (i - b->ins) * sizeof(Ins));
-	ip += i - b->ins;
-	memcpy(ir = ip, insb, nins * sizeof(Ins));
-	ip += nins;
-	memcpy(ip, i1, (&b->ins[b->nins] - i1) * sizeof(Ins));
-	b->nins += nins - (i1-i);
+	n = b->nins - (i1 - i) + (curi - insb);
+	i0 = alloc(n * sizeof(Ins));
+	ip = icpy(ip = i0, b->ins, i - b->ins);
+	ip = icpy(ir = ip, insb, curi - insb);
+	ip = icpy(ip, i1, &b->ins[b->nins] - i1);
+	b->nins = n;
 	free(b->ins);
-	b->ins = ib;
+	b->ins = i0;
 	return ir;
 }
 

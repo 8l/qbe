@@ -622,7 +622,7 @@ void
 isel(Fn *fn)
 {
 	Blk *b, **sb;
-	Ins *i, *i0;
+	Ins *i, *i0, *ip;
 	Phi *p;
 	uint a;
 	int n, al, s;
@@ -637,14 +637,13 @@ isel(Fn *fn)
 		if (i->op != OPar && i->op != OParc)
 			break;
 	selpar(fn, b->ins, i);
-	i0 = i;
-	n = b->nins - (i-b->ins);
-	b->nins = n + (curi-insb);
-	i = alloc(b->nins * sizeof i[0]);
-	memcpy(i, insb, (curi-insb) * sizeof i[0]);
-	memcpy(&i[curi-insb], i0, n * sizeof i[0]);
+	n = b->nins - (i - b->ins) + (curi - insb);
+	i0 = alloc(n * sizeof(Ins));
+	ip = icpy(ip = i0, insb, curi - insb);
+	ip = icpy(ip, i, &b->ins[b->nins] - i);
+	b->nins = n;
 	free(b->ins);
-	b->ins = i;
+	b->ins = i0;
 
 	/* lower function calls */
 	for (b=fn->start; b; b=b->link) {
