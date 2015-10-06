@@ -70,7 +70,8 @@ void
 idup(Ins **pd, Ins *s, ulong n)
 {
 	free(*pd);
-	memcpy(*pd = alloc(n * sizeof(Ins)), s, n * sizeof(Ins));
+	*pd = alloc(n * sizeof(Ins));
+	memcpy(*pd, s, n * sizeof(Ins));
 }
 
 Ins *
