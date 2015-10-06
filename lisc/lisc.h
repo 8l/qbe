@@ -277,7 +277,7 @@ Blk *balloc();
 void emit(int, int, Ref, Ref, Ref);
 void emiti(Ins);
 int bcnt(Bits *);
-void vdup(void *, void *, size_t);
+void idup(Ins **, Ins *, ulong);
 Ins *icpy(Ins *, Ins *, ulong);
 
 /* parse.c */

@@ -430,7 +430,7 @@ rega(Fn *fn)
 			fn->nblk++;
 			sprintf(b1->name, "%s_%s", b->name, s->name);
 			b1->nins = curi - insb;
-			vdup(&b1->ins, insb, b1->nins * sizeof(Ins));
+			idup(&b1->ins, insb, b1->nins);
 			b1->jmp.type = JJmp;
 			b1->s1 = s;
 			**ps = b1;

@@ -67,10 +67,10 @@ bcnt(Bits *b)
 }
 
 void
-vdup(void *pd, void *s, size_t sz)
+idup(Ins **pd, Ins *s, ulong n)
 {
-	free(*(void **)pd);
-	memcpy(*(void **)pd = alloc(sz), s, sz);
+	free(*pd);
+	memcpy(*pd = alloc(n * sizeof(Ins)), s, n * sizeof(Ins));
 }
 
 Ins *

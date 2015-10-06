@@ -402,7 +402,7 @@ spill(Fn *fn)
 		}
 		b->in = v;
 		b->nins = &insb[NIns] - curi;
-		vdup(&b->ins, curi, b->nins * sizeof(Ins));
+		idup(&b->ins, curi, b->nins);
 	}
 
 	/* align the locals to a 16 byte boundary */

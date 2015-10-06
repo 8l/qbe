@@ -662,7 +662,7 @@ isel(Fn *fn)
 			emit(i->op, i->wide, i->to, i->arg[0], i->arg[1]);
 		}
 		b->nins = &insb[NIns] - curi;
-		vdup(&b->ins, curi, b->nins * sizeof(Ins));
+		idup(&b->ins, curi, b->nins);
 	}
 
 	if (debug['C']) {
@@ -705,7 +705,7 @@ isel(Fn *fn)
 			sel(*--i, fn);
 		}
 		b->nins = &insb[NIns] - curi;
-		vdup(&b->ins, curi, b->nins * sizeof(Ins));
+		idup(&b->ins, curi, b->nins);
 	}
 
 	if (debug['I']) {
