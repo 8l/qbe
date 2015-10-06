@@ -65,3 +65,10 @@ bcnt(Bits *b)
 	}
 	return i;
 }
+
+void
+vdup(void *pd, void *s, size_t sz)
+{
+	free(*(void **)pd);
+	memcpy(*(void **)pd = alloc(sz), s, sz);
+}

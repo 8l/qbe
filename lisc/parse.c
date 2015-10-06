@@ -423,8 +423,7 @@ static void
 closeblk()
 {
 	curb->nins = curi - insb;
-	curb->ins = alloc(curb->nins * sizeof(Ins));
-	memcpy(curb->ins, insb, curb->nins * sizeof(Ins));
+	vdup(&curb->ins, insb, curb->nins * sizeof(Ins));
 	blink = &curb->link;
 	curi = insb;
 }

@@ -343,7 +343,6 @@ rega(Fn *fn)
 {
 	int n, t, r, x;
 	Blk *b, *b1, *s, ***ps, *blist;
-	Ins *i;
 	RMap *end, *beg, cur;
 	Phi *p;
 	uint u;
@@ -424,9 +423,6 @@ rega(Fn *fn)
 					pmadd(src, dst, tmp[t].wide);
 				}
 			pmgen();
-			/* todo, moving this out of
-			 * here would make sense */
-			n = curi-insb;
 			if (!n)
 				continue;
 			b1 = balloc();
@@ -435,10 +431,8 @@ rega(Fn *fn)
 			blist = b1;
 			fn->nblk++;
 			sprintf(b1->name, "%s_%s", b->name, s->name);
-			i = alloc(n * sizeof(Ins));
-			memcpy(i, insb, n * sizeof(Ins));
-			b1->ins = i;
-			b1->nins = n;
+			b1->nins = curi - insb;
+			vdup(&b1->ins, insb, b1->nins * sizeof(Ins));
 			b1->jmp.type = JJmp;
 			b1->s1 = s;
 			**ps = b1;
@@ -459,7 +453,7 @@ rega(Fn *fn)
 	free(beg);
 
 	if (debug['R']) {
-		fprintf(stderr, "\n> After register allocation\n");
+		fprintf(stderr, "\n> After register allocation:\n");
 		printfn(fn, stderr);
 	}
 }

@@ -662,11 +662,8 @@ isel(Fn *fn)
 			assert(i->op != OArg && i->op != OArgc);
 			emit(i->op, i->wide, i->to, i->arg[0], i->arg[1]);
 		}
-		n = &insb[NIns] - curi;
-		free(b->ins);
-		b->ins = alloc(n * sizeof b->ins[0]);
-		memcpy(b->ins, curi, n * sizeof b->ins[0]);
-		b->nins = n;
+		b->nins = &insb[NIns] - curi;
+		vdup(&b->ins, curi, b->nins * sizeof(Ins));
 	}
 
 	if (debug['C']) {
@@ -708,11 +705,8 @@ isel(Fn *fn)
 		for (i=&b->ins[b->nins]; i>b->ins;) {
 			sel(*--i, fn);
 		}
-		n = &insb[NIns] - curi;
-		free(b->ins);
-		b->ins = alloc(n * sizeof b->ins[0]);
-		memcpy(b->ins, curi, n * sizeof b->ins[0]);
-		b->nins = n;
+		b->nins = &insb[NIns] - curi;
+		vdup(&b->ins, curi, b->nins * sizeof(Ins));
 	}
 
 	if (debug['I']) {

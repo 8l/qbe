@@ -277,6 +277,7 @@ Blk *balloc();
 void emit(int, int, Ref, Ref, Ref);
 void emiti(Ins);
 int bcnt(Bits *);
+void vdup(void *, void *, size_t);
 
 /* parse.c */
 extern OpDesc opdesc[NOp];

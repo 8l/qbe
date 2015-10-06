@@ -401,10 +401,8 @@ spill(Fn *fn)
 				p->to = slot(p->to.val);
 		}
 		b->in = v;
-		free(b->ins);
 		b->nins = &insb[NIns] - curi;
-		b->ins = alloc(b->nins * sizeof(Ins));
-		memcpy(b->ins, curi, b->nins * sizeof(Ins));
+		vdup(&b->ins, curi, b->nins * sizeof(Ins));
 	}
 
 	/* align the locals to a 16 byte boundary */
