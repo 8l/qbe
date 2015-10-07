@@ -638,7 +638,7 @@ parsetyp()
 	t = nextnl();
 	if (t == TAlign) {
 		if (nextnl() != TNum)
-			err("alignment value expected");
+			err("alignment expected");
 		for (al=0; tokval.num /= 2; al++)
 			;
 		ty->align = al;
@@ -709,6 +709,48 @@ parsetyp()
 	}
 	if (t != TRBrace)
 		err("expected closing }");
+}
+
+typedef struct Dat Dat;
+
+struct Dat {
+	enum {
+		DName,
+		DAlign,
+		DA,
+		DB,
+		DH,
+		DW,
+		DL
+	} type;
+	union {
+		long long num;
+		char *str;
+	} u;
+};
+
+static void
+parsedat(void cb(Dat *))
+{
+	int t;
+	Dat d;
+
+	if (nextnl() != TGlo || nextnl() != TEq)
+		err("data name, then = expected");
+	d.type = DName;
+	d.u.str = tokval.str;
+	cb(&d);
+	t = nextnl();
+	if (t == TAlign) {
+		if (nextnl() != TNum)
+			err("alignment expected");
+		d.type = DAlign;
+		d.u.num = tokval.num;
+		cb(&d);
+		t = nextnl();
+	}
+	if (t != TLBrace)
+		err("data contents must start with {");
 }
 
 Fn *
