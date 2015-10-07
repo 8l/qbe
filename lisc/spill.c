@@ -188,7 +188,7 @@ limit(Bits *b, int k, Bits *fst)
 		return 0;
 	if (nt > maxt) {
 		free(tarr);
-		tarr = alloc(nt * sizeof tarr[0]);
+		tarr = ealloc(nt * sizeof tarr[0]);
 		maxt = nt;
 	}
 	i = 0;

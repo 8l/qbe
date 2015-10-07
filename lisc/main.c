@@ -61,6 +61,7 @@ main(int ac, char *av[])
 	}
 
 	fn = parse(inf);
+	fclose(inf);
 	if (debug['P']) {
 		fprintf(stderr, "\n> After parsing:\n");
 		printfn(fn, stderr);
@@ -85,6 +86,7 @@ main(int ac, char *av[])
 		emitfn(fn, stdout);
 	else
 		fprintf(stderr, "\n");
+	freeall();
 	exit(0);
 
 Usage:

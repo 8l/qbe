@@ -13,13 +13,19 @@ struct Vec {
 	} align[];
 };
 
+
 enum {
-	VMin = 2,
+	VMin = 32,
 	VMag = 0xcabba9e,
+	NPtr = 256,
 };
 
 Typ typ[NTyp];
 Ins insb[NIns], *curi;
+
+static void *ptr[NPtr];
+static void **pool = ptr;
+static int nptr = 1;
 
 void
 diag(char *s)
@@ -30,16 +36,48 @@ diag(char *s)
 }
 
 void *
-alloc(size_t n)
+ealloc(size_t n)
 {
 	void *p;
 
-	if (n == 0)
-		return 0;
 	p = calloc(1, n);
 	if (!p)
-		abort();
+		diag("ealloc: out of memory");
 	return p;
+}
+
+void *
+alloc(size_t n)
+{
+	void **pp;
+
+	if (n == 0)
+		return 0;
+	if (nptr >= NPtr) {
+		pp = ealloc(NPtr * sizeof(void *));
+		pp[0] = pool;
+		pool = pp;
+		nptr = 1;
+	}
+	return pool[nptr++] = ealloc(n);
+}
+
+void
+freeall()
+{
+	void **pp;
+
+	for (;;) {
+		for (pp = &pool[1]; pp < &pool[NPtr]; pp++)
+			free(*pp);
+		pp = pool[0];
+		if (!pp)
+			break;
+		free(pool);
+		pool = pp;
+		nptr = NPtr;
+	}
+	nptr = 1;
 }
 
 Blk *
@@ -87,7 +125,6 @@ bcnt(Bits *b)
 void
 idup(Ins **pd, Ins *s, ulong n)
 {
-	free(*pd);
 	*pd = alloc(n * sizeof(Ins));
 	memcpy(*pd, s, n * sizeof(Ins));
 }
@@ -105,10 +142,10 @@ valloc(ulong len, size_t esz)
 	ulong cap;
 	Vec *v;
 
-	v = alloc(len * esz + sizeof(Vec));
-	v->mag = VMag;
 	for (cap=VMin; cap<len; cap*=2)
 		;
+	v = alloc(cap * esz + sizeof(Vec));
+	v->mag = VMag;
 	v->cap = cap;
 	v->esz = esz;
 	return v + 1;
@@ -126,7 +163,6 @@ vgrow(void *vp, ulong len)
 		return;
 	v1 = valloc(len, v->esz);
 	memcpy(v1, v+1, v->cap * v->esz);
-	free(v);
 	*(Vec **)vp = v1;
 }
 

@@ -516,8 +516,6 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 		assert(stk == 8);
 		emit(OXPush, 1, R, CON_Z, R);
 	}
-
-	free(ac);
 }
 
 static void
@@ -580,8 +578,6 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 			*curi++ = (Ins){OStorel, 0, R, {r1, r}};
 		}
 	}
-
-	free(ac);
 }
 
 /* instruction selection
@@ -611,7 +607,6 @@ isel(Fn *fn)
 	ip = icpy(ip = i0, insb, curi - insb);
 	ip = icpy(ip, i, &b->ins[b->nins] - i);
 	b->nins = n;
-	free(b->ins);
 	b->ins = i0;
 
 	/* lower function calls */

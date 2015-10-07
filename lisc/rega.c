@@ -198,7 +198,6 @@ pmgen()
 			w = 0;
 			pmrec(status, i, &w);
 		}
-	free(status);
 }
 
 static void
@@ -269,7 +268,6 @@ dopm(Blk *b, Ins *i, RMap *m)
 	ip = icpy(ir = ip, insb, curi - insb);
 	ip = icpy(ip, i1, &b->ins[b->nins] - i1);
 	b->nins = n;
-	free(b->ins);
 	b->ins = i0;
 	return ir;
 }
@@ -441,14 +439,9 @@ rega(Fn *fn)
 		}
 	}
 	for (b=fn->start; b; b=b->link)
-		while ((p=b->phi)) {
+		while ((p=b->phi))
 			b->phi = p->link;
-			free(p);
-		}
 	fn->reg = regu;
-
-	free(end);
-	free(beg);
 
 	if (debug['R']) {
 		fprintf(stderr, "\n> After register allocation:\n");

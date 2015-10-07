@@ -24,7 +24,6 @@ fillpreds(Fn *f)
 
 	for (b=f->start; b; b=b->link) {
 		b->npred = 0;
-		free(b->pred);
 		b->pred = 0;
 	}
 	for (b=f->start; b; b=b->link) {
@@ -74,7 +73,6 @@ fillrpo(Fn *f)
 		b->id = -1;
 	n = 1 + rporec(f->start, f->nblk-1);
 	f->nblk -= n;
-	free(f->rpo);
 	f->rpo = alloc(f->nblk * sizeof f->rpo[0]);
 	for (p=&f->start; *p;) {
 		b = *p;
@@ -197,7 +195,6 @@ topdef(Blk *b, Fn *f, int w)
 void
 ssafix(Fn *f, int t)
 {
-	char s[NString];
 	uint n;
 	int t0, t1, w;
 	Ref rt;
@@ -252,10 +249,6 @@ ssafix(Fn *f, int t)
 			b->jmp.arg = topdef(b, f, w);
 	}
 	/* add new temporaries */
-	for (t1=f->ntmp; t1<t0; t1++) {
-		snprintf(s, NString, "%s%d", f->tmp[t].name, t0-t1);
-		newtmp(s, f);
-	}
-	free(top);
-	free(bot);
+	for (t1=f->ntmp; t1<t0; t1++)
+		newtmp(f->tmp[t].name, f);
 }
