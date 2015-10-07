@@ -68,7 +68,7 @@ freeall()
 	void **pp;
 
 	for (;;) {
-		for (pp = &pool[1]; pp < &pool[NPtr]; pp++)
+		for (pp = &pool[1]; pp < &pool[nptr]; pp++)
 			free(*pp);
 		pp = pool[0];
 		if (!pp)
