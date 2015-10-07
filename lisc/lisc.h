@@ -279,6 +279,10 @@ void emiti(Ins);
 int bcnt(Bits *);
 void idup(Ins **, Ins *, ulong);
 Ins *icpy(Ins *, Ins *, ulong);
+void *valloc(ulong, size_t);
+void vgrow(void *, ulong);
+Ref newtmp(char *, Fn *);
+Ref getcon(int64_t, Fn *);
 
 /* parse.c */
 extern OpDesc opdesc[NOp];

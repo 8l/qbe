@@ -197,6 +197,7 @@ topdef(Blk *b, Fn *f, int w)
 void
 ssafix(Fn *f, int t)
 {
+	char s[NString];
 	uint n;
 	int t0, t1, w;
 	Ref rt;
@@ -214,7 +215,7 @@ ssafix(Fn *f, int t)
 		/* rename defs and some in-blocks uses */
 		for (p=b->phi; p; p=p->link)
 			if (req(p->to, rt)) {
-				t1 = f->ntmp++;
+				t1 = t0++;
 				p->to = TMP(t1);
 				w |= p->wide;
 			}
@@ -227,7 +228,7 @@ ssafix(Fn *f, int t)
 			}
 			if (req(i->to, rt)) {
 				w |= i->wide;
-				t1 = f->ntmp++;
+				t1 = t0++;
 				i->to = TMP(t1);
 			}
 		}
@@ -251,13 +252,9 @@ ssafix(Fn *f, int t)
 			b->jmp.arg = topdef(b, f, w);
 	}
 	/* add new temporaries */
-	f->tmp = realloc(f->tmp, f->ntmp * sizeof f->tmp[0]);
-	if (!f->tmp)
-		diag("ssafix: out of memory");
-	for (t1=t0; t0<f->ntmp; t0++) {
-		f->tmp[t0] = f->tmp[t];
-		snprintf(f->tmp[t0].name, NString, "%s%d",
-			f->tmp[t].name, t0-t1);
+	for (t1=f->ntmp; t1<t0; t1++) {
+		snprintf(s, NString, "%s%d", f->tmp[t].name, t0-t1);
+		newtmp(s, f);
 	}
 	free(top);
 	free(bot);

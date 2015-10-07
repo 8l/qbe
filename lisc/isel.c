@@ -13,37 +13,6 @@
  *   constant allocX in the first basic block)
  */
 
-static Ref
-newtmp(Fn *fn)
-{
-	static int n;
-	int t;
-
-	t = fn->ntmp++;
-	fn->tmp = realloc(fn->tmp, fn->ntmp * sizeof fn->tmp[0]);
-	if (!fn->tmp)
-		diag("isel: out of memory");
-	memset(&fn->tmp[t], 0, sizeof fn->tmp[t]);
-	fn->tmp[t].spill = -1;
-	sprintf(fn->tmp[t].name, "isel%d", ++n);
-	return TMP(t);
-}
-
-static Ref
-newcon(int64_t val, Fn *fn)
-{
-	int c;
-
-	for (c=0; c<fn->ncon; c++)
-		if (fn->con[c].type == CNum && fn->con[c].val == val)
-			return CON(c);
-	fn->ncon++;
-	fn->con = realloc(fn->con, fn->ncon * sizeof fn->con[0]);
-	if (!fn->con)
-		diag("isel: out of memory");
-	fn->con[c] = (Con){.type = CNum, .val = val};
-	return CON(c);
-}
 
 static int
 noimm(Ref r, Fn *fn)
@@ -81,7 +50,7 @@ selcmp(Ref arg[2], int w, Fn *fn)
 	emit(OXCmp, w, R, arg[1], arg[0]);
 	r = arg[1];
 	if (w && rtype(r) == RCon && noimm(r, fn)) {
-		curi->arg[0] = newtmp(fn);
+		curi->arg[0] = newtmp("isel", fn);
 		emit(OCopy, w, curi->arg[0], r, R);
 	}
 }
@@ -110,7 +79,7 @@ sel(Ins i, Fn *fn)
 		cpy[n].s = -1;
 		s = rslot(r0, fn);
 		if (s != -1) {
-			r0 = newtmp(fn);
+			r0 = newtmp("isel", fn);
 			i.arg[n] = r0;
 			cpy[n].r = r0;
 			cpy[n].s = s;
@@ -131,7 +100,7 @@ sel(Ins i, Fn *fn)
 			/* immediates not allowed for
 			 * divisions in x86
 			 */
-			r0 = newtmp(fn);
+			r0 = newtmp("isel", fn);
 		} else
 			r0 = i.arg[1];
 		emit(OXDiv, w, R, r0, R);
@@ -188,7 +157,7 @@ Emit:
 			 */
 			r0 = i.arg[n];
 			if (rtype(r0) == RCon && noimm(r0, fn)) {
-				curi->arg[n] = newtmp(fn);
+				curi->arg[n] = newtmp("isel", fn);
 				emit(OCopy, 1, curi->arg[n], r0, R);
 			}
 		}
@@ -205,14 +174,14 @@ Emit:
 			val = (val + 15)  & ~INT64_C(15);
 			if (val < 0 || val > INT32_MAX)
 				diag("isel: alloc too large");
-			emit(OAlloc, 0, i.to, newcon(val, fn), R);
+			emit(OAlloc, 0, i.to, getcon(val, fn), R);
 		} else {
 			/* r0 = (i.arg[0] + 15) & -16 */
-			r0 = newtmp(fn);
-			r1 = newtmp(fn);
+			r0 = newtmp("isel", fn);
+			r1 = newtmp("isel", fn);
 			emit(OSAlloc, 0, i.to, r0, R);
-			emit(OAnd, 1, r0, r1, newcon(-16, fn));
-			emit(OAdd, 1, r1, i.arg[0], newcon(15, fn));
+			emit(OAnd, 1, r0, r1, getcon(-16, fn));
+			emit(OAdd, 1, r1, i.arg[0], getcon(15, fn));
 		}
 		break;
 	default:
@@ -502,7 +471,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 	if (!req(i1->arg[1], R))
 		diag("struct-returning function not implemented");
 	if (stk) {
-		r = newcon(-(int64_t)stk, fn);
+		r = getcon(-(int64_t)stk, fn);
 		emit(OSAlloc, 0, R, r, R);
 	}
 	emit(OCopy, i1->wide, i1->to, TMP(RAX), R);
@@ -516,9 +485,9 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 				diag("isel: unsupported float struct");
 			if (a->size > 8) {
 				r = TMP(rsave[ni+1]);
-				r1 = newtmp(fn);
+				r1 = newtmp("isel", fn);
 				emit(OLoad, 1, r, r1, R);
-				r = newcon(8, fn);
+				r = getcon(8, fn);
 				emit(OAdd, 1, r1, i->arg[1], r);
 				r = TMP(rsave[ni]);
 				ni += 2;
@@ -580,12 +549,12 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 		if (i->op == OParc) {
 			if (a->rty[0] == RSse || a->rty[1] == RSse)
 				diag("isel: unsupported float struct");
-			r1 = newtmp(fn);
+			r1 = newtmp("isel", fn);
 			*curi++ = (Ins){OCopy, 1, r1, {r}};
 			a->rty[0] = r1.val;
 			if (a->size > 8) {
 				r = TMP(rsave[ni++]);
-				r1 = newtmp(fn);
+				r1 = newtmp("isel", fn);
 				*curi++ = (Ins){OCopy, 1, r1, {r}};
 				a->rty[1] = r1.val;
 			}
@@ -600,12 +569,12 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 			;
 		r1 = i->to;
 		r = TMP(a->rty[0]);
-		r2 = newcon(a->size, fn);
+		r2 = getcon(a->size, fn);
 		*curi++ = (Ins){OAlloc+al, 1, r1, {r2}};
 		*curi++ = (Ins){OStorel, 0, R, {r, r1}};
 		if (a->size > 8) {
-			r = newtmp(fn);
-			r2 = newcon(8, fn);
+			r = newtmp("isel", fn);
+			r2 = getcon(8, fn);
 			*curi++ = (Ins){OAdd, 1, r, {r1, r2}};
 			r1 = TMP(a->rty[1]);
 			*curi++ = (Ins){OStorel, 0, R, {r1, r}};
@@ -695,7 +664,7 @@ isel(Fn *fn)
 					assert(a+1 < p->narg);
 				s = rslot(p->arg[a], fn);
 				if (s != -1) {
-					p->arg[a] = newtmp(fn);
+					p->arg[a] = newtmp("isel", fn);
 					emit(OAddr, 1, p->arg[a], SLOT(s), R);
 				}
 			}

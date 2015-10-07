@@ -611,9 +611,9 @@ parsefn()
 		err("empty file");
 	if (curb->jmp.type == JXXX)
 		err("last block misses jump");
-	fn->tmp = alloc(ntmp * sizeof tmp[0]);
+	fn->tmp = valloc(ntmp, sizeof tmp[0]);
 	memcpy(fn->tmp, tmp, ntmp * sizeof tmp[0]);
-	fn->con = alloc(ncon * sizeof con[0]);
+	fn->con = valloc(ncon, sizeof con[0]);
 	memcpy(fn->con, con, ncon * sizeof con[0]);
 	fn->ntmp = ntmp;
 	fn->ncon = ncon;
