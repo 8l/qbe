@@ -22,6 +22,12 @@ dumpts(Bits *b, Tmp *tmp, FILE *f)
 	fprintf(f, " ]\n");
 }
 
+static void
+data(Dat *d)
+{
+	emitdat(d, stdout);
+}
+
 int
 main(int ac, char *av[])
 {
@@ -60,7 +66,7 @@ main(int ac, char *av[])
 		}
 	}
 
-	fn = parse(inf);
+	fn = parse(inf, data);
 	fclose(inf);
 	if (debug['P']) {
 		fprintf(stderr, "\n> After parsing:\n");

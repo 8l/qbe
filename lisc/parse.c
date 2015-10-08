@@ -70,6 +70,7 @@ enum {
 	TRet,
 	TFunc,
 	TType,
+	TData,
 	TAlign,
 	TL,
 	TW,
@@ -83,6 +84,7 @@ enum {
 	TLbl,
 	TGlo,
 	TTyp,
+	TStr,
 	TEq,
 	TComma,
 	TLParen,
@@ -138,6 +140,7 @@ lex()
 		{ "ret", TRet },
 		{ "function", TFunc },
 		{ "type", TType },
+		{ "data", TData },
 		{ "align", TAlign },
 		{ "l", TL },
 		{ "w", TW },
@@ -206,6 +209,17 @@ lex()
 		ungetc(c, inf);
 		tokval.num *= sgn;
 		return TNum;
+	}
+	if (c == '"') {
+		tokval.str = valloc(0, 1);
+		for (i=0;; i++) {
+			c = fgetc(inf);
+			if (c == '"')
+			if (!i || tokval.str[i-1] != '\\')
+				return TStr;
+			vgrow(&tokval.str, i+1);
+			tokval.str[i] = c;
+		}
 	}
 	t = TXXX;
 	if (0)
@@ -711,24 +725,6 @@ parsetyp()
 		err("expected closing }");
 }
 
-typedef struct Dat Dat;
-
-struct Dat {
-	enum {
-		DName,
-		DAlign,
-		DA,
-		DB,
-		DH,
-		DW,
-		DL
-	} type;
-	union {
-		long long num;
-		char *str;
-	} u;
-};
-
 static void
 parsedat(void cb(Dat *))
 {
@@ -749,12 +745,35 @@ parsedat(void cb(Dat *))
 		cb(&d);
 		t = nextnl();
 	}
+	if (t == TStr) {
+		d.type = DA;
+		d.u.str = tokval.str;
+		cb(&d);
+		return;
+	}
 	if (t != TLBrace)
-		err("data contents must start with {");
+		err("data contents must be { .. } or \" .. \"");
+	for (;;) {
+		switch (nextnl()) {
+		case TL: d.type = DL; break;
+		case TW: d.type = DW; break;
+		case TH: d.type = DH; break;
+		case TB: d.type = DB; break;
+		}
+		if (nextnl() != TNum)
+			err("number expected");
+		d.u.num = tokval.num;
+		cb(&d);
+		t = nextnl();
+		if (t == TRBrace)
+			break;
+		if (t != TComma)
+			err(", or } expected");
+	}
 }
 
 Fn *
-parse(FILE *f)
+parse(FILE *f, void data(Dat *))
 {
 	Fn *fn;
 
@@ -775,6 +794,9 @@ parse(FILE *f)
 			break;
 		case TType:
 			parsetyp();
+			break;
+		case TData:
+			parsedat(data);
 			break;
 		case TEOF:
 			return fn;

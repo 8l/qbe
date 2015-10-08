@@ -17,6 +17,7 @@ typedef struct Tmp Tmp;
 typedef struct Con Con;
 typedef struct Fn Fn;
 typedef struct Typ Typ;
+typedef struct Dat Dat;
 
 enum Reg {
 	RXX,
@@ -263,6 +264,22 @@ struct Typ {
 	} seg[NSeg+1];
 };
 
+struct Dat {
+	enum {
+		DName,
+		DAlign,
+		DA,
+		DB,
+		DH,
+		DW,
+		DL
+	} type;
+	union {
+		int64_t num;
+		char *str;
+	} u;
+};
+
 
 /* main.c */
 extern char debug['Z'+1];
@@ -288,7 +305,7 @@ Ref getcon(int64_t, Fn *);
 
 /* parse.c */
 extern OpDesc opdesc[NOp];
-Fn *parse(FILE *);
+Fn *parse(FILE *, void (Dat *));
 void printfn(Fn *, FILE *);
 
 /* ssa.c */
@@ -319,3 +336,4 @@ void rega(Fn *);
 
 /* emit.c */
 void emitfn(Fn *, FILE *);
+void emitdat(Dat *, FILE *);

@@ -315,6 +315,7 @@ emitfn(Fn *fn, FILE *f)
 	int *r, c, fs;
 
 	fprintf(f,
+		"\n"
 		".text\n"
 		".globl %s\n"
 		".type %s, @function\n"
@@ -365,4 +366,39 @@ emitfn(Fn *fn, FILE *f)
 		}
 	}
 
+}
+
+void
+emitdat(Dat *d, FILE *f)
+{
+	switch (d->type) {
+	case DName:
+		fprintf(f,
+			"\n"
+			".data\n"
+			".globl %s\n"
+			".type %s, @object\n"
+			"%s:\n",
+			d->u.str, d->u.str, d->u.str
+		);
+		break;
+	case DAlign:
+		fprintf(f, ".align %"PRId64"\n", d->u.num);
+		break;
+	case DA:
+		fprintf(f, "\t.string \"%s\"\n", d->u.str);
+		break;
+	case DB:
+		fprintf(f, "\t.byte %"PRId64"\n", d->u.num);
+		break;
+	case DH:
+		fprintf(f, "\t.value %"PRId64"\n", d->u.num);
+		break;
+	case DW:
+		fprintf(f, "\t.long %"PRId64"\n", d->u.num);
+		break;
+	case DL:
+		fprintf(f, "\t.quad %"PRId64"\n", d->u.num);
+		break;
+	}
 }
