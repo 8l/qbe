@@ -36,13 +36,13 @@ diag(char *s)
 }
 
 void *
-ealloc(size_t n)
+emalloc(size_t n)
 {
 	void *p;
 
 	p = calloc(1, n);
 	if (!p)
-		diag("ealloc: out of memory");
+		diag("emalloc: out of memory");
 	return p;
 }
 
@@ -54,12 +54,12 @@ alloc(size_t n)
 	if (n == 0)
 		return 0;
 	if (nptr >= NPtr) {
-		pp = ealloc(NPtr * sizeof(void *));
+		pp = emalloc(NPtr * sizeof(void *));
 		pp[0] = pool;
 		pool = pp;
 		nptr = 1;
 	}
-	return pool[nptr++] = ealloc(n);
+	return pool[nptr++] = emalloc(n);
 }
 
 void

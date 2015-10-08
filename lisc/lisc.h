@@ -289,7 +289,7 @@ void dumpts(Bits *, Tmp *, FILE *);
 extern Typ typ[NTyp];
 extern Ins insb[NIns], *curi;
 void diag(char *);
-void *ealloc(size_t);
+void *emalloc(size_t);
 void *alloc(size_t);
 void freeall(void);
 Blk *balloc(void);
