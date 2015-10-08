@@ -728,14 +728,15 @@ parsetyp()
 static void
 parsedat(void cb(Dat *))
 {
+	char s[NString];
 	int t;
 	Dat d;
 
+	d.type = DStart;
+	cb(&d);
 	if (nextnl() != TGlo || nextnl() != TEq)
 		err("data name, then = expected");
-	d.type = DName;
-	d.u.str = tokval.str;
-	cb(&d);
+	strcpy(s, tokval.str);
 	t = nextnl();
 	if (t == TAlign) {
 		if (nextnl() != TNum)
@@ -745,6 +746,9 @@ parsedat(void cb(Dat *))
 		cb(&d);
 		t = nextnl();
 	}
+	d.type = DName;
+	d.u.str = s;
+	cb(&d);
 	if (t == TStr) {
 		d.type = DA;
 		d.u.str = tokval.str;
@@ -770,6 +774,8 @@ parsedat(void cb(Dat *))
 		if (t != TComma)
 			err(", or } expected");
 	}
+	d.type = DEnd;
+	cb(&d);
 }
 
 Fn *

@@ -266,6 +266,8 @@ struct Typ {
 
 struct Dat {
 	enum {
+		DStart,
+		DEnd,
 		DName,
 		DAlign,
 		DA,
