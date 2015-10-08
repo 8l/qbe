@@ -753,26 +753,26 @@ parsedat(void cb(Dat *))
 		d.type = DA;
 		d.u.str = tokval.str;
 		cb(&d);
-		return;
-	}
-	if (t != TLBrace)
-		err("data contents must be { .. } or \" .. \"");
-	for (;;) {
-		switch (nextnl()) {
-		case TL: d.type = DL; break;
-		case TW: d.type = DW; break;
-		case TH: d.type = DH; break;
-		case TB: d.type = DB; break;
+	} else {
+		if (t != TLBrace)
+			err("data contents must be { .. } or \" .. \"");
+		for (;;) {
+			switch (nextnl()) {
+			case TL: d.type = DL; break;
+			case TW: d.type = DW; break;
+			case TH: d.type = DH; break;
+			case TB: d.type = DB; break;
+			}
+			if (nextnl() != TNum)
+				err("number expected");
+			d.u.num = tokval.num;
+			cb(&d);
+			t = nextnl();
+			if (t == TRBrace)
+				break;
+			if (t != TComma)
+				err(", or } expected");
 		}
-		if (nextnl() != TNum)
-			err("number expected");
-		d.u.num = tokval.num;
-		cb(&d);
-		t = nextnl();
-		if (t == TRBrace)
-			break;
-		if (t != TComma)
-			err(", or } expected");
 	}
 	d.type = DEnd;
 	cb(&d);
