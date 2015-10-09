@@ -65,7 +65,7 @@ func(Fn *fn)
 			fn->rpo[n]->link = fn->rpo[n+1];
 	if (!dbg) {
 		emitfn(fn, stdout);
-		puts("/* end function */\n");
+		printf("/* end function %s */\n\n", fn->name);
 	} else
 		fprintf(stderr, "\n");
 	freeall();
