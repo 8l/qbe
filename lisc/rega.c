@@ -419,7 +419,7 @@ rega(Fn *fn)
 					pmadd(src, dst, tmp[t].wide);
 				}
 			pmgen();
-			if (!n)
+			if (curi == insb)
 				continue;
 			b1 = balloc();
 			b1->loop = (b->loop+s->loop) / 2;
@@ -439,8 +439,8 @@ rega(Fn *fn)
 		}
 	}
 	for (b=fn->start; b; b=b->link)
-		while ((p=b->phi))
-			b->phi = p->link;
+		while (b->phi)
+			b->phi = b->phi->link;
 	fn->reg = regu;
 
 	if (debug['R']) {
