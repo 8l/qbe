@@ -27,6 +27,8 @@ dumpts(Bits *b, Tmp *tmp, FILE *f)
 static void
 data(Dat *d)
 {
+	if (dbg)
+		return;
 	if (d->type == DEnd) {
 		puts("/* end data */\n");
 		freeall();
@@ -39,6 +41,8 @@ func(Fn *fn)
 {
 	int n;
 
+	if (dbg)
+		fprintf(stderr, "**** Function %s ****", fn->name);
 	if (debug['P']) {
 		fprintf(stderr, "\n> After parsing:\n");
 		printfn(fn, stderr);
