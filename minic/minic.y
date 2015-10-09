@@ -8,8 +8,8 @@
 enum {
 	NString = 16,
 	NVar = 256,
+	NStr = 256,
 };
-
 
 enum { /* minic types */
 	INT = 0,
@@ -40,6 +40,7 @@ struct Symb {
 		Con,
 		Tmp,
 		Var,
+		Glo,
 	} t;
 	union {
 		int n;
@@ -62,7 +63,8 @@ int yylex(void), yyerror(char *);
 Symb expr(Node *), lval(Node *);
 
 FILE *of;
-int lbl, tmp;
+int lbl, tmp, str;
+char *slit[NStr];
 struct {
 	char v[NString];
 	unsigned ctyp;
@@ -166,6 +168,9 @@ psymb(Symb s)
 		break;
 	case Con:
 		fprintf(of, "%d", s.u.n);
+		break;
+	case Glo:
+		fprintf(of, "$%s", s.u.v);
 		break;
 	}
 }
@@ -273,6 +278,12 @@ expr(Node *n)
 		sr.t = Con;
 		sr.u.n = n->u.n;
 		sr.ctyp = INT;
+		break;
+
+	case 'S':
+		sr.t = Glo;
+		sprintf(sr.u.v, "str%d", n->u.n);
+		sr.ctyp = IDIR(INT);
 		break;
 
 	case '@':
@@ -480,6 +491,7 @@ mkstmt(int t, void *p1, void *p2, void *p3)
 }
 
 %token <n> NUM
+%token <n> STR
 %token <n> IDENT
 %token PP MM LE GE
 
@@ -502,9 +514,13 @@ mkstmt(int t, void *p1, void *p2, void *p3)
 
 prog: prot '{' dcls stmts '}'
 {
+	int i;
+
 	stmt($4);
 	fprintf(of, "\tret\n");
 	fprintf(of, "}\n\n");
+	for (i = 0; i < str; i++)
+		fprintf(of, "data $str%d = \"%s\"\n", i, slit[i]);
 };
 
 prot: IDENT '(' ')'
@@ -512,7 +528,7 @@ prot: IDENT '(' ')'
 	varclr();
 	lbl = 0;
 	tmp = 0;
-	fprintf(of, "function %s() {\n", $1->u.v);
+	fprintf(of, "function $%s() {\n", $1->u.v);
 	fprintf(of, "@l%d\n", lbl++);
 };
 
@@ -566,6 +582,7 @@ pref: post
     ;
 
 post: NUM
+    | STR
     | IDENT
     | '(' expr ')'      { $$ = $2; }
     | post '[' expr ']' { $$ = mkidx($1, $3); }
@@ -628,6 +645,30 @@ yylex()
 		yylval.n = mknode('V', 0, 0);
 		strcpy(yylval.n->u.v, v);
 		return IDENT;
+	}
+
+	if (c == '"') {
+		if (str == NStr)
+			die("too many string literals");
+		i = 0;
+		n = 32;
+		p = alloc(n);
+		for (i=0;; i++) {
+			c = getchar();
+			if (c == EOF)
+				die("unclosed string literal");
+			if (c == '"' && (!i || p[i-1]!='\\'))
+				break;
+			if (i >= n) {
+				p = memcpy(alloc(n*2), p, n);
+				n *= 2;
+			}
+			p[i] = c;
+		}
+		slit[str] = p;
+		yylval.n = mknode('S', 0, 0);
+		yylval.n->u.n = str++;
+		return STR;
 	}
 
 	c1 = getchar();
