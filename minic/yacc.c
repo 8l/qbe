@@ -1194,6 +1194,10 @@ actout(Rule *r)
 				fprintf(fout, ".%s", ty);
 			}
 		}
+		else {
+			fputc('$', fout);
+			fputc(c, fout);
+		}
 	}
 	fputs("\n", fout);
 }
