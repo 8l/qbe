@@ -63,8 +63,8 @@ int yylex(void), yyerror(char *);
 Symb expr(Node *), lval(Node *);
 
 FILE *of;
-int lbl, tmp, str;
-char *slit[NStr];
+int lbl, tmp, nstr;
+char *str[NStr];
 struct {
 	char v[NString];
 	unsigned ctyp;
@@ -519,8 +519,8 @@ prog: prot '{' dcls stmts '}'
 	stmt($4);
 	fprintf(of, "\tret\n");
 	fprintf(of, "}\n\n");
-	for (i = 0; i < str; i++)
-		fprintf(of, "data $str%d = \"%s\"\n", i, slit[i]);
+	for (i=0; i<nstr; i++)
+		fprintf(of, "data $str%d = \"%s\"\n", i, str[i]);
 };
 
 prot: IDENT '(' ')'
@@ -648,7 +648,7 @@ yylex()
 	}
 
 	if (c == '"') {
-		if (str == NStr)
+		if (nstr == NStr)
 			die("too many string literals");
 		i = 0;
 		n = 32;
@@ -665,9 +665,9 @@ yylex()
 			}
 			p[i] = c;
 		}
-		slit[str] = p;
+		str[nstr] = p;
 		yylval.n = mknode('S', 0, 0);
-		yylval.n->u.n = str++;
+		yylval.n->u.n = nstr++;
 		return STR;
 	}
 
