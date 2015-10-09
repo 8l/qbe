@@ -778,12 +778,9 @@ parsedat(void cb(Dat *))
 	cb(&d);
 }
 
-Fn *
-parse(FILE *f, void data(Dat *))
+void
+parse(FILE *f, void data(Dat *), void func(Fn *))
 {
-	Fn *fn;
-
-	fn = 0;
 	inf = f;
 	lnum = 1;
 	thead = TXXX;
@@ -791,12 +788,7 @@ parse(FILE *f, void data(Dat *))
 	for (;;)
 		switch (nextnl()) {
 		case TFunc:
-			if (fn)
-				/* todo, support multiple
-				 * functions per file
-				 */
-				diag("too many functions");
-			fn = parsefn();
+			func(parsefn());
 			break;
 		case TType:
 			parsetyp();
@@ -805,7 +797,7 @@ parse(FILE *f, void data(Dat *))
 			parsedat(data);
 			break;
 		case TEOF:
-			return fn;
+			return;
 		default:
 			err("top-level definition expected");
 			break;

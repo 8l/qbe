@@ -307,7 +307,7 @@ Ref getcon(int64_t, Fn *);
 
 /* parse.c */
 extern OpDesc opdesc[NOp];
-Fn *parse(FILE *, void (Dat *));
+void parse(FILE *, void (Dat *), void (Fn *));
 void printfn(Fn *, FILE *);
 
 /* ssa.c */

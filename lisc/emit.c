@@ -383,7 +383,6 @@ emitdat(Dat *d, FILE *f)
 		fprintf(f, ".data\n");
 		break;
 	case DEnd:
-		fprintf(f, "\n");
 		break;
 	case DName:
 		fprintf(f,

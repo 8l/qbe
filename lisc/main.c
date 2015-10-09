@@ -10,6 +10,8 @@ char debug['Z'+1] = {
 	['R'] = 0, /* reg. allocation */
 };
 
+static int dbg;
+
 void
 dumpts(Bits *b, Tmp *tmp, FILE *f)
 {
@@ -25,7 +27,44 @@ dumpts(Bits *b, Tmp *tmp, FILE *f)
 static void
 data(Dat *d)
 {
+	if (d->type == DEnd) {
+		puts("/* end data */\n");
+		freeall();
+	}
 	emitdat(d, stdout);
+}
+
+static void
+func(Fn *fn)
+{
+	int n;
+
+	if (debug['P']) {
+		fprintf(stderr, "\n> After parsing:\n");
+		printfn(fn, stderr);
+	}
+	isel(fn);
+	fillrpo(fn);
+	fillpreds(fn);
+	filllive(fn);
+	fillcost(fn);
+	fillphi(fn);
+	spill(fn);
+	rega(fn);
+	fillrpo(fn);
+	assert(fn->rpo[0] == fn->start);
+	for (n=0;; n++)
+		if (n == fn->nblk-1) {
+			fn->rpo[n]->link = 0;
+			break;
+		} else
+			fn->rpo[n]->link = fn->rpo[n+1];
+	if (!dbg) {
+		emitfn(fn, stdout);
+		puts("/* end function */\n");
+	} else
+		fprintf(stderr, "\n");
+	freeall();
 }
 
 int
@@ -33,10 +72,6 @@ main(int ac, char *av[])
 {
 	char *o, *f;
 	FILE *inf;
-	Fn *fn;
-	int n, dbg;
-
-	dbg = 0;
 
 	if (ac > 1 && strncmp(av[1], "-d", 2) == 0) {
 		if (av[1][2] == 0) {
@@ -66,33 +101,8 @@ main(int ac, char *av[])
 		}
 	}
 
-	fn = parse(inf, data);
+	parse(inf, data, func);
 	fclose(inf);
-	if (debug['P']) {
-		fprintf(stderr, "\n> After parsing:\n");
-		printfn(fn, stderr);
-	}
-	isel(fn);
-	fillrpo(fn);
-	fillpreds(fn);
-	filllive(fn);
-	fillcost(fn);
-	fillphi(fn);
-	spill(fn);
-	rega(fn);
-	fillrpo(fn);
-	assert(fn->rpo[0] == fn->start);
-	for (n=0;; n++)
-		if (n == fn->nblk-1) {
-			fn->rpo[n]->link = 0;
-			break;
-		} else
-			fn->rpo[n]->link = fn->rpo[n+1];
-	if (!dbg)
-		emitfn(fn, stdout);
-	else
-		fprintf(stderr, "\n");
-	freeall();
 	exit(0);
 
 Usage:
