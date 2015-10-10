@@ -286,6 +286,10 @@ expr(Node *n)
 		sr.ctyp = IDIR(INT);
 		break;
 
+	case 'C':
+		die("call not implemented");
+		break;
+
 	case '@':
 		s0 = expr(n->l);
 		if (KIND(s0.ctyp) != PTR)
@@ -508,7 +512,7 @@ mkstmt(int t, void *p1, void *p2, void *p3)
 
 %type <u> type
 %type <s> stmt stmts
-%type <n> expr pref post
+%type <n> expr pref post arg0 arg1
 
 %%
 
@@ -584,10 +588,18 @@ pref: post
 post: NUM
     | STR
     | IDENT
-    | '(' expr ')'      { $$ = $2; }
-    | post '[' expr ']' { $$ = mkidx($1, $3); }
-    | post PP           { $$ = mknode('P', $1, 0); }
-    | post MM           { $$ = mknode('M', $1, 0); }
+    | '(' expr ')'       { $$ = $2; }
+    | IDENT '(' arg0 ')' { $$ = mknode('C', $1, $3); }
+    | post '[' expr ']'  { $$ = mkidx($1, $3); }
+    | post PP            { $$ = mknode('P', $1, 0); }
+    | post MM            { $$ = mknode('M', $1, 0); }
+    ;
+
+arg0: arg1
+    |               { $$ = 0; }
+    ;
+arg1: expr          { $$ = mknode(0, $1, 0); }
+    | arg1 ',' expr { $$ = mknode(0, $1, $3); }
     ;
 
 %%
