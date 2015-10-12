@@ -7,7 +7,8 @@
 
 enum {
 	NString = 16,
-	NVar = 256,
+	NGlo = 256,
+	NVar = 512,
 	NStr = 256,
 };
 
@@ -58,6 +59,8 @@ struct Stmt {
 		While,
 		Seq,
 		Expr,
+		Break,
+		Ret,
 	} t;
 	void *p1, *p2, *p3;
 };
@@ -66,12 +69,12 @@ int yylex(void), yyerror(char *);
 Symb expr(Node *), lval(Node *);
 
 FILE *of;
-int lbl, tmp, nstr;
-char *str[NStr];
+int lbl, tmp, nglo;
+char *ini[NGlo];
 struct {
 	char v[NString];
 	unsigned ctyp;
-	char glob;
+	int glo;
 } varh[NVar];
 
 void
@@ -109,12 +112,12 @@ varclr()
 	unsigned h;
 
 	for (h=0; h<NVar; h++)
-		if (!varh[h].glob)
+		if (!varh[h].glo)
 			varh[h].v[0] = 0;
 }
 
 void
-varadd(char *v, int glob, unsigned ctyp)
+varadd(char *v, int glo, unsigned ctyp)
 {
 	unsigned h0, h;
 
@@ -123,7 +126,7 @@ varadd(char *v, int glob, unsigned ctyp)
 	do {
 		if (varh[h].v[0] == 0) {
 			strcpy(varh[h].v, v);
-			varh[h].glob = glob;
+			varh[h].glo = glo;
 			varh[h].ctyp = ctyp;
 			return;
 		}
@@ -133,21 +136,28 @@ varadd(char *v, int glob, unsigned ctyp)
 	die("too many variables");
 }
 
-unsigned
-varctyp(char *v, unsigned d)
+Symb *
+varget(char *v)
 {
+	static Symb s;
 	unsigned h0, h;
 
 	h0 = hash(v);
 	h = h0;
 	do {
-		if (strcmp(varh[h].v, v) == 0)
-			return varh[h].ctyp;
+		if (strcmp(varh[h].v, v) == 0) {
+			if (!varh[h].glo) {
+				s.t = Var;
+				strcpy(s.u.v, v);
+			} else {
+				s.t = Glo;
+				s.u.n = varh[h].glo;
+			}
+			s.ctyp = varh[h].ctyp;
+			return &s;
+		}
 	} while (++h != h0 && varh[h].v[0] != 0);
-	if (d != -1u)
-		return d;
-	die("undeclared variable");
-	return INT;
+	return 0;
 }
 
 char
@@ -174,11 +184,11 @@ psymb(Symb s)
 	case Var:
 		fprintf(of, "%%%s", s.u.v);
 		break;
+	case Glo:
+		fprintf(of, "$glo%d", s.u.n);
+		break;
 	case Con:
 		fprintf(of, "%d", s.u.n);
-		break;
-	case Glo:
-		fprintf(of, "$%s", s.u.v);
 		break;
 	}
 }
@@ -266,9 +276,12 @@ call(Node *n, Symb *sr)
 	unsigned ft;
 
 	f = n->l->u.v;
-	ft = varctyp(f, FUNC(INT));
-	if (KIND(ft) != FUN)
-		die("called variable is not a function");
+	if (varget(f)) {
+		ft = varget(f)->ctyp;
+		if (KIND(ft) != FUN)
+			die("invalid call");
+	} else
+		ft = FUNC(INT);
 	sr->ctyp = DREF(ft);
 	for (a=n->r; a; a=a->r)
 		a->u.s = expr(a->l);
@@ -329,7 +342,7 @@ expr(Node *n)
 
 	case 'S':
 		sr.t = Glo;
-		sprintf(sr.u.v, "str%d", n->u.n);
+		sr.u.n = n->u.n;
 		sr.ctyp = IDIR(INT);
 		break;
 
@@ -422,9 +435,9 @@ lval(Node *n)
 	default:
 		die("invalid lvalue");
 	case 'V':
-		sr.t = Var;
-		sr.ctyp = varctyp(n->u.v, -1u);
-		strcpy(sr.u.v, n->u.v);
+		if (!varget(n->u.v))
+			die("undefined variable");
+		sr = *varget(n->u.v);
 		break;
 	case '@':
 		sr = expr(n->l);
@@ -436,23 +449,32 @@ lval(Node *n)
 	return sr;
 }
 
-void
-stmt(Stmt *s)
+int
+stmt(Stmt *s, int b)
 {
 	int l;
 	Symb x;
-Again:
+
 	if (!s)
-		return;
+		return 0;
 
 	switch (s->t) {
+	case Ret:
+		x = expr(s->p1);
+		fprintf(of, "\tret ");
+		psymb(x);
+		fprintf(of, "\n");
+		return 1;
+	case Break:
+		if (b < 0)
+			die("break not in loop");
+		fprintf(of, "\tjmp @l%d\n", b);
+		return 1;
 	case Expr:
 		expr(s->p1);
-		break;
+		return 0;
 	case Seq:
-		stmt(s->p1);
-		s = s->p2;
-		goto Again;
+		return stmt(s->p1, b) || stmt(s->p2, b);
 	case If:
 		x = expr(s->p1);
 		fprintf(of, "\tjnz ");  /* to be clean, a comparison to 0 should be inserted here */
@@ -461,15 +483,14 @@ Again:
 		lbl += 3;
 		fprintf(of, ", @l%d, @l%d\n", l, l+1);
 		fprintf(of, "@l%d\n", l);
-		stmt(s->p2);
+		if (!stmt(s->p2, b))
 		if (s->p3)
 			fprintf(of, "\tjmp @l%d\n", l+2);
 		fprintf(of, "@l%d\n", l+1);
-		if (s->p3) {
-			stmt(s->p3);
+		if (s->p3)
+		if (!stmt(s->p3, b))
 			fprintf(of, "@l%d\n", l+2);
-		}
-		break;
+		return 0;
 	case While:
 		l = lbl;
 		lbl += 3;
@@ -479,10 +500,10 @@ Again:
 		psymb(x);
 		fprintf(of, ", @l%d, @l%d\n", l+1, l+2);
 		fprintf(of, "@l%d\n", l+1);
-		stmt(s->p2);
-		fprintf(of, "\tjmp @l%d\n", l);
+		if (!stmt(s->p2, l+2))
+			fprintf(of, "\tjmp @l%d\n", l);
 		fprintf(of, "@l%d\n", l+2);
-		break;
+		return 0;
 	}
 }
 
@@ -547,7 +568,7 @@ mkstmt(int t, void *p1, void *p2, void *p3)
 %token PP MM LE GE SIZEOF
 
 %token TINT TLNG
-%token IF ELSE WHILE
+%token IF ELSE WHILE BREAK RETURN
 
 %right '='
 %left EQ NE
@@ -570,15 +591,20 @@ fdcl: type IDENT '(' ')' ';'
 	varadd($2->u.v, 1, FUNC($1));
 };
 
+idcl: type IDENT ';'
+{
+	if (nglo == NGlo)
+		die("too many string literals");
+	ini[nglo] = alloc(sizeof "{ x 0 }");
+	sprintf(ini[nglo], "{ %c 0 }", irtyp($1));
+	varadd($2->u.v, nglo++, $1);
+};
+
 func: prot '{' dcls stmts '}'
 {
-	int i;
-
-	stmt($4);
-	fprintf(of, "\tret\n");
+	if (!stmt($4, -1))
+		fprintf(of, "\tret 0\n");
 	fprintf(of, "}\n\n");
-	for (i=0; i<nstr; i++)
-		fprintf(of, "data $str%d = \"%s\"\n", i, str[i]);
 };
 
 prot: IDENT '(' ')'
@@ -586,7 +612,8 @@ prot: IDENT '(' ')'
 	varclr();
 	lbl = 0;
 	tmp = 0;
-	fprintf(of, "function $%s() {\n", $1->u.v);
+	varadd($1->u.v, 1, FUNC(INT));
+	fprintf(of, "function w $%s() {\n", $1->u.v);
 	fprintf(of, "@l%d\n", lbl++);
 };
 
@@ -608,6 +635,8 @@ type: type '*' { $$ = IDIR($1); }
 
 stmt: ';'                            { $$ = 0; }
     | '{' stmts '}'                  { $$ = $2; }
+    | BREAK ';'                      { $$ = mkstmt(Break, 0, 0, 0); }
+    | RETURN expr ';'                { $$ = mkstmt(Ret, $2, 0, 0); }
     | expr ';'                       { $$ = mkstmt(Expr, $1, 0, 0); }
     | WHILE '(' expr ')' stmt        { $$ = mkstmt(While, $3, $5, 0); }
     | IF '(' expr ')' stmt ELSE stmt { $$ = mkstmt(If, $3, $5, $7); }
@@ -671,18 +700,25 @@ yylex()
 		{ "if", IF },
 		{ "else", ELSE },
 		{ "while", WHILE },
+		{ "return", RETURN },
+		{ "break", BREAK },
 		{ "sizeof", SIZEOF },
 		{ 0, 0 }
 	};
 	int i, c, c1, n;
 	char v[NString], *p;
 
-	do
+	do {
 		c = getchar();
-	while (isspace(c));
+		if (c == '#')
+			while ((c = getchar()) != '\n')
+				;
+	} while (isspace(c));
+
 
 	if (c == EOF)
 		return 0;
+
 
 	if (isdigit(c)) {
 		n = 0;
@@ -716,26 +752,28 @@ yylex()
 	}
 
 	if (c == '"') {
-		if (nstr == NStr)
-			die("too many string literals");
 		i = 0;
 		n = 32;
 		p = alloc(n);
-		for (i=0;; i++) {
+		p[0] = '"';
+		for (i=1;; i++) {
 			c = getchar();
 			if (c == EOF)
 				die("unclosed string literal");
-			if (c == '"' && (!i || p[i-1]!='\\'))
-				break;
-			if (i >= n) {
+			if (i+1 >= n) {
 				p = memcpy(alloc(n*2), p, n);
 				n *= 2;
 			}
 			p[i] = c;
+			if (c == '"' && (!i || p[i-1]!='\\'))
+				break;
 		}
-		str[nstr] = p;
+		p[i+1] = 0;
+		if (nglo == NGlo)
+			die("too many globals");
+		ini[nglo] = p;
 		yylval.n = mknode('S', 0, 0);
-		yylval.n->u.n = nstr++;
+		yylval.n->u.n = nglo++;
 		return STR;
 	}
 
@@ -765,8 +803,13 @@ yyerror(char *err)
 int
 main()
 {
+	int i;
+
 	of = stdout;
+	nglo = 1;
 	if (yyparse() != 0)
 		die("parse error");
+	for (i=1; i<nglo; i++)
+		fprintf(of, "data $glo%d = %s\n", i, ini[i]);
 	return 0;
 }
