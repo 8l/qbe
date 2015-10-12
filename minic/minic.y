@@ -226,13 +226,17 @@ prom(int op, Symb *l, Symb *r)
 	}
 
 Scale:
-	if (irtyp(r->ctyp) != 'l')
-		sext(r);
 	sz = SIZE(DREF(l->ctyp));
-	fprintf(of, "\t%%t%d =l mul %d, ", tmp, sz);
-	psymb(*r);
-	fprintf(of, "\n");
-	r->u.n = tmp++;
+	if (r->t == Con)
+		r->u.n *= sz;
+	else {
+		if (irtyp(r->ctyp) != 'l')
+			sext(r);
+		fprintf(of, "\t%%t%d =l mul %d, ", tmp, sz);
+		psymb(*r);
+		fprintf(of, "\n");
+		r->u.n = tmp++;
+	}
 	return l->ctyp;
 }
 
@@ -255,7 +259,7 @@ expr(Node *n)
 		['*'] = "mul",
 		['/'] = "div",
 		['%'] = "rem",
-		['<'] = "cslt",  /* meeeeh, careful with pointers */
+		['<'] = "cslt",  /* meeeeh, careful with pointers/long */
 		['l'] = "csle",
 		['e'] = "ceq",
 		['n'] = "cne",
