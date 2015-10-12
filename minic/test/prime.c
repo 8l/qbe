@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 main() {
 	int n;
 	int t;
