@@ -1,5 +1,6 @@
 #!/bin/sh
 
+TMP=/tmp/minic.s
 SRC=$1
 
 if [ -z "$SRC" ]; then
@@ -7,6 +8,5 @@ if [ -z "$SRC" ]; then
 	exit 1
 fi
 
-rm -f /tmp/minic.s
-./minic < $SRC | ../lisc/lisc - > /tmp/minic.s
-[ -f /tmp/minic.s ] && cc /tmp/minic.s
+./minic < $SRC | ../lisc/lisc - > $TMP
+[ -s $TMP ] && cc $TMP
