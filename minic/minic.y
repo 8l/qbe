@@ -501,7 +501,7 @@ mkstmt(int t, void *p1, void *p2, void *p3)
 %token <n> NUM
 %token <n> STR
 %token <n> IDENT
-%token PP MM LE GE
+%token PP MM LE GE SIZEOF
 
 %token TINT TLNG
 %token IF ELSE WHILE
@@ -592,11 +592,12 @@ pref: post
 post: NUM
     | STR
     | IDENT
-    | '(' expr ')'       { $$ = $2; }
-    | IDENT '(' arg0 ')' { $$ = mknode('C', $1, $3); }
-    | post '[' expr ']'  { $$ = mkidx($1, $3); }
-    | post PP            { $$ = mknode('P', $1, 0); }
-    | post MM            { $$ = mknode('M', $1, 0); }
+    | SIZEOF '(' type ')' { $$ = mknode('N', 0, 0); $$->u.n = SIZE($3); }
+    | '(' expr ')'        { $$ = $2; }
+    | IDENT '(' arg0 ')'  { $$ = mknode('C', $1, $3); }
+    | post '[' expr ']'   { $$ = mkidx($1, $3); }
+    | post PP             { $$ = mknode('P', $1, 0); }
+    | post MM             { $$ = mknode('M', $1, 0); }
     ;
 
 arg0: arg1
@@ -620,6 +621,7 @@ yylex()
 		{ "if", IF },
 		{ "else", ELSE },
 		{ "while", WHILE },
+		{ "sizeof", SIZEOF },
 		{ 0, 0 }
 	};
 	int i, c, c1, n;
