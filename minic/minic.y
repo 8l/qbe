@@ -550,11 +550,11 @@ mkstmt(int t, void *p1, void *p2, void *p3)
 %token IF ELSE WHILE
 
 %right '='
+%left EQ NE
+%left '<' '>' LE GE
 %left '+' '-'
 %left '*' '/' '%'
 %nonassoc '&'
-%left EQ NE
-%left '<' '>' LE GE
 %nonassoc '['
 
 %type <u> type
@@ -565,7 +565,7 @@ mkstmt(int t, void *p1, void *p2, void *p3)
 
 prog: func prog | fdcl prog | ;
 
-fdcl: type IDENT '(' ')'
+fdcl: type IDENT '(' ')' ';'
 {
 	varadd($2->u.v, 1, FUNC($1));
 };
