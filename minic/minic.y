@@ -15,9 +15,11 @@ enum { /* minic types */
 	INT = 0,
 	LNG = 1,
 	PTR = 2,
+	FUN = 3,
 };
 
 #define IDIR(x) (((x) << 2) + PTR)
+#define FUNC(x) (((x) << 2) + FUN)
 #define DREF(x) ((x) >> 2)
 #define KIND(x) ((x) & 3)
 #define SIZE(x) (KIND(x) == INT ? 4 : 8)
@@ -25,15 +27,6 @@ enum { /* minic types */
 typedef struct Node Node;
 typedef struct Symb Symb;
 typedef struct Stmt Stmt;
-
-struct Node {
-	char op;
-	union {
-		int n;
-		char v[NString];
-	} u;
-	Node *l, *r;
-};
 
 struct Symb {
 	enum {
@@ -47,6 +40,16 @@ struct Symb {
 		char v[NString];
 	} u;
 	unsigned long ctyp;
+};
+
+struct Node {
+	char op;
+	union {
+		int n;
+		char v[NString];
+		Symb s;
+	} u;
+	Node *l, *r;
 };
 
 struct Stmt {
@@ -68,6 +71,7 @@ char *str[NStr];
 struct {
 	char v[NString];
 	unsigned ctyp;
+	char glob;
 } varh[NVar];
 
 void
@@ -105,11 +109,12 @@ varclr()
 	unsigned h;
 
 	for (h=0; h<NVar; h++)
-		varh[h].v[0] = 0;
+		if (!varh[h].glob)
+			varh[h].v[0] = 0;
 }
 
 void
-varadd(char *v, unsigned ctyp)
+varadd(char *v, int glob, unsigned ctyp)
 {
 	unsigned h0, h;
 
@@ -118,6 +123,7 @@ varadd(char *v, unsigned ctyp)
 	do {
 		if (varh[h].v[0] == 0) {
 			strcpy(varh[h].v, v);
+			varh[h].glob = glob;
 			varh[h].ctyp = ctyp;
 			return;
 		}
@@ -128,7 +134,7 @@ varadd(char *v, unsigned ctyp)
 }
 
 unsigned
-varctyp(char *v)
+varctyp(char *v, unsigned d)
 {
 	unsigned h0, h;
 
@@ -138,8 +144,10 @@ varctyp(char *v)
 		if (strcmp(varh[h].v, v) == 0)
 			return varh[h].ctyp;
 	} while (++h != h0 && varh[h].v[0] != 0);
+	if (d != -1u)
+		return d;
 	die("undeclared variable");
-	return -1;
+	return INT;
 }
 
 char
@@ -250,6 +258,38 @@ load(Symb d, Symb s)
 	fprintf(of, "\n");
 }
 
+void
+call(Node *n, Symb *sr)
+{
+	Node *a;
+	char *f;
+	unsigned ft;
+
+	f = n->l->u.v;
+	ft = varctyp(f, FUNC(INT));
+	if (KIND(ft) != FUN)
+		die("called variable is not a function");
+	sr->ctyp = DREF(ft);
+	for (a=n->r; a; a=a->r)
+		a->u.s = expr(a->l);
+	fprintf(of, "\t");
+	psymb(*sr);
+	fprintf(of, " =%c call $%s(", irtyp(sr->ctyp), f);
+	a = n->r;
+	if (a)
+		for (;;) {
+			fprintf(of, "%c ", irtyp(a->u.s.ctyp));
+			psymb(a->u.s);
+			a = a->r;
+			if (a)
+				fprintf(of, ", ");
+			else {
+				fprintf(of, ")\n");
+				break;
+			}
+		}
+}
+
 Symb
 expr(Node *n)
 {
@@ -272,6 +312,9 @@ expr(Node *n)
 
 	switch (n->op) {
 
+	case 0:
+		abort();
+
 	case 'V':
 		s0 = lval(n);
 		sr.ctyp = s0.ctyp;
@@ -291,7 +334,7 @@ expr(Node *n)
 		break;
 
 	case 'C':
-		die("call not implemented");
+		call(n, &sr);
 		break;
 
 	case '@':
@@ -380,7 +423,7 @@ lval(Node *n)
 		die("invalid lvalue");
 	case 'V':
 		sr.t = Var;
-		sr.ctyp = varctyp(n->u.v);
+		sr.ctyp = varctyp(n->u.v, -1u);
 		strcpy(sr.u.v, n->u.v);
 		break;
 	case '@':
@@ -520,7 +563,14 @@ mkstmt(int t, void *p1, void *p2, void *p3)
 
 %%
 
-prog: prot '{' dcls stmts '}'
+prog: func prog | fdcl prog | ;
+
+fdcl: type IDENT '(' ')'
+{
+	varadd($2->u.v, 1, FUNC($1));
+};
+
+func: prot '{' dcls stmts '}'
 {
 	int i;
 
@@ -547,7 +597,7 @@ dcls: | dcls type IDENT ';'
 
 	v = $3->u.v;
 	s = SIZE($2);
-	varadd(v, $2);
+	varadd(v, 0, $2);
 	fprintf(of, "\t%%%s =l alloc%d %d\n", v, s, s);
 };
 
@@ -604,7 +654,7 @@ arg0: arg1
     |               { $$ = 0; }
     ;
 arg1: expr          { $$ = mknode(0, $1, 0); }
-    | arg1 ',' expr { $$ = mknode(0, $1, $3); }
+    | expr ',' arg1 { $$ = mknode(0, $1, $3); }
     ;
 
 %%
