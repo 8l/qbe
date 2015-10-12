@@ -312,6 +312,7 @@ expr(Node *n)
 		['*'] = "mul",
 		['/'] = "div",
 		['%'] = "rem",
+		['&'] = "and",
 		['<'] = "cslt",  /* meeeeh, careful with pointers/long */
 		['l'] = "csle",
 		['e'] = "ceq",
@@ -571,12 +572,11 @@ mkstmt(int t, void *p1, void *p2, void *p3)
 %token IF ELSE WHILE BREAK RETURN
 
 %right '='
+%left '&'
 %left EQ NE
 %left '<' '>' LE GE
 %left '+' '-'
 %left '*' '/' '%'
-%nonassoc '&'
-%nonassoc '['
 
 %type <u> type
 %type <s> stmt stmts
@@ -584,7 +584,7 @@ mkstmt(int t, void *p1, void *p2, void *p3)
 
 %%
 
-prog: func prog | fdcl prog | ;
+prog: func prog | fdcl prog | idcl prog | ;
 
 fdcl: type IDENT '(' ')' ';'
 {
@@ -660,6 +660,7 @@ expr: pref
     | expr GE expr      { $$ = mknode('l', $3, $1); }
     | expr EQ expr      { $$ = mknode('e', $1, $3); }
     | expr NE expr      { $$ = mknode('n', $1, $3); }
+    | expr '&' expr     { $$ = mknode('&', $1, $3); }
     ;
 
 pref: post
