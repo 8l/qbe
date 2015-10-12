@@ -1,0 +1,12 @@
+#!/bin/sh
+
+SRC=$1
+
+if [ -z "$SRC" ]; then
+	echo "usage: ./mcc file.c" 1>&2
+	exit 1
+fi
+
+rm -f /tmp/minic.s
+./minic < $SRC | ../lisc/lisc - > /tmp/minic.s
+[ -f /tmp/minic.s ] && cc /tmp/minic.s
