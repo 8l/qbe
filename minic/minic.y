@@ -13,17 +13,20 @@ enum {
 };
 
 enum { /* minic types */
-	INT = 0,
-	LNG = 1,
-	PTR = 2,
-	FUN = 3,
+	NIL,
+	INT,
+	LNG,
+	PTR,
+	FUN,
 };
 
-#define IDIR(x) (((x) << 2) + PTR)
-#define FUNC(x) (((x) << 2) + FUN)
-#define DREF(x) ((x) >> 2)
-#define KIND(x) ((x) & 3)
-#define SIZE(x) (KIND(x) == INT ? 4 : 8)
+#define IDIR(x) (((x) << 3) + PTR)
+#define FUNC(x) (((x) << 3) + FUN)
+#define DREF(x) ((x) >> 3)
+#define KIND(x) ((x) & 7)
+#define SIZE(x)                                    \
+	(x == NIL ? (die("void has no size"), 0) : \
+	 x == INT ? 4 : 8)
 
 typedef struct Node Node;
 typedef struct Symb Symb;
@@ -163,15 +166,7 @@ varget(char *v)
 char
 irtyp(unsigned ctyp)
 {
-	switch (KIND(ctyp)) {
-	default:
-		die("internal error");
-	case INT:
-		return 'w';
-	case PTR:
-	case LNG:
-		return 'l';
-	}
+	return SIZE(ctyp) == 8 ? 'l' : 'w';
 }
 
 void
@@ -369,6 +364,8 @@ expr(Node *n)
 		sr = s0;
 		if (s1.ctyp == LNG &&  s0.ctyp == INT)
 			sext(&s0);
+		if (s0.ctyp != IDIR(NIL) || KIND(s1.ctyp) != PTR)
+		if (s1.ctyp != IDIR(NIL) || KIND(s0.ctyp) != PTR)
 		if (s1.ctyp != s0.ctyp)
 			die("invalid assignment");
 		fprintf(of, "\tstore%c ", irtyp(s1.ctyp));
@@ -559,6 +556,8 @@ param(char *v, unsigned ctyp, Node *pl)
 {
 	Node *n;
 
+	if (ctyp == NIL)
+		die("invalid void declaration");
 	n = mknode(0, 0, pl);
 	varadd(v, 0, ctyp);
 	strcpy(n->u.v, v);
@@ -603,7 +602,7 @@ mkfor(Node *ini, Node *tst, Node *inc, Stmt *s)
 %token <n> IDENT
 %token PP MM LE GE SIZEOF
 
-%token TINT TLNG
+%token TVOID TINT TLNG
 %token IF ELSE WHILE FOR BREAK RETURN
 
 %right '='
@@ -628,6 +627,8 @@ fdcl: type IDENT '(' ')' ';'
 
 idcl: type IDENT ';'
 {
+	if ($1 == NIL)
+		die("invalid void declaration");
 	if (nglo == NGlo)
 		die("too many string literals");
 	ini[nglo] = alloc(sizeof "{ x 0 }");
@@ -692,6 +693,8 @@ dcls: | dcls type IDENT ';'
 	int s;
 	char *v;
 
+	if ($2 == NIL)
+		die("invalid void declaration");
 	v = $3->u.v;
 	s = SIZE($2);
 	varadd(v, 0, $2);
@@ -701,6 +704,7 @@ dcls: | dcls type IDENT ';'
 type: type '*' { $$ = IDIR($1); }
     | TINT     { $$ = INT; }
     | TLNG     { $$ = LNG; }
+    | TVOID    { $$ = NIL; }
     ;
 
 stmt: ';'                            { $$ = 0; }
@@ -772,6 +776,7 @@ yylex()
 		char *s;
 		int t;
 	} kwds[] = {
+		{ "void", TVOID },
 		{ "int", TINT },
 		{ "long", TLNG },
 		{ "if", IF },
