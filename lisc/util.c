@@ -81,7 +81,7 @@ freeall()
 }
 
 Blk *
-balloc()
+bnew()
 {
 	static Blk z;
 	Blk *b;
@@ -137,7 +137,7 @@ icpy(Ins *d, Ins *s, ulong n)
 }
 
 void *
-valloc(ulong len, size_t esz)
+vnew(ulong len, size_t esz)
 {
 	ulong cap;
 	Vec *v;
@@ -161,7 +161,7 @@ vgrow(void *vp, ulong len)
 	assert(v+1 && v->mag == VMag);
 	if (v->cap >= len)
 		return;
-	v1 = valloc(len, v->esz);
+	v1 = vnew(len, v->esz);
 	memcpy(v1, v+1, v->cap * v->esz);
 	*(Vec **)vp = v1;
 }

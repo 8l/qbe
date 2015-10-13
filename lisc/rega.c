@@ -421,7 +421,7 @@ rega(Fn *fn)
 			pmgen();
 			if (curi == insb)
 				continue;
-			b1 = balloc();
+			b1 = bnew();
 			b1->loop = (b->loop+s->loop) / 2;
 			b1->link = blist;
 			blist = b1;

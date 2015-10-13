@@ -211,7 +211,7 @@ lex()
 		return TNum;
 	}
 	if (c == '"') {
-		tokval.str = valloc(0, 1);
+		tokval.str = vnew(0, 1);
 		for (i=0;; i++) {
 			c = fgetc(inf);
 			if (c == '"')
@@ -426,7 +426,7 @@ findblk(char *name)
 	if (i == NBlk)
 		err("too many blocks");
 	if (!bmap[i]) {
-		bmap[i] = balloc();
+		bmap[i] = bnew();
 		nblk++;
 		strcpy(bmap[i]->name, name);
 	}
@@ -625,9 +625,9 @@ parsefn()
 		err("empty file");
 	if (curb->jmp.type == JXXX)
 		err("last block misses jump");
-	fn->tmp = valloc(ntmp, sizeof tmp[0]);
+	fn->tmp = vnew(ntmp, sizeof tmp[0]);
 	memcpy(fn->tmp, tmp, ntmp * sizeof tmp[0]);
-	fn->con = valloc(ncon, sizeof con[0]);
+	fn->con = vnew(ncon, sizeof con[0]);
 	memcpy(fn->con, con, ncon * sizeof con[0]);
 	fn->ntmp = ntmp;
 	fn->ncon = ncon;
