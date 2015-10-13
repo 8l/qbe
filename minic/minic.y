@@ -296,11 +296,10 @@ call(Node *n, Symb *sr)
 			a = a->r;
 			if (a)
 				fprintf(of, ", ");
-			else {
-				fprintf(of, ")\n");
+			else
 				break;
-			}
 		}
+	fprintf(of, ")\n");
 }
 
 Symb
@@ -359,7 +358,7 @@ expr(Node *n)
 		load(sr, s0);
 		break;
 
-	case '&':
+	case 'A':
 		sr = lval(n->l);
 		sr.ctyp = IDIR(sr.ctyp);
 		break;
@@ -555,6 +554,17 @@ mkstmt(int t, void *p1, void *p2, void *p3)
 	return s;
 }
 
+Node *
+param(char *v, unsigned ctyp, Node *pl)
+{
+	Node *n;
+
+	n = mknode(0, 0, pl);
+	varadd(v, 0, ctyp);
+	strcpy(n->u.v, v);
+	return n;
+}
+
 %}
 
 %union {
@@ -580,7 +590,7 @@ mkstmt(int t, void *p1, void *p2, void *p3)
 
 %type <u> type
 %type <s> stmt stmts
-%type <n> expr pref post arg0 arg1
+%type <n> expr pref post arg0 arg1 par0 par1
 
 %%
 
@@ -600,22 +610,57 @@ idcl: type IDENT ';'
 	varadd($2->u.v, nglo++, $1);
 };
 
-func: prot '{' dcls stmts '}'
+init:
 {
-	if (!stmt($4, -1))
+	varclr();
+	tmp = 0;
+};
+
+func: init prot '{' dcls stmts '}'
+{
+	if (!stmt($5, -1))
 		fprintf(of, "\tret 0\n");
 	fprintf(of, "}\n\n");
 };
 
-prot: IDENT '(' ')'
+prot: IDENT '(' par0 ')'
 {
-	varclr();
-	lbl = 0;
-	tmp = 0;
+	Symb *s;
+	Node *n;
+	int t, m;
+
 	varadd($1->u.v, 1, FUNC(INT));
-	fprintf(of, "function w $%s() {\n", $1->u.v);
+	fprintf(of, "function w $%s(", $1->u.v);
+	n = $3;
+	if (n)
+		for (;;) {
+			s = varget(n->u.v);
+			fprintf(of, "%c ", irtyp(s->ctyp));
+			fprintf(of, "%%tmp%d", tmp++);
+			n = n->r;
+			if (n)
+				fprintf(of, ", ");
+			else
+				break;
+		}
+	fprintf(of, ") {\n");
 	fprintf(of, "@l%d\n", lbl++);
+	for (t=0, n=$3; n; t++, n=n->r) {
+		s = varget(n->u.v);
+		m = SIZE(s->ctyp);
+		fprintf(of, "\t%%%s =l alloc%d %d\n", n->u.v, m, m);
+		fprintf(of, "\tstore%c %%tmp%d", irtyp(s->ctyp), t);
+		fprintf(of, ", %%%s\n", n->u.v);
+	}
 };
+
+par0: par1
+    |                     { $$ = 0; }
+    ;
+par1: type IDENT ',' par1 { $$ = param($2->u.v, $1, $4); }
+    | type IDENT          { $$ = param($2->u.v, $1, 0); }
+    ;
+
 
 dcls: | dcls type IDENT ';'
 {
@@ -666,7 +711,7 @@ expr: pref
 pref: post
     | '-' pref          { $$ = mkneg($2); }
     | '*' pref          { $$ = mknode('@', $2, 0); }
-    | '&' pref          { $$ = mknode('&', $2, 0); }
+    | '&' pref          { $$ = mknode('A', $2, 0); }
     ;
 
 post: NUM

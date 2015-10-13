@@ -1,5 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
+int printf();
+int *calloc();
 
 int N;
 int *t;
