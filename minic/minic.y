@@ -565,6 +565,31 @@ param(char *v, unsigned ctyp, Node *pl)
 	return n;
 }
 
+Stmt *
+mkfor(Node *ini, Node *tst, Node *inc, Stmt *s)
+{
+	Stmt *s1, *s2;
+
+	if (ini)
+		s1 = mkstmt(Expr, ini, 0, 0);
+	else
+		s1 = 0;
+	if (inc) {
+		s2 = mkstmt(Expr, inc, 0, 0);
+		s2 = mkstmt(Seq, s, s2, 0);
+	} else
+		s2 = s;
+	if (!tst) {
+		tst = mknode('N', 0, 0);
+		tst->u.n = 1;
+	}
+	s2 = mkstmt(While, tst, s2, 0);
+	if (s1)
+		return mkstmt(Seq, s1, s2, 0);
+	else
+		return s2;
+}
+
 %}
 
 %union {
@@ -579,7 +604,7 @@ param(char *v, unsigned ctyp, Node *pl)
 %token PP MM LE GE SIZEOF
 
 %token TINT TLNG
-%token IF ELSE WHILE BREAK RETURN
+%token IF ELSE WHILE FOR BREAK RETURN
 
 %right '='
 %left '&'
@@ -590,7 +615,7 @@ param(char *v, unsigned ctyp, Node *pl)
 
 %type <u> type
 %type <s> stmt stmts
-%type <n> expr pref post arg0 arg1 par0 par1
+%type <n> expr exp0 pref post arg0 arg1 par0 par1
 
 %%
 
@@ -686,6 +711,8 @@ stmt: ';'                            { $$ = 0; }
     | WHILE '(' expr ')' stmt        { $$ = mkstmt(While, $3, $5, 0); }
     | IF '(' expr ')' stmt ELSE stmt { $$ = mkstmt(If, $3, $5, $7); }
     | IF '(' expr ')' stmt           { $$ = mkstmt(If, $3, $5, 0); }
+    | FOR '(' exp0 ';' exp0 ';' exp0 ')' stmt
+                                     { $$ = mkfor($3, $5, $7, $9); }
     ;
 
 stmts: stmts stmt { $$ = mkstmt(Seq, $1, $2, 0); }
@@ -706,6 +733,10 @@ expr: pref
     | expr EQ expr      { $$ = mknode('e', $1, $3); }
     | expr NE expr      { $$ = mknode('n', $1, $3); }
     | expr '&' expr     { $$ = mknode('&', $1, $3); }
+    ;
+
+exp0: expr
+    |                   { $$ = 0; }
     ;
 
 pref: post
@@ -745,6 +776,7 @@ yylex()
 		{ "long", TLNG },
 		{ "if", IF },
 		{ "else", ELSE },
+		{ "for", FOR },
 		{ "while", WHILE },
 		{ "return", RETURN },
 		{ "break", BREAK },
