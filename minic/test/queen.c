@@ -23,8 +23,7 @@ chk(int x, int y) {
 	int i;
 	int r;
 
-	r = 0;
-	for (i=0; i<8; i++) {
+	for (r=i=0; i<8; i++) {
 		r = r + t[x + 8*i];
 		r = r + t[i + 8*y];
 		if (x+i < 8 & y+i < 8)
