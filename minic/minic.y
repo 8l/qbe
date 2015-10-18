@@ -72,6 +72,7 @@ int yylex(void), yyerror(char *);
 Symb expr(Node *), lval(Node *);
 
 FILE *of;
+int line;
 int lbl, tmp, nglo;
 char *ini[NGlo];
 struct {
@@ -83,7 +84,7 @@ struct {
 void
 die(char *s)
 {
-	fprintf(stderr, "error: %s\n", s);
+	fprintf(stderr, "error:%d: %s\n", line, s);
 	exit(1);
 }
 
@@ -796,6 +797,8 @@ yylex()
 		if (c == '#')
 			while ((c = getchar()) != '\n')
 				;
+		if (c == '\n')
+			line++;
 	} while (isspace(c));
 
 
