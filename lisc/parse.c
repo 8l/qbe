@@ -1,12 +1,5 @@
-/* really crude parser
- */
 #include "lisc.h"
 #include <ctype.h>
-
-enum {
-	NTmp = 256,
-	NCon = 256,
-};
 
 OpDesc opdesc[NOp] = {
 	/*            NAME     NM */
@@ -16,17 +9,10 @@ OpDesc opdesc[NOp] = {
 	[ORem]    = { "rem",    2 },
 	[OMul]    = { "mul",    2 },
 	[OAnd]    = { "and",    2 },
-	[OSext]   = { "sext",   1 },
-	[OZext]   = { "zext",   1 },
 	[OStorel] = { "storel", 0 },
 	[OStorew] = { "storew", 0 },
 	[OStores] = { "stores", 0 },
 	[OStoreb] = { "storeb", 0 },
-	[OLoad]   = { "load",   0 },
-	[OLoadsh] = { "loadsh", 0 },
-	[OLoaduh] = { "loaduh", 0 },
-	[OLoadsb] = { "loadsb", 0 },
-	[OLoadub] = { "loadub", 0 },
 	[OCopy]   = { "copy",   1 },
 	[ONop]    = { "nop",    0 },
 	[OSwap]   = { "swap",   2 },
@@ -45,6 +31,12 @@ OpDesc opdesc[NOp] = {
 	[OAlloc]   = { "alloc4",  1 },
 	[OAlloc+1] = { "alloc8",  1 },
 	[OAlloc+2] = { "alloc16", 1 },
+
+#define X(t) \
+	[OLoad+T##t] = { "load" #t, 0 }, \
+	[OExt+T##t]  = { "ext"  #t, 1 },
+	TYS(X)
+#undef X
 
 #define X(c) \
 	[OCmp+C##c]  = { "c"    #c, 0 }, \
@@ -104,8 +96,8 @@ static struct {
 } tokval;
 static int lnum;
 
-static Tmp tmp[NTmp];
-static Con con[NCon] = {[0] = {.type = CNum}};
+static Tmp *tmp;
+static Con *con;
 static int ntmp;
 static int ncon;
 static Phi **plink;
@@ -148,6 +140,7 @@ lex()
 		{ "b", TB },
 		{ "d", TD },
 		{ "s", TS },
+		{ "loadw", OLoad+Tsw }, /* for convenience */
 		{ 0, TXXX }
 	};
 	static char tok[NString];
@@ -313,8 +306,7 @@ tmpref(char *v, int use)
 	for (t=Tmp0; t<ntmp; t++)
 		if (strcmp(v, tmp[t].name) == 0)
 			goto Found;
-	if (ntmp++ >= NTmp)
-		err("too many temporaries");
+	vgrow(&tmp, ++ntmp);
 	strcpy(tmp[t].name, v);
 Found:
 	tmp[t].ndef += !use;
@@ -344,8 +336,7 @@ parseref()
 			&& con[i].val == c.val
 			&& strcmp(con[i].label, c.label) == 0)
 				return CON(i);
-		if (ncon++ >= NCon)
-			err("too many constants");
+		vgrow(&con, ++ncon);
 		con[i] = c;
 		return CON(i);
 	default:
@@ -601,12 +592,13 @@ parsefn()
 	curb = 0;
 	nblk = 0;
 	curi = insb;
+	tmp = vnew(ntmp, sizeof tmp[0]);
+	con = vnew(ncon, sizeof con[0]);
+	con[0].type = CNum;
 	fn = alloc(sizeof *fn);
 	blink = &fn->start;
 	for (i=0; i<NBlk; i++)
 		bmap[i] = 0;
-	for (i=Tmp0; i<NTmp; i++)
-		tmp[i] = (Tmp){.name = ""};
 	if (peek() != TGlo)
 		rcls = parsecls(&fn->retty);
 	else
@@ -625,10 +617,8 @@ parsefn()
 		err("empty file");
 	if (curb->jmp.type == JXXX)
 		err("last block misses jump");
-	fn->tmp = vnew(ntmp, sizeof tmp[0]);
-	memcpy(fn->tmp, tmp, ntmp * sizeof tmp[0]);
-	fn->con = vnew(ncon, sizeof con[0]);
-	memcpy(fn->con, con, ncon * sizeof con[0]);
+	fn->tmp = tmp;
+	fn->con = con;
 	fn->ntmp = ntmp;
 	fn->ncon = ncon;
 	fn->nblk = nblk;

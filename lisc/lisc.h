@@ -102,15 +102,17 @@ static inline int isreg(Ref r)
 #define CMPS(X) \
 	X(eq) X(sle) X(slt) \
 	X(sgt) X(sge) X(ne) /* mirror opposite cmps! */
-
-enum Cmp {
-#define C(c) C##c,
-	CMPS(C)
-#undef C
-	NCmp
-};
-
 #define COP(c) (c==Ceq||c==Cne ? c : NCmp-1 - c)
+
+#define X(c) C##c,
+enum Cmp { CMPS(X) NCmp };
+#undef X
+
+#define TYS(X) X(l) X(sw) X(uw) X(sh) X(uh) X(sb) X(ub)
+
+#define X(t) T##t,
+enum Ty { TYS(X) NTy };
+#undef X
 
 enum Op {
 	OXXX,
@@ -122,8 +124,6 @@ enum Op {
 	ORem,
 	OMul,
 	OAnd,
-	OSext,
-	OZext,
 	OCmp,
 	OCmp1 = OCmp + NCmp-1,
 	OStorel,
@@ -131,10 +131,9 @@ enum Op {
 	OStores,
 	OStoreb,
 	OLoad,
-	OLoadsh,
-	OLoaduh,
-	OLoadsb,
-	OLoadub,
+	OLoad1 = OLoad + NTy-1,
+	OExt,
+	OExt1 = OExt + NTy-1,
 	OAlloc,
 	OAlloc1 = OAlloc + NAlign-1,
 	OCopy,

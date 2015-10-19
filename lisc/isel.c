@@ -117,8 +117,7 @@ sel(Ins i, Fn *fn)
 	case OCall:
 	case OSAlloc:
 	case OCopy:
-	case OSext:
-	case OZext:
+	case_OExt:
 		n = 0;
 		goto Emit;
 	case OAdd:
@@ -138,11 +137,7 @@ sel(Ins i, Fn *fn)
 		}
 		n = i.op == OStorel;
 		goto Emit;
-	case OLoad:
-	case OLoadsh:
-	case OLoaduh:
-	case OLoadsb:
-	case OLoadub:
+	case_OLoad:
 		if (cpy[0].s != -1) {
 			i.arg[0] = SLOT(cpy[0].s);
 			cpy[0].s = -1;
@@ -185,6 +180,10 @@ Emit:
 		}
 		break;
 	default:
+		if (OExt <= i.op && i.op <= OExt1)
+			goto case_OExt;
+		if (OLoad <= i.op && i.op <= OLoad1)
+			goto case_OLoad;
 		if (OCmp <= i.op && i.op <= OCmp1) {
 			c = i.op - OCmp;
 			if (rtype(i.arg[0]) == RCon)
@@ -209,23 +208,20 @@ flagi(Ins *i0, Ins *i)
 		default:
 			if (OCmp <= i->op && i->op <= OCmp1)
 				return i;
+			if (OExt <= i->op && i->op <= OExt1)
+				continue;
+			if (OLoad <= i->op && i->op <= OLoad1)
+				continue;
 			return 0;
 		case OAdd:  /* flag-setting */
 		case OSub:
 		case OAnd:
 			return i;
 		case OCopy: /* flag-transparent */
-		case OSext:
-		case OZext:
 		case OStorel:
 		case OStorew:
 		case OStoreb:
-		case OStores:
-		case OLoad:
-		case OLoadsh:
-		case OLoaduh:
-		case OLoadsb:
-		case OLoadub:;
+		case OStores:;
 		}
 	return 0;
 }

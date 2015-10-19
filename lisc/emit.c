@@ -152,13 +152,13 @@ eins(Ins i, Fn *fn, FILE *f)
 		[OSub]    = "sub",
 		[OMul]    = "imul",
 		[OAnd]    = "and",
-		[OSext]   = "movsl",
-		[OZext]   = "movzl",
-		[OLoad]   = "mov",
-		[OLoadsh] = "movsw",
-		[OLoaduh] = "movzw",
-		[OLoadsb] = "movsb",
-		[OLoadub] = "movzb",
+		[OLoad+Tl]  = "mov",
+		[OLoad+Tsw] = "movsl",
+		/* [OLoad+Tuw] treated manually */
+		[OLoad+Tsh] = "movsw",
+		[OLoad+Tuh] = "movzw",
+		[OLoad+Tsb] = "movsb",
+		[OLoad+Tub] = "movzb",
 	};
 	Ref r0, r1;
 	int64_t val;
@@ -197,11 +197,6 @@ eins(Ins i, Fn *fn, FILE *f)
 		emitf(fn, f, "%s%w %R, %R", otoa[i.op],
 			i.wide, i.arg[1], i.to);
 		break;
-	case OSext:
-	case OZext:
-		emitf(fn, f, "%sq %R, %W%R", otoa[i.op],
-			i.arg[0], i.wide, i.to);
-		break;
 	case OCopy:
 		if (req(i.to, R) || req(i.arg[0], R))
 			break;
@@ -223,11 +218,19 @@ eins(Ins i, Fn *fn, FILE *f)
 		emitf(fn, f, "mov%t %R, %M",
 			i.op - OStorel, i.arg[0], i.arg[1]);
 		break;
-	case OLoad:
-	case OLoadsh:
-	case OLoaduh:
-	case OLoadsb:
-	case OLoadub:
+	case OLoad+Tuw:
+		emitf(fn, f, "movl %M, %R", i.arg[0], i.to);
+		break;
+	case OLoad+Tsw:
+		if (i.wide == 0) {
+			emitf(fn, f, "movl %M, %R", i.arg[0], i.to);
+			break;
+		}
+	case OLoad+Tl:
+	case OLoad+Tsh:
+	case OLoad+Tuh:
+	case OLoad+Tsb:
+	case OLoad+Tub:
 		emitf(fn, f, "%s%w %M, %R", otoa[i.op],
 			i.wide, i.arg[0], i.to);
 		break;
