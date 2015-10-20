@@ -166,10 +166,6 @@ enum Op {
 	OCall,
 
 	/* reserved instructions */
-	OScale1, /* for memory addressing */
-	OScale2,
-	OScale3,
-	OScale4,
 	ONop,
 	OAddr,
 	OSwap,
@@ -181,6 +177,10 @@ enum Op {
 	OXSet,
 	OXSet1 = OXSet + NCmp-1,
 	OXTest,
+	OXScale1, /* memory addressing */
+	OXScale2,
+	OXScale3,
+	OXScale4,
 	NOp
 };
 
