@@ -60,7 +60,7 @@ rslot(Ref r, Fn *fn)
 {
 	if (rtype(r) != RTmp)
 		return -1;
-	return fn->tmp[r.val].spill;
+	return fn->tmp[r.val].slot;
 }
 
 static void
@@ -591,7 +591,7 @@ isel(Fn *fn)
 	int64_t sz;
 
 	for (n=0; n<fn->ntmp; n++)
-		fn->tmp[n].spill = -1;
+		fn->tmp[n].slot = -1;
 	fn->slot = 0;
 
 	/* lower arguments */
@@ -644,7 +644,7 @@ isel(Fn *fn)
 					diag("isel: invalid alloc size");
 				sz = (sz + n-1) & -n;
 				sz /= 4;
-				fn->tmp[i->to.val].spill = fn->slot;
+				fn->tmp[i->to.val].slot = fn->slot;
 				fn->slot += sz;
 				*i = (Ins){.op = ONop};
 			}

@@ -175,7 +175,7 @@ newtmp(char *prfx, Fn *fn)
 	t = fn->ntmp++;
 	vgrow(&fn->tmp, fn->ntmp);
 	sprintf(fn->tmp[t].name, "%s%d", prfx, ++n);
-	fn->tmp[t].spill = -1;
+	fn->tmp[t].slot = -1;
 	return TMP(t);
 }
 

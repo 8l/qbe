@@ -244,7 +244,7 @@ struct Tmp {
 	char name[NString];
 	uint ndef, nuse;
 	uint cost;
-	short spill;
+	short slot;
 	short wide;
 	int hint;
 	int phi;

@@ -140,7 +140,7 @@ slot(int t)
 
 	if (t < Tmp0)
 		diag("spill: cannot spill register");
-	s = tmp[t].spill;
+	s = tmp[t].slot;
 	if (s == -1) {
 		assert(NAlign == 3);
 		/* nice logic to pack stack slots
@@ -163,7 +163,7 @@ slot(int t)
 				slot4 = slot8;
 		}
 		s += locs;
-		tmp[t].spill = s;
+		tmp[t].slot = s;
 	}
 	return SLOT(s);
 }
@@ -375,7 +375,7 @@ spill(Fn *fn)
 					BCLR(v, t);
 				else
 					limit(&v, NReg-1, 0);
-				s = tmp[t].spill;
+				s = tmp[t].slot;
 			}
 			j = opdesc[i->op].nmem;
 			if (!j && rtype(i->arg[0]) == RTmp)
@@ -394,7 +394,7 @@ spill(Fn *fn)
 			t = p->to.val;
 			if (BGET(v, t)) {
 				BCLR(v, t);
-				s = tmp[t].spill;
+				s = tmp[t].slot;
 				if (s != -1)
 					store(p->to, s);
 			} else
