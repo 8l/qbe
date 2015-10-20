@@ -75,12 +75,24 @@ struct Ref {
 	uint16_t val:14;
 };
 
+enum Alt {
+	AType,
+	ACall,
+	ASlot,
+
+	AShift = 12,
+	AMask = (1<<AShift) - 1
+};
+
 enum {
 	RTmp,
 	RCon,
-	RSlot,
 	RAlt,
-	RCallm = 0x1000,
+
+	RAType = RAlt + AType,
+	RACall = RAlt + ACall,
+	RASlot = RAlt + ASlot,
+
 	NRef = (1<<14) - 1
 };
 
@@ -88,14 +100,21 @@ enum {
 #define TMP(x)   (Ref){RTmp, x}
 #define CON(x)   (Ref){RCon, x}
 #define CON_Z    CON(0)          /* reserved zero constant */
-#define SLOT(x)  (Ref){RSlot, x}
-#define TYP(x)   (Ref){RAlt, x}
-#define CALL(x)  (Ref){RAlt, (x)|RCallm}
+#define TYPE(x)  (Ref){RAlt, (x)|(AType<<AShift)}
+#define CALL(x)  (Ref){RAlt, (x)|(ACall<<AShift)}
+#define SLOT(x)  (assert(x<(1<<(AShift-1)) && "too many slots"), \
+                 (Ref){RAlt, (x)|(ASlot<<AShift)})
 
 static inline int req(Ref a, Ref b)
 { return a.type == b.type && a.val == b.val; }
 static inline int rtype(Ref r)
-{ return req(r, R) ? -1 : r.type; }
+{
+	if (req(r, R))
+		return -1;
+	if (r.type == RAlt)
+		return RAlt + (r.val >> AShift);
+	return r.type;
+}
 static inline int isreg(Ref r)
 { return rtype(r) == RTmp && r.val < Tmp0; }
 
@@ -147,6 +166,10 @@ enum Op {
 	OCall,
 
 	/* reserved instructions */
+	OScale1, /* for memory addressing */
+	OScale2,
+	OScale3,
+	OScale4,
 	ONop,
 	OAddr,
 	OSwap,

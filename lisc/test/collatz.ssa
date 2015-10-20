@@ -31,14 +31,14 @@ function $test() {
 	%n3 =w div %n0, 2
 	jmp @cloop
 @getmemo                     # get the count for n0 in mem
-	%n0l =l sext %n0
+	%n0l =l extsw %n0
 	%idx0 =l mul %n0l, 4
 	%loc0 =l add %idx0, %mem
-	%cn0 =w load %loc0
+	%cn0 =w loadw %loc0
 	%c2 =w add %c0, %cn0
 @endcl                       # store the count for n in mem
 	%c =w phi @getmemo %c2, @cloop %c0
-	%nl =l sext %n
+	%nl =l extsw %n
 	%idx1 =l mul %nl, 4
 	%loc1 =l add %idx1, %mem
 	storew %c, %loc1

@@ -37,9 +37,10 @@ emitf(Fn *fn, FILE *f, char *fmt, ...)
 	static char stoa[] = "qlwb";
 	va_list ap;
 	char c, *s, *s1;
-	int i, ty;
+	int i, ty, off;
 	Ref ref;
 	Con *con;
+	struct { int i:AShift; } x;
 
 	va_start(ap, fmt);
 	ty = SWord;
@@ -81,10 +82,9 @@ Next:
 			assert(isreg(ref));
 			fprintf(f, "%%%s", rsub[ref.val][ty]);
 			break;
-		case RSlot:
-		Slot: {
-			int off;
-			struct { int i:14; } x = {ref.val}; /* fixme */
+		case RASlot:
+		Slot:
+			x.i = ref.val & AMask;
 			assert(NAlign == 3);
 			if (x.i < 0)
 				off = -4 * x.i;
@@ -94,7 +94,6 @@ Next:
 			}
 			fprintf(f, "%d(%%rbp)", off);
 			break;
-		}
 		case RCon:
 			fputc('$', f);
 		Con:
@@ -117,9 +116,9 @@ Next:
 	case 'M':
 		ref = va_arg(ap, Ref);
 		switch (rtype(ref)) {
-		default:    diag("emit: invalid memory reference");
-		case RSlot: goto Slot;
-		case RCon:  goto Con;
+		default:     diag("emit: invalid memory reference");
+		case RASlot: goto Slot;
+		case RCon:   goto Con;
 		case RTmp:
 			assert(isreg(ref));
 			fprintf(f, "(%%%s)", rsub[ref.val][SLong]);
@@ -233,6 +232,20 @@ eins(Ins i, Fn *fn, FILE *f)
 	case OLoad+Tub:
 		emitf(fn, f, "%s%w %M, %R", otoa[i.op],
 			i.wide, i.arg[0], i.to);
+		break;
+	case OExt+Tuw:
+		emitf(fn, f, "movl %R, %R", i.arg[0], i.to);
+		break;
+	case OExt+Tsw:
+	case OExt+Tsh:
+	case OExt+Tuh:
+	case OExt+Tsb:
+	case OExt+Tub:
+		emitf(fn, f, "mov%s%t%s %R, %W%R",
+			(i.op-OExt-Tsw)%2 ? "z" : "s",
+			1+(i.op-OExt-Tsw)/2,
+			i.wide ? "q" : "l",
+			i.arg[0], i.wide, i.to);
 		break;
 	case OCall:
 		switch (rtype(i.arg[0])) {

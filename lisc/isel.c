@@ -373,7 +373,8 @@ classify(Ins *i0, Ins *i1, AClass *ac, int op)
 			a->size = 8;
 			a->rty[0] = RInt;
 		} else {
-			aclass(a, &typ[i->arg[0].val]);
+			n = i->arg[0].val & AMask;
+			aclass(a, &typ[n]);
 			if (a->inmem)
 				continue;
 			ni = ns = 0;

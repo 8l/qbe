@@ -388,9 +388,9 @@ parserefl(int arg)
 			err("invalid function parameter");
 		if (w == 2)
 			if (arg)
-				*curi = (Ins){OArgc, 0, R, {TYP(ty), r}};
+				*curi = (Ins){OArgc, 0, R, {TYPE(ty), r}};
 			else
-				*curi = (Ins){OParc, 0, r, {TYP(ty)}};
+				*curi = (Ins){OParc, 0, r, {TYPE(ty)}};
 		else
 			if (arg)
 				*curi = (Ins){OArg, w, R, {r}};
@@ -526,7 +526,7 @@ DoOp:
 		op = OCall;
 		if (w == 2) {
 			w = 0;
-			arg[1] = TYP(ty);
+			arg[1] = TYPE(ty);
 		} else
 			arg[1] = R;
 		goto Ins;
@@ -818,14 +818,14 @@ printref(Ref r, Fn *fn, FILE *f)
 			diag("printref: invalid constant");
 		}
 		break;
-	case RSlot:
-		fprintf(f, "S%d", r.val);
+	case RASlot:
+		fprintf(f, "S%d", r.val & AMask);
 		break;
-	case RAlt:
-		if (r.val & RCallm)
-			fprintf(f, "%x", r.val & (RCallm-1));
-		else
-			fprintf(f, ":%s", typ[r.val].name);
+	case RACall:
+		fprintf(f, "%x", r.val & AMask);
+		break;
+	case RAType:
+		fprintf(f, ":%s", typ[r.val & AMask].name);
 		break;
 	}
 }
