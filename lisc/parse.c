@@ -797,7 +797,7 @@ parse(FILE *f, void data(Dat *), void func(Fn *))
 static void
 printref(Ref r, Fn *fn, FILE *f)
 {
-	switch (r.type) {
+	switch (rtype(r)) {
 	case RTmp:
 		if (r.val < Tmp0)
 			fprintf(f, "R%d", r.val);
