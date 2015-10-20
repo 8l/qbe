@@ -1,4 +1,4 @@
-function $main(w %argc, l %argv) {
+function w $main(w %argc, l %argv) {
 @start
 	%fmt =l alloc8 8
 	storel 1663398693, %fmt             # "%s%c"
@@ -24,5 +24,5 @@ function $main(w %argc, l %argv) {
 	%ac1 =w sub %ac, 1
 	jmp @loop
 @end
-	ret
+	ret 0
 }
