@@ -18,7 +18,7 @@ function $main(w %argc, l %argv) {
 	jmp @loop2
 @loop2
 	%sep =w phi @last 10, @nolast 32
-	%arg =l load %av
+	%arg =l loadl %av
 	%r =w call $printf(l %fmt, l %arg, w %sep)
 	%av1 =l add %av, 8
 	%ac1 =w sub %ac, 1
