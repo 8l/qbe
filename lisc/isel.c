@@ -577,40 +577,55 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	}
 }
 
-int
-abase(Ref r, int *an)
+typedef struct AInfo AInfo;
+typedef struct Addr Addr;
+
+struct AInfo {
+	char num;
+	char lnum;
+	char rnum;
+	Ins *i;
+};
+
+struct Addr {
+	Con offset;
+	Ref base;
+	Ref index;
+	int scale;
+};
+
+static int
+abase(Ref r, AInfo *ai, Tmp *tmp)
 {
 	switch (rtype(r)) {
-	case RTmp: return an[r.val] & 15;
-	case RCon: return 1;
-	default:   return 9;
+	default:
+		diag("isel: abase defaulted");
+	case RCon:
+		return 2;
+	case RTmp:
+		if (tmp[r.val].slot != -1)
+			return 1;
+		else
+			return ai[r.val].num;
 	}
 }
 
-int
-ascale(Ref r, Con *c)
+static int
+ascale(Ref r, Con *con)
 {
 	int64_t n;
 
 	if (rtype(r) != RCon)
 		return 0;
-	n = c[r.val].val;
+	if (con[r.val].type != CNum)
+		return 0;
+	n = con[r.val].val;
 	return n == 1 || n == 2 || n == 4 || n == 8;
 }
 
 static void
-anumber(int *an, Blk *b, Con *c)
+anumber(AInfo *ai, Blk *b, Tmp *tmp, Con *con)
 {
-	static char addtbl[10][10] = {
-		[0] [0] = 3,
-		[0] [2] = 3,
-		[1] [2] = 4,
-		[1] [3] = 5,
-		[0] [4] = 5,
-	};
-	int a, a1, a2, n1, n2, t1, t2;
-	Ins *i;
-
 	/* This numbering will become useless
 	 * once a proper reassoc pass is ready.
 	 */
@@ -618,50 +633,76 @@ anumber(int *an, Blk *b, Con *c)
 	/* Tree automaton rules:
 	 *
 	 *   RTmp(_) -> 0    tmp
-	 *   RCon(_) -> 1    con
-	 *   0 * 1   -> 2    s * i (when constant is 1,2,4,8)
-	 *   ( 1 + 1   -> 1    fold )
-	 *   ( 1 + 4   -> 4 )
-	 *   ( 1 + 5   -> 5 )
-	 *   0 + 0   -> 3    b + (1 *) i
-	 *   0 + 2   -> 3
-	 *   1 + 2   -> 4    o + s * i
-	 *   1 + 3   -> 5    o + b + s * i
-	 *   0 + 4   -> 5
+	 *   RTmp(_) -> 1    slot
+	 *   RCon(_) -> 2    con
+	 *   0 * 2   -> 3    s * i (when constant is 1,2,4,8)
+	 *   2 + 2   -> 2    fold
+	 *   2 + 5   -> 5
+	 *   2 + 6   -> 6
+	 *   0 + 0   -> 4    b + (1 *) i
+	 *   0 + 1   -> 4
+	 *   0 + 3   -> 4
+	 *   2 + 3   -> 5    o + s * i
+	 *   2 + 4   -> 6    o + b + s * i
+	 *   0 + 5   -> 6
+	 *   1 + 5   -> 6
 	 */
+	static char add[10][10] = {
+		[2] [2] = 1,
+		[2] [5] = 5, [5] [2] = 5,
+		[2] [6] = 6, [6] [2] = 6,
+		[0] [0] = 4,
+		[0] [1] = 4, [1] [0] = 4,
+		[0] [3] = 4, [3] [0] = 4,
+		[2] [3] = 5, [3] [2] = 5,
+		[2] [4] = 6, [4] [2] = 6,
+		[0] [5] = 6, [5] [0] = 6,
+	};
+	int a, a1, a2, n1, n2, t1, t2;
+	Ins *i;
 
 	for (i=b->ins; i<&b->ins[b->nins]; i++) {
+		if (rtype(i->to) == RTmp)
+			ai[i->to.val].i = i;
 		if (i->op != OAdd && i->op != OMul)
 			continue;
-		a1 = abase(i->arg[0], an);
-		a2 = abase(i->arg[1], an);
-		t1 = rtype(i->arg[0]) == RTmp;
-		t2 = rtype(i->arg[1]) == RTmp;
+		a1 = abase(i->arg[0], ai, tmp);
+		a2 = abase(i->arg[1], ai, tmp);
+		t1 = a1 != 9 & a1 != 1;
+		t2 = a2 != 9 & a2 != 1;
 		if (i->op == OAdd) {
-			a = addtbl[n1 = a1][n2 = a2];
-			if (t1 && a < addtbl[0][a2])
-				a = addtbl[n1 = 0][n2 = a2];
-			if (t2 && a < addtbl[a1][0])
-				a = addtbl[n1 = a1][n2 = 0];
-			if (t1 && t2 && a < addtbl[0][0])
-				a = addtbl[n1 = 0][n2 = 0];
-			an[i->to.val] = a + (n1 << 4) + (n2 << 8);
+			a = add[n1 = a1][n2 = a2];
+			if (t1 && a < add[0][a2])
+				a = add[n1 = 0][n2 = a2];
+			if (t2 && a < add[a1][0])
+				a = add[n1 = a1][n2 = 0];
+			if (t1 && t2 && a < add[0][0])
+				a = add[n1 = 0][n2 = 0];
+		} else {
+			n1 = n2 = a = 0;
+			if (ascale(i->arg[0], con) && t2)
+				a = 2, n1 = 1, n2 = 0;
+			if (t1 && ascale(i->arg[1], con))
+				a = 2, n1 = 0, n2 = 1;
 		}
-		if (i->op == OMul && ascale(i->arg[0], c) && t2)
-			an[i->to.val] = 3 + (1 << 4) + (0 << 8);
-		if (i->op == OMul && t1 && ascale(i->arg[1], c))
-			an[i->to.val] = 3 + (0 << 4) + (1 << 8);
+		ai[i->to.val].num = a;
+		ai[i->to.val].lnum = n1;
+		ai[i->to.val].rnum = n2;
 	}
 }
 
-typedef struct Addr Addr;
-
-struct Addr {
-	Ref offset;
-	Ref base;
-	Ref index;
-	int scale;
-};
+#if 0
+static void
+abuild(Addr *a, Ref r, AInfo *ai, Fn *fn)
+{
+	memset(a, 0, sizeof *a);
+	if (rtype(r) == )
+	switch (ai[t].num) {
+	default:
+		a->base
+	}
+}
+#endif
 
 /* instruction selection
  * requires use counts (as given by parsing)
@@ -673,9 +714,9 @@ isel(Fn *fn)
 	Ins *i, *i0, *ip;
 	Phi *p;
 	uint a;
-	int n, al, s;
+	int n, m, al, s;
 	int64_t sz;
-	int *anum;
+	AInfo *ainfo;
 
 	for (n=0; n<fn->ntmp; n++)
 		fn->tmp[n].slot = -1;
@@ -738,7 +779,7 @@ isel(Fn *fn)
 
 	/* process basic blocks */
 	n = fn->ntmp;
-	anum = emalloc(n * sizeof anum[0]);
+	ainfo = emalloc(n * sizeof ainfo[0]);
 	for (b=fn->start; b; b=b->link) {
 		for (sb=(Blk*[3]){b->s1, b->s2, 0}; *sb; sb++)
 			for (p=(*sb)->phi; p; p=p->link) {
@@ -750,8 +791,9 @@ isel(Fn *fn)
 					emit(OAddr, 1, p->arg[a], SLOT(s), R);
 				}
 			}
-		memset(anum, 0, n * sizeof anum[0]);
-		anumber(anum, b, fn->con);
+		for (m=0; m<n; m++)
+			ainfo[m] = (AInfo){.num = 0, .i = 0};
+		anumber(ainfo, b, fn->tmp, fn->con);
 		curi = &insb[NIns];
 		seljmp(b, fn);
 		for (i=&b->ins[b->nins]; i>b->ins;)
@@ -759,7 +801,7 @@ isel(Fn *fn)
 		b->nins = &insb[NIns] - curi;
 		idup(&b->ins, curi, b->nins);
 	}
-	free(anum);
+	free(ainfo);
 
 	if (debug['I']) {
 		fprintf(stderr, "\n> After instruction selection:\n");
