@@ -578,12 +578,12 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 }
 
 int
-abase(Ref r, char *an, Con *c)
+abase(Ref r, int *an, Con *c)
 {
 	int64_t n;
 
 	switch (rtype(r)) {
-	case RTmp: return an[r.val];
+	case RTmp: return an[r.val] & 15;
 	case RCon:
 		if (c[r.val].type == CNum) {
 			n = c[r.val].val;
@@ -597,27 +597,21 @@ abase(Ref r, char *an, Con *c)
 }
 
 static void
-anumber(char *an, Blk *b, Con *c)
+anumber(int *an, Blk *b, Con *c)
 {
 	static char addtbl[10][10] = {
 		[0] [0] = 4,
-		[4] [4] = 4,
-		[4] [5] = 4,
-		[4] [6] = 4,
-		[5] [5] = 4,
-		[5] [6] = 4,
-		[6] [6] = 4,
-		[0] [3] = 4,
-		[2] [4] = 5,
-		[1] [4] = 5,
-		[2] [3] = 6,
-		[1] [3] = 6,
-		[0] [6] = 5,
+		[0] [3] = 4, [3] [0] = 4,
+		[2] [3] = 5, [3] [2] = 5,
+		[1] [3] = 5, [3] [1] = 5,
+		[2] [4] = 6, [4] [2] = 6,
+		[1] [4] = 6, [4] [1] = 6,
+		[0] [5] = 6, [5] [0] = 6,
 	};
-	int a1, a2, t;
+	int a, a1, a2, n1, n2, t1, t2;
 	Ins *i;
 
-	/* This numbering might become useless
+	/* This numbering will become useless
 	 * once a proper reassoc pass is ready.
 	 */
 
@@ -628,15 +622,15 @@ anumber(char *an, Blk *b, Con *c)
 	 *   RCon(2) -> 1
 	 *   RCon(4) -> 1    scale
 	 *   RCon(8) -> 1
-	 *   RCon(_) -> 2    constants
+	 *   RCon(_) -> 2    con
 	 *   0 * 1   -> 3    s * i
 	 *   0 + 0   -> 4    b + (1 *) i
-	 *   0 + 3   -> 4    b + s * i
-	 *   2 + 4   -> 5    o + b + s * i
-	 *   1 + 4   -> 5    o + b + s * i
-	 *   2 + 3   -> 6    o + s * i
-	 *   1 + 3   -> 6    o + s * i
-	 *   0 + 6   -> 5    o + b + s * i
+	 *   0 + 3   -> 4
+	 *   2 + 3   -> 5    o + s * i
+	 *   1 + 3   -> 5
+	 *   2 + 4   -> 6    o + b + s * i
+	 *   1 + 4   -> 6
+	 *   0 + 5   -> 6
 	 */
 
 	for (i=b->ins; i<&b->ins[b->nins]; i++) {
@@ -644,25 +638,32 @@ anumber(char *an, Blk *b, Con *c)
 			continue;
 		a1 = abase(i->arg[0], an, c);
 		a2 = abase(i->arg[1], an, c);
-		if (a1 > a2) {
-			t = a1;
-			a1 = a2;
-			a2 = t;
+		t1 = rtype(i->arg[0]) == RTmp;
+		t2 = rtype(i->arg[1]) == RTmp;
+		if (i->op == OAdd) {
+			a = addtbl[n1 = a1][n2 = a2];
+			if (t1 && a < addtbl[0][a2])
+				a = addtbl[n1 = 0][n2 = a2];
+			if (t2 && a < addtbl[a1][0])
+				a = addtbl[n1 = a1][n2 = 0];
+			if (t1 && t2 && a < addtbl[0][0])
+				a = addtbl[n1 = 0][n2 = 0];
+			an[i->to.val] = a + (n1 << 4) + (n2 << 8);
 		}
-		if (i->op == OAdd)
-			an[i->to.val] = addtbl[a1][a2];
-		else if (i->op == OMul && a1 == 0 && a2 == 1)
-			an[i->to.val] = 3;
+		if (i->op == OMul && a1 == 1 && t2)
+			an[i->to.val] = 3 + (1 << 4) + (0 << 8);
+		if (i->op == OMul && t1 && a2 == 1)
+			an[i->to.val] = 3 + (0 << 4) + (1 << 8);
 	}
 }
 
 typedef struct Addr Addr;
 
 struct Addr {
-	Ref ofst;
+	Ref offset;
 	Ref base;
-	Ref indx;
-	int mult;
+	Ref index;
+	int scale;
 };
 
 /* instruction selection
@@ -677,7 +678,7 @@ isel(Fn *fn)
 	uint a;
 	int n, al, s;
 	int64_t sz;
-	char *anum;
+	int *anum;
 
 	for (n=0; n<fn->ntmp; n++)
 		fn->tmp[n].slot = -1;
@@ -740,7 +741,7 @@ isel(Fn *fn)
 
 	/* process basic blocks */
 	n = fn->ntmp;
-	anum = emalloc(n);
+	anum = emalloc(n * sizeof anum[0]);
 	for (b=fn->start; b; b=b->link) {
 		for (sb=(Blk*[3]){b->s1, b->s2, 0}; *sb; sb++)
 			for (p=(*sb)->phi; p; p=p->link) {
@@ -752,7 +753,7 @@ isel(Fn *fn)
 					emit(OAddr, 1, p->arg[a], SLOT(s), R);
 				}
 			}
-		memset(anum, 0, n);
+		memset(anum, 0, n * sizeof anum[0]);
 		anumber(anum, b, fn->con);
 		curi = &insb[NIns];
 		seljmp(b, fn);
