@@ -578,35 +578,35 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 }
 
 int
-abase(Ref r, int *an, Con *c)
+abase(Ref r, int *an)
+{
+	switch (rtype(r)) {
+	case RTmp: return an[r.val] & 15;
+	case RCon: return 1;
+	default:   return 9;
+	}
+}
+
+int
+ascale(Ref r, Con *c)
 {
 	int64_t n;
 
-	switch (rtype(r)) {
-	case RTmp: return an[r.val] & 15;
-	case RCon:
-		if (c[r.val].type == CNum) {
-			n = c[r.val].val;
-			if (n == 1 || n == 2
-			||  n == 4 || n == 8)
-				return 1;
-		}
-		return 2;
-	}
-	return 9;
+	if (rtype(r) != RCon)
+		return 0;
+	n = c[r.val].val;
+	return n == 1 || n == 2 || n == 4 || n == 8;
 }
 
 static void
 anumber(int *an, Blk *b, Con *c)
 {
 	static char addtbl[10][10] = {
-		[0] [0] = 4,
-		[0] [3] = 4, [3] [0] = 4,
-		[2] [3] = 5, [3] [2] = 5,
-		[1] [3] = 5, [3] [1] = 5,
-		[2] [4] = 6, [4] [2] = 6,
-		[1] [4] = 6, [4] [1] = 6,
-		[0] [5] = 6, [5] [0] = 6,
+		[0] [0] = 3,
+		[0] [2] = 3,
+		[1] [2] = 4,
+		[1] [3] = 5,
+		[0] [4] = 5,
 	};
 	int a, a1, a2, n1, n2, t1, t2;
 	Ins *i;
@@ -618,26 +618,23 @@ anumber(int *an, Blk *b, Con *c)
 	/* Tree automaton rules:
 	 *
 	 *   RTmp(_) -> 0    tmp
-	 *   RCon(1) -> 1
-	 *   RCon(2) -> 1
-	 *   RCon(4) -> 1    scale
-	 *   RCon(8) -> 1
-	 *   RCon(_) -> 2    con
-	 *   0 * 1   -> 3    s * i
-	 *   0 + 0   -> 4    b + (1 *) i
-	 *   0 + 3   -> 4
-	 *   2 + 3   -> 5    o + s * i
-	 *   1 + 3   -> 5
-	 *   2 + 4   -> 6    o + b + s * i
-	 *   1 + 4   -> 6
-	 *   0 + 5   -> 6
+	 *   RCon(_) -> 1    con
+	 *   0 * 1   -> 2    s * i (when constant is 1,2,4,8)
+	 *   ( 1 + 1   -> 1    fold )
+	 *   ( 1 + 4   -> 4 )
+	 *   ( 1 + 5   -> 5 )
+	 *   0 + 0   -> 3    b + (1 *) i
+	 *   0 + 2   -> 3
+	 *   1 + 2   -> 4    o + s * i
+	 *   1 + 3   -> 5    o + b + s * i
+	 *   0 + 4   -> 5
 	 */
 
 	for (i=b->ins; i<&b->ins[b->nins]; i++) {
 		if (i->op != OAdd && i->op != OMul)
 			continue;
-		a1 = abase(i->arg[0], an, c);
-		a2 = abase(i->arg[1], an, c);
+		a1 = abase(i->arg[0], an);
+		a2 = abase(i->arg[1], an);
 		t1 = rtype(i->arg[0]) == RTmp;
 		t2 = rtype(i->arg[1]) == RTmp;
 		if (i->op == OAdd) {
@@ -650,9 +647,9 @@ anumber(int *an, Blk *b, Con *c)
 				a = addtbl[n1 = 0][n2 = 0];
 			an[i->to.val] = a + (n1 << 4) + (n2 << 8);
 		}
-		if (i->op == OMul && a1 == 1 && t2)
+		if (i->op == OMul && ascale(i->arg[0], c) && t2)
 			an[i->to.val] = 3 + (1 << 4) + (0 << 8);
-		if (i->op == OMul && t1 && a2 == 1)
+		if (i->op == OMul && t1 && ascale(i->arg[1], c))
 			an[i->to.val] = 3 + (0 << 4) + (1 << 8);
 	}
 }
