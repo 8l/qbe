@@ -13,6 +13,9 @@
  *   constant allocX in the first basic block)
  */
 
+typedef struct ANum ANum;
+typedef struct Addr Addr;
+typedef struct AClass AClass;
 
 static int
 noimm(Ref r, Fn *fn)
@@ -293,8 +296,6 @@ seljmp(Blk *b, Fn *fn)
 	selcmp((Ref[2]){r, CON_Z}, 0, fn); /* todo, add long branch if non-zero */
 	b->jmp.type = JXJc + Cne;
 }
-
-typedef struct AClass AClass;
 
 struct AClass {
 	int inmem;
@@ -577,13 +578,8 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	}
 }
 
-typedef struct AInfo AInfo;
-typedef struct Addr Addr;
-
-struct AInfo {
-	char num;
-	char lnum;
-	char rnum;
+struct ANum {
+	char n, l, r;
 	Ins *i;
 };
 
@@ -595,7 +591,7 @@ struct Addr {
 };
 
 static int
-abase(Ref r, AInfo *ai, Tmp *tmp)
+abase(Ref r, ANum *ai, Tmp *tmp)
 {
 	switch (rtype(r)) {
 	default:
@@ -606,7 +602,7 @@ abase(Ref r, AInfo *ai, Tmp *tmp)
 		if (tmp[r.val].slot != -1)
 			return 1;
 		else
-			return ai[r.val].num;
+			return ai[r.val].n;
 	}
 }
 
@@ -624,39 +620,29 @@ ascale(Ref r, Con *con)
 }
 
 static void
-anumber(AInfo *ai, Blk *b, Tmp *tmp, Con *con)
+anumber(ANum *ai, Blk *b, Tmp *tmp, Con *con)
 {
-	/* This numbering will become useless
-	 * once a proper reassoc pass is ready.
-	 */
-
-	/* Tree automaton rules:
+	/* This should be made obsolete by a proper
+	 * reassoc pass.
+	 *
+	 * Rules:
 	 *
 	 *   RTmp(_) -> 0    tmp
 	 *   RTmp(_) -> 1    slot
 	 *   RCon(_) -> 2    con
 	 *   0 * 2   -> 3    s * i (when constant is 1,2,4,8)
-	 *   2 + 2   -> 2    fold
-	 *   2 + 5   -> 5
-	 *   2 + 6   -> 6
-	 *   0 + 0   -> 4    b + (1 *) i
-	 *   0 + 1   -> 4
-	 *   0 + 3   -> 4
-	 *   2 + 3   -> 5    o + s * i
-	 *   2 + 4   -> 6    o + b + s * i
-	 *   0 + 5   -> 6
-	 *   1 + 5   -> 6
 	 */
 	static char add[10][10] = {
-		[2] [2] = 1,
+		[2] [2] = 2,              /* folding */
 		[2] [5] = 5, [5] [2] = 5,
 		[2] [6] = 6, [6] [2] = 6,
-		[0] [0] = 4,
+		[0] [0] = 4,              /* b + s * i */
 		[0] [1] = 4, [1] [0] = 4,
 		[0] [3] = 4, [3] [0] = 4,
-		[2] [3] = 5, [3] [2] = 5,
-		[2] [4] = 6, [4] [2] = 6,
+		[2] [3] = 5, [3] [2] = 5, /* o + s * i */
+		[2] [4] = 6, [4] [2] = 6, /* o + b + s * i */
 		[0] [5] = 6, [5] [0] = 6,
+		[1] [5] = 6, [5] [1] = 6,
 	};
 	int a, a1, a2, n1, n2, t1, t2;
 	Ins *i;
@@ -681,19 +667,19 @@ anumber(AInfo *ai, Blk *b, Tmp *tmp, Con *con)
 		} else {
 			n1 = n2 = a = 0;
 			if (ascale(i->arg[0], con) && t2)
-				a = 2, n1 = 1, n2 = 0;
+				a = 3, n1 = 2, n2 = 0;
 			if (t1 && ascale(i->arg[1], con))
-				a = 2, n1 = 0, n2 = 1;
+				a = 3, n1 = 0, n2 = 2;
 		}
-		ai[i->to.val].num = a;
-		ai[i->to.val].lnum = n1;
-		ai[i->to.val].rnum = n2;
+		ai[i->to.val].n = a;
+		ai[i->to.val].l = n1;
+		ai[i->to.val].r = n2;
 	}
 }
 
 #if 0
 static void
-abuild(Addr *a, Ref r, AInfo *ai, Fn *fn)
+abuild(Addr *a, Ref r, ANum *ai, Fn *fn)
 {
 	memset(a, 0, sizeof *a);
 	if (rtype(r) == )
@@ -716,7 +702,7 @@ isel(Fn *fn)
 	uint a;
 	int n, m, al, s;
 	int64_t sz;
-	AInfo *ainfo;
+	ANum *ainfo;
 
 	for (n=0; n<fn->ntmp; n++)
 		fn->tmp[n].slot = -1;
@@ -792,7 +778,7 @@ isel(Fn *fn)
 				}
 			}
 		for (m=0; m<n; m++)
-			ainfo[m] = (AInfo){.num = 0, .i = 0};
+			ainfo[m] = (ANum){.n = 0, .i = 0};
 		anumber(ainfo, b, fn->tmp, fn->con);
 		curi = &insb[NIns];
 		seljmp(b, fn);
