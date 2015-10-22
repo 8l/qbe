@@ -326,6 +326,7 @@ void *vnew(ulong, size_t);
 void vgrow(void *, ulong);
 Ref newtmp(char *, Fn *);
 Ref getcon(int64_t, Fn *);
+void addcon(Con *, Con *);
 
 /* parse.c */
 extern OpDesc opdesc[NOp];

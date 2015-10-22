@@ -192,3 +192,18 @@ getcon(int64_t val, Fn *fn)
 	fn->con[c] = (Con){.type = CNum, .val = val};
 	return CON(c);
 }
+
+void
+addcon(Con *c0, Con *c1)
+{
+	if (c0->type == CUndef)
+		*c0 = *c1;
+	else {
+		if (c1->type == CAddr) {
+			if (c0->type == CAddr)
+				diag("addcon: adding two addresses");
+			strcpy(c0->label, c1->label);
+		}
+		c0->val += c1->val;
+	}
+}
