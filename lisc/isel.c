@@ -159,20 +159,15 @@ sel(Ins i, ANum *an, Fn *fn)
 Emit:
 		emiti(i);
 		for (n=0; n<2; n++) {
-			/* load constants that do not fit in
-			 * a 32bit signed integer into a
-			 * long temporary
+			/* fuse memory loads into arithmetic
+			 * operations when the sizes match
 			 */
 			r0 = i.arg[n];
-			if (rtype(r0) == RCon && noimm(r0, fn)) {
-				curi->arg[n] = newtmp("isel", fn);
-				emit(OCopy, 1, curi->arg[n], r0, R);
-			}
 			if (opdesc[i.op].nmem > n)
 			if ((i0 = an[r0.val].i))
 			if (i0->op == OLoad+Tsw || i0->op == OLoad+Tl) {
 				amatch(&a, i0->arg[0], an, fn, 1);
-				i.arg[n] = a.base;
+				curi->arg[n] = a.base;
 				if (a.offset.type == CUndef)
 				if (req(a.index, R))
 					continue;
@@ -184,6 +179,17 @@ Emit:
 					r1 = R;
 				x = OXScale01 + 8*n + logS[a.scale];
 				emit(x, 0, R, r1, a.index);
+			}
+		}
+		for (n=0; n<2; n++) {
+			/* load constants that do not fit in
+			 * a 32bit signed integer into a
+			 * long temporary
+			 */
+			r0 = i.arg[n];
+			if (rtype(r0) == RCon && noimm(r0, fn)) {
+				curi->arg[n] = newtmp("isel", fn);
+				emit(OCopy, 1, curi->arg[n], r0, R);
 			}
 		}
 		break;
