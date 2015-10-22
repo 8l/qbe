@@ -6,7 +6,7 @@ function w $sum(l %arr, w %num) {
 @loop
 	%n1 =w phi @start %n0, @loop1 %n2
 	%s0 =w phi @start 0, @loop1 %s1
-	%c =w csle %n1, 0
+	%c =w cslt %n1, 0
 	jnz %c, @end, @loop1
 @loop1
 	%idx0 =l extuw %num
