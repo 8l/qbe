@@ -1,0 +1,21 @@
+# Simple test for addressing modes.
+
+function w $sum(l %arr, w %num) {
+@start
+	%n0 =w sub %num, 1
+@loop
+	%n1 =w phi @start %n0, @loop1 %n2
+	%s0 =w phi @start 0, @loop1 %s1
+	%c =w csle %n1, 0
+	jnz %c, @end, @loop1
+@loop1
+	%idx0 =l extuw %num
+	%idx1 =l mul 4, %idx0
+	%idx2 =l add %idx1, %arr
+	%w =w loadw %idx2
+	%s1 =w add %w, %s0
+	%n2 =w sub %n1, 1
+	jmp @loop
+@end
+	ret %s0
+}
