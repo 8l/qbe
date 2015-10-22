@@ -591,7 +591,7 @@ struct Addr {
 };
 
 static int
-abase(Ref r, ANum *ai, Tmp *tmp)
+abase(Ref r, ANum *ai)
 {
 	switch (rtype(r)) {
 	default:
@@ -599,10 +599,7 @@ abase(Ref r, ANum *ai, Tmp *tmp)
 	case RCon:
 		return 2;
 	case RTmp:
-		if (tmp[r.val].slot != -1)
-			return 1;
-		else
-			return ai[r.val].n;
+		return ai[r.val].n;
 	}
 }
 
@@ -620,7 +617,7 @@ ascale(Ref r, Con *con)
 }
 
 static void
-anumber(ANum *ai, Blk *b, Tmp *tmp, Con *con)
+anumber(ANum *ai, Blk *b, Con *con)
 {
 	/* This should be made obsolete by a proper
 	 * reassoc pass.
@@ -628,7 +625,7 @@ anumber(ANum *ai, Blk *b, Tmp *tmp, Con *con)
 	 * Rules:
 	 *
 	 *   RTmp(_) -> 0    tmp
-	 *   RTmp(_) -> 1    slot
+	 *   ( RTmp(_) -> 1    slot )
 	 *   RCon(_) -> 2    con
 	 *   0 * 2   -> 3    s * i (when constant is 1,2,4,8)
 	 */
@@ -637,12 +634,12 @@ anumber(ANum *ai, Blk *b, Tmp *tmp, Con *con)
 		[2] [5] = 5, [5] [2] = 5,
 		[2] [6] = 6, [6] [2] = 6,
 		[0] [0] = 4,              /* b + s * i */
-		[0] [1] = 4, [1] [0] = 4,
+		/* [0] [1] = 4, [1] [0] = 4, */
 		[0] [3] = 4, [3] [0] = 4,
 		[2] [3] = 5, [3] [2] = 5, /* o + s * i */
 		[2] [4] = 6, [4] [2] = 6, /* o + b + s * i */
 		[0] [5] = 6, [5] [0] = 6,
-		[1] [5] = 6, [5] [1] = 6,
+		/* [1] [5] = 6, [5] [1] = 6, */
 	};
 	int a, a1, a2, n1, n2, t1, t2;
 	Ins *i;
@@ -652,10 +649,10 @@ anumber(ANum *ai, Blk *b, Tmp *tmp, Con *con)
 			ai[i->to.val].i = i;
 		if (i->op != OAdd && i->op != OMul)
 			continue;
-		a1 = abase(i->arg[0], ai, tmp);
-		a2 = abase(i->arg[1], ai, tmp);
-		t1 = a1 != 9 & a1 != 1;
-		t2 = a2 != 9 & a2 != 1;
+		a1 = abase(i->arg[0], ai);
+		a2 = abase(i->arg[1], ai);
+		t1 = a1 != 1 & a1 != 2;
+		t2 = a2 != 1 & a2 != 2;
 		if (i->op == OAdd) {
 			a = add[n1 = a1][n2 = a2];
 			if (t1 && a < add[0][a2])
@@ -677,18 +674,77 @@ anumber(ANum *ai, Blk *b, Tmp *tmp, Con *con)
 	}
 }
 
-#if 0
-static void
-abuild(Addr *a, Ref r, ANum *ai, Fn *fn)
+/* static TESTING */ void
+amatch(Addr *a, Ref r, ANum *ai, Fn *fn, int top)
 {
-	memset(a, 0, sizeof *a);
-	if (rtype(r) == )
-	switch (ai[t].num) {
+	Ins *i;
+	int nl, nr, t;
+	Ref al, ar;
+
+	if (top)
+		memset(a, 0, sizeof *a);
+	if (rtype(r) == RCon) {
+		if (top)
+			a->base = r;
+		else
+			addcon(&a->offset, &fn->con[r.val]);
+		return;
+	}
+	assert(rtype(r) == RTmp);
+	i = ai[r.val].i;
+	nl = ai[r.val].l;
+	nr = ai[r.val].r;
+	if (i) {
+		if (nl > nr) {
+			al = i->arg[1];
+			ar = i->arg[0];
+			t = nl, nl = nr, nr = t;
+		} else {
+			al = i->arg[0];
+			ar = i->arg[1];
+		}
+	}
+	switch (ai[r.val].n) {
 	default:
-		a->base
+		diag("isel: amatch defaulted");
+	case 2:
+		amatch(a, al, ai, fn, 0);
+		amatch(a, ar, ai, fn, 0);
+		if (top) {
+			vgrow(&fn->con, ++fn->ncon);
+			fn->con[fn->ncon-1] = a->offset;
+			a->offset.type = CUndef;
+			a->base = CON(fn->ncon-1);
+		}
+		break;
+	case 3: /* s * i */
+		if (!top) {
+			a->index = al;
+			a->scale = fn->con[ar.val].val;
+			break;
+		}
+	case 0:
+		a->base = r;
+		break;
+	case 4: /* b + s * i */
+		switch (nr) {
+		case 0:
+			a->index = ar;
+			a->scale = 1;
+			break;
+		case 3:
+			amatch(a, ar, ai, fn, 0);
+			break;
+		}
+		a->base = al;
+		break;
+	case 5: /* o + s * i */
+	case 6: /* o + b + s * i */
+		amatch(a, ar, ai, fn, 0);
+		amatch(a, al, ai, fn, 0);
+		break;
 	}
 }
-#endif
 
 /* instruction selection
  * requires use counts (as given by parsing)
@@ -779,7 +835,7 @@ isel(Fn *fn)
 			}
 		for (m=0; m<n; m++)
 			ainfo[m] = (ANum){.n = 0, .i = 0};
-		anumber(ainfo, b, fn->tmp, fn->con);
+		anumber(ainfo, b, fn->con);
 		curi = &insb[NIns];
 		seljmp(b, fn);
 		for (i=&b->ins[b->nins]; i>b->ins;)
