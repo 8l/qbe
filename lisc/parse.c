@@ -32,6 +32,11 @@ OpDesc opdesc[NOp] = {
 	[OAlloc+1] = { "alloc8",  1 },
 	[OAlloc+2] = { "alloc16", 1 },
 
+#define X(n) [OXScale##n] = { "ofid" #n, 0 }
+	X(01), X(02), X(04), X(08),
+	X(11), X(12), X(14), X(18),
+#undef X
+
 #define X(t) \
 	[OLoad+T##t] = { "load" #t, 0 }, \
 	[OExt+T##t]  = { "ext"  #t, 1 },

@@ -5,6 +5,7 @@
 #include <string.h>
 
 typedef unsigned int uint;
+typedef unsigned short ushort;
 typedef unsigned long ulong;
 
 typedef struct Bits Bits;
@@ -177,10 +178,14 @@ enum Op {
 	OXSet,
 	OXSet1 = OXSet + NCmp-1,
 	OXTest,
-	OXScale1, /* memory addressing */
-	OXScale2,
-	OXScale3,
-	OXScale4,
+	OXScale01, /* memory addressing */
+	OXScale02,
+	OXScale04,
+	OXScale08,
+	OXScale11,
+	OXScale12,
+	OXScale14,
+	OXScale18,
 	NOp
 };
 
@@ -203,8 +208,8 @@ struct OpDesc {
 };
 
 struct Ins {
-	uint16_t op:15;
-	uint16_t wide:1;
+	ushort op:15;
+	ushort wide:1;
 	Ref to;
 	Ref arg[2];
 };

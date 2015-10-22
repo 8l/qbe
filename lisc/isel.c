@@ -17,6 +17,20 @@ typedef struct ANum ANum;
 typedef struct Addr Addr;
 typedef struct AClass AClass;
 
+struct ANum {
+	char n, l, r;
+	Ins *i;
+};
+
+struct Addr {
+	Con offset;
+	Ref base;
+	Ref index;
+	int scale;
+};
+
+/* static */ void amatch(Addr *, Ref, ANum *, Fn *, int);
+
 static int
 noimm(Ref r, Fn *fn)
 {
@@ -67,15 +81,18 @@ rslot(Ref r, Fn *fn)
 }
 
 static void
-sel(Ins i, Fn *fn)
+sel(Ins i, ANum *an, Fn *fn)
 {
+	static char logS[] = {[1] = 0, [2] = 1, [4] = 2, [8] = 3};
+	Ins *i0;
 	Ref r0, r1;
-	int n, c, s, w;
+	int n, x, s, w;
 	int64_t val;
 	struct {
 		Ref r;
 		int s;
 	} cpy[2];
+	Addr a;
 
 	for (n=0; n<2; n++) {
 		r0 = i.arg[n];
@@ -114,22 +131,6 @@ sel(Ins i, Fn *fn)
 		break;
 	case ONop:
 		break;
-	case OXPush:
-		n = 1;
-		goto Emit;
-	case OCall:
-	case OSAlloc:
-	case OCopy:
-	case_OExt:
-		n = 0;
-		goto Emit;
-	case OAdd:
-	case OSub:
-	case OMul:
-	case OAnd:
-	case OXTest:
-		n = w ? 2 : 0;
-		goto Emit;
 	case OStorel:
 	case OStorew:
 	case OStoreb:
@@ -138,17 +139,26 @@ sel(Ins i, Fn *fn)
 			i.arg[1] = SLOT(cpy[1].s);
 			cpy[1].s = -1;
 		}
-		n = i.op == OStorel;
 		goto Emit;
 	case_OLoad:
 		if (cpy[0].s != -1) {
 			i.arg[0] = SLOT(cpy[0].s);
 			cpy[0].s = -1;
 		}
-		n = 0;
+		goto Emit;
+	case OXPush:
+	case OCall:
+	case OSAlloc:
+	case OCopy:
+	case OAdd:
+	case OSub:
+	case OMul:
+	case OAnd:
+	case OXTest:
+	case_OExt:
 Emit:
 		emiti(i);
-		while (n--) {
+		for (n=0; n<2; n++) {
 			/* load constants that do not fit in
 			 * a 32bit signed integer into a
 			 * long temporary
@@ -157,6 +167,23 @@ Emit:
 			if (rtype(r0) == RCon && noimm(r0, fn)) {
 				curi->arg[n] = newtmp("isel", fn);
 				emit(OCopy, 1, curi->arg[n], r0, R);
+			}
+			if (opdesc[i.op].nmem > n)
+			if ((i0 = an[r0.val].i))
+			if (i0->op == OLoad+Tsw || i0->op == OLoad+Tl) {
+				amatch(&a, i0->arg[0], an, fn, 1);
+				i.arg[n] = a.base;
+				if (a.offset.type == CUndef)
+				if (req(a.index, R))
+					continue;
+				if (a.offset.type != CUndef) {
+					r1 = CON(fn->ncon);
+					vgrow(&fn->con, ++fn->ncon);
+					fn->con[r1.val] = a.offset;
+				} else
+					r1 = R;
+				x = OXScale01 + 8*n + logS[a.scale];
+				emit(x, 0, R, r1, a.index);
 			}
 		}
 		break;
@@ -188,10 +215,10 @@ Emit:
 		if (OLoad <= i.op && i.op <= OLoad1)
 			goto case_OLoad;
 		if (OCmp <= i.op && i.op <= OCmp1) {
-			c = i.op - OCmp;
+			x = i.op - OCmp;
 			if (rtype(i.arg[0]) == RCon)
-				c = COP(c);
-			emit(OXSet+c, 0, i.to, R, R);
+				x = COP(x);
+			emit(OXSet+x, 0, i.to, R, R);
 			selcmp(i.arg, w, fn);
 			break;
 		}
@@ -578,24 +605,12 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	}
 }
 
-struct ANum {
-	char n, l, r;
-	Ins *i;
-};
-
-struct Addr {
-	Con offset;
-	Ref base;
-	Ref index;
-	int scale;
-};
-
 static int
-abase(Ref r, ANum *ai)
+aref(Ref r, ANum *ai)
 {
 	switch (rtype(r)) {
 	default:
-		diag("isel: abase defaulted");
+		diag("isel: aref defaulted");
 	case RCon:
 		return 2;
 	case RTmp:
@@ -649,8 +664,8 @@ anumber(ANum *ai, Blk *b, Con *con)
 			ai[i->to.val].i = i;
 		if (i->op != OAdd && i->op != OMul)
 			continue;
-		a1 = abase(i->arg[0], ai);
-		a2 = abase(i->arg[1], ai);
+		a1 = aref(i->arg[0], ai);
+		a2 = aref(i->arg[1], ai);
 		t1 = a1 != 1 & a1 != 2;
 		t2 = a2 != 1 & a2 != 2;
 		if (i->op == OAdd) {
@@ -678,7 +693,7 @@ anumber(ANum *ai, Blk *b, Con *con)
 amatch(Addr *a, Ref r, ANum *ai, Fn *fn, int top)
 {
 	Ins *i;
-	int nl, nr, t;
+	int nl, nr, t, s;
 	Ref al, ar;
 
 	if (top)
@@ -721,14 +736,16 @@ amatch(Addr *a, Ref r, ANum *ai, Fn *fn, int top)
 		if (!top) {
 			a->index = al;
 			a->scale = fn->con[ar.val].val;
-			break;
-		}
-	case 0:
-		a->base = r;
+		} else
+			a->base = r;
 		break;
 	case 4: /* b + s * i */
 		switch (nr) {
 		case 0:
+			if (fn->tmp[ar.val].slot != -1) {
+				al = i->arg[1];
+				ar = i->arg[0];
+			}
 			a->index = ar;
 			a->scale = 1;
 			break;
@@ -736,7 +753,12 @@ amatch(Addr *a, Ref r, ANum *ai, Fn *fn, int top)
 			amatch(a, ar, ai, fn, 0);
 			break;
 		}
-		a->base = al;
+		r = al;
+	case 0:
+		s = fn->tmp[r.val].slot;
+		if (s != -1)
+			r = SLOT(s);
+		a->base = r;
 		break;
 	case 5: /* o + s * i */
 	case 6: /* o + b + s * i */
@@ -839,7 +861,7 @@ isel(Fn *fn)
 		curi = &insb[NIns];
 		seljmp(b, fn);
 		for (i=&b->ins[b->nins]; i>b->ins;)
-			sel(*--i, fn);
+			sel(*--i, ainfo, fn);
 		b->nins = &insb[NIns] - curi;
 		idup(&b->ins, curi, b->nins);
 	}
