@@ -32,11 +32,6 @@ OpDesc opdesc[NOp] = {
 	[OAlloc+1] = { "alloc8",  1 },
 	[OAlloc+2] = { "alloc16", 1 },
 
-#define X(n) [OXScale##n] = { "ofid" #n, 0 }
-	X(01), X(02), X(04), X(08),
-	X(11), X(12), X(14), X(18),
-#undef X
-
 #define X(t) \
 	[OLoad+T##t] = { "load" #t, 0 }, \
 	[OExt+T##t]  = { "ext"  #t, 1 },
@@ -624,8 +619,10 @@ parsefn()
 		err("last block misses jump");
 	fn->tmp = tmp;
 	fn->con = con;
+	fn->mem = vnew(0, sizeof fn->mem[0]);
 	fn->ntmp = ntmp;
 	fn->ncon = ncon;
+	fn->nmem = 0;
 	fn->nblk = nblk;
 	fn->rpo = 0;
 	return fn;

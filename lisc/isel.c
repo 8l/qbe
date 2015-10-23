@@ -14,19 +14,11 @@
  */
 
 typedef struct ANum ANum;
-typedef struct Addr Addr;
 typedef struct AClass AClass;
 
 struct ANum {
 	char n, l, r;
 	Ins *i;
-};
-
-struct Addr {
-	Con offset;
-	Ref base;
-	Ref index;
-	int scale;
 };
 
 static void amatch(Addr *, Ref, ANum *, Fn *, int);
@@ -83,7 +75,7 @@ rslot(Ref r, Fn *fn)
 static void
 sel(Ins i, ANum *an, Fn *fn)
 {
-	static char logS[] = {[1] = 0, [2] = 1, [4] = 2, [8] = 3};
+	static char logS[] = {[2] = 1, [4] = 2, [8] = 3};
 	Ins *i0;
 	Ref r0, r1;
 	int n, x, s, w;
@@ -145,7 +137,7 @@ sel(Ins i, ANum *an, Fn *fn)
 			i.arg[0] = SLOT(cpy[0].s);
 			cpy[0].s = -1;
 		}
-		goto Emit;
+		break;
 	case OXPush:
 	case OCall:
 	case OSAlloc:
@@ -158,6 +150,7 @@ sel(Ins i, ANum *an, Fn *fn)
 	case_OExt:
 Emit:
 		emiti(i);
+#if 0
 		for (n=0; n<2; n++) {
 			/* fuse memory loads into arithmetic
 			 * operations when the sizes match
@@ -183,6 +176,7 @@ Emit:
 				emit(x, 0, R, r1, a.index);
 			}
 		}
+#endif
 		for (n=0; n<2; n++) {
 			/* load constants that do not fit in
 			 * a 32bit signed integer into a
@@ -674,8 +668,8 @@ anumber(ANum *ai, Blk *b, Con *con)
 			continue;
 		a1 = aref(i->arg[0], ai);
 		a2 = aref(i->arg[1], ai);
-		t1 = a1 != 1 & a1 != 2;
-		t2 = a2 != 1 & a2 != 2;
+		t1 = a1 != 1 && a1 != 2;
+		t2 = a2 != 1 && a2 != 2;
 		if (i->op == OAdd) {
 			a = add[n1 = a1][n2 = a2];
 			if (t1 && a < add[0][a2])

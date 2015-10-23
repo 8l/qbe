@@ -16,6 +16,7 @@ typedef struct Phi Phi;
 typedef struct Blk Blk;
 typedef struct Tmp Tmp;
 typedef struct Con Con;
+typedef struct Addr Mem;
 typedef struct Fn Fn;
 typedef struct Typ Typ;
 typedef struct Dat Dat;
@@ -178,14 +179,6 @@ enum Op {
 	OXSet,
 	OXSet1 = OXSet + NCmp-1,
 	OXTest,
-	OXScale01, /* memory addressing */
-	OXScale02,
-	OXScale04,
-	OXScale08,
-	OXScale11,
-	OXScale12,
-	OXScale14,
-	OXScale18,
 	NOp
 };
 
@@ -265,12 +258,23 @@ struct Con {
 	int64_t val;
 };
 
+typedef struct Addr Addr;
+
+struct Addr { /* x64 addressing */
+	Con offset;
+	Ref base;
+	Ref index;
+	int scale;
+};
+
 struct Fn {
 	Blk *start;
 	Tmp *tmp;
 	Con *con;
+	Mem *mem;
 	int ntmp;
 	int ncon;
+	int nmem;
 	int nblk;
 	int retty;
 	Blk **rpo;
