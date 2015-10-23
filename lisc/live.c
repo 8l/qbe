@@ -92,7 +92,7 @@ Again:
 					bset(ma->index, b, &nlv);
 					break;
 				default:
-					bset(i->arg[0], b, &nlv);
+					bset(i->arg[m], b, &nlv);
 					break;
 				}
 			if (nlv > b->nlive)
