@@ -31,16 +31,48 @@ static char *ctoa[NCmp] = {
 	[Cne ] = "ne",
 };
 
+static int
+slot(int s, Fn *fn)
+{
+	struct { int i:14; } x;
+
+	x.i = s;
+	assert(NAlign == 3);
+	if (x.i < 0)
+		return -4 * x.i;
+	else {
+		assert(fn->slot >= x.i);
+		return -4 * (fn->slot - x.i);
+	}
+}
+
+static void
+emitcon(Con *con, FILE *f)
+{
+	switch (con->type) {
+	default:
+		diag("emit: invalid constant");
+	case CAddr:
+		fputs(con->label, f);
+		if (con->val)
+			fprintf(f, "%+"PRId64, con->val);
+		break;
+	case CNum:
+		fprintf(f, "%"PRId64, con->val);
+		break;
+	}
+}
+
 static void
 emitf(Fn *fn, FILE *f, char *fmt, ...)
 {
 	static char stoa[] = "qlwb";
 	va_list ap;
 	char c, *s, *s1;
-	int i, ty, off;
+	int i, ty;
 	Ref ref;
-	Con *con;
-	struct { int i:14; } x;
+	Mem *m;
+	Con off;
 
 	va_start(ap, fmt);
 	ty = SWord;
@@ -83,33 +115,32 @@ Next:
 			fprintf(f, "%%%s", rsub[ref.val][ty]);
 			break;
 		case RSlot:
-		Slot:
-			x.i = ref.val;
-			assert(NAlign == 3);
-			if (x.i < 0)
-				off = -4 * x.i;
-			else {
-				assert(fn->slot >= x.i);
-				off = -4 * (fn->slot - x.i);
+			fprintf(f, "%d(%%rbp)", slot(ref.val, fn));
+			break;
+		case RAMem:
+		Mem:
+			m = &fn->mem[ref.val & AMask];
+			if (rtype(m->base) == RSlot) {
+				off.type = CNum;
+				off.val = slot(m->base.val, fn);
+				addcon(&m->offset, &off);
+				m->base = TMP(RBP);
 			}
-			fprintf(f, "%d(%%rbp)", off);
+			if (m->offset.type != CUndef)
+				emitcon(&m->offset, f);
+			fputc('(', f);
+			if (!req(m->base, R))
+				fprintf(f, "%%%s", rsub[m->base.val][SLong]);
+			if (!req(m->index, R))
+				fprintf(f, ", %%%s, %d",
+					rsub[m->index.val][SLong],
+					m->scale
+				);
+			fputc(')', f);
 			break;
 		case RCon:
 			fputc('$', f);
-		Con:
-			con = &fn->con[ref.val];
-			switch (con->type) {
-			default:
-				diag("emit: invalid constant");
-			case CAddr:
-				fputs(con->label, f);
-				if (con->val)
-					fprintf(f, "%+"PRId64, con->val);
-				break;
-			case CNum:
-				fprintf(f, "%"PRId64, con->val);
-				break;
-			}
+			emitcon(&fn->con[ref.val], f);
 			break;
 		}
 		break;
@@ -118,10 +149,14 @@ Next:
 		switch (rtype(ref)) {
 		default:
 			diag("emit: invalid memory reference");
+		case RAMem:
+			goto Mem;
 		case RSlot:
-			goto Slot;
+			fprintf(f, "%d(%%rbp)", slot(ref.val, fn));
+			break;
 		case RCon:
-			goto Con;
+			emitcon(&fn->con[ref.val], f);
+			break;
 		case RTmp:
 			assert(isreg(ref));
 			fprintf(f, "(%%%s)", rsub[ref.val][SLong]);
