@@ -177,22 +177,22 @@ store(Ref r, int s)
 		emit(OStorew, 0, R, r, SLOT(s));
 }
 
-static int
+static void
 limit(Bits *b, int k, Bits *fst)
 {
 	static int *tarr, maxt;
-	int i, t, nt, w;
+	int i, t, nt;
 
 	nt = bcnt(b);
 	if (nt <= k)
-		return 0;
+		return;
 	if (nt > maxt) {
 		free(tarr);
 		tarr = emalloc(nt * sizeof tarr[0]);
 		maxt = nt;
 	}
 	i = 0;
-	for (t=0; t<ntmp; t++)
+	for (t=Tmp0; t<ntmp; t++)
 		if (BGET(*b, t)) {
 			BCLR(*b, t);
 			tarr[i++] = t;
@@ -206,43 +206,24 @@ limit(Bits *b, int k, Bits *fst)
 	}
 	for (i=0; i<k && i<nt; i++)
 		BSET(*b, tarr[i]);
-	for (; i<nt; i++) {
+	for (; i<nt; i++)
 		slot(tarr[i]);
-		if (curi) {
-			t = tarr[i];
-			w = tmp[t].wide;
-			emit(OLoad, w, TMP(t), slot(t), R);
-		}
-	}
-	return t;
 }
 
-static int
-setloc(Ref *pr, Bits *v, Bits *w)
+static void
+reloads(Bits *u, Bits *v)
 {
 	int t;
 
-	if (rtype(*pr) != RTmp)
-		return 0;
-	t = pr->val;
-	BSET(*v, t);
-	if (limit(v, NReg, w) == t)
-		/* if t was spilled by limit,
-		 * it was not live so we don't
-		 * have to reload it */
-		curi++;
-	if (!BGET(*v, t)) {
-		*pr = slot(t);
-		return 1;
-	} else {
-		BSET(*w, t);
-		return 0;
-	}
+	for (t=Tmp0; t<ntmp; t++)
+		if (BGET(*u, t) && !BGET(*v, t))
+			emit(OLoad, tmp[t].wide, TMP(t), slot(t), R);
 }
 
 static Ins *
 dopm(Blk *b, Ins *i, Bits *v)
 {
+	Bits u;
 	Ins *i1;
 
 	/* consecutive moves from
@@ -259,13 +240,14 @@ dopm(Blk *b, Ins *i, Bits *v)
 		|| !isreg((i-1)->arg[0]))
 			break;
 	}
+	u = *v;
 	if (i > b->ins && (i-1)->op == OCall) {
-		v->t[0] &= ~calldef(*i, 0);
+		v->t[0] &= ~calldef(*(i-1), 0);
 		limit(v, NReg - NRSave, 0);
-		v->t[0] |= calluse(*i, 0);
-		setloc(&i->arg[0], v, &(Bits){{0}});
+		v->t[0] |= calluse(*(i-1), 0);
 	} else
 		limit(v, NReg, 0);
+	reloads(&u, v);
 	do
 		emiti(*--i1);
 	while (i1 != i);
@@ -288,11 +270,12 @@ void
 spill(Fn *fn)
 {
 	Blk *b, *s1, *s2, *hd;
-	int n, z, l, t;
+	int n, m, z, l, t;
 	Bits u, v, w;
 	Ins *i;
 	int j, s;
 	Phi *p;
+	Mem *ma;
 
 	tmp = fn->tmp;
 	ntmp = fn->ntmp;
@@ -367,7 +350,6 @@ spill(Fn *fn)
 				continue;
 			}
 			s = -1;
-			w = (Bits){{0}};
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
 				t = i->to.val;
@@ -377,13 +359,32 @@ spill(Fn *fn)
 					limit(&v, NReg-1, 0);
 				s = tmp[t].slot;
 			}
+			w = (Bits){{0}};
 			j = opdesc[i->op].nmem;
-			if (!j && rtype(i->arg[0]) == RTmp)
-				BSET(w, i->arg[0].val);
-			j -= setloc(&i->arg[0], &v, &w);
-			if (!j && rtype(i->arg[1]) == RTmp)
-				BSET(w, i->arg[1].val);
-			j -= setloc(&i->arg[1], &v, &w);
+			j -= rtype(i->arg[0]) == RAMem;
+			j -= rtype(i->arg[1]) == RAMem;
+			for (m=0; t=i->arg[m].val, m<2; m++)
+				switch (rtype(i->arg[m])) {
+				case RAMem:
+					ma = &fn->mem[t & AMask];
+					if (rtype(ma->base) == RTmp) {
+						BSET(v, ma->base.val);
+						BSET(w, ma->base.val);
+					}
+					if (rtype(ma->index) == RTmp) {
+						BSET(v, ma->index.val);
+						BSET(w, ma->index.val);
+					}
+					break;
+				case RTmp:
+					BSET(v, t);
+					if (j-- <= 0)
+						BSET(w, t);
+					break;
+				}
+			u = v;
+			limit(&v, NReg, &w);
+			reloads(&u, &v);
 			if (s != -1)
 				store(i->to, s);
 			emiti(*i);
