@@ -19,6 +19,7 @@ typedef struct AClass AClass;
 struct ANum {
 	char n, l, r;
 	Ins *i;
+	Ref mem;
 };
 
 static void amatch(Addr *, Ref, ANum *, Fn *, int);
@@ -75,8 +76,6 @@ rslot(Ref r, Fn *fn)
 static void
 sel(Ins i, ANum *an, Fn *fn)
 {
-	static char logS[] = {[2] = 1, [4] = 2, [8] = 3};
-	Ins *i0;
 	Ref r0, r1;
 	int n, x, s, w;
 	int64_t val;
@@ -133,10 +132,20 @@ sel(Ins i, ANum *an, Fn *fn)
 		}
 		goto Emit;
 	case_OLoad:
-		if (cpy[0].s != -1) {
-			i.arg[0] = SLOT(cpy[0].s);
-			cpy[0].s = -1;
+		r0 = i.arg[0];
+		if (rtype(r0) == RTmp) {
+			r1 = an[r0.val].mem;
+			if (req(r1, R)) {
+				amatch(&a, r0, an, fn, 1);
+				vgrow(&fn->mem, ++fn->nmem);
+				fn->mem[fn->nmem-1] = a;
+				i.arg[0] = MEM(fn->nmem-1);
+				an[r0.val].mem = i.arg[0];
+			} else
+				i.arg[0] = r1;
 		}
+		cpy[0].s = -1;
+		emiti(i);
 		break;
 	case OXPush:
 	case OCall:
@@ -152,6 +161,7 @@ Emit:
 		emiti(i);
 #if 0
 		for (n=0; n<2; n++) {
+			Ins *i0;
 			/* fuse memory loads into arithmetic
 			 * operations when the sizes match
 			 */

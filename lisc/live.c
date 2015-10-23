@@ -40,6 +40,7 @@ filllive(Fn *f)
 	Ins *i;
 	int z, m, n, chg, nlv;
 	Bits u, v;
+	Mem *ma;
 
 	assert(f->ntmp <= NBit*BITS);
 	for (b=f->start; b; b=b->link) {
@@ -83,8 +84,17 @@ Again:
 				nlv -= BGET(b->in, i->to.val);
 				BCLR(b->in, i->to.val);
 			}
-			bset(i->arg[0], b, &nlv);
-			bset(i->arg[1], b, &nlv);
+			for (m=0; m<2; m++)
+				switch (rtype(i->arg[m])) {
+				case RAMem:
+					ma = &f->mem[i->arg[m].val & AMask];
+					bset(ma->base, b, &nlv);
+					bset(ma->index, b, &nlv);
+					break;
+				default:
+					bset(i->arg[0], b, &nlv);
+					break;
+				}
 			if (nlv > b->nlive)
 				b->nlive = nlv;
 		}

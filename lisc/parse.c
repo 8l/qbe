@@ -820,14 +820,17 @@ printref(Ref r, Fn *fn, FILE *f)
 			diag("printref: invalid constant");
 		}
 		break;
-	case RASlot:
-		fprintf(f, "S%d", r.val & AMask);
+	case RSlot:
+		fprintf(f, "S%d", r.val);
 		break;
 	case RACall:
 		fprintf(f, "%x", r.val & AMask);
 		break;
 	case RAType:
 		fprintf(f, ":%s", typ[r.val & AMask].name);
+		break;
+	case RAMem:
+		fprintf(f, "[]");
 		break;
 	}
 }

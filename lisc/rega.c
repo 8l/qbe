@@ -398,7 +398,7 @@ rega(Fn *fn)
 			npm = 0;
 			for (p=s->phi; p; p=p->link) {
 				dst = p->to;
-				assert(rtype(dst)==RASlot || rtype(dst)==RTmp);
+				assert(rtype(dst)==RSlot || rtype(dst)==RTmp);
 				if (rtype(dst) == RTmp) {
 					r = rfind(&beg[s->id], dst.val);
 					if (r == -1)

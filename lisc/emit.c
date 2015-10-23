@@ -40,7 +40,7 @@ emitf(Fn *fn, FILE *f, char *fmt, ...)
 	int i, ty, off;
 	Ref ref;
 	Con *con;
-	struct { int i:AShift; } x;
+	struct { int i:14; } x;
 
 	va_start(ap, fmt);
 	ty = SWord;
@@ -82,9 +82,9 @@ Next:
 			assert(isreg(ref));
 			fprintf(f, "%%%s", rsub[ref.val][ty]);
 			break;
-		case RASlot:
+		case RSlot:
 		Slot:
-			x.i = ref.val & AMask;
+			x.i = ref.val;
 			assert(NAlign == 3);
 			if (x.i < 0)
 				off = -4 * x.i;
@@ -116,9 +116,12 @@ Next:
 	case 'M':
 		ref = va_arg(ap, Ref);
 		switch (rtype(ref)) {
-		default:     diag("emit: invalid memory reference");
-		case RASlot: goto Slot;
-		case RCon:   goto Con;
+		default:
+			diag("emit: invalid memory reference");
+		case RSlot:
+			goto Slot;
+		case RCon:
+			goto Con;
 		case RTmp:
 			assert(isreg(ref));
 			fprintf(f, "(%%%s)", rsub[ref.val][SLong]);

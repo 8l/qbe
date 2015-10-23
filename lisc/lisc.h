@@ -80,7 +80,7 @@ struct Ref {
 enum Alt {
 	AType,
 	ACall,
-	ASlot,
+	AMem,
 
 	AShift = 12,
 	AMask = (1<<AShift) - 1
@@ -89,11 +89,12 @@ enum Alt {
 enum {
 	RTmp,
 	RCon,
+	RSlot,
 	RAlt,
 
 	RAType = RAlt + AType,
 	RACall = RAlt + ACall,
-	RASlot = RAlt + ASlot,
+	RAMem  = RAlt + AMem,
 
 	NRef = (1<<14) - 1
 };
@@ -102,10 +103,11 @@ enum {
 #define TMP(x)   (Ref){RTmp, x}
 #define CON(x)   (Ref){RCon, x}
 #define CON_Z    CON(0)          /* reserved zero constant */
+#define SLOT(x)  (Ref){RSlot, x}
 #define TYPE(x)  (Ref){RAlt, (x)|(AType<<AShift)}
 #define CALL(x)  (Ref){RAlt, (x)|(ACall<<AShift)}
-#define SLOT(x)  (assert(x<(1<<(AShift-1)) && "too many slots"), \
-                 (Ref){RAlt, (x)|(ASlot<<AShift)})
+#define MEM(x)   (assert(x<(1<<(AShift-1)) && "too many mems"), \
+                 (Ref){RAlt, (x)|(AMem<<AShift)})
 
 static inline int req(Ref a, Ref b)
 { return a.type == b.type && a.val == b.val; }
