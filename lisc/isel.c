@@ -29,7 +29,7 @@ struct Addr {
 	int scale;
 };
 
-/* static */ void amatch(Addr *, Ref, ANum *, Fn *, int);
+static void amatch(Addr *, Ref, ANum *, Fn *, int);
 
 static int
 noimm(Ref r, Fn *fn)
@@ -165,7 +165,9 @@ Emit:
 			r0 = i.arg[n];
 			if (opdesc[i.op].nmem > n)
 			if ((i0 = an[r0.val].i))
-			if (i0->op == OLoad+Tsw || i0->op == OLoad+Tl) {
+			if (i0->op >= OLoad+Tl)
+			if ((i.wide == 0 && i0->op <= OLoad+Tsw)
+			||  (i.wide == 1 && i0->op <= OLoad+Tl)) {
 				amatch(&a, i0->arg[0], an, fn, 1);
 				curi->arg[n] = a.base;
 				if (a.offset.type == CUndef)
@@ -695,7 +697,7 @@ anumber(ANum *ai, Blk *b, Con *con)
 	}
 }
 
-/* static TESTING */ void
+static void
 amatch(Addr *a, Ref r, ANum *ai, Fn *fn, int top)
 {
 	Ins *i;
