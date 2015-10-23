@@ -15,6 +15,7 @@ struct RMap {
 
 static ulong regu;     /* registers used */
 static Tmp *tmp;       /* function temporaries */
+static Mem *mem;       /* function mem references */
 static struct {
 	Ref src, dst;
 	int wide;
@@ -278,6 +279,7 @@ doblk(Blk *b, RMap *cur)
 	int t, x, r;
 	ulong rs;
 	Ins *i;
+	Mem *m;
 
 	if (rtype(b->jmp.arg) == RTmp)
 		b->jmp.arg = ralloc(cur, b->jmp.arg.val);
@@ -310,16 +312,23 @@ doblk(Blk *b, RMap *cur)
 				r = 0;
 			break;
 		}
-		for (x=0; x<2; x++)
-			if (rtype(i->arg[x]) == RTmp) {
+		for (x=0; t=i->arg[x].val, x<2; x++)
+			switch (rtype(i->arg[x])) {
+			case RAMem:
+				m = &mem[t & AMask];
+				if (rtype(m->base) == RTmp)
+					m->base = ralloc(cur, m->base.val);
+				if (rtype(m->index) == RTmp)
+					m->index = ralloc(cur, m->index.val);
+				break;
+			case RTmp:
+#if 0
 				/* <arch>
 				 *   on Intel, we attempt to
 				 *   use the same register
 				 *   for the return and one
 				 *   argument
 				 */
-				t = i->arg[x].val;
-#if 0
 			 	/* might not be a so good idea...
 				 */
 				if (r && !BGET(cur->b, r))
@@ -327,6 +336,7 @@ doblk(Blk *b, RMap *cur)
 					*hint(t) = r;
 #endif
 				i->arg[x] = ralloc(cur, t);
+				break;
 			}
 	}
 }
@@ -347,6 +357,7 @@ rega(Fn *fn)
 	/* 1. setup */
 	regu = 0;
 	tmp = fn->tmp;
+	mem = fn->mem;
 	end = alloc(fn->nblk * sizeof end[0]);
 	beg = alloc(fn->nblk * sizeof beg[0]);
 	for (t=Tmp0; t<fn->ntmp; t++)
