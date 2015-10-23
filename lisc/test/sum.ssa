@@ -9,7 +9,7 @@ function w $sum(l %arr, w %num) {
 	%c =w cslt %n1, 0
 	jnz %c, @end, @loop1
 @loop1
-	%idx0 =l extuw %num
+	%idx0 =l extuw %n1
 	%idx1 =l mul 4, %idx0
 	%idx2 =l add %idx1, %arr
 	%w =w loadw %idx2
