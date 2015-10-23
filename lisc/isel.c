@@ -11,6 +11,7 @@
  *   on instructions like division.
  * - implement fast locals (the streak of
  *   constant allocX in the first basic block)
+ * - recognize complex addressing modes
  */
 
 typedef struct ANum ANum;
@@ -167,8 +168,7 @@ Emit:
 			 */
 			r0 = i.arg[n];
 			if (opdesc[i.op].nmem > n)
-			if ((i0 = an[r0.val].i))
-			if (i0->op >= OLoad+Tl)
+			if ((i0 = an[r0.val].i) && i0->op >= OLoad+Tl)
 			if ((i.wide == 0 && i0->op <= OLoad+Tsw)
 			||  (i.wide == 1 && i0->op <= OLoad+Tl)) {
 				amatch(&a, i0->arg[0], an, fn, 1);
