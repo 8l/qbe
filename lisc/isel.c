@@ -141,7 +141,9 @@ sel(Ins i, ANum *an, Fn *fn)
 				vgrow(&fn->mem, ++fn->nmem);
 				fn->mem[fn->nmem-1] = a;
 				i.arg[0] = MEM(fn->nmem-1);
-				an[r0.val].mem = i.arg[0];
+				if (rtype(a.base) != RTmp)
+				if (req(a.index, R))
+					an[r0.val].mem = i.arg[0];
 			} else
 				i.arg[0] = r1;
 		}
