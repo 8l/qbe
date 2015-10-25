@@ -202,6 +202,7 @@ addcon(Con *c0, Con *c1)
 		if (c1->type == CAddr) {
 			if (c0->type == CAddr)
 				diag("addcon: adding two addresses");
+			c0->type = CAddr;
 			strcpy(c0->label, c1->label);
 		}
 		c0->val += c1->val;
