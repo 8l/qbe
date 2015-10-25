@@ -713,10 +713,7 @@ amatch(Addr *a, Ref r, ANum *ai, Fn *fn, int top)
 	if (top)
 		memset(a, 0, sizeof *a);
 	if (rtype(r) == RCon) {
-		if (top)
-			a->base = r;
-		else
-			addcon(&a->offset, &fn->con[r.val]);
+		addcon(&a->offset, &fn->con[r.val]);
 		return;
 	}
 	assert(rtype(r) == RTmp);
