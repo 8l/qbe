@@ -128,6 +128,8 @@ Next:
 			}
 			if (m->offset.type != CUndef)
 				emitcon(&m->offset, f);
+			if (req(m->base, R) && req(m->index, R))
+				break;
 			fputc('(', f);
 			if (!req(m->base, R))
 				fprintf(f, "%%%s", rsub[m->base.val][SLong]);
