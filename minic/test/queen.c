@@ -1,5 +1,6 @@
 int printf();
 void *calloc();
+int atoi();
 
 int Q;
 int N;
