@@ -797,8 +797,28 @@ parse(FILE *f, void data(Dat *), void func(Fn *))
 }
 
 static void
+printcon(Con *c, FILE *f)
+{
+	switch (c->type) {
+	case CUndef:
+		break;
+	case CAddr:
+		fprintf(f, "$%s", c->label);
+		if (c->val)
+			fprintf(f, "%+"PRIi64, c->val);
+		break;
+	case CNum:
+		fprintf(f, "%"PRIi64, c->val);
+		break;
+	}
+}
+
+static void
 printref(Ref r, Fn *fn, FILE *f)
 {
+	int i;
+	Mem *m;
+
 	switch (rtype(r)) {
 	case RTmp:
 		if (r.val < Tmp0)
@@ -807,18 +827,7 @@ printref(Ref r, Fn *fn, FILE *f)
 			fprintf(f, "%%%s", fn->tmp[r.val].name);
 		break;
 	case RCon:
-		switch (fn->con[r.val].type) {
-		case CAddr:
-			fprintf(f, "$%s", fn->con[r.val].label);
-			if (fn->con[r.val].val)
-				fprintf(f, "%+"PRIi64, fn->con[r.val].val);
-			break;
-		case CNum:
-			fprintf(f, "%"PRIi64, fn->con[r.val].val);
-			break;
-		case CUndef:
-			diag("printref: invalid constant");
-		}
+		printcon(&fn->con[r.val], f);
 		break;
 	case RSlot:
 		fprintf(f, "S%d", r.val);
@@ -830,7 +839,26 @@ printref(Ref r, Fn *fn, FILE *f)
 		fprintf(f, ":%s", typ[r.val & AMask].name);
 		break;
 	case RAMem:
-		fprintf(f, "[]");
+		i = 0;
+		m = &fn->mem[r.val & AMask];
+		fputc('[', f);
+		if (m->offset.type != CUndef) {
+			printcon(&m->offset, f);
+			i = 1;
+		}
+		if (!req(m->base, R)) {
+			if (i)
+				fprintf(f, " + ");
+			printref(m->base, fn, f);
+			i = 1;
+		}
+		if (!req(m->index, R)) {
+			if (i)
+				fprintf(f, " + ");
+			fprintf(f, "%d * ", m->scale);
+			printref(m->index, fn, f);
+		}
+		fputc(']', f);
 		break;
 	}
 }
