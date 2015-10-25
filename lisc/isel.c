@@ -736,16 +736,6 @@ amatch(Addr *a, Ref r, ANum *ai, Fn *fn, int top)
 	switch (ai[r.val].n) {
 	default:
 		diag("isel: amatch defaulted");
-	case 2:
-		amatch(a, al, ai, fn, 0);
-		amatch(a, ar, ai, fn, 0);
-		if (top) {
-			vgrow(&fn->con, ++fn->ncon);
-			fn->con[fn->ncon-1] = a->offset;
-			a->offset.type = CUndef;
-			a->base = CON(fn->ncon-1);
-		}
-		break;
 	case 3: /* s * i */
 		if (!top) {
 			a->index = al;
@@ -774,6 +764,7 @@ amatch(Addr *a, Ref r, ANum *ai, Fn *fn, int top)
 			r = SLOT(s);
 		a->base = r;
 		break;
+	case 2: /* constants */
 	case 5: /* o + s * i */
 	case 6: /* o + b + s * i */
 		amatch(a, ar, ai, fn, 0);
