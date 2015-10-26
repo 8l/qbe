@@ -360,9 +360,9 @@ doblk(Blk *b, RMap *cur)
 void
 rega(Fn *fn)
 {
-	int n, t, r, x;
+	int j, n, t, r, r1, x;
 	Blk *b, *b1, *s, ***ps, *blist;
-	RMap *end, *beg, cur;
+	RMap *end, *beg, cur, old;
 	Ins *i;
 	Phi *p;
 	uint u;
@@ -401,14 +401,36 @@ rega(Fn *fn)
 			}
 		end[n] = cur;
 		doblk(b, &cur);
-		beg[n] = cur;
 		b->in = cur.b;
 		for (p=b->phi; p; p=p->link)
-			if (rtype(p->to) == RTmp) {
-				t = p->to.val;
-				BCLR(b->in, t);
-				/* rfree(&cur, t); */
+			if (rtype(p->to) == RTmp)
+				BCLR(b->in, p->to.val);
+		if (b->npred > 1) {
+			/* attempt to satisfy hints
+			 * when it's simple and we have
+			 * multiple predecessors
+			 */
+			old = cur;
+			curi = insb;
+			for (j=0; j<old.n; j++) {
+				t = old.t[j];
+				r = *hint(t);
+				r1 = rfind(&cur, t);
+				if (r != -1 && r != r1)
+				if (!BGET(cur.b, r)) {
+					rfree(&cur, t);
+					radd(&cur, t, r);
+					*curi++ = (Ins){OCopy, tmp[t].wide, TMP(r1), {TMP(r)}};
+				}
 			}
+			if ((j = curi - insb)) {
+				b->nins += j;
+				i = alloc(b->nins * sizeof(Ins));
+				icpy(icpy(i, insb, j), b->ins, b->nins-j);
+				b->ins = i;
+			}
+		}
+		beg[n] = cur;
 	}
 	if (debug['R'])  {
 		fprintf(stderr, "\n> Register mappings:\n");
