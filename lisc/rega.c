@@ -363,6 +363,7 @@ rega(Fn *fn)
 	int n, t, r, x;
 	Blk *b, *b1, *s, ***ps, *blist;
 	RMap *end, *beg, cur;
+	Ins *i;
 	Phi *p;
 	uint u;
 	Ref src, dst;
@@ -375,6 +376,13 @@ rega(Fn *fn)
 	beg = alloc(fn->nblk * sizeof beg[0]);
 	for (t=Tmp0; t<fn->ntmp; t++)
 		tmp[t].hint = -1;
+	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
+		if (i->op != OCopy || !isreg(i->arg[0]))
+			break;
+		else {
+			assert(rtype(i->to) == RTmp);
+			*hint(i->to.val) = i->arg[0].val;
+		}
 
 	/* 2. assign registers following post-order */
 	for (n=fn->nblk-1; n>=0; n--) {
