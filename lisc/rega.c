@@ -273,13 +273,37 @@ dopm(Blk *b, Ins *i, RMap *m)
 	return ir;
 }
 
+static int
+prio(Ref r1, Ref r2)
+{
+	/* trivial heuristic to begin with,
+	 * later we can use the distance to
+	 * the definition instruction
+	 */
+	(void) r2;
+	return *hint(r1.val) != -1;
+}
+
+static void
+insert(Ref *r, Ref **rs, int p)
+{
+	int i;
+
+	rs[i = p] = r;
+	while (i-- > 0 && prio(*r, *rs[i])) {
+		rs[i+1] = rs[i];
+		rs[i] = r;
+	}
+}
+
 static void
 doblk(Blk *b, RMap *cur)
 {
-	int t, x, r;
+	int x, r, nr;
 	ulong rs;
 	Ins *i;
 	Mem *m;
+	Ref *ra[4];
 
 	if (rtype(b->jmp.arg) == RTmp)
 		b->jmp.arg = ralloc(cur, b->jmp.arg.val);
@@ -312,32 +336,21 @@ doblk(Blk *b, RMap *cur)
 				r = 0;
 			break;
 		}
-		for (x=0; t=i->arg[x].val, x<2; x++)
+		for (x=0, nr=0; x<2; x++)
 			switch (rtype(i->arg[x])) {
 			case RAMem:
-				m = &mem[t & AMask];
+				m = &mem[i->arg[x].val & AMask];
 				if (rtype(m->base) == RTmp)
-					m->base = ralloc(cur, m->base.val);
+					insert(&m->base, ra, nr++);
 				if (rtype(m->index) == RTmp)
-					m->index = ralloc(cur, m->index.val);
+					insert(&m->index, ra, nr++);
 				break;
 			case RTmp:
-#if 0
-				/* <arch>
-				 *   on Intel, we attempt to
-				 *   use the same register
-				 *   for the return and one
-				 *   argument
-				 */
-			 	/* might not be a so good idea...
-				 */
-				if (r && !BGET(cur->b, r))
-				if (*hint(t) == -1)
-					*hint(t) = r;
-#endif
-				i->arg[x] = ralloc(cur, t);
+				insert(&i->arg[x], ra, nr++);
 				break;
 			}
+		for (r=0; r<nr; r++)
+			*ra[r] = ralloc(cur, ra[r]->val);
 	}
 }
 
