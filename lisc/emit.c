@@ -326,11 +326,6 @@ eins(Ins i, Fn *fn, FILE *f)
 		emitf(fn, f, "idiv%w %R", i.wide, i.arg[0]);
 		break;
 	case OXCmp:
-		if (isreg(i.arg[1]) && req(i.arg[0], CON_Z)) {
-			emitf(fn, f, "test%w %R, %R",
-				i.wide, i.arg[1], i.arg[1]);
-			break;
-		}
 		emitf(fn, f, "cmp%w %R, %R", i.wide, i.arg[0], i.arg[1]);
 		break;
 	case OXTest:
