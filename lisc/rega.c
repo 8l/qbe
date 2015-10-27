@@ -360,7 +360,7 @@ doblk(Blk *b, RMap *cur)
 void
 rega(Fn *fn)
 {
-	int j, n, t, r, r1, x;
+	int j, n, t, r, r1, x, rl[RAX+NReg];
 	Blk *b, *b1, *s, ***ps, *blist;
 	RMap *end, *beg, cur, old;
 	Ins *i;
@@ -403,15 +403,36 @@ rega(Fn *fn)
 		doblk(b, &cur);
 		b->in = cur.b;
 		for (p=b->phi; p; p=p->link)
-			if (rtype(p->to) == RTmp)
+			if (rtype(p->to) == RTmp) {
 				BCLR(b->in, p->to.val);
+				/* heuristic 0:
+				 * if the phi destination has an
+				 * argument from a frequent block
+				 * that was already allocated to
+				 * 'r', use 'r' as the new hint
+				 */
+				memset(rl, 0, sizeof rl);
+				for (u=0; u<p->narg; u++) {
+					t = p->arg[u].val;
+					b1 = p->blk[u];
+					if (rtype(p->arg[u]) == RTmp)
+					if ((r=rfind(&end[b1->id], t)) != -1)
+						rl[r] += b1->loop;
+				}
+				for (x=0, j=RAX; j<RAX+NReg; j++)
+					if (rl[j] > rl[x])
+						x = j;
+				if (rl[x] >= b->loop)
+					*hint(p->to.val) = x;
+			}
 		if (b->npred > 1) {
-			/* attempt to satisfy hints
+			/* heuristic 1:
+			 * attempt to satisfy hints
 			 * when it's simple and we have
 			 * multiple predecessors
 			 */
 			old = cur;
-			curi = insb;
+			curi = &insb[NIns];
 			for (j=0; j<old.n; j++) {
 				t = old.t[j];
 				r = *hint(t);
@@ -420,13 +441,14 @@ rega(Fn *fn)
 				if (!BGET(cur.b, r)) {
 					rfree(&cur, t);
 					radd(&cur, t, r);
-					*curi++ = (Ins){OCopy, tmp[t].wide, TMP(r1), {TMP(r)}};
+					x = tmp[t].wide;
+					emit(OCopy, x, TMP(r1), TMP(r), R);
 				}
 			}
-			if ((j = curi - insb)) {
+			if ((j = &insb[NIns] - curi)) {
 				b->nins += j;
 				i = alloc(b->nins * sizeof(Ins));
-				icpy(icpy(i, insb, j), b->ins, b->nins-j);
+				icpy(icpy(i, curi, j), b->ins, b->nins-j);
 				b->ins = i;
 			}
 		}
