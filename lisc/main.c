@@ -50,9 +50,9 @@ func(Fn *fn)
 	isel(fn);
 	fillrpo(fn);
 	fillpreds(fn);
+	fillphi(fn);
 	filllive(fn);
 	fillcost(fn);
-	fillphi(fn);
 	spill(fn);
 	rega(fn);
 	fillrpo(fn);
