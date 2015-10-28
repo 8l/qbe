@@ -19,18 +19,10 @@ liveon(Blk *b, Blk *s)
 }
 
 static void
-bset(Ref r, Blk *b, int *nlv, short *phi, Tmp *tmp)
+phifix(int t1, short *phi, Tmp *tmp)
 {
-	int t, t1, t2;
+	int t, t2;
 
-	if (rtype(r) != RTmp)
-		return;
-	t1 = r.val;
-	BSET(b->gen, t1);
-	if (!BGET(b->in, t1)) {
-		++*nlv;
-		BSET(b->in, t1);
-	}
 	/* detect temporaries in the same
 	 * phi-class that interfere and
 	 * separate them
@@ -38,12 +30,29 @@ bset(Ref r, Blk *b, int *nlv, short *phi, Tmp *tmp)
 	t = phirepr(tmp, t1);
 	t2 = phi[t];
 	if (t2 && t2 != t1) {
-		if (tmp[t1].phi != t1)
+		if (tmp[t1].phi != t1) {
 			tmp[t1].phi = t1;
-		else
+			t = t1;
+		} else {
 			tmp[t2].phi = t2;
+			phi[t2] = t2;
+		}
 	}
 	phi[t] = t1;
+}
+
+static void
+bset(Ref r, Blk *b, int *nlv, short *phi, Tmp *tmp)
+{
+
+	if (rtype(r) != RTmp)
+		return;
+	BSET(b->gen, r.val);
+	phifix(r.val, phi, tmp);
+	if (!BGET(b->in, r.val)) {
+		++*nlv;
+		BSET(b->in, r.val);
+	}
 }
 
 /* liveness analysis
@@ -85,11 +94,11 @@ Again:
 		chg |= memcmp(&b->out, &u, sizeof(Bits));
 
 		memset(phi, 0, f->ntmp * sizeof phi[0]);
-		b->in = (Bits){{0}};
-		nlv = 0;
+		b->in = b->out;
+		nlv = bcnt(&b->in);
 		for (t=0; t<f->ntmp; t++)
-			if (BGET(b->out, t))
-				bset(TMP(t), b, &nlv, phi, f->tmp);
+			if (BGET(b->in, t))
+				phifix(t, phi, f->tmp);
 		bset(b->jmp.arg, b, &nlv, phi, f->tmp);
 		b->nlive = nlv;
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
@@ -104,6 +113,7 @@ Again:
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
 				nlv -= BGET(b->in, i->to.val);
+				BSET(b->gen, i->to.val);
 				BCLR(b->in, i->to.val);
 				t = phirepr(f->tmp, i->to.val);
 				phi[t] = 0;
@@ -136,6 +146,8 @@ Again:
 			dumpts(&b->in, f->tmp, stderr);
 			fprintf(stderr, "\t          out:  ");
 			dumpts(&b->out, f->tmp, stderr);
+			fprintf(stderr, "\t          gen:  ");
+			dumpts(&b->gen, f->tmp, stderr);
 			fprintf(stderr, "\t          live: %d\n", b->nlive);
 		}
 	}
