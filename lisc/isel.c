@@ -47,6 +47,66 @@ noimm(Ref r, Fn *fn)
 	}
 }
 
+static int
+rslot(Ref r, Fn *fn)
+{
+	if (rtype(r) != RTmp)
+		return -1;
+	return fn->tmp[r.val].slot;
+}
+
+static void
+fixargs(Ins *i, Fn *fn)
+{
+	Ref r0, r1;
+	int s, n;
+
+	for (n=0; n<2; n++) {
+		/* load constants that do not fit in
+		 * a 32bit signed integer into a
+		 * long temporary
+		 */
+		r0 = i->arg[n];
+		if (rtype(r0) == RCon && noimm(r0, fn)) {
+			r1 = newtmp("isel", fn);
+			i->arg[n] = r1;
+			emit(OCopy, 1, r1, r0, R);
+		}
+		/* load fast locals' addresses into
+		 * temporaries right before the
+		 * instruction
+		 */
+		s = rslot(r0, fn);
+		if (s != -1) {
+			r1 = newtmp("isel", fn);
+			i->arg[n] = r1;
+			emit(OAddr, 1, r1, SLOT(s), R);
+		}
+	}
+}
+
+static void
+seladdr(Ref *r, ANum *an, Fn *fn)
+{
+	Addr a;
+	Ref r0, r1;
+
+	r0 = *r;
+	if (rtype(r0) == RTmp) {
+		r1 = an[r0.val].mem;
+		if (req(r1, R)) {
+			amatch(&a, r0, an, fn, 1);
+			vgrow(&fn->mem, ++fn->nmem);
+			fn->mem[fn->nmem-1] = a;
+			r1 = MEM(fn->nmem-1);
+			if (rtype(a.base) != RTmp)
+			if (req(a.index, R))
+				an[r0.val].mem = r1;
+		}
+		*r = r1;
+	}
+}
+
 static void
 selcmp(Ref arg[2], int w, Fn *fn)
 {
@@ -59,45 +119,18 @@ selcmp(Ref arg[2], int w, Fn *fn)
 	}
 	assert(rtype(arg[0]) != RCon);
 	emit(OXCmp, w, R, arg[1], arg[0]);
-	r = arg[1];
-	if (w && rtype(r) == RCon && noimm(r, fn)) {
-		curi->arg[0] = newtmp("isel", fn);
-		emit(OCopy, w, curi->arg[0], r, R);
-	}
-}
-
-static int
-rslot(Ref r, Fn *fn)
-{
-	if (rtype(r) != RTmp)
-		return -1;
-	return fn->tmp[r.val].slot;
+	fixargs(curi, fn);
 }
 
 static void
 sel(Ins i, ANum *an, Fn *fn)
 {
 	Ref r0, r1;
-	int n, x, s, w;
+	int x, w;
 	int64_t val;
-	struct {
-		Ref r;
-		int s;
-	} cpy[2];
-	Addr a;
+	Ins *i0;
 
-	for (n=0; n<2; n++) {
-		r0 = i.arg[n];
-		cpy[n].s = -1;
-		s = rslot(r0, fn);
-		if (s != -1) {
-			r0 = newtmp("isel", fn);
-			i.arg[n] = r0;
-			cpy[n].r = r0;
-			cpy[n].s = s;
-		}
-	}
-
+	i0 = curi;
 	w = i.wide;
 	switch (i.op) {
 	case ODiv:
@@ -127,29 +160,11 @@ sel(Ins i, ANum *an, Fn *fn)
 	case OStorew:
 	case OStoreb:
 	case OStores:
-		if (cpy[1].s != -1) {
-			i.arg[1] = SLOT(cpy[1].s);
-			cpy[1].s = -1;
-		}
+		seladdr(&i.arg[1], an, fn);
 		goto Emit;
 	case_OLoad:
-		r0 = i.arg[0];
-		if (rtype(r0) == RTmp) {
-			r1 = an[r0.val].mem;
-			if (req(r1, R)) {
-				amatch(&a, r0, an, fn, 1);
-				vgrow(&fn->mem, ++fn->nmem);
-				fn->mem[fn->nmem-1] = a;
-				i.arg[0] = MEM(fn->nmem-1);
-				if (rtype(a.base) != RTmp)
-				if (req(a.index, R))
-					an[r0.val].mem = i.arg[0];
-			} else
-				i.arg[0] = r1;
-		}
-		cpy[0].s = -1;
-		emiti(i);
-		break;
+		seladdr(&i.arg[0], an, fn);
+		goto Emit;
 	case OXPush:
 	case OCall:
 	case OSAlloc:
@@ -162,44 +177,7 @@ sel(Ins i, ANum *an, Fn *fn)
 	case_OExt:
 Emit:
 		emiti(i);
-#if 0
-		for (n=0; n<2; n++) {
-			Ins *i0;
-			/* fuse memory loads into arithmetic
-			 * operations when the sizes match
-			 */
-			r0 = i.arg[n];
-			if (opdesc[i.op].nmem > n)
-			if ((i0 = an[r0.val].i) && i0->op >= OLoad+Tl)
-			if ((i.wide == 0 && i0->op <= OLoad+Tsw)
-			||  (i.wide == 1 && i0->op <= OLoad+Tl)) {
-				amatch(&a, i0->arg[0], an, fn, 1);
-				curi->arg[n] = a.base;
-				if (a.offset.type == CUndef)
-				if (req(a.index, R))
-					continue;
-				if (a.offset.type != CUndef) {
-					r1 = CON(fn->ncon);
-					vgrow(&fn->con, ++fn->ncon);
-					fn->con[r1.val] = a.offset;
-				} else
-					r1 = R;
-				x = OXScale01 + 8*n + logS[a.scale];
-				emit(x, 0, R, r1, a.index);
-			}
-		}
-#endif
-		for (n=0; n<2; n++) {
-			/* load constants that do not fit in
-			 * a 32bit signed integer into a
-			 * long temporary
-			 */
-			r0 = i.arg[n];
-			if (rtype(r0) == RCon && noimm(r0, fn)) {
-				curi->arg[n] = newtmp("isel", fn);
-				emit(OCopy, 1, curi->arg[n], r0, R);
-			}
-		}
+		fixargs(curi, fn);
 		break;
 	case OAlloc:
 	case OAlloc+1:
@@ -239,9 +217,10 @@ Emit:
 		diag("isel: non-exhaustive implementation");
 	}
 
-	for (n=0; n<2; n++)
-		if (cpy[n].s != -1)
-			emit(OAddr, 1, cpy[n].r, SLOT(cpy[n].s), R);
+	while (i0 > curi && --i0)
+		if (rslot(i0->arg[0], fn) != -1
+		||  rslot(i0->arg[1], fn) != -1)
+			diag("isel: usupported address argument");
 }
 
 static Ins *
