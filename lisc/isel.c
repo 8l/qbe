@@ -12,6 +12,11 @@
  * - implement fast locals (the streak of
  *   constant allocX in the first basic block)
  * - recognize complex addressing modes
+ *
+ * Invariant: the use counts that are used
+ *            in sel() must be sound.  This
+ *            is not so trivial, maybe the
+ *            dce should be moved out...
  */
 
 typedef struct ANum ANum;
@@ -86,6 +91,13 @@ fixargs(Ins *i, Fn *fn)
 }
 
 static void
+chuse(Ref r, int du, Fn *fn)
+{
+	if (rtype(r) == RTmp)
+		fn->tmp[r.val].nuse += du;
+}
+
+static void
 seladdr(Ref *r, ANum *an, Fn *fn)
 {
 	Addr a;
@@ -93,14 +105,17 @@ seladdr(Ref *r, ANum *an, Fn *fn)
 
 	r0 = *r;
 	if (rtype(r0) == RTmp) {
+		chuse(r0, -1, fn);
 		r1 = an[r0.val].mem;
 		if (req(r1, R)) {
 			amatch(&a, r0, an, fn, 1);
 			vgrow(&fn->mem, ++fn->nmem);
 			fn->mem[fn->nmem-1] = a;
 			r1 = MEM(fn->nmem-1);
+			chuse(a.base, +1, fn);
+			chuse(a.index, +1, fn);
 			if (rtype(a.base) != RTmp)
-			if (req(a.index, R))
+			if (rtype(a.index) != RTmp)
 				an[r0.val].mem = r1;
 		}
 		*r = r1;
@@ -130,6 +145,13 @@ sel(Ins i, ANum *an, Fn *fn)
 	int64_t val;
 	Ins *i0;
 
+	if (rtype(i.to) == RTmp)
+	if (!isreg(i.to) && !isreg(i.arg[0]) && !isreg(i.arg[1]))
+	if (fn->tmp[i.to.val].nuse == 0) {
+		chuse(i.arg[0], -1, fn);
+		chuse(i.arg[1], -1, fn);
+		return;
+	}
 	i0 = curi;
 	w = i.wide;
 	switch (i.op) {
