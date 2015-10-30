@@ -192,7 +192,7 @@ limit(Bits *b, int k, Bits *fst)
 		maxt = nt;
 	}
 	i = 0;
-	for (t=Tmp0; t<ntmp; t++)
+	for (t=0; t<ntmp; t++)
 		if (BGET(*b, t)) {
 			BCLR(*b, t);
 			tarr[i++] = t;
@@ -270,7 +270,7 @@ void
 spill(Fn *fn)
 {
 	Blk *b, *s1, *s2, *hd;
-	int n, m, z, l, t;
+	int n, m, z, l, t, lvarg[2];
 	Bits u, v, w;
 	Ins *i;
 	int j, s;
@@ -355,8 +355,11 @@ spill(Fn *fn)
 				t = i->to.val;
 				if (BGET(v, t))
 					BCLR(v, t);
-				else
+				else {
+					u = v;
 					limit(&v, NReg-1, 0);
+					reloads(&u, &v);
+				}
 				s = tmp[t].slot;
 			}
 			w = (Bits){{0}};
@@ -377,6 +380,7 @@ spill(Fn *fn)
 					}
 					break;
 				case RTmp:
+					lvarg[m] = BGET(v, t);
 					BSET(v, t);
 					if (j-- <= 0)
 						BSET(w, t);
@@ -384,6 +388,18 @@ spill(Fn *fn)
 				}
 			u = v;
 			limit(&v, NReg, &w);
+			for (m=0; m<2; m++)
+				if (rtype(i->arg[m]) == RTmp) {
+					t = i->arg[m].val;
+					if (!BGET(v, t)) {
+						/* do not reload if the
+						 * the temporary was dead
+						 */
+						if (!lvarg[m])
+							BCLR(u, t);
+						i->arg[m] = slot(t);
+					}
+				}
 			reloads(&u, &v);
 			if (s != -1)
 				store(i->to, s);
