@@ -217,7 +217,7 @@ lex()
 	t = TXXX;
 	if (0)
 Alpha:		c = fgetc(inf);
-	if (!isalpha(c))
+	if (!isalpha(c) && c != '.')
 		err("lexing failure");
 	i = 0;
 	do {
@@ -225,7 +225,7 @@ Alpha:		c = fgetc(inf);
 			err("identifier too long");
 		tok[i++] = c;
 		c = fgetc(inf);
-	} while (isalpha(c) || isdigit(c));
+	} while (isalpha(c) || c == '.' || isdigit(c));
 	tok[i] = 0;
 	ungetc(c, inf);
 	if (t != TXXX) {
