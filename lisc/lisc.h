@@ -347,8 +347,6 @@ void printfn(Fn *, FILE *);
 /* ssa.c */
 void fillpreds(Fn *);
 void fillrpo(Fn *);
-int phirepr(Tmp *, int);
-void fillphi(Fn *);
 void ssafix(Fn *, int);
 
 /* live.c */

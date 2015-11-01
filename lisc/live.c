@@ -18,23 +18,32 @@ liveon(Blk *b, Blk *s)
 	return v;
 }
 
+static int
+phitmp(int t, Tmp *tmp)
+{
+	int tp;
+
+	tp = tmp[t].phi;
+	return tp ? tp : t;
+}
+
 static void
 phifix(int t1, short *phi, Tmp *tmp)
 {
 	int t, t2;
 
-	/* detect temporaries in the same
-	 * phi-class that interfere and
-	 * separate them
+	/* detect temporaries arguments
+	 * of the same phi node that
+	 * interfere and separate them
 	 */
-	t = phirepr(tmp, t1);
+	t = phitmp(t1, tmp);
 	t2 = phi[t];
 	if (t2 && t2 != t1) {
-		if (tmp[t1].phi != t1) {
-			tmp[t1].phi = t1;
+		if (t != t1) {
+			tmp[t1].phi = 0;
 			t = t1;
 		} else {
-			tmp[t2].phi = t2;
+			tmp[t2].phi = 0;
 			phi[t2] = t2;
 		}
 	}
@@ -115,7 +124,7 @@ Again:
 				nlv -= BGET(b->in, i->to.val);
 				BSET(b->gen, i->to.val);
 				BCLR(b->in, i->to.val);
-				t = phirepr(f->tmp, i->to.val);
+				t = phitmp(i->to.val, f->tmp);
 				phi[t] = 0;
 			}
 			for (m=0; m<2; m++)

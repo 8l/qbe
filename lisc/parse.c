@@ -547,6 +547,8 @@ DoOp:
 			arg[i] = parseref();
 			if (req(arg[i], R))
 				err("invalid instruction argument");
+			if (op == -1 && rtype(arg[i]) == RTmp)
+				tmp[arg[i].val].phi = r.val;
 			i++;
 			t = peek();
 			if (t == TNL)

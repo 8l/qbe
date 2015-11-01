@@ -25,8 +25,10 @@ static int cpm, npm;   /* capacity and size of pm */
 static int *
 hint(int t)
 {
-	t = phirepr(tmp, t);
-	return &tmp[t].hint;
+	if (tmp[t].phi)
+		return &tmp[tmp[t].phi].hint;
+	else
+		return &tmp[t].hint;
 }
 
 static int
