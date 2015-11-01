@@ -815,7 +815,7 @@ isel(Fn *fn)
 				continue;
 			}
 			assert(i->op != OArg && i->op != OArgc);
-			emit(i->op, i->wide, i->to, i->arg[0], i->arg[1]);
+			emiti(*i);
 		}
 		b->nins = &insb[NIns] - curi;
 		idup(&b->ins, curi, b->nins);
