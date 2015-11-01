@@ -547,7 +547,9 @@ DoOp:
 			arg[i] = parseref();
 			if (req(arg[i], R))
 				err("invalid instruction argument");
-			if (op == -1 && rtype(arg[i]) == RTmp)
+			if (op == -1)
+			if (rtype(arg[i]) == RTmp)
+			if (!tmp[arg[i].val].phi)
 				tmp[arg[i].val].phi = r.val;
 			i++;
 			t = peek();
@@ -570,6 +572,7 @@ DoOp:
 		curi++;
 		return PIns;
 	} else {
+		tmp[r.val].phi = r.val;
 		phi = alloc(sizeof *phi);
 		phi->to = r;
 		phi->wide = w;
