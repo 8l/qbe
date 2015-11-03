@@ -192,7 +192,7 @@ psymb(Symb s)
 void
 sext(Symb *s)
 {
-	fprintf(of, "\t%%t%d =l sext ", tmp);
+	fprintf(of, "\t%%t%d =l extsw ", tmp);
 	psymb(*s);
 	fprintf(of, "\n");
 	s->t = Tmp;
@@ -257,9 +257,12 @@ Scale:
 void
 load(Symb d, Symb s)
 {
+	char t;
+
 	fprintf(of, "\t");
 	psymb(d);
-	fprintf(of, " =%c load ", irtyp(d.ctyp));
+	t = irtyp(d.ctyp);
+	fprintf(of, " =%c load%c ", t, t);
 	psymb(s);
 	fprintf(of, "\n");
 }
