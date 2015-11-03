@@ -211,6 +211,16 @@ limit(Bits *b, int k, Bits *fst)
 }
 
 static void
+sethint(Bits *u, ulong r)
+{
+	int t;
+
+	for (t=Tmp0; t<ntmp; t++)
+		if (BGET(*u, t))
+			tmp[phicls(t, tmp)].hint.m |= r;
+}
+
+static void
 reloads(Bits *u, Bits *v)
 {
 	int t;
@@ -223,8 +233,10 @@ reloads(Bits *u, Bits *v)
 static Ins *
 dopm(Blk *b, Ins *i, Bits *v)
 {
+	int n;
 	Bits u;
 	Ins *i1;
+	ulong r;
 
 	/* consecutive moves from
 	 * registers need to handled
@@ -244,9 +256,15 @@ dopm(Blk *b, Ins *i, Bits *v)
 	if (i > b->ins && (i-1)->op == OCall) {
 		v->t[0] &= ~calldef(*(i-1), 0);
 		limit(v, NReg - NRSave, 0);
+		r = 0;
+		for (n=0; n<NRSave; n++)
+			r |= BIT(rsave[n]);
 		v->t[0] |= calluse(*(i-1), 0);
-	} else
+	} else {
 		limit(v, NReg, 0);
+		r = v->t[0];
+	}
+	sethint(v, r);
 	reloads(&u, v);
 	do
 		emiti(*--i1);
@@ -276,6 +294,7 @@ spill(Fn *fn)
 	int j, s;
 	Phi *p;
 	Mem *ma;
+	ulong r;
 
 	tmp = fn->tmp;
 	ntmp = fn->ntmp;
@@ -342,6 +361,7 @@ spill(Fn *fn)
 
 		/* 2. process the block instructions */
 		curi = &insb[NIns];
+		r = 0;
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			assert(bcnt(&v) <= NReg);
 			i--;
@@ -400,11 +420,15 @@ spill(Fn *fn)
 						i->arg[m] = slot(t);
 					}
 				}
+			r = v.t[0] & (BIT(Tmp0)-1);
+			if (r)
+				sethint(&v, r);
 			reloads(&u, &v);
 			if (s != -1)
 				store(i->to, s);
 			emiti(*i);
 		}
+		assert(!r || b==fn->start);
 
 		for (p=b->phi; p; p=p->link) {
 			assert(rtype(p->to) == RTmp);

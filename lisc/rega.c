@@ -25,10 +25,7 @@ static int cpm, npm;   /* capacity and size of pm */
 static int *
 hint(int t)
 {
-	if (tmp[t].phi)
-		return &tmp[tmp[t].phi].hint;
-	else
-		return &tmp[t].hint;
+	return &tmp[phicls(t, tmp)].hint.r;
 }
 
 static int
@@ -75,6 +72,7 @@ radd(RMap *m, int t, int r)
 static Ref
 ralloc(RMap *m, int t)
 {
+	ulong regs;
 	int r;
 
 	if (t < Tmp0) {
@@ -87,10 +85,16 @@ ralloc(RMap *m, int t)
 		return TMP(r);
 	}
 	r = *hint(t);
-	if (r == -1 || BGET(m->b, r))
-		for (r=RAX; BGET(m->b, r); r++)
-			if (r+1 == RAX+NReg)
-				diag("rega: no more regs");
+	if (r == -1 || BGET(m->b, r)) {
+		regs = tmp[phicls(t, tmp)].hint.m;
+		regs |= m->b.t[0];
+		for (r=RAX; r<RAX+NReg && (regs & BIT(r)); r++)
+			;
+		if (r == RAX+NReg)
+			for (r=RAX; BGET(m->b, r); r++)
+				if (r+1 == RAX+NReg)
+					diag("rega: no more regs");
+	}
 	radd(m, t, r);
 	if (*hint(t) == -1)
 		*hint(t) = r;
@@ -323,6 +327,10 @@ doblk(Blk *b, RMap *cur)
 				i = dopm(b, i, cur);
 				continue;
 			}
+			if (isreg(i->to))
+			if (rtype(i->arg[0]) == RTmp)
+			if (*hint(i->arg[0].val) == -1)
+				*hint(i->arg[0].val) = i->to.val;
 			/* fall through */
 		default:
 			if (!req(i->to, R)) {
@@ -377,7 +385,7 @@ rega(Fn *fn)
 	end = alloc(fn->nblk * sizeof end[0]);
 	beg = alloc(fn->nblk * sizeof beg[0]);
 	for (t=Tmp0; t<fn->ntmp; t++)
-		tmp[t].hint = -1;
+		*hint(t) = -1;
 	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
 		if (i->op != OCopy || !isreg(i->arg[0]))
 			break;

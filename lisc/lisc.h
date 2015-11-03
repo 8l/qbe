@@ -246,7 +246,10 @@ struct Tmp {
 	uint cost;
 	short slot;
 	short wide;
-	int hint;
+	struct {
+		int r;
+		ulong m;
+	} hint;
 	int phi;
 };
 
@@ -335,6 +338,7 @@ void idup(Ins **, Ins *, ulong);
 Ins *icpy(Ins *, Ins *, ulong);
 void *vnew(ulong, size_t);
 void vgrow(void *, ulong);
+int phicls(int, Tmp *);
 Ref newtmp(char *, Fn *);
 Ref getcon(int64_t, Fn *);
 void addcon(Con *, Con *);

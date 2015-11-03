@@ -166,6 +166,27 @@ vgrow(void *vp, ulong len)
 	*(Vec **)vp = v1;
 }
 
+int
+phicls(int t, Tmp *tmp /*, int c*/)
+{
+	if (tmp[t].phi)
+		return tmp[t].phi;
+	return t;
+#if 0
+	int t1;
+
+	t1 = tmp[t].phi;
+	if (!t1)
+		t1 = t;
+	if (t != t1) {
+		t1 = phitmp(t1, tmp, c);
+		if (c)
+			tmp[t].phi = t1;
+	}
+	return t1;
+#endif
+}
+
 Ref
 newtmp(char *prfx, Fn *fn)
 {
