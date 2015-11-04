@@ -4,7 +4,7 @@ function $test() {
 	%y =l add %x, 8
 	%m =w rem %y, 16
 	storew %m, %y
-	%n =w load %y
+	%n =w loadw %y
 	storew %n, $a
 	ret
 }
