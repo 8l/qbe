@@ -762,9 +762,11 @@ parsedat(void cb(Dat *))
 			}
 			if (nextnl() != TNum)
 				err("number expected");
-			d.u.num = tokval.num;
-			cb(&d);
-			t = nextnl();
+			do {
+				d.u.num = tokval.num;
+				cb(&d);
+				t = nextnl();
+			} while (t == TNum);
 			if (t == TRBrace)
 				break;
 			if (t != TComma)
