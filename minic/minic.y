@@ -70,6 +70,7 @@ struct Stmt {
 
 int yylex(void), yyerror(char *);
 Symb expr(Node *), lval(Node *);
+void bool(Node *, int, int);
 
 FILE *of;
 int line;
@@ -317,7 +318,7 @@ expr(Node *n)
 		['n'] = "cne",
 	};
 	Symb sr, s0, s1, sl;
-	int o;
+	int o, l;
 
 	sr.t = Tmp;
 	sr.u.n = tmp++;
@@ -326,6 +327,22 @@ expr(Node *n)
 
 	case 0:
 		abort();
+
+	case 'o':
+	case 'a':
+		l = lbl;
+		lbl += 3;
+		bool(n, l, l+1);
+		fprintf(of, "@l%d\n", l);
+		fprintf(of, "\tjmp @l%d\n", l+2);
+		fprintf(of, "@l%d\n", l+1);
+		fprintf(of, "\tjmp @l%d\n", l+2);
+		fprintf(of, "@l%d\n", l+2);
+		fprintf(of, "\t");
+		sr.ctyp = INT;
+		psymb(sr);
+		fprintf(of, " =w phi @l%d 1, @l%d 0\n", l, l+1);
+		break;
 
 	case 'V':
 		s0 = lval(n);
@@ -450,6 +467,36 @@ lval(Node *n)
 	return sr;
 }
 
+void
+bool(Node *n, int lt, int lf)
+{
+	Symb s;
+	int l;
+
+	switch (n->op) {
+	default:
+		s = expr(n); /* TODO: insert comparison to 0 with proper type */
+		fprintf(of, "\tjnz ");
+		psymb(s);
+		fprintf(of, ", @l%d, @l%d\n", lt, lf);
+		break;
+	case 'o':
+		l = lbl;
+		lbl += 1;
+		bool(n->l, lt, l);
+		fprintf(of, "@l%d\n", l);
+		bool(n->r, lt, lf);
+		break;
+	case 'a':
+		l = lbl;
+		lbl += 1;
+		bool(n->l, l, lf);
+		fprintf(of, "@l%d\n", l);
+		bool(n->r, lt, lf);
+		break;
+	}
+}
+
 int
 stmt(Stmt *s, int b)
 {
@@ -477,12 +524,9 @@ stmt(Stmt *s, int b)
 	case Seq:
 		return stmt(s->p1, b) || stmt(s->p2, b);
 	case If:
-		x = expr(s->p1);
-		fprintf(of, "\tjnz ");  /* to be clean, a comparison to 0 should be inserted here */
-		psymb(x);
 		l = lbl;
 		lbl += 3;
-		fprintf(of, ", @l%d, @l%d\n", l, l+1);
+		bool(s->p1, l, l+1);
 		fprintf(of, "@l%d\n", l);
 		if (!stmt(s->p2, b))
 		if (s->p3)
@@ -496,10 +540,7 @@ stmt(Stmt *s, int b)
 		l = lbl;
 		lbl += 3;
 		fprintf(of, "@l%d\n", l);
-		x = expr(s->p1);
-		fprintf(of, "\tjnz ");                  /* ditto */
-		psymb(x);
-		fprintf(of, ", @l%d, @l%d\n", l+1, l+2);
+		bool(s->p1, l+1, l+2);
 		fprintf(of, "@l%d\n", l+1);
 		if (!stmt(s->p2, l+2))
 			fprintf(of, "\tjmp @l%d\n", l);
@@ -610,6 +651,8 @@ mkfor(Node *ini, Node *tst, Node *inc, Stmt *s)
 %token IF ELSE WHILE FOR BREAK RETURN
 
 %right '='
+%left OR
+%left AND
 %left '&'
 %left EQ NE
 %left '<' '>' LE GE
@@ -741,6 +784,8 @@ expr: pref
     | expr EQ expr      { $$ = mknode('e', $1, $3); }
     | expr NE expr      { $$ = mknode('n', $1, $3); }
     | expr '&' expr     { $$ = mknode('&', $1, $3); }
+    | expr AND expr     { $$ = mknode('a', $1, $3); }
+    | expr OR expr      { $$ = mknode('o', $1, $3); }
     ;
 
 exp0: expr
@@ -875,6 +920,8 @@ yylex()
 	case DI('>','='): return GE;
 	case DI('+','+'): return PP;
 	case DI('-','-'): return MM;
+	case DI('&','&'): return AND;
+	case DI('|','|'): return OR;
 	}
 #undef DI
 	ungetc(c1, stdin);
