@@ -500,7 +500,7 @@ bool(Node *n, int lt, int lf)
 int
 stmt(Stmt *s, int b)
 {
-	int l;
+	int l, r;
 	Symb x;
 
 	if (!s)
@@ -528,14 +528,14 @@ stmt(Stmt *s, int b)
 		lbl += 3;
 		bool(s->p1, l, l+1);
 		fprintf(of, "@l%d\n", l);
-		if (!stmt(s->p2, b))
+		if (!(r=stmt(s->p2, b)))
 		if (s->p3)
 			fprintf(of, "\tjmp @l%d\n", l+2);
 		fprintf(of, "@l%d\n", l+1);
 		if (s->p3)
-		if (!stmt(s->p3, b))
+		if (!(r &= stmt(s->p3, b)))
 			fprintf(of, "@l%d\n", l+2);
-		return 0;
+		return r;
 	case While:
 		l = lbl;
 		lbl += 3;
