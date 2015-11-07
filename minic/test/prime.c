@@ -17,8 +17,7 @@ main() {
 			t++;
 		}
 		if (p) {
-			if (c % 10 == 0)
-			if (c != 0)
+			if (c && c % 10 == 0)
 				printf("\n");
 			printf("%4d ", n);
 			c++;
