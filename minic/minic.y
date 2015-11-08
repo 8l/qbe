@@ -709,7 +709,7 @@ prot: IDENT '(' par0 ')'
 		for (;;) {
 			s = varget(n->u.v);
 			fprintf(of, "%c ", irtyp(s->ctyp));
-			fprintf(of, "%%tmp%d", tmp++);
+			fprintf(of, "%%t%d", tmp++);
 			n = n->r;
 			if (n)
 				fprintf(of, ", ");
@@ -722,7 +722,7 @@ prot: IDENT '(' par0 ')'
 		s = varget(n->u.v);
 		m = SIZE(s->ctyp);
 		fprintf(of, "\t%%%s =l alloc%d %d\n", n->u.v, m, m);
-		fprintf(of, "\tstore%c %%tmp%d", irtyp(s->ctyp), t);
+		fprintf(of, "\tstore%c %%t%d", irtyp(s->ctyp), t);
 		fprintf(of, ", %%%s\n", n->u.v);
 	}
 };
