@@ -535,7 +535,7 @@ stmt(Stmt *s, int b)
 		if (s->p3)
 		if (!(r &= stmt(s->p3, b)))
 			fprintf(of, "@l%d\n", l+2);
-		return r;
+		return s->p3 && r;
 	case While:
 		l = lbl;
 		lbl += 3;
