@@ -232,6 +232,12 @@ struct Blk {
 
 	int id;
 	int visit;
+
+	Blk *idom;
+	Blk *dom, *dlink;
+	Blk **fron;
+	int nfron;
+
 	Blk **pred;
 	uint npred;
 	Bits in, out, gen;
@@ -351,7 +357,7 @@ void printfn(Fn *, FILE *);
 /* ssa.c */
 void fillpreds(Fn *);
 void fillrpo(Fn *);
-void ssafix(Fn *, int);
+void ssa(Fn *);
 
 /* live.c */
 Bits liveon(Blk *, Blk *);
