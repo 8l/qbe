@@ -87,114 +87,159 @@ fillrpo(Fn *f)
 	}
 }
 
-static Ref *top, *bot;
-static Ref topdef(Blk *, Fn *, int);
-
-static Ref
-botdef(Blk *b, Fn *f, int w)
-{
-	Ref r;
-
-	if (!req(bot[b->id], R))
-		return bot[b->id];
-	r = topdef(b, f, w);
-	bot[b->id] = r;
-	return r;
-}
-
-static Ref
-topdef(Blk *b, Fn *f, int w)
-{
-	uint i;
-	int t1;
-	Ref r;
-	Phi *p;
-
-	if (!req(top[b->id], R))
-		return top[b->id];
-	assert(b->npred && "invalid ssa program detected");
-	if (b->npred == 1) {
-		r = botdef(b->pred[0], f, w);
-		top[b->id] = r;
-		return r;
-	}
-	/* add a phi node */
-	t1 = f->ntmp++;
-	r = TMP(t1);
-	top[b->id] = r;
-	p = alloc(sizeof *p);
-	p->link = b->phi;
-	b->phi = p;
-	p->to = r;
-	p->wide = w;
-	for (i=0; i<b->npred; i++) {
-		p->arg[i] = botdef(b->pred[i], f, w);
-		p->blk[i] = b->pred[i];
-	}
-	p->narg = i;
-	return r;
-}
-
-/* restore ssa form for a temporary t
- * predecessors must be available
+/* for dominators computation, read
+ * "A Simple, Fast Dominance Algorithm"
+ * by K. Cooper, T. Harvey, and K. Kennedy.
  */
-void
-ssafix(Fn *f, int t)
-{
-	uint n;
-	int t0, t1, w;
-	Ref rt;
-	Blk *b;
-	Phi *p;
-	Ins *i;
 
-	w = 0;
-	top = alloc(f->nblk * sizeof top[0]);
-	bot = alloc(f->nblk * sizeof bot[0]);
-	rt = TMP(t);
-	t0 = f->ntmp;
-	for (b=f->start; b; b=b->link) {
-		t1 = 0;
-		/* rename defs and some in-blocks uses */
-		for (p=b->phi; p; p=p->link)
-			if (req(p->to, rt)) {
-				t1 = t0++;
-				p->to = TMP(t1);
-				w |= p->wide;
-			}
-		for (i=b->ins; i-b->ins < b->nins; i++) {
-			if (t1) {
-				if (req(i->arg[0], rt))
-					i->arg[0] = TMP(t1);
-				if (req(i->arg[1], rt))
-					i->arg[1] = TMP(t1);
-			}
-			if (req(i->to, rt)) {
-				w |= i->wide;
-				t1 = t0++;
-				i->to = TMP(t1);
+static Blk *
+inter(Blk *b1, Blk *b2)
+{
+	Blk *bt;
+
+	if (b1 == 0)
+		return b2;
+	while (b1 != b2) {
+		if (b1->id > b2->id) {
+			bt = b1;
+			b1 = b2;
+			b2 = bt;
+		}
+		while (b1->id < b2->id)
+			b1 = b1->idom;
+	}
+	return b1;
+}
+
+static void
+filldom(Fn *fn)
+{
+	Blk *b, *d;
+	int ch, n;
+	uint p;
+
+	for (b=fn->start; b; b=b->link) {
+		b->idom = 0;
+		b->dom = 0;
+		b->dlink = 0;
+	}
+	do {
+		ch = 0;
+		for (n=1; n<fn->nblk; n++) {
+			b = fn->rpo[n];
+			d = 0;
+			for (p=0; p<b->npred; p++)
+				if (b->pred[p]->idom)
+					d = inter(d, b->pred[p]);
+			if (d != b->idom) {
+				ch++;
+				b->idom = d;
 			}
 		}
-		if (t1 && req(b->jmp.arg, rt))
-			b->jmp.arg = TMP(t1);
-		top[b->id] = R;
-		bot[b->id] = t1 ? TMP(t1) : R;
-	}
-	for (b=f->start; b; b=b->link) {
-		for (p=b->phi; p; p=p->link)
-			for (n=0; n<p->narg; n++)
-				if (req(p->arg[n], rt))
-					p->arg[n] = botdef(p->blk[n], f, w);
-		for (i=b->ins; i-b->ins < b->nins; i++) {
-			if (req(i->arg[0], rt))
-				i->arg[0] = topdef(b, f, w);
-			if (req(i->arg[1], rt))
-				i->arg[1] = topdef(b, f, w);
+	} while (ch);
+	for (b=fn->start; b; b=b->link)
+		if ((d=b->idom)) {
+			assert(d != b);
+			b->dlink = d->dom;
+			d->dom = b;
 		}
-		if (req(b->jmp.arg, rt))
-			b->jmp.arg = topdef(b, f, w);
+}
+
+static int
+sdom(Blk *b1, Blk *b2)
+{
+	if (b1 == b2)
+		return 0;
+	while (b2->id > b1->id)
+		b2 = b2->idom;
+	return b1 == b2;
+}
+
+static void
+addfron(Blk *a, Blk *b)
+{
+	int n;
+
+	for (n=0; n<a->nfron; n++)
+		if (a->fron[n] == b)
+			return;
+	if (!a->nfron)
+		a->fron = vnew(++a->nfron, sizeof a->fron[0]);
+	else
+		vgrow(&a->fron, ++a->nfron);
+	a->fron[a->nfron-1] = b;
+}
+
+static void
+fillfron(Fn *fn)
+{
+	Blk *a, *b;
+
+	for (b=fn->start; b; b=b->link) {
+		if (b->s1)
+			for (a=b; !sdom(a, b->s1); a=a->link)
+				addfron(a, b->s1);
+		if (b->s2)
+			for (a=b; !sdom(a, b->s2); a=a->link)
+				addfron(a, b->s2);
 	}
-	/* add new temporaries */
-	for (t1=f->ntmp; t1<t0; t1++)
-		newtmp(f->tmp[t].name, f);
+}
+
+static void
+phiins(Fn *fn)
+{
+	Bits u;
+	Blk *b;
+	Ins *i;
+	Phi *p;
+	int t, n, w;
+	uint a;
+
+	for (t=Tmp0; t<fn->ntmp; t++) {
+		u = (Bits){{0}};
+		w = -1;
+		for (b=fn->start; b; b=b->link) {
+			b->visit = 0;
+			for (i=b->ins; i-b->ins < b->nins; i++)
+				if (req(i->to, TMP(t))) {
+					BSET(u, b->id);
+					if (w == -1)
+						w = i->wide;
+					if (w != i->wide)
+						/* uh, oh, warn */
+						;
+				}
+		}
+		for (;;) {
+		NextBlk:
+			for (n=0; !BGET(u, n); n++)
+				if (n == fn->nblk)
+					goto NextVar;
+			BCLR(u, n);
+			b = fn->rpo[n];
+			if (b->visit)
+				goto NextBlk;
+			b->visit = 1;
+			for (p=b->phi; p; p=p->link)
+				for (a=0; a<p->narg; a++)
+					if (req(p->arg[a], TMP(t)))
+						goto NextBlk;
+			p = alloc(sizeof *p);
+			p->wide = w;
+			p->to = TMP(t);
+			p->link = b->phi;
+			b->phi = p->link;
+			for (n=0; n<b->nfron; n++)
+				if (b->fron[n]->visit == 0)
+					BSET(u, b->fron[n]->id);
+		}
+	NextVar:;
+	}
+}
+
+void
+ssa(Fn *fn)
+{
+	filldom(fn);
+	fillfron(fn);
 }
