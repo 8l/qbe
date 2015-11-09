@@ -148,7 +148,7 @@ filldom(Fn *fn)
 static int
 sdom(Blk *b1, Blk *b2)
 {
-	if (b1 == b2)
+	if (!b2 || b1 == b2)
 		return 0;
 	while (b2->id > b1->id)
 		b2 = b2->idom;
@@ -176,12 +176,10 @@ fillfron(Fn *fn)
 	Blk *a, *b;
 
 	for (b=fn->start; b; b=b->link) {
-		if (b->s1)
-			for (a=b; !sdom(a, b->s1); a=a->link)
-				addfron(a, b->s1);
-		if (b->s2)
-			for (a=b; !sdom(a, b->s2); a=a->link)
-				addfron(a, b->s2);
+		for (a=b; !sdom(a, b->s1); a=a->idom)
+			addfron(a, b->s1);
+		for (a=b; !sdom(a, b->s2); a=a->idom)
+			addfron(a, b->s2);
 	}
 }
 
