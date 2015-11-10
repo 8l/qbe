@@ -148,7 +148,7 @@ filldom(Fn *fn)
 static int
 sdom(Blk *b1, Blk *b2)
 {
-	if (!b2 || b1 == b2)
+	if (b1 == b2)
 		return 0;
 	while (b2->id > b1->id)
 		b2 = b2->idom;
@@ -176,63 +176,90 @@ fillfron(Fn *fn)
 	Blk *a, *b;
 
 	for (b=fn->start; b; b=b->link) {
-		for (a=b; !sdom(a, b->s1); a=a->idom)
-			addfron(a, b->s1);
-		for (a=b; !sdom(a, b->s2); a=a->idom)
-			addfron(a, b->s2);
+		if (b->s1)
+			for (a=b; !sdom(a, b->s1); a=a->idom)
+				addfron(a, b->s1);
+		if (b->s2)
+			for (a=b; !sdom(a, b->s2); a=a->idom)
+				addfron(a, b->s2);
 	}
+}
+
+static Ref
+index(int t, Fn *fn)
+{
+	return newtmp(fn->tmp[t].name, fn);
 }
 
 static void
 phiins(Fn *fn)
 {
 	Bits u;
-	Blk *b;
+	Blk *b, **blist, **be, **bp;
 	Ins *i;
 	Phi *p;
-	int t, n, w;
-	uint a;
+	Ref r;
+	int t, n, w, nt;
 
-	for (t=Tmp0; t<fn->ntmp; t++) {
+	blist = emalloc(fn->nblk * sizeof blist[0]);
+	be = &blist[fn->nblk];
+	nt = fn->ntmp;
+	for (t=Tmp0; t<nt; t++) {
+		if (fn->tmp[t].phi != 0)
+			continue;
 		u = (Bits){{0}};
 		w = -1;
+		bp = be;
 		for (b=fn->start; b; b=b->link) {
 			b->visit = 0;
-			for (i=b->ins; i-b->ins < b->nins; i++)
-				if (req(i->to, TMP(t))) {
-					BSET(u, b->id);
-					if (w == -1)
-						w = i->wide;
-					if (w != i->wide)
-						/* uh, oh, warn */
-						;
+			r = R;
+			for (i=b->ins; i-b->ins < b->nins; i++) {
+				if (!req(r, R)) {
+					if (req(i->arg[0], TMP(t)))
+						i->arg[0] = r;
+					if (req(i->arg[1], TMP(t)))
+						i->arg[1] = r;
 				}
+				if (req(i->to, TMP(t))) {
+					if (!BGET(b->out, t)) {
+						if (fn->tmp[t].ndef == 1)
+							r = TMP(t);
+						else
+							r = index(t, fn);
+						i->to = r;
+					} else {
+						if (!BGET(u, b->id)) {
+							BSET(u, b->id);
+							*--bp = b;
+						}
+						if (w == -1)
+							w = i->wide;
+						if (w != i->wide)
+							/* uh, oh, warn */
+							;
+					}
+				}
+			}
 		}
-		for (;;) {
-		NextBlk:
-			for (n=0; !BGET(u, n); n++)
-				if (n == fn->nblk)
-					goto NextVar;
-			BCLR(u, n);
-			b = fn->rpo[n];
+		while (bp != be) {
+			b = *bp++;
+			BCLR(u, b->id);
 			if (b->visit)
-				goto NextBlk;
+				continue;
 			b->visit = 1;
-			for (p=b->phi; p; p=p->link)
-				for (a=0; a<p->narg; a++)
-					if (req(p->arg[a], TMP(t)))
-						goto NextBlk;
 			p = alloc(sizeof *p);
 			p->wide = w;
 			p->to = TMP(t);
 			p->link = b->phi;
 			b->phi = p->link;
 			for (n=0; n<b->nfron; n++)
-				if (b->fron[n]->visit == 0)
+				if (!BGET(u, b->fron[n]->id)) {
 					BSET(u, b->fron[n]->id);
+					*--bp = b->fron[n];
+				}
 		}
-	NextVar:;
 	}
+	free(blist);
 }
 
 void
@@ -240,4 +267,6 @@ ssa(Fn *fn)
 {
 	filldom(fn);
 	fillfron(fn);
+	filllive(fn);
+	phiins(fn);
 }
