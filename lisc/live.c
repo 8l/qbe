@@ -111,7 +111,8 @@ Again:
 		bset(b->jmp.arg, b, &nlv, phi, f->tmp);
 		b->nlive = nlv;
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
-			if ((--i)->op == OCall) {
+			if ((--i)->op == OCall)
+			if (rtype(i->arg[1]) == RACall) {
 				b->in.t[0] &= ~calldef(*i, &m);
 				nlv -= m;
 				if (nlv + NRSave > b->nlive)
