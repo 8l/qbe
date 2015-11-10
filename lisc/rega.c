@@ -398,7 +398,7 @@ rega(Fn *fn)
 	for (n=fn->nblk-1; n>=0; n--) {
 		b = fn->rpo[n];
 		cur.n = 0;
-		cur.b = (Bits){{0}};
+		BZERO(cur.b);
 		for (x=0; x<2; x++)
 			for (t=Tmp0; t<fn->ntmp; t++) {
 				assert(BGET(b->out, t) ||

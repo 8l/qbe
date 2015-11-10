@@ -320,7 +320,7 @@ spill(Fn *fn)
 		curi = 0;
 		s1 = b->s1;
 		s2 = b->s2;
-		v = (Bits){{0}};
+		BZERO(v);
 		hd = 0;
 		if (s1 && s1->id <= n)
 			hd = s1;
@@ -382,7 +382,7 @@ spill(Fn *fn)
 				}
 				s = tmp[t].slot;
 			}
-			w = (Bits){{0}};
+			BZERO(w);
 			j = opdesc[i->op].nmem;
 			j -= rtype(i->arg[0]) == RAMem;
 			j -= rtype(i->arg[1]) == RAMem;

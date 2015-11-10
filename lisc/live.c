@@ -80,9 +80,9 @@ filllive(Fn *f)
 	assert(f->ntmp <= NBit*BITS);
 	phi = emalloc(f->ntmp * sizeof phi[0]);
 	for (b=f->start; b; b=b->link) {
-		b->in = (Bits){{0}};
-		b->out = (Bits){{0}};
-		b->gen = (Bits){{0}};
+		BZERO(b->in);
+		BZERO(b->out);
+		BZERO(b->gen);
 	}
 	chg = 1;
 Again:

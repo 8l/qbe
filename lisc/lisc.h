@@ -68,6 +68,7 @@ struct Bits {
 };
 
 #define BIT(n)     (1ul << (n))
+#define BZERO(b)   ((b) = (Bits){{0}})
 #define BGET(b, n) (1&((b).t[n/NBit]>>(n%NBit)))
 #define BSET(b, n) ((b).t[n/NBit] |= BIT(n%NBit))
 #define BCLR(b, n) ((b).t[n/NBit] &= ~BIT(n%NBit))

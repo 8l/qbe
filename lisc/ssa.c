@@ -207,7 +207,7 @@ phiins(Fn *fn)
 	for (t=Tmp0; t<nt; t++) {
 		if (fn->tmp[t].phi != 0)
 			continue;
-		u = (Bits){{0}};
+		BZERO(u);
 		w = -1;
 		bp = be;
 		for (b=fn->start; b; b=b->link) {
