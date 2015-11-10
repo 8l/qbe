@@ -100,12 +100,12 @@ inter(Blk *b1, Blk *b2)
 	if (b1 == 0)
 		return b2;
 	while (b1 != b2) {
-		if (b1->id > b2->id) {
+		if (b1->id < b2->id) {
 			bt = b1;
 			b1 = b2;
 			b2 = bt;
 		}
-		while (b1->id < b2->id)
+		while (b1->id > b2->id)
 			b1 = b1->idom;
 	}
 	return b1;
@@ -129,7 +129,8 @@ filldom(Fn *fn)
 			b = fn->rpo[n];
 			d = 0;
 			for (p=0; p<b->npred; p++)
-				if (b->pred[p]->idom)
+				if (b->pred[p]->idom
+				||  b->pred[p] == fn->start)
 					d = inter(d, b->pred[p]);
 			if (d != b->idom) {
 				ch++;
@@ -252,7 +253,7 @@ phiins(Fn *fn)
 		}
 		defs = u;
 		while (bp != be) {
-			fn->tmp[t].visit = 1;
+			fn->tmp[t].visit = t;
 			b = *bp++;
 			BCLR(u, b->id);
 			for (n=0; n<b->nfron; n++) {
@@ -263,7 +264,7 @@ phiins(Fn *fn)
 					p->wide = w;
 					p->to = TMP(t);
 					p->link = a->phi;
-					a->phi = p->link;
+					a->phi = p;
 					if (!BGET(defs, a->id))
 					if (!BGET(u, a->id)) {
 						BSET(u, a->id);
@@ -321,6 +322,7 @@ rendef(Ref *r, Blk *b, Name **stk, Fn *fn)
 	if (req(*r, R) || !fn->tmp[t].visit)
 		return;
 	r1 = index(t, fn);
+	fn->tmp[r1.val].visit = t;
 	stk[t] = nnew(r1, b, stk[t]);
 	*r = r1;
 }
@@ -373,7 +375,7 @@ renblk(Blk *b, Name **stk, Fn *fn)
 	for (ps=succ; (s=*ps); ps++)
 		for (p=s->phi; p; p=p->link) {
 			t = p->to.val;
-			if (fn->tmp[t].visit) {
+			if ((t=fn->tmp[t].visit)) {
 				m = p->narg++;
 				p->arg[m] = getstk(t, b, stk);
 				p->blk[m] = b;
@@ -388,12 +390,24 @@ ssa(Fn *fn)
 {
 	Name **stk, *n;
 	int d, nt;
+	Blk *b, *b1;
 
 	nt = fn->ntmp;
 	stk = emalloc(nt * sizeof stk[0]);
 	d = debug['L'];
 	debug['L'] = 0;
 	filldom(fn);
+	if (debug['N']) {
+		fprintf(stderr, "\n> Dominators:\n");
+		for (b1=fn->start; b1; b1=b1->link) {
+			if (!b1->dom)
+				continue;
+			fprintf(stderr, "%-10s:", b1->name);
+			for (b=b1->dom; b; b=b->dlink)
+				fprintf(stderr, " %s", b->name);
+			fprintf(stderr, "\n");
+		}
+	}
 	fillfron(fn);
 	filllive(fn);
 	phiins(fn);

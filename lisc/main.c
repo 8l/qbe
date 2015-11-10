@@ -47,9 +47,11 @@ func(Fn *fn)
 		fprintf(stderr, "\n> After parsing:\n");
 		printfn(fn, stderr);
 	}
-	isel(fn);
 	fillrpo(fn);
 	fillpreds(fn);
+	ssa(fn);
+#if 0
+	isel(fn);
 	filllive(fn);
 	fillcost(fn);
 	spill(fn);
@@ -67,6 +69,7 @@ func(Fn *fn)
 		printf("/* end function %s */\n\n", fn->name);
 	} else
 		fprintf(stderr, "\n");
+#endif
 	freeall();
 }
 
