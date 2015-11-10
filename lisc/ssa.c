@@ -194,8 +194,8 @@ index(int t, Fn *fn)
 static void
 phiins(Fn *fn)
 {
-	Bits u;
-	Blk *b, **blist, **be, **bp;
+	Bits u, defs;
+	Blk *a, *b, **blist, **be, **bp;
 	Ins *i;
 	Phi *p;
 	Ref r;
@@ -213,7 +213,7 @@ phiins(Fn *fn)
 		for (b=fn->start; b; b=b->link) {
 			b->visit = 0;
 			r = R;
-			for (i=b->ins; i-b->ins < b->nins; i++) {
+			for (i=b->ins; i!=&b->ins[b->nins]; i++) {
 				if (!req(r, R)) {
 					if (req(i->arg[0], TMP(t)))
 						i->arg[0] = r;
@@ -241,22 +241,26 @@ phiins(Fn *fn)
 				}
 			}
 		}
+		defs = u;
 		while (bp != be) {
 			b = *bp++;
 			BCLR(u, b->id);
-			if (b->visit)
-				continue;
-			b->visit = 1;
-			p = alloc(sizeof *p);
-			p->wide = w;
-			p->to = TMP(t);
-			p->link = b->phi;
-			b->phi = p->link;
-			for (n=0; n<b->nfron; n++)
-				if (!BGET(u, b->fron[n]->id)) {
-					BSET(u, b->fron[n]->id);
-					*--bp = b->fron[n];
+			for (n=0; n<b->nfron; n++) {
+				a = b->fron[n];
+				if (a->visit++ == 0)
+				if (BGET(a->in, t)) {
+					p = alloc(sizeof *p);
+					p->wide = w;
+					p->to = TMP(t);
+					p->link = a->phi;
+					a->phi = p->link;
+					if (!BGET(defs, a->id))
+					if (!BGET(u, a->id)) {
+						BSET(u, a->id);
+						*--bp = a;
+					}
 				}
+			}
 		}
 	}
 	free(blist);
@@ -265,8 +269,13 @@ phiins(Fn *fn)
 void
 ssa(Fn *fn)
 {
+	int d;
+
+	d = debug['L'];
+	debug['L'] = 0;
 	filldom(fn);
 	fillfron(fn);
 	filllive(fn);
 	phiins(fn);
+	debug['L'] = d;
 }
