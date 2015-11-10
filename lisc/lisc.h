@@ -258,6 +258,7 @@ struct Tmp {
 		ulong m;
 	} hint;
 	int phi;
+	int visit;
 };
 
 struct Con {

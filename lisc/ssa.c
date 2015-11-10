@@ -155,6 +155,12 @@ sdom(Blk *b1, Blk *b2)
 	return b1 == b2;
 }
 
+static int
+dom(Blk *b1, Blk *b2)
+{
+	return b1 == b2 || sdom(b1, b2);
+}
+
 static void
 addfron(Blk *a, Blk *b)
 {
@@ -205,6 +211,7 @@ phiins(Fn *fn)
 	be = &blist[fn->nblk];
 	nt = fn->ntmp;
 	for (t=Tmp0; t<nt; t++) {
+		fn->tmp[t].visit = 0;
 		if (fn->tmp[t].phi != 0)
 			continue;
 		BZERO(u);
@@ -240,9 +247,12 @@ phiins(Fn *fn)
 					}
 				}
 			}
+			if (!req(r, R) && req(b->jmp.arg, TMP(t)))
+				b->jmp.arg = r;
 		}
 		defs = u;
 		while (bp != be) {
+			fn->tmp[t].visit = 1;
 			b = *bp++;
 			BCLR(u, b->id);
 			for (n=0; n<b->nfron; n++) {
@@ -266,16 +276,137 @@ phiins(Fn *fn)
 	free(blist);
 }
 
+typedef struct Name Name;
+struct Name {
+	Ref r;
+	Blk *b;
+	Name *up;
+};
+
+static Name *namel;
+
+static Name *
+nnew(Ref r, Blk *b, Name *up)
+{
+	Name *n;
+
+	if (namel) {
+		n = namel;
+		namel = n->up;
+	} else
+		/* could use alloc, here
+		 * but namel should be reset
+		 */
+		n = emalloc(sizeof *n);
+	n->r = r;
+	n->b = b;
+	n->up = up;
+	return n;
+}
+
+static void
+nfree(Name *n)
+{
+	n->up = namel;
+	namel = n;
+}
+
+static void
+rendef(Ref *r, Blk *b, Name **stk, Fn *fn)
+{
+	Ref r1;
+	int t;
+
+	t = r->val;
+	if (req(*r, R) || !fn->tmp[t].visit)
+		return;
+	r1 = index(t, fn);
+	stk[t] = nnew(r1, b, stk[t]);
+	*r = r1;
+}
+
+static Ref
+getstk(int t, Blk *b, Name **stk)
+{
+	Name *n, *n1;
+
+	n = stk[t];
+	while (n && !dom(n->b, b)) {
+		n1 = n;
+		n = n->up;
+		nfree(n1);
+	}
+	stk[t] = n;
+	if (!n) {
+		/* uh, oh, warn */
+		return CON_Z;
+	} else
+		return n->r;
+}
+
+static void
+renblk(Blk *b, Name **stk, Fn *fn)
+{
+	Phi *p;
+	Ins *i;
+	Blk *s, **ps, *succ[3];
+	int t, m;
+
+	for (p=b->phi; p; p=p->link)
+		rendef(&p->to, b, stk, fn);
+	for (i=b->ins; i!=&b->ins[b->nins]; i++) {
+		for (m=0; m<2; m++) {
+			t = i->arg[m].val;
+			if (rtype(i->arg[m]) == RTmp)
+			if (fn->tmp[t].visit)
+				i->arg[m] = getstk(t, b, stk);
+		}
+		rendef(&i->to, b, stk, fn);
+	}
+	t = b->jmp.arg.val;
+	if (rtype(b->jmp.arg) == RTmp)
+	if (fn->tmp[t].visit)
+		b->jmp.arg = getstk(t, b, stk);
+	succ[0] = b->s1;
+	succ[1] = b->s2;
+	succ[2] = 0;
+	for (ps=succ; (s=*ps); ps++)
+		for (p=s->phi; p; p=p->link) {
+			t = p->to.val;
+			if (fn->tmp[t].visit) {
+				m = p->narg++;
+				p->arg[m] = getstk(t, b, stk);
+				p->blk[m] = b;
+			}
+		}
+	for (s=b->dom; s; s=s->dlink)
+		renblk(s, stk, fn);
+}
+
 void
 ssa(Fn *fn)
 {
-	int d;
+	Name **stk, *n;
+	int d, nt;
 
+	nt = fn->ntmp;
+	stk = emalloc(nt * sizeof stk[0]);
 	d = debug['L'];
 	debug['L'] = 0;
 	filldom(fn);
 	fillfron(fn);
 	filllive(fn);
 	phiins(fn);
+	renblk(fn->start, stk, fn);
+	while (nt--)
+		while ((n=stk[nt])) {
+			stk[nt] = n->up;
+			nfree(n);
+		}
 	debug['L'] = d;
+	free(stk);
+	if (debug['N']) {
+		fprintf(stderr, "\n> After SSA construction:\n");
+		printfn(fn, stderr);
+	}
 }
