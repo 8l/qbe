@@ -405,7 +405,7 @@ ssa(Fn *fn)
 		for (b1=fn->start; b1; b1=b1->link) {
 			if (!b1->dom)
 				continue;
-			fprintf(stderr, "%-10s:", b1->name);
+			fprintf(stderr, "%10s:", b1->name);
 			for (b=b1->dom; b; b=b->dlink)
 				fprintf(stderr, " %s", b->name);
 			fprintf(stderr, "\n");
