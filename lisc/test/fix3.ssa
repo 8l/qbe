@@ -1,0 +1,20 @@
+function w $test() {
+@start
+	%x =w copy 100
+	%s =w copy 0
+@l
+	%c =w csle %x, 10
+	jnz %c, @a, @b
+@a
+	%s =w add %s, %x
+	%x =w sub %x, 1
+	jmp @c
+@b
+	%s =w sub %s, %x
+	jmp @c
+@c
+	%x =w sub %x, 1
+	jnz %x, @l, @end
+@end
+	ret %s
+}
