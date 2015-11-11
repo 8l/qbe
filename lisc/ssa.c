@@ -105,8 +105,10 @@ inter(Blk *b1, Blk *b2)
 			b1 = b2;
 			b2 = bt;
 		}
-		while (b1->id > b2->id)
+		while (b1->id > b2->id) {
 			b1 = b1->idom;
+			assert(b1);
+		}
 	}
 	return b1;
 }
@@ -149,6 +151,7 @@ filldom(Fn *fn)
 static int
 sdom(Blk *b1, Blk *b2)
 {
+	assert(b1 && b2);
 	if (b1 == b2)
 		return 0;
 	while (b2->id > b1->id)
