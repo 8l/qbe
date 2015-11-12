@@ -4,7 +4,6 @@ function $test() {
 	%n =w copy 2
 @loop
 	%c =w ceq %n, 10000
-	%t =w copy 3
 	jnz %c, @end, @next
 @next
 	%t =w copy 3
