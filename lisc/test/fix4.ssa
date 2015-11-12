@@ -1,0 +1,28 @@
+function $test() {
+@start
+	%x =w copy 3
+	%n =w copy 2
+@loop
+	%c =w ceq %n, 10000
+	%t =w copy 3
+	jnz %c, @end, @next
+@next
+	%t =w copy 3
+	%x =w add %x, 2
+@tloop
+	%s =w mul %t, %t
+	%c =w csgt %s, %x
+	jnz %c, @prime, @test
+@test
+	%r =w rem %x, %t
+	jnz %r, @tnext, @loop
+@tnext
+	%t =w add %t, 2
+	jmp @tloop
+@prime
+	%n =w add %n, 1
+	jmp @loop
+@end
+	storew %x, $a
+	ret
+}
