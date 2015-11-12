@@ -299,18 +299,15 @@ expect(int t)
 }
 
 static Ref
-tmpref(char *v, int use)
+tmpref(char *v)
 {
 	int t;
 
 	for (t=Tmp0; t<ntmp; t++)
 		if (strcmp(v, tmp[t].name) == 0)
-			goto Found;
+			return TMP(t);
 	vgrow(&tmp, ++ntmp);
 	strcpy(tmp[t].name, v);
-Found:
-	tmp[t].ndef += !use;
-	tmp[t].nuse += use;
 	return TMP(t);
 }
 
@@ -322,7 +319,7 @@ parseref()
 
 	switch (next()) {
 	case TTmp:
-		return tmpref(tokval.str, 1);
+		return tmpref(tokval.str);
 	case TNum:
 		c = (Con){.type = CNum, .val = tokval.num};
 		strcpy(c.label, "");
@@ -509,7 +506,7 @@ parseline(PState ps)
 		closeblk();
 		return PLbl;
 	}
-	r = tmpref(tokval.str, 0);
+	r = tmpref(tokval.str);
 	expect(TEq);
 	w = parsecls(&ty);
 	op = next();
@@ -547,10 +544,6 @@ DoOp:
 			arg[i] = parseref();
 			if (req(arg[i], R))
 				err("invalid instruction argument");
-			if (op == -1)
-			if (rtype(arg[i]) == RTmp)
-			if (!tmp[arg[i].val].phi)
-				tmp[arg[i].val].phi = r.val;
 			i++;
 			t = peek();
 			if (t == TNL)
@@ -572,7 +565,6 @@ DoOp:
 		curi++;
 		return PIns;
 	} else {
-		tmp[r.val].phi = r.val;
 		phi = alloc(sizeof *phi);
 		phi->to = r;
 		phi->wide = w;

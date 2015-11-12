@@ -49,8 +49,9 @@ func(Fn *fn)
 	}
 	fillrpo(fn);
 	fillpreds(fn);
+	filluse(fn);
 	ssa(fn);
-#if 0
+	filluse(fn);
 	isel(fn);
 	filllive(fn);
 	fillcost(fn);
@@ -69,7 +70,6 @@ func(Fn *fn)
 		printf("/* end function %s */\n\n", fn->name);
 	} else
 		fprintf(stderr, "\n");
-#endif
 	freeall();
 }
 

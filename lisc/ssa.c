@@ -1,5 +1,52 @@
 #include "lisc.h"
 
+/* fill usage and phi information
+ */
+void
+filluse(Fn *fn)
+{
+	Blk *b;
+	Phi *p;
+	Ins *i;
+	int t;
+	uint a;
+	Tmp *tmp;
+
+	/* todo, is this the correct file? */
+	tmp = fn->tmp;
+	for (t=0; t<fn->ntmp; t++) {
+		tmp[t].ndef = 0;
+		tmp[t].nuse = 0;
+		tmp[t].phi = 0;
+	}
+	for (b=fn->start; b; b=b->link) {
+		for (p=b->phi; p; p=p->link) {
+			assert(rtype(p->to) == RTmp);
+			tmp[p->to.val].ndef++;
+			tmp[p->to.val].phi = p->to.val;
+			for (a=0; a<p->narg; a++)
+				if (rtype(p->arg[a]) == RTmp) {
+					t = p->arg[a].val;
+					tmp[t].nuse++;
+					if (!tmp[t].phi)
+						tmp[t].phi = p->to.val;
+				}
+		}
+		for (i=b->ins; i!=&b->ins[b->nins]; i++) {
+			if (!req(i->to, R)) {
+				assert(rtype(i->to) == RTmp);
+				tmp[i->to.val].ndef++;
+			}
+			if (rtype(i->arg[0]) == RTmp)
+				tmp[i->arg[0].val].nuse++;
+			if (rtype(i->arg[1]) == RTmp)
+				tmp[i->arg[1].val].nuse++;
+		}
+		if (rtype(b->jmp.arg) == RTmp)
+			tmp[b->jmp.arg.val].nuse++;
+	}
+}
+
 static void
 addpred(Blk *bp, Blk *bc)
 {

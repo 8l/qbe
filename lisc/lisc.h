@@ -357,6 +357,7 @@ void parse(FILE *, void (Dat *), void (Fn *));
 void printfn(Fn *, FILE *);
 
 /* ssa.c */
+void filluse(Fn *);
 void fillpreds(Fn *);
 void fillrpo(Fn *);
 void ssa(Fn *);
