@@ -15,7 +15,7 @@ struct Vec {
 
 
 enum {
-	VMin = 32,
+	VMin = 2,
 	VMag = 0xcabba9e,
 	NPtr = 256,
 };
