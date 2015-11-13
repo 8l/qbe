@@ -821,7 +821,7 @@ isel(Fn *fn)
 		idup(&b->ins, curi, b->nins);
 	}
 
-	if (debug['C']) {
+	if (debug['A']) {
 		fprintf(stderr, "\n> After call lowering:\n");
 		printfn(fn, stderr);
 	}
