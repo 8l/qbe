@@ -386,9 +386,10 @@ spill(Fn *fn)
 			j = opdesc[i->op].nmem;
 			j -= rtype(i->arg[0]) == RAMem;
 			j -= rtype(i->arg[1]) == RAMem;
-			for (m=0; t=i->arg[m].val, m<2; m++)
+			for (m=0; m<2; m++)
 				switch (rtype(i->arg[m])) {
 				case RAMem:
+					t = i->arg[m].val;
 					ma = &fn->mem[t & AMask];
 					if (rtype(ma->base) == RTmp) {
 						BSET(v, ma->base.val);
@@ -400,6 +401,7 @@ spill(Fn *fn)
 					}
 					break;
 				case RTmp:
+					t = i->arg[m].val;
 					lvarg[m] = BGET(v, t);
 					BSET(v, t);
 					if (j-- <= 0)
