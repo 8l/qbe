@@ -257,8 +257,8 @@ struct Use {
 	} type;
 	int bid;
 	union {
-		int ins;
-		Ref phi;
+		Ins *ins;
+		Phi *phi;
 	} u;
 };
 
@@ -371,6 +371,7 @@ void addcon(Con *, Con *);
 extern OpDesc opdesc[NOp];
 void parse(FILE *, void (Dat *), void (Fn *));
 void printfn(Fn *, FILE *);
+void printref(Ref, Fn *, FILE *);
 
 /* ssa.c */
 void filluse(Fn *);
@@ -378,9 +379,13 @@ void fillpreds(Fn *);
 void fillrpo(Fn *);
 void ssa(Fn *);
 
+/* copy.c */
+void copy(Fn *);
+
 /* live.c */
 Bits liveon(Blk *, Blk *);
 void filllive(Fn *);
+
 
 /* isel.c */
 extern int rsave[NRSave];

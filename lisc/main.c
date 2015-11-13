@@ -3,9 +3,11 @@
 
 char debug['Z'+1] = {
 	['P'] = 0, /* parsing */
-	['C'] = 0, /* call lowering */
+	['A'] = 0, /* abi lowering */
 	['I'] = 0, /* instruction selection */
 	['L'] = 0, /* liveness */
+	['N'] = 0, /* ssa construction */
+	['C'] = 0, /* copy elimination */
 	['S'] = 0, /* spilling */
 	['R'] = 0, /* reg. allocation */
 };
@@ -51,6 +53,8 @@ func(Fn *fn)
 	fillpreds(fn);
 	filluse(fn);
 	ssa(fn);
+	filluse(fn);
+	copy(fn);
 	filluse(fn);
 	isel(fn);
 	filllive(fn);
