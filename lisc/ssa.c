@@ -10,17 +10,18 @@ adduse(Tmp *tmp, int ty, Blk *b, ...)
 
 	va_start(ap, b);
 	n = tmp->nuse;
-	vgrow(tmp->use, ++tmp->nuse);
+	vgrow(&tmp->use, ++tmp->nuse);
 	u = &tmp->use[n];
+	u->type = ty;
 	u->bid = b->id;
 	switch (ty) {
 	default:
 		diag("ssa: adduse defaulted");
 	case UPhi:
-		u->u.phi = va_arg(ap, Ref);
+		u->u.phi = va_arg(ap, Phi *);
 		break;
 	case UIns:
-		u->u.ins = va_arg(ap, Ins *) - b->ins;
+		u->u.ins = va_arg(ap, Ins *);
 		break;
 	case UJmp:
 		break;
@@ -57,7 +58,7 @@ filluse(Fn *fn)
 			for (a=0; a<p->narg; a++)
 				if (rtype(p->arg[a]) == RTmp) {
 					t = p->arg[a].val;
-					adduse(&tmp[t], UPhi, b, p->to);
+					adduse(&tmp[t], UPhi, b, p);
 					if (!tmp[t].phi)
 						tmp[t].phi = p->to.val;
 				}
