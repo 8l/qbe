@@ -109,13 +109,11 @@ copy(Fn *fn)
 			}
 	}
 	for (b=fn->start; b; b=b->link) {
-		for (pp=&b->phi; (p=*pp); pp=&p->link) {
-		Again:
+		for (pp=&b->phi; (p=*pp);) {
 			r = cp[p->to.val];
 			if (!req(r, p->to)) {
 				*pp = p->link;
-				p = *pp;
-				goto Again;
+				continue;
 			}
 			for (a=0; a<p->narg; a++)
 				if (rtype(p->arg[a]) == RTmp) {
@@ -123,6 +121,7 @@ copy(Fn *fn)
 					assert(!req(r, R));
 					p->arg[a] = r;
 				}
+			pp=&p->link;
 		}
 		for (i=b->ins; i!=&b->ins[b->nins]; i++) {
 			r = cp[i->to.val];
