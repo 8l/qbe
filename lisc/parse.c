@@ -812,7 +812,7 @@ printcon(Con *c, FILE *f)
 	}
 }
 
-static void
+void
 printref(Ref r, Fn *fn, FILE *f)
 {
 	int i;
