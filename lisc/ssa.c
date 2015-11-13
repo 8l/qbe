@@ -1,4 +1,32 @@
 #include "lisc.h"
+#include <stdarg.h>
+
+static void
+adduse(Tmp *tmp, int ty, Blk *b, ...)
+{
+	Use *u;
+	int n;
+	va_list ap;
+
+	va_start(ap, b);
+	n = tmp->nuse;
+	vgrow(tmp->use, ++tmp->nuse);
+	u = &tmp->use[n];
+	u->bid = b->id;
+	switch (ty) {
+	default:
+		diag("ssa: adduse defaulted");
+	case UPhi:
+		u->u.phi = va_arg(ap, Ref);
+		break;
+	case UIns:
+		u->u.ins = va_arg(ap, Ins *) - b->ins;
+		break;
+	case UJmp:
+		break;
+	}
+	va_end(ap);
+}
 
 /* fill usage and phi information
  */
@@ -8,7 +36,7 @@ filluse(Fn *fn)
 	Blk *b;
 	Phi *p;
 	Ins *i;
-	int t;
+	int m, t;
 	uint a;
 	Tmp *tmp;
 
@@ -18,6 +46,8 @@ filluse(Fn *fn)
 		tmp[t].ndef = 0;
 		tmp[t].nuse = 0;
 		tmp[t].phi = 0;
+		if (tmp[t].use == 0)
+			tmp[t].use = vnew(0, sizeof(Use));
 	}
 	for (b=fn->start; b; b=b->link) {
 		for (p=b->phi; p; p=p->link) {
@@ -27,7 +57,7 @@ filluse(Fn *fn)
 			for (a=0; a<p->narg; a++)
 				if (rtype(p->arg[a]) == RTmp) {
 					t = p->arg[a].val;
-					tmp[t].nuse++;
+					adduse(&tmp[t], UPhi, b, p->to);
 					if (!tmp[t].phi)
 						tmp[t].phi = p->to.val;
 				}
@@ -37,13 +67,14 @@ filluse(Fn *fn)
 				assert(rtype(i->to) == RTmp);
 				tmp[i->to.val].ndef++;
 			}
-			if (rtype(i->arg[0]) == RTmp)
-				tmp[i->arg[0].val].nuse++;
-			if (rtype(i->arg[1]) == RTmp)
-				tmp[i->arg[1].val].nuse++;
+			for (m=0; m<2; m++)
+				if (rtype(i->arg[m]) == RTmp) {
+					t = i->arg[m].val;
+					adduse(&tmp[t], UIns, b, i);
+				}
 		}
 		if (rtype(b->jmp.arg) == RTmp)
-			tmp[b->jmp.arg.val].nuse++;
+			adduse(&tmp[b->jmp.arg.val], UJmp, b);
 	}
 }
 

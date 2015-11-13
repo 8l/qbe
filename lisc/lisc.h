@@ -14,6 +14,7 @@ typedef struct OpDesc OpDesc;
 typedef struct Ins Ins;
 typedef struct Phi Phi;
 typedef struct Blk Blk;
+typedef struct Use Use;
 typedef struct Tmp Tmp;
 typedef struct Con Con;
 typedef struct Addr Mem;
@@ -247,8 +248,23 @@ struct Blk {
 	char name[NString];
 };
 
+struct Use {
+	enum {
+		UXXX,
+		UPhi,
+		UIns,
+		UJmp,
+	} type;
+	int bid;
+	union {
+		int ins;
+		Ref phi;
+	} u;
+};
+
 struct Tmp {
 	char name[NString];
+	Use *use;
 	uint ndef, nuse;
 	uint cost;
 	short slot;
