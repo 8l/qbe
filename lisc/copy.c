@@ -144,12 +144,17 @@ copy(Fn *fn)
 	}
 	if (debug['C']) {
 		fprintf(stderr, "\n> Copy information:");
-		for (t=Tmp0; t<fn->ntmp; t++)
-			if (!req(cp[t], TMP(t))) {
+		for (t=Tmp0; t<fn->ntmp; t++) {
+			if (req(cp[t], R)) {
+				fprintf(stderr, "\n%10s not seen!",
+					fn->tmp[t].name);
+			}
+			else if (!req(cp[t], TMP(t))) {
 				fprintf(stderr, "\n%10s copy of ",
 					fn->tmp[t].name);
 				printref(cp[t], fn, stderr);
 			}
+		}
 		fprintf(stderr, "\n\n> After copy elimination:\n");
 		printfn(fn, stderr);
 	}
