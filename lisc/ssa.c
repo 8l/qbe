@@ -63,7 +63,7 @@ filluse(Fn *fn)
 						tmp[t].phi = p->to.val;
 				}
 		}
-		for (i=b->ins; i!=&b->ins[b->nins]; i++) {
+		for (i=b->ins; i-b->ins < b->nins; i++) {
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
 				tmp[i->to.val].ndef++;
@@ -303,7 +303,7 @@ phiins(Fn *fn)
 		for (b=fn->start; b; b=b->link) {
 			b->visit = 0;
 			r = R;
-			for (i=b->ins; i!=&b->ins[b->nins]; i++) {
+			for (i=b->ins; i-b->ins < b->nins; i++) {
 				if (!req(r, R)) {
 					if (req(i->arg[0], TMP(t)))
 						i->arg[0] = r;
@@ -438,7 +438,7 @@ renblk(Blk *b, Name **stk, Fn *fn)
 
 	for (p=b->phi; p; p=p->link)
 		rendef(&p->to, b, stk, fn);
-	for (i=b->ins; i!=&b->ins[b->nins]; i++) {
+	for (i=b->ins; i-b->ins < b->nins; i++) {
 		for (m=0; m<2; m++) {
 			t = i->arg[m].val;
 			if (rtype(i->arg[m]) == RTmp)

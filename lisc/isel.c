@@ -674,7 +674,7 @@ anumber(ANum *ai, Blk *b, Con *con)
 	int a, a1, a2, n1, n2, t1, t2;
 	Ins *i;
 
-	for (i=b->ins; i<&b->ins[b->nins]; i++) {
+	for (i=b->ins; i-b->ins < b->nins; i++) {
 		if (rtype(i->to) == RTmp)
 			ai[i->to.val].i = i;
 		if (i->op != OAdd && i->op != OMul)
@@ -804,7 +804,7 @@ isel(Fn *fn)
 	/* lower function calls */
 	for (b=fn->start; b; b=b->link) {
 		curi = &insb[NIns];
-		for (i=&b->ins[b->nins]; i>b->ins;) {
+		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			if ((--i)->op == OCall) {
 				for (i0=i; i0>b->ins; i0--)
 					if ((i0-1)->op != OArg)
@@ -863,7 +863,7 @@ isel(Fn *fn)
 		anumber(ainfo, b, fn->con);
 		curi = &insb[NIns];
 		seljmp(b, fn);
-		for (i=&b->ins[b->nins]; i>b->ins;)
+		for (i=&b->ins[b->nins]; i!=b->ins;)
 			sel(*--i, ainfo, fn);
 		b->nins = &insb[NIns] - curi;
 		idup(&b->ins, curi, b->nins);
