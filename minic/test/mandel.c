@@ -1,6 +1,15 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <SDL2/SDL.h>
+void *malloc();
+void *SDL_CreateWindow();
+void *SDL_CreateRenderer();
+int SDL_SetRenderDrawColor();
+int SDL_RenderDrawPoint();
+int SDL_RenderClear();
+int SDL_RenderPresent();
+int SDL_PollEvent();
+int SDL_DestroyRenderer();
+int SDL_DestroyWindow();
+int SDL_Quit();
+int SDL_Init();
 
 void *win;
 void *rnd;
@@ -31,8 +40,8 @@ plot(int x, int y)
 		zx = nx;
 		zy = ny;
 	}
-	n = 255 - col[n];
-	SDL_SetRenderDrawColor(rnd, n, 130, n, 255);
+	n = col[n];
+	SDL_SetRenderDrawColor(rnd, 100, n, n, 255);
 	SDL_RenderDrawPoint(rnd, x, y);
 	return 0;
 }
@@ -45,8 +54,8 @@ main() {
 	void *e;
 	int *ie;
 
-	W = 400;
-	H = 400;
+	W = 800;
+	H = 800;
 	SDL_Init(32);
 	win = SDL_CreateWindow("Mandelbrot MiniC", 0, 0, W, H, 0);
 	rnd = SDL_CreateRenderer(win, -1, 0);
@@ -56,11 +65,9 @@ main() {
 	c = 20;
 	for (n=0; n<200; n++) {
 		col[n] = c;
-		if (c > 255)
-			printf("%d\n", c);
-		c += (255-c)/8;
+		c = c + (255-c)/8;
 	}
-	col[n] = 0;
+	col[n] = 30;
 
 	SDL_RenderClear(rnd);
 	for (x=0; x<W; x++)
@@ -78,5 +85,4 @@ main() {
 	SDL_DestroyRenderer(rnd);
 	SDL_DestroyWindow(win);
 	SDL_Quit();
-	return 0;
 }
