@@ -6,7 +6,7 @@
 #include <string.h>
 
 enum {
-	NString = 16,
+	NString = 32,
 	NGlo = 256,
 	NVar = 512,
 	NStr = 256,
@@ -874,7 +874,7 @@ yylex()
 				die("ident too long");
 			*p++ = c;
 			c = getchar();
-		} while (isalpha(c));
+		} while (isalpha(c) || c == '_');
 		*p = 0;
 		ungetc(c, stdin);
 		for (i=0; kwds[i].s; i++)

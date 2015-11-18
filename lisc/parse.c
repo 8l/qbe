@@ -225,7 +225,7 @@ Alpha:		c = fgetc(inf);
 			err("identifier too long");
 		tok[i++] = c;
 		c = fgetc(inf);
-	} while (isalpha(c) || c == '.' || isdigit(c));
+	} while (isalpha(c) || c == '.' || c == '_' || isdigit(c));
 	tok[i] = 0;
 	ungetc(c, inf);
 	if (t != TXXX) {
