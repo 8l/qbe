@@ -28,6 +28,17 @@ hint(int t)
 	return &tmp[phicls(t, tmp)].hint.r;
 }
 
+static void
+sethint(int t, int r)
+{
+	ulong m;
+
+	m = tmp[phicls(t, tmp)].hint.m;
+	if (*hint(t) == -1)
+	if (!(BIT(r) & m))
+		*hint(t) = r;
+}
+
 static int
 rfind(RMap *m, int t)
 {
@@ -96,8 +107,7 @@ ralloc(RMap *m, int t)
 					diag("rega: no more regs");
 	}
 	radd(m, t, r);
-	if (*hint(t) == -1)
-		*hint(t) = r;
+	sethint(t, r);
 	return TMP(r);
 }
 
@@ -340,8 +350,7 @@ doblk(Blk *b, RMap *cur)
 			}
 			if (isreg(i->to))
 			if (rtype(i->arg[0]) == RTmp)
-			if (*hint(i->arg[0].val) == -1)
-				*hint(i->arg[0].val) = i->to.val;
+				sethint(i->arg[0].val, i->to.val);
 			/* fall through */
 		default:
 			if (!req(i->to, R)) {
@@ -402,7 +411,7 @@ rega(Fn *fn)
 			break;
 		else {
 			assert(rtype(i->to) == RTmp);
-			*hint(i->to.val) = i->arg[0].val;
+			sethint(i->to.val, i->arg[0].val);
 		}
 
 	/* 2. assign registers following post-order */
