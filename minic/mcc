@@ -10,4 +10,4 @@ fi
 
 ./minic < $SRC > $TMP.ssa    || exit 1
 ../lisc/lisc $TMP.ssa > $TMP || exit 1
-cc $TMP
+cc -g $TMP
