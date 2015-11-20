@@ -223,7 +223,8 @@ move(int r, Ref to, RMap *m)
 		ralloc(m, t);
 		BCLR(m->b, r);
 	}
-	t = r1 == -1 ? r : to.val;
+	// t = r1 == -1 ? r : to.val;
+	t = req(to, R) ? r : to.val;
 	radd(m, t, r);
 }
 
@@ -231,7 +232,7 @@ static Ins *
 dopm(Blk *b, Ins *i, RMap *m)
 {
 	RMap m0;
-	int n, r, r1, t;
+	int n, r, r1, t, s;
 	Ins *i0, *i1, *ip, *ir;
 	ulong def;
 
@@ -251,13 +252,23 @@ dopm(Blk *b, Ins *i, RMap *m)
 			if (!(BIT(rsave[r]) & def))
 				move(rsave[r], R, m);
 	}
-	for (npm=0, n=0; n<m->n; n++)
+	for (npm=0, n=0; n<m->n; n++) {
+		t = m->t[n];
+		r1 = m->r[n];
+		r = rfind(&m0, t);
+		if (r != -1)
+			pmadd(TMP(r1), TMP(r), tmp[t].wide);
+		else if ((s = tmp[t].slot) != -1)
+			pmadd(TMP(r1), SLOT(s), tmp[t].wide);
+	}
+#if 0
 		if ((t = m->t[n]) >= Tmp0) {
 			r1 = m->r[n];
 			r = rfind(&m0, t);
 			assert(r != -1);
 			pmadd(TMP(r1), TMP(r), tmp[t].wide);
 		}
+#endif
 	for (ip=i; ip<i1; ip++) {
 		if (!req(ip->to, R))
 			rfree(m, ip->to.val);
