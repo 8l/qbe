@@ -233,27 +233,38 @@ reloads(Bits *u, Bits *v)
 static Ins *
 dopm(Blk *b, Ins *i, Bits *v)
 {
-	int n;
+	int n, s, t;
 	Bits u;
 	Ins *i1;
 	ulong r;
 
-	/* consecutive moves from
+	/* consecutive copies from
 	 * registers need to handled
 	 * as one large instruction
+	 *
+	 * fixme: there is an assumption
+	 * that calls are always followed
+	 * by copy instructions here, this
+	 * might not be true if previous
+	 * passes change
 	 */
-	i1 = i+1;
-	for (;; i--) {
+	i1 = ++i;
+	do {
+		i--;
+		t = i->to.val;
 		if (!req(i->to, R))
-			BCLR(*v, i->to.val);
+		if (BGET(*v, t)) {
+			BCLR(*v, t);
+			s = tmp[t].slot;
+			if (s != -1)
+				store(i->to, s);
+		}
 		BSET(*v, i->arg[0].val);
-		if (i == b->ins
-		|| (i-1)->op != OCopy
-		|| !isreg((i-1)->arg[0]))
-			break;
-	}
+	} while (i != b->ins &&
+		(i-1)->op == OCopy &&
+		isreg((i-1)->arg[0]));
 	u = *v;
-	if (i > b->ins && (i-1)->op == OCall) {
+	if (i != b->ins && (i-1)->op == OCall) {
 		v->t[0] &= ~calldef(*(i-1), 0);
 		limit(v, NReg - NRSave, 0);
 		r = 0;
