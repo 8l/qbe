@@ -373,6 +373,9 @@ void parse(FILE *, void (Dat *), void (Fn *));
 void printfn(Fn *, FILE *);
 void printref(Ref, Fn *, FILE *);
 
+/* mem.c */
+void memopt(Fn *);
+
 /* ssa.c */
 void filluse(Fn *);
 void fillpreds(Fn *);

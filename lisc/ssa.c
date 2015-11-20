@@ -467,6 +467,7 @@ renblk(Blk *b, Name **stk, Fn *fn)
 		renblk(s, stk, fn);
 }
 
+/* require ndef */
 void
 ssa(Fn *fn)
 {

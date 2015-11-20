@@ -6,6 +6,7 @@ char debug['Z'+1] = {
 	['A'] = 0, /* abi lowering */
 	['I'] = 0, /* instruction selection */
 	['L'] = 0, /* liveness */
+	['M'] = 0, /* memory optimization */
 	['N'] = 0, /* ssa construction */
 	['C'] = 0, /* copy elimination */
 	['S'] = 0, /* spilling */
@@ -52,6 +53,7 @@ func(Fn *fn)
 	fillrpo(fn);
 	fillpreds(fn);
 	filluse(fn);
+	memopt(fn);
 	ssa(fn);
 	filluse(fn);
 	copy(fn);
