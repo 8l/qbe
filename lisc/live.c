@@ -40,10 +40,10 @@ phifix(int t1, short *phi, Tmp *tmp)
 	t2 = phi[t];
 	if (t2 && t2 != t1) {
 		if (t != t1) {
-			tmp[t1].phi = 0;
+			tmp[t1].phi = t1;
 			t = t1;
 		} else {
-			tmp[t2].phi = 0;
+			tmp[t2].phi = t2;
 			phi[t2] = t2;
 		}
 	}
