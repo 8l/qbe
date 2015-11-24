@@ -1,13 +1,37 @@
-#!/bin/sh
+#!/usr/bin/python2
 
-TMP=/tmp/minic.s
-SRC=$1
+import sys
+import subprocess
 
-if [ -z "$SRC" ]; then
-	echo "usage: ./mcc file.c" 1>&2
-	exit 1
-fi
+root=".."
+ssafile = '/tmp/minic.ssa'
+asmfile = '/tmp/minic.s'
+cc = '/usr/bin/gcc'
 
-./minic < $SRC > $TMP.ssa    || exit 1
-../lisc/lisc $TMP.ssa > $TMP || exit 1
-cc -g $TMP
+ccargs = []
+cfile = None
+
+for a in sys.argv[1:]:
+	if a[0] == '-':
+		ccargs.append(a)
+	else:
+		cfile = a
+
+if not cfile:
+	print >>sys.stderr, "usage: mcc [LDFLAGS] file.c"
+	sys.exit(1)
+
+ret = subprocess.call(root + "/minic/minic < " + cfile + " >" + ssafile, shell=True)
+if not ret == 0:
+	print >>sys.stderr, "minic failed (%d)" % ret
+	sys.exit(1)
+
+ret = subprocess.call(root + "/lisc/lisc <" + ssafile + " >" + asmfile, shell=True)
+if not ret == 0:
+	print >>sys.stderr, "backend failed (%d)" % ret
+	sys.exit(1)
+
+ret = subprocess.call([cc, asmfile] + ccargs)
+if not ret == 0:
+	print >>sys.stderr, "linking failed (%d)" % ret
+	sys.exit(1)
