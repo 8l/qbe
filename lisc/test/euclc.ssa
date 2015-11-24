@@ -1,0 +1,25 @@
+function w $test() {
+@l0
+	%a =l alloc4 4
+	%b =l alloc4 4
+	%r =l alloc4 4
+	storew 747, %a
+	storew 380, %b
+@l1
+	%t4 =w loadw %b
+	jnz %t4, @l2, @l3
+@l2
+	%t7 =w loadw %a
+	%t8 =w loadw %b
+	%t6 =w rem %t7, %t8
+	storew %t6, %r
+	%t10 =w loadw %b
+	storew %t10, %a
+	%t12 =w loadw %r
+	storew %t12, %b
+	jmp @l1
+@l3
+	%t13 =w loadw %a
+	ret %t13
+}
+
