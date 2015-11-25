@@ -319,6 +319,11 @@ spill(Fn *fn)
 			tmp[p->to.val].wide = p->wide;
 		for (i=b->ins; i-b->ins < b->nins; i++)
 			if (rtype(i->to) == RTmp)
+				/* Note: this only works because
+				 * all OCmp operations were eliminated
+				 * indeed, the wide bit of those refer
+				 * to the size of the operands
+				 */
 				tmp[i->to.val].wide = i->wide;
 	}
 
