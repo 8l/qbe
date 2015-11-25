@@ -35,6 +35,7 @@ cc $flags /tmp/minic.s
 if test $? -ne 0
 then
 	echo "error processing file $file" >&2
+	exit 1
 fi
 
 
