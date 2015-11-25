@@ -1,37 +1,40 @@
-#!/usr/bin/python2
+#!/bin/sh
 
-import sys
-import subprocess
+usage()
+{
+	echo "usage: mcc [LDFLAGS] file.c" >&2
+	exit 1
+}
 
-root=".."
-ssafile = '/tmp/minic.ssa'
-asmfile = '/tmp/minic.s'
-cc = '/usr/bin/gcc'
+for i
+do
+	case $i in
+	-*)
+		flags="$flags $i"
+		;;
+	*)
+		if ! test -z $file
+		then
+			usage
+		fi
+		file=$i
+		;;
+	esac
+done
 
-ccargs = []
-cfile = None
+if test -z $file
+then
+	usage
+fi
 
-for a in sys.argv[1:]:
-	if a[0] == '-':
-		ccargs.append(a)
-	else:
-		cfile = a
 
-if not cfile:
-	print >>sys.stderr, "usage: mcc [LDFLAGS] file.c"
-	sys.exit(1)
+../minic/minic < $file        > /tmp/minic.ssa &&
+../lisc/lisc < /tmp/minic.ssa > /tmp/minic.s   &&
+cc $flags /tmp/minic.s
 
-ret = subprocess.call(root + "/minic/minic < " + cfile + " >" + ssafile, shell=True)
-if not ret == 0:
-	print >>sys.stderr, "minic failed (%d)" % ret
-	sys.exit(1)
+if test $? -ne 0
+then
+	echo "error processing file $file" >&2
+fi
 
-ret = subprocess.call(root + "/lisc/lisc <" + ssafile + " >" + asmfile, shell=True)
-if not ret == 0:
-	print >>sys.stderr, "backend failed (%d)" % ret
-	sys.exit(1)
 
-ret = subprocess.call([cc, asmfile] + ccargs)
-if not ret == 0:
-	print >>sys.stderr, "linking failed (%d)" % ret
-	sys.exit(1)
