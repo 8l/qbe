@@ -44,9 +44,27 @@ enum Reg {
 	RBP, /* reserved */
 	RSP,
 
+	XMM0, /* sse */
+	XMM1,
+	XMM2,
+	XMM3,
+	XMM4,
+	XMM5,
+	XMM6,
+	XMM7,
+	XMM8,
+	XMM9,
+	XMM10,
+	XMM11,
+	XMM12,
+	XMM13,
+	XMM14,
+	XMM15,
+
 	Tmp0, /* first non-reg temporary */
 
 	NReg = RBX - RAX + 1,
+	NFReg = XMM15 - XMM0 + 1,
 	NRSave = 9,
 	NRClob = 5,
 };
