@@ -53,11 +53,13 @@ func(Fn *fn)
 	fillrpo(fn);
 	fillpreds(fn);
 	filluse(fn);
+#if 0
 	memopt(fn);
 	ssa(fn);
 	filluse(fn);
 	copy(fn);
 	filluse(fn);
+#endif
 	isel(fn);
 	filllive(fn);
 	fillcost(fn);

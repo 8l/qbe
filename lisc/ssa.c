@@ -166,6 +166,8 @@ fillrpo(Fn *f)
 	}
 }
 
+#if 0
+
 /* for dominators computation, read
  * "A Simple, Fast Dominance Algorithm"
  * by K. Cooper, T. Harvey, and K. Kennedy.
@@ -507,3 +509,5 @@ ssa(Fn *fn)
 		printfn(fn, stderr);
 	}
 }
+
+#endif
