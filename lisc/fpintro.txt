@@ -1,0 +1,17 @@
+Instructions classification:
+FP    : add, sub, mul, copy, par, arg
+Maybe : and, or, xor, cmp(6)
+Non FP: sdiv, udiv, srem, urem, store(4),
+        load(7), ext(7), alloc(5), parc, argc, call
+
+15 bits for operations  32768
+-1 bit for s,d          16384
+
+New conversion instructions:
+ - Bitcast conversion between fp and ints. cast
+ - Convert fp to/from int. convf convi (only signed at first, truncation)
+ - Convert single to/from double convs convd
+
+Summary:
+	Add bitcast, convf convi, convs convd
+	Add a 'floating point' bit to instructions
