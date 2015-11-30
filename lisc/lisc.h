@@ -171,7 +171,7 @@ enum Op {
 	OCmp1 = OCmp + NCmp-1,
 	OStorel,
 	OStorew,
-	OStores,
+	OStoreh,
 	OStoreb,
 	OLoad,
 	OLoad1 = OLoad + NTy-1,

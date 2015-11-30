@@ -252,7 +252,7 @@ eins(Ins i, Fn *fn, FILE *f)
 		break;
 	case OStorel:
 	case OStorew:
-	case OStores:
+	case OStoreh:
 	case OStoreb:
 		emitf(fn, f, "mov%t %R, %M",
 			i.op - OStorel, i.arg[0], i.arg[1]);

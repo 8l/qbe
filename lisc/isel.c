@@ -180,8 +180,8 @@ sel(Ins i, ANum *an, Fn *fn)
 		break;
 	case OStorel:
 	case OStorew:
+	case OStoreh:
 	case OStoreb:
-	case OStores:
 		seladdr(&i.arg[1], an, fn);
 		goto Emit;
 	case_OLoad:
@@ -265,8 +265,8 @@ flagi(Ins *i0, Ins *i)
 		case OCopy: /* flag-transparent */
 		case OStorel:
 		case OStorew:
-		case OStoreb:
-		case OStores:;
+		case OStoreh:
+		case OStoreb:;
 		}
 	return 0;
 }
