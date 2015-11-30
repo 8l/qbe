@@ -55,6 +55,8 @@ func(Fn *fn)
 	fillrpo(fn);
 	fillpreds(fn);
 	filluse(fn);
+
+	filllive(fn);
 #if 0
 	memopt(fn);
 	ssa(fn);
