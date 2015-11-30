@@ -1,0 +1,18 @@
+function $test() {
+@start
+	%x1 =d copy `0.3
+	%x2 =d sub %x1, `0.2
+	%x3 =d sub %x2, `0.1
+
+@loop
+	%x4 =d phi @start %x3, @loop %x5
+	%i1 =w phi @start 0, @loop %i2
+	%x5 =d add %x4, %x4
+	%i2 =w add %i1, 1
+	%c0 =d csle %x5, `1
+	jnz %c0, @loop, @end
+
+@end
+	storew %i2, $a
+	ret
+}
