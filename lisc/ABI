@@ -1,5 +1,5 @@
-Summary of ABI for calls on x64
-===============================
+System V ABI for calls on x64
+=============================
 
 Data classes of interest as defined by the ABI:
  - INTEGER
@@ -41,7 +41,7 @@ Passing:
    an upper bound and does not have to be exact).
  - Registers %rbx, %r12 - %r15 are callee-save.
 
-Returning.
+Returning:
  - Classify the return type.
  - Use %rax and %rdx in order for INTEGER return values.
  - Use %xmm0 and %xmm1 in order for SSE return values.
