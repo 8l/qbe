@@ -29,7 +29,7 @@ adduse(Tmp *tmp, int ty, Blk *b, ...)
 	va_end(ap);
 }
 
-/* fill usage and phi information
+/* fill usage, phi, and class information
  */
 void
 filluse(Fn *fn)
