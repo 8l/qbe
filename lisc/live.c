@@ -115,8 +115,9 @@ Again:
 		for (k=0; k<2; k++)
 			b->nlive[k] = nlv[k];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
-#if 0
 			if ((--i)->op == OCall)
+				;
+#if 0
 			if (rtype(i->arg[1]) == RACall) {
 				b->in.t[0] &= ~calldef(*i, m);
 				for (k=0; k<2; k++)
@@ -170,8 +171,8 @@ Again:
 			dumpts(&b->out, f->tmp, stderr);
 			fprintf(stderr, "\t          gen:  ");
 			dumpts(&b->gen, f->tmp, stderr);
-			fprintf(stderr, "\t          live int: %d\n", b->nlive[0]);
-			fprintf(stderr, "\t          live flt: %d\n", b->nlive[1]);
+			fprintf(stderr, "\t          live: ");
+			fprintf(stderr, "%d %d\n", b->nlive[0], b->nlive[1]);
 		}
 	}
 }
