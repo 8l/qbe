@@ -17,3 +17,7 @@ Summary:
 	Add a 'floating point' bit to instructions
 	Conversions from/to unsigned types are hard!
 	I need to find a reference for that.
+
+Problem with "cls" field: for comparisons, this field is
+for the argument of the instruction, but, in the case of
+Load (for example), it is about the result.
