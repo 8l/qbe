@@ -9,6 +9,8 @@ OpDesc opdesc[NOp] = {
 	[ORem]    = { "rem",    2 },
 	[OMul]    = { "mul",    2 },
 	[OAnd]    = { "and",    2 },
+	[OStored] = { "stored", 0 },
+	[OStores] = { "stores", 0 },
 	[OStorel] = { "storel", 0 },
 	[OStorew] = { "storew", 0 },
 	[OStoreh] = { "storeh", 0 },
@@ -353,20 +355,24 @@ parsecls(int *tyn)
 		for (i=0; i<ntyp; i++)
 			if (strcmp(tokval.str, typ[i].name) == 0) {
 				*tyn = i;
-				return 2;
+				return 4;
 			}
 		err("undefined type");
 	case TW:
-		return 0;
+		return Kw;
 	case TL:
-		return 1;
+		return Kl;
+	case TS:
+		return Ks;
+	case TD:
+		return Kd;
 	}
 }
 
 static void
 parserefl(int arg)
 {
-	int w, t, ty;
+	int k, t, ty;
 	Ref r;
 
 	expect(TLParen);
@@ -377,22 +383,22 @@ parserefl(int arg)
 	for (;;) {
 		if (curi - insb >= NIns)
 			err("too many instructions (1)");
-		w = parsecls(&ty);
+		k = parsecls(&ty);
 		r = parseref();
 		if (req(r, R))
 			err("invalid reference argument");
 		if (!arg && rtype(r) != RTmp)
 			err("invalid function parameter");
-		if (w == 2)
+		if (k == 4)
 			if (arg)
-				*curi = (Ins){OArgc, 0, R, {TYPE(ty), r}};
+				*curi = (Ins){OArgc, R, {TYPE(ty), r}, 0};
 			else
-				*curi = (Ins){OParc, 0, r, {TYPE(ty)}};
+				*curi = (Ins){OParc, r, {TYPE(ty)}, 0};
 		else
 			if (arg)
-				*curi = (Ins){OArg, w, R, {r}};
+				*curi = (Ins){OArg, R, {r}, k};
 			else
-				*curi = (Ins){OPar, w, r, {R}};
+				*curi = (Ins){OPar, r, {R}, k};
 		curi++;
 		t = next();
 		if (t == TRParen)
@@ -438,17 +444,17 @@ parseline(PState ps)
 	Phi *phi;
 	Ref r;
 	Blk *b;
-	int t, op, i, w, ty;
+	int t, op, i, k, ty;
 
 	t = nextnl();
 	if (ps == PLbl && t != TLbl && t != TRBrace)
 		err("label or } expected");
 	switch (t) {
 	default:
-		if (OStorel <= t && t <= OStoreb) {
+		if (OStored <= t && t <= OStoreb) {
 			/* operations without result */
 			r = R;
-			w = 0;
+			k = 0;
 			op = t;
 			goto DoOp;
 		}
@@ -508,7 +514,7 @@ parseline(PState ps)
 	}
 	r = tmpref(tokval.str);
 	expect(TEq);
-	w = parsecls(&ty);
+	k = parsecls(&ty);
 	op = next();
 DoOp:
 	if (op == TPhi) {
@@ -521,15 +527,15 @@ DoOp:
 		parserefl(1);
 		expect(TNL);
 		op = OCall;
-		if (w == 2) {
-			w = 0;
+		if (k == 4) {
+			k = 0;
 			arg[1] = TYPE(ty);
 		} else
 			arg[1] = R;
 		goto Ins;
 	}
-	if (w == 2)
-		err("size class must be w or l");
+	if (k == 4)
+		err("size class must be w, l, s, or d");
 	if (op >= NPubOp)
 		err("invalid instruction");
 	i = 0;
@@ -558,7 +564,7 @@ DoOp:
 		if (curi - insb >= NIns)
 			err("too many instructions (2)");
 		curi->op = op;
-		curi->wide = w;
+		curi->cls = k;
 		curi->to = r;
 		curi->arg[0] = arg[0];
 		curi->arg[1] = arg[1];
@@ -567,7 +573,7 @@ DoOp:
 	} else {
 		phi = alloc(sizeof *phi);
 		phi->to = r;
-		phi->wide = w;
+		phi->cls = k;
 		memcpy(phi->arg, arg, i * sizeof arg[0]);
 		memcpy(phi->blk, blk, i * sizeof blk[0]);
 		phi->narg = i;
@@ -883,6 +889,7 @@ printfn(Fn *fn, FILE *f)
 		[OXPush] = 1,
 		[OXDiv] = 1,
 	};
+	static char ktoc[] = "wlsd";
 	Blk *b;
 	Phi *p;
 	Ins *i;
@@ -894,7 +901,7 @@ printfn(Fn *fn, FILE *f)
 		for (p=b->phi; p; p=p->link) {
 			fprintf(f, "\t");
 			printref(p->to, fn, f);
-			fprintf(f, " =%s phi ", p->wide ? "l" : "w");
+			fprintf(f, " =%c phi ", ktoc[p->cls]);
 			assert(p->narg);
 			for (n=0;; n++) {
 				fprintf(f, "@%s ", p->blk[n]->name);
@@ -910,13 +917,12 @@ printfn(Fn *fn, FILE *f)
 			fprintf(f, "\t");
 			if (!req(i->to, R)) {
 				printref(i->to, fn, f);
-				fprintf(f, " =");
-				fprintf(f, i->wide ? "l " : "w ");
+				fprintf(f, " =%c", ktoc[i->cls]);
 			}
 			assert(opdesc[i->op].name);
 			fprintf(f, "%s", opdesc[i->op].name);
 			if (req(i->to, R) && prcls[i->op])
-				fprintf(f, i->wide ? "l" : "w");
+				fputc(ktoc[i->cls], f);
 			if (!req(i->arg[0], R)) {
 				fprintf(f, " ");
 				printref(i->arg[0], fn, f);

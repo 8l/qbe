@@ -157,6 +157,13 @@ enum Cmp { CMPS(X) NCmp };
 enum Ty { TYS(X) NTy };
 #undef X
 
+enum Class {
+	Kw,
+	Kl,
+	Ks,
+	Kd
+};
+
 enum Op {
 	OXXX,
 
@@ -169,6 +176,8 @@ enum Op {
 	OAnd,
 	OCmp,
 	OCmp1 = OCmp + NCmp-1,
+	OStored,
+	OStores,
 	OStorel,
 	OStorew,
 	OStoreh,
@@ -223,10 +232,10 @@ struct OpDesc {
 };
 
 struct Ins {
-	ushort op:15;
-	ushort wide:1;
+	ushort op:14;
 	Ref to;
 	Ref arg[2];
+	ushort cls:2;
 };
 
 struct Phi {
@@ -234,7 +243,7 @@ struct Phi {
 	Ref arg[NPred];
 	Blk *blk[NPred];
 	uint narg;
-	uint wide;
+	int cls;
 	Phi *link;
 };
 
@@ -301,6 +310,7 @@ struct Con {
 		CNum,
 		CAddr,
 	} type;
+	char flt;
 	char label[NString];
 	int64_t val;
 };

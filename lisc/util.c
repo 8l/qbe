@@ -92,17 +92,20 @@ bnew()
 }
 
 void
-emit(int op, int w, Ref to, Ref arg0, Ref arg1)
+emit(int op, int k, Ref to, Ref arg0, Ref arg1)
 {
 	if (curi == insb)
 		diag("emit: too many instructions");
-	*--curi = (Ins){op, w, to, {arg0, arg1}};
+	*--curi = (Ins){
+		.op = op, .cls = k,
+		.to = to, .arg = {arg0, arg1}
+	};
 }
 
 void
 emiti(Ins i)
 {
-	emit(i.op, i.wide, i.to, i.arg[0], i.arg[1]);
+	emit(i.op, i.cls, i.to, i.arg[0], i.arg[1]);
 }
 
 int
