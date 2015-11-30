@@ -47,14 +47,17 @@ filluse(Fn *fn)
 		tmp[t].ndef = 0;
 		tmp[t].nuse = 0;
 		tmp[t].phi = 0;
+		tmp[t].cls = 0;
 		if (tmp[t].use == 0)
 			tmp[t].use = vnew(0, sizeof(Use));
 	}
 	for (b=fn->start; b; b=b->link) {
 		for (p=b->phi; p; p=p->link) {
 			assert(rtype(p->to) == RTmp);
-			tmp[p->to.val].ndef++;
-			tmp[p->to.val].phi = p->to.val;
+			t = p->to.val;
+			tmp[t].ndef++;
+			tmp[t].cls = p->cls;
+			tmp[t].phi = p->to.val;
 			for (a=0; a<p->narg; a++)
 				if (rtype(p->arg[a]) == RTmp) {
 					t = p->arg[a].val;
@@ -66,7 +69,9 @@ filluse(Fn *fn)
 		for (i=b->ins; i-b->ins < b->nins; i++) {
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
-				tmp[i->to.val].ndef++;
+				t = i->to.val;
+				tmp[t].ndef++;
+				tmp[t].cls = i->cls;
 			}
 			for (m=0; m<2; m++)
 				if (rtype(i->arg[m]) == RTmp) {
