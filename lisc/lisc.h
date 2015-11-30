@@ -65,7 +65,9 @@ enum Reg {
 
 	NReg = RBX - RAX + 1,
 	NFReg = XMM15 - XMM0 + 1,
-	NRSave = 9,
+	NISave = 9,
+	NFSave = 15,
+	NRSave = NISave + NFSave,
 	NRClob = 5,
 };
 
@@ -163,6 +165,9 @@ enum Class {
 	Ks,
 	Kd
 };
+
+#define KWIDE(k) ((k)&1)
+#define KBASE(k) ((k)>>1)
 
 enum Op {
 	OXXX,
@@ -270,7 +275,7 @@ struct Blk {
 	Blk **pred;
 	uint npred;
 	Bits in, out, gen;
-	int nlive;
+	int nlive[2];
 	int loop;
 	char name[NString];
 };
@@ -295,7 +300,7 @@ struct Tmp {
 	uint ndef, nuse;
 	uint cost;
 	short slot;
-	short wide;
+	short cls;
 	struct {
 		int r;
 		ulong m;
@@ -421,9 +426,8 @@ void filllive(Fn *);
 /* isel.c */
 extern int rsave[NRSave];
 extern int rclob[NRClob];
-ulong calldef(Ins, int *);
-ulong calluse(Ins, int *);
-ulong callclb(Ins, int *);
+ulong calldef(Ins, int[2]);
+ulong calluse(Ins, int[2]);
 void isel(Fn *);
 
 /* spill.c */

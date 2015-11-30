@@ -59,7 +59,7 @@ bset(Ref r, Blk *b, int *nlv, short *phi, Tmp *tmp)
 	BSET(b->gen, r.val);
 	phifix(r.val, phi, tmp);
 	if (!BGET(b->in, r.val)) {
-		++*nlv;
+		nlv[KBASE(tmp[r.val].cls)]++;
 		BSET(b->in, r.val);
 	}
 }
@@ -72,7 +72,7 @@ filllive(Fn *f)
 {
 	Blk *b;
 	Ins *i;
-	int t, z, m, n, chg, nlv;
+	int k, t, z, m[2], n, chg, nlv[2];
 	short *phi;
 	Bits u, v;
 	Mem *ma;
@@ -104,43 +104,55 @@ Again:
 
 		memset(phi, 0, f->ntmp * sizeof phi[0]);
 		b->in = b->out;
-		nlv = bcnt(&b->in);
+		nlv[0] = 0;
+		nlv[1] = 0;
 		for (t=0; t<f->ntmp; t++)
-			if (BGET(b->in, t))
+			if (BGET(b->in, t)) {
 				phifix(t, phi, f->tmp);
-		bset(b->jmp.arg, b, &nlv, phi, f->tmp);
-		b->nlive = nlv;
+				nlv[KBASE(f->tmp[t].cls)]++;
+			}
+		bset(b->jmp.arg, b, nlv, phi, f->tmp);
+		for (k=0; k<2; k++)
+			b->nlive[k] = nlv[k];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
+#if 0
 			if ((--i)->op == OCall)
 			if (rtype(i->arg[1]) == RACall) {
-				b->in.t[0] &= ~calldef(*i, &m);
-				nlv -= m;
-				if (nlv + NRSave > b->nlive)
-					b->nlive = nlv + NRSave;
-				b->in.t[0] |= calluse(*i, &m);
-				nlv += m;
+				b->in.t[0] &= ~calldef(*i, m);
+				for (k=0; k<2; k++)
+					nlv[k] -= m[k];
+				if (nlv[0] + NISave > b->nlive[0])
+					b->nlive[0] = nlv[0] + NISave;
+				if (nlv[1] + NFSave > b->nlive[1])
+					b->nlive[1] = nlv[1] + NFSave;
+				b->in.t[0] |= calluse(*i, m);
+				for (k=0; k<2; k++)
+					nlv[k] += m[k];
 			}
+#endif
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
-				nlv -= BGET(b->in, i->to.val);
-				BSET(b->gen, i->to.val);
-				BCLR(b->in, i->to.val);
-				t = phitmp(i->to.val, f->tmp);
-				phi[t] = 0;
+				t = i->to.val;
+				if (BGET(b->in, i->to.val))
+					nlv[KBASE(f->tmp[t].cls)]--;
+				BSET(b->gen, t);
+				BCLR(b->in, t);
+				phi[phitmp(t, f->tmp)] = 0;
 			}
-			for (m=0; m<2; m++)
-				switch (rtype(i->arg[m])) {
+			for (k=0; k<2; k++)
+				switch (rtype(i->arg[k])) {
 				case RAMem:
-					ma = &f->mem[i->arg[m].val & AMask];
-					bset(ma->base, b, &nlv, phi, f->tmp);
-					bset(ma->index, b, &nlv, phi, f->tmp);
+					ma = &f->mem[i->arg[k].val & AMask];
+					bset(ma->base, b, nlv, phi, f->tmp);
+					bset(ma->index, b, nlv, phi, f->tmp);
 					break;
 				default:
-					bset(i->arg[m], b, &nlv, phi, f->tmp);
+					bset(i->arg[k], b, nlv, phi, f->tmp);
 					break;
 				}
-			if (nlv > b->nlive)
-				b->nlive = nlv;
+			for (k=0; k<2; k++)
+				if (nlv[k] > b->nlive[k])
+					b->nlive[k] = nlv[k];
 		}
 	}
 	if (chg) {
@@ -158,7 +170,8 @@ Again:
 			dumpts(&b->out, f->tmp, stderr);
 			fprintf(stderr, "\t          gen:  ");
 			dumpts(&b->gen, f->tmp, stderr);
-			fprintf(stderr, "\t          live: %d\n", b->nlive);
+			fprintf(stderr, "\t          live int: %d\n", b->nlive[0]);
+			fprintf(stderr, "\t          live flt: %d\n", b->nlive[1]);
 		}
 	}
 }
