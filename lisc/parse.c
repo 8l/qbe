@@ -763,6 +763,7 @@ parsedat(void cb(Dat *))
 			err("data contents must be { .. } or \" .. \"");
 		for (;;) {
 			switch (nextnl()) {
+			default: err("invalid size specifier in data");
 			case TL: d.type = DL; break;
 			case TW: d.type = DW; break;
 			case TH: d.type = DH; break;
