@@ -1,8 +1,8 @@
 Instructions classification:
-FP    : add, sub, mul, copy, par, arg
+FP    : add, sub, mul, sdiv, copy, par, arg
 Maybe : and, or, xor, cmp(6)
-Non FP: sdiv, udiv, srem, urem, store(4),
-        load(7), ext(7), alloc(5), parc, argc, call
+Non FP: udiv, srem, urem, store(4), load(7),
+        ext(7), alloc(5), parc, argc, call
 
 15 bits for operations  32768
 -1 bit for s,d          16384
@@ -10,10 +10,10 @@ Non FP: sdiv, udiv, srem, urem, store(4),
 New conversion instructions:
  - Bitcast conversion between fp and ints. cast
  - Convert fp to/from int. ftosi sitof (only signed at first, truncation)
- - Convert single to/from double stod dtos
+ - Convert single to/from double fconv
 
 Summary:
-	Add cast, ftosi sitof, stod dtos
+	Add cast, ftosi sitof, fconv
 	Add a 'floating point' bit to instructions
 	Conversions from/to unsigned types are hard!
 	I need to find a reference for that.
@@ -21,3 +21,13 @@ Summary:
 Problem with "cls" field: for comparisons, this field is
 for the argument of the instruction, but, in the case of
 Load (for example), it is about the result.
+
+Roadmap in isel.
+	Make sure all floating point immediates are accessed
+	through a memory load.  The load can be fused in some
+	instructions (add, sub, mul, div).  This should be
+	handled similarly to the large integer constants.
+
+	Complete ABI implementation, we should only need the
+	movsd instruction to transfer between sse registers and
+	memory.
