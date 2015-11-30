@@ -73,7 +73,8 @@ enum {
 	TD,
 	TS,
 
-	TNum,
+	TInt,
+	TFlt,
 	TTmp,
 	TLbl,
 	TGlo,
@@ -93,6 +94,7 @@ enum {
 static FILE *inf;
 static int thead;
 static struct {
+	double flt;
 	int64_t num;
 	char *str;
 } tokval;
@@ -167,6 +169,10 @@ lex()
 		return TRBrace;
 	case '=':
 		return TEq;
+	case '`':
+		if (fscanf(inf, "%lf", &tokval.flt) != 1)
+			err("invalid floating point");
+		return TFlt;
 	case '%':
 		t = TTmp;
 		goto Alpha;
@@ -202,8 +208,7 @@ lex()
 			tokval.num += c - '0';
 		}
 		ungetc(c, inf);
-		tokval.num *= sgn;
-		return TNum;
+		return TInt;
 	}
 	if (c == '"') {
 		tokval.str = vnew(0, 1);
@@ -322,14 +327,17 @@ parseref()
 	switch (next()) {
 	case TTmp:
 		return tmpref(tokval.str);
-	case TNum:
+	case TInt:
 		c = (Con){.type = CNum, .val = tokval.num};
-		strcpy(c.label, "");
-	if (0) {
+		goto Look;
+	case TFlt:
+		c = (Con){.type = CNum, .flt = 1};
+		memcpy(&c.val, &tokval.flt, sizeof c.val);
+		goto Look;
 	case TGlo:
 		c = (Con){.type = CAddr, .val = 0};
 		strcpy(c.label, tokval.str);
-	}
+	Look:
 		for (i=0; i<ncon; i++)
 			if (con[i].type == c.type
 			&& con[i].val == c.val
@@ -646,7 +654,7 @@ parsetyp()
 	strcpy(ty->name, tokval.str);
 	t = nextnl();
 	if (t == TAlign) {
-		if (nextnl() != TNum)
+		if (nextnl() != TInt)
 			err("alignment expected");
 		for (al=0; tokval.num /= 2; al++)
 			;
@@ -656,7 +664,7 @@ parsetyp()
 	if (t != TLBrace)
 		err("type body must start with {");
 	t = nextnl();
-	if (t == TNum) {
+	if (t == TInt) {
 		ty->dark = 1;
 		ty->size = tokval.num;
 		if (ty->align == -1)
@@ -689,7 +697,7 @@ parsetyp()
 				}
 			}
 			t = nextnl();
-			if (t == TNum) {
+			if (t == TInt) {
 				c = tokval.num;
 				t = nextnl();
 			} else
@@ -724,6 +732,8 @@ static void
 parsedat(void cb(Dat *))
 {
 	char s[NString];
+	float fs;
+	double fd;
 	int t;
 	Dat d;
 
@@ -734,7 +744,7 @@ parsedat(void cb(Dat *))
 	strcpy(s, tokval.str);
 	t = nextnl();
 	if (t == TAlign) {
-		if (nextnl() != TNum)
+		if (nextnl() != TInt)
 			err("alignment expected");
 		d.type = DAlign;
 		d.u.num = tokval.num;
@@ -757,14 +767,27 @@ parsedat(void cb(Dat *))
 			case TW: d.type = DW; break;
 			case TH: d.type = DH; break;
 			case TB: d.type = DB; break;
+			case TS: d.type = DW; break;
+			case TD: d.type = DL; break;
 			}
-			if (nextnl() != TNum)
+			t = nextnl();
+			if (t != TInt && t != TFlt)
 				err("number expected");
 			do {
-				d.u.num = tokval.num;
+
+				if (t == TFlt) {
+					fd = tokval.flt;
+					fs = tokval.flt;
+					d.u.num = 0;
+					if (d.type == DL)
+						memcpy(&d.u.num, &fd, sizeof fd);
+					else
+						memcpy(&d.u.num, &fs, sizeof fs);
+				} else
+					d.u.num = tokval.num;
 				cb(&d);
 				t = nextnl();
-			} while (t == TNum);
+			} while (t == TInt || t == TFlt);
 			if (t == TRBrace)
 				break;
 			if (t != TComma)
@@ -804,6 +827,8 @@ parse(FILE *f, void data(Dat *), void func(Fn *))
 static void
 printcon(Con *c, FILE *f)
 {
+	double d;
+
 	switch (c->type) {
 	case CUndef:
 		break;
@@ -813,7 +838,11 @@ printcon(Con *c, FILE *f)
 			fprintf(f, "%+"PRIi64, c->val);
 		break;
 	case CNum:
-		fprintf(f, "%"PRIi64, c->val);
+		if (c->flt) {
+			memcpy(&d, &c->val, sizeof d);
+			fprintf(f, "`%lf", d);
+		} else
+			fprintf(f, "%"PRIi64, c->val);
 		break;
 	}
 }
@@ -917,7 +946,7 @@ printfn(Fn *fn, FILE *f)
 			fprintf(f, "\t");
 			if (!req(i->to, R)) {
 				printref(i->to, fn, f);
-				fprintf(f, " =%c", ktoc[i->cls]);
+				fprintf(f, " =%c ", ktoc[i->cls]);
 			}
 			assert(opdesc[i->op].name);
 			fprintf(f, "%s", opdesc[i->op].name);
