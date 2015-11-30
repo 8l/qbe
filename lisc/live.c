@@ -103,9 +103,8 @@ Again:
 		chg |= memcmp(&b->out, &u, sizeof(Bits));
 
 		memset(phi, 0, f->ntmp * sizeof phi[0]);
+		memset(nlv, 0, sizeof nlv);
 		b->in = b->out;
-		nlv[0] = 0;
-		nlv[1] = 0;
 		for (t=0; t<f->ntmp; t++)
 			if (BGET(b->in, t)) {
 				phifix(t, phi, f->tmp);
