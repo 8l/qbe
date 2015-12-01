@@ -1,6 +1,6 @@
 function $test() {
 @start
-	%x1 =d copy `0.3
+	%x1 =d copy `3e-1
 	%x2 =d sub %x1, `0.2
 	%x3 =d sub %x2, `0.1
 
