@@ -208,6 +208,7 @@ lex()
 			tokval.num += c - '0';
 		}
 		ungetc(c, inf);
+		tokval.num *= sgn;
 		return TInt;
 	}
 	if (c == '"') {
