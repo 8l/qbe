@@ -46,8 +46,8 @@ noimm(Ref r, Fn *fn)
 		 * address data with 32bits
 		 */
 		return 0;
-	case CNum:
-		val = fn->con[r.val].val;
+	case CBits:
+		val = fn->con[r.val].bits.i;
 		return (val < INT32_MIN || val > INT32_MAX);
 	}
 }
@@ -60,13 +60,38 @@ rslot(Ref r, Fn *fn)
 	return fn->tmp[r.val].slot;
 }
 
+static int
+argcls(Ins *i)
+{
+	/* fixme, not correct for some instructions (bcast) */
+	return i->cls;
+}
+
 static void
 fixargs(Ins *i, Fn *fn)
 {
+	Addr a;
 	Ref r0, r1;
-	int s, n;
+	int s, n, k;
 
+	k = argcls(i);
 	for (n=0; n<2; n++) {
+		r0 = i->arg[n];
+		/* load floating points from memory
+		 * slots, they can't be used as
+		 * immediates
+		 */
+		if (KBASE(k) == 1 && rtype(r0) == RCon) {
+			r1 = MEM(fn->nmem);
+			i->arg[n] = r1;
+			vgrow(&fn->mem, ++fn->nmem);
+			memset(&a, 0, sizeof a);
+			a.offset.type = CAddr;
+			sprintf(a.offset.label, ".fp%d", r0.val);
+			fn->con[r0.val].emit = 1;
+			fn->mem[fn->nmem-1] = a;
+			continue;
+		}
 		/* load constants that do not fit in
 		 * a 32bit signed integer into a
 		 * long temporary
@@ -75,7 +100,8 @@ fixargs(Ins *i, Fn *fn)
 		if (rtype(r0) == RCon && noimm(r0, fn)) {
 			r1 = newtmp("isel", fn);
 			i->arg[n] = r1;
-			emit(OCopy, 1, r1, r0, R);
+			emit(OCopy, Kl, r1, r0, R);
+			continue;
 		}
 		/* load fast locals' addresses into
 		 * temporaries right before the
@@ -85,7 +111,8 @@ fixargs(Ins *i, Fn *fn)
 		if (s != -1) {
 			r1 = newtmp("isel", fn);
 			i->arg[n] = r1;
-			emit(OAddr, 1, r1, SLOT(s), R);
+			emit(OAddr, Kl, r1, SLOT(s), R);
+			continue;
 		}
 	}
 }
@@ -123,7 +150,7 @@ seladdr(Ref *r, ANum *an, Fn *fn)
 }
 
 static void
-selcmp(Ref arg[2], int w, Fn *fn)
+selcmp(Ref arg[2], int k, Fn *fn)
 {
 	Ref r;
 
@@ -133,7 +160,7 @@ selcmp(Ref arg[2], int w, Fn *fn)
 		arg[0] = r;
 	}
 	assert(rtype(arg[0]) != RCon);
-	emit(OXCmp, w, R, arg[1], arg[0]);
+	emit(OXCmp, k, R, arg[1], arg[0]);
 	fixargs(curi, fn);
 }
 
@@ -141,7 +168,7 @@ static void
 sel(Ins i, ANum *an, Fn *fn)
 {
 	Ref r0, r1;
-	int x, w;
+	int x, k;
 	int64_t val;
 	Ins *i0;
 
@@ -153,7 +180,7 @@ sel(Ins i, ANum *an, Fn *fn)
 		return;
 	}
 	i0 = curi;
-	w = i.wide;
+	k = i.cls;
 	switch (i.op) {
 	case ODiv:
 	case ORem:
@@ -161,8 +188,8 @@ sel(Ins i, ANum *an, Fn *fn)
 			r0 = TMP(RAX), r1 = TMP(RDX);
 		else
 			r0 = TMP(RDX), r1 = TMP(RAX);
-		emit(OCopy, w, i.to, r0, R);
-		emit(OCopy, w, R, r1, R);
+		emit(OCopy, k, i.to, r0, R);
+		emit(OCopy, k, R, r1, R);
 		if (rtype(i.arg[1]) == RCon) {
 			/* immediates not allowed for
 			 * divisions in x86
@@ -170,11 +197,11 @@ sel(Ins i, ANum *an, Fn *fn)
 			r0 = newtmp("isel", fn);
 		} else
 			r0 = i.arg[1];
-		emit(OXDiv, w, R, r0, R);
-		emit(OSign, w, TMP(RDX), TMP(RAX), R);
-		emit(OCopy, w, TMP(RAX), i.arg[0], R);
+		emit(OXDiv, k, R, r0, R);
+		emit(OSign, k, TMP(RDX), TMP(RAX), R);
+		emit(OCopy, k, TMP(RAX), i.arg[0], R);
 		if (rtype(i.arg[1]) == RCon)
-			emit(OCopy, w, r0, i.arg[1], R);
+			emit(OCopy, k, r0, i.arg[1], R);
 		break;
 	case ONop:
 		break;
@@ -209,16 +236,17 @@ Emit:
 		 * (rsp = 0) mod 16
 		 */
 		if (rtype(i.arg[0]) == RCon) {
-			val = fn->con[i.arg[0].val].val;
+			assert(fn->con[i.arg[0].val].type == CBits);
+			val = fn->con[i.arg[0].val].bits.i;
 			val = (val + 15)  & ~INT64_C(15);
 			if (val < 0 || val > INT32_MAX)
 				diag("isel: alloc too large");
-			emit(OAlloc, 0, i.to, getcon(val, fn), R);
+			emit(OAlloc, Kl, i.to, getcon(val, fn), R);
 		} else {
 			/* r0 = (i.arg[0] + 15) & -16 */
 			r0 = newtmp("isel", fn);
 			r1 = newtmp("isel", fn);
-			emit(OSAlloc, 0, i.to, r0, R);
+			emit(OSAlloc, Kl, i.to, r0, R);
 			emit(OAnd, 1, r0, r1, getcon(-16, fn));
 			emit(OAdd, 1, r1, i.arg[0], getcon(15, fn));
 		}
@@ -232,8 +260,8 @@ Emit:
 			x = i.op - OCmp;
 			if (rtype(i.arg[0]) == RCon)
 				x = COP(x);
-			emit(OXSet+x, 0, i.to, R, R);
-			selcmp(i.arg, w, fn);
+			emit(OXSet+x, Kw, i.to, R, R);
+			selcmp(i.arg, k, fn);
 			break;
 		}
 		diag("isel: non-exhaustive implementation");
@@ -289,7 +317,7 @@ seljmp(Blk *b, Fn *fn)
 		b->jmp.type = JRet0;
 		r = b->jmp.arg;
 		b->jmp.arg = R;
-		emit(OCopy, w, TMP(RAX), r, R);
+		emit(OCopy, w ? Kl : Kw, TMP(RAX), r, R);
 		return;
 	case JJnz:;
 	}
@@ -312,7 +340,7 @@ seljmp(Blk *b, Fn *fn)
 			b->jmp.type = JXJc + c;
 			if (fn->tmp[r.val].nuse == 1) {
 				assert(fn->tmp[r.val].ndef == 1);
-				selcmp(fi->arg, fi->wide, fn);
+				selcmp(fi->arg, fi->cls, fn);
 				*fi = (Ins){.op = ONop};
 			}
 			return;
@@ -512,9 +540,9 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 		diag("struct-returning function not implemented");
 	if (stk) {
 		r = getcon(-(int64_t)stk, fn);
-		emit(OSAlloc, 0, R, r, R);
+		emit(OSAlloc, Kl, R, r, R);
 	}
-	emit(OCopy, i1->wide, i1->to, TMP(RAX), R);
+	emit(OCopy, i1->cls, i1->to, TMP(RAX), R);
 	emit(OCall, 0, R, i1->arg[0], CALL(1 + ci));
 
 	for (i=i0, a=ac, ni=0; i<i1; i++, a++) {
@@ -526,17 +554,17 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 			if (a->size > 8) {
 				r = TMP(rsave[ni+1]);
 				r1 = newtmp("isel", fn);
-				emit(OLoad, 1, r, r1, R);
+				emit(OLoadl, Kl, r, r1, R);
 				r = getcon(8, fn);
-				emit(OAdd, 1, r1, i->arg[1], r);
+				emit(OAdd, Kl, r1, i->arg[1], r);
 				r = TMP(rsave[ni]);
 				ni += 2;
 			} else
 				r = TMP(rsave[ni++]);
-			emit(OLoad, 1, r, i->arg[1], R);
+			emit(OLoadl, Kl, r, i->arg[1], R);
 		} else {
 			r = TMP(rsave[ni++]);
-			emit(OCopy, i->wide, r, i->arg[0], R);
+			emit(OCopy, i->cls, r, i->arg[0], R);
 		}
 	}
 	for (i=i0, a=ac; i<i1; i++, a++) {
@@ -549,12 +577,12 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 		if (i->op == OArgc) {
 			assert(!"argc todo 1");
 		} else {
-			emit(OXPush, 1, R, i->arg[0], R);
+			emit(OXPush, Kl, R, i->arg[0], R);
 		}
 	}
 	if (stk) {
 		assert(stk == 8);
-		emit(OXPush, 1, R, CON_Z, R);
+		emit(OXPush, Kl, R, CON_Z, R);
 	}
 }
 
@@ -580,7 +608,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 			continue;
 		case 2:
 			stk -= 2;
-			*curi++ = (Ins){OLoad, i->wide, i->to, {SLOT(stk)}};
+			*curi++ = (Ins){OLoad, i->to, {SLOT(stk)}, i->cls};
 			continue;
 		}
 		r = TMP(rsave[ni++]);
@@ -588,16 +616,16 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 			if (a->rty[0] == RSse || a->rty[1] == RSse)
 				diag("isel: unsupported float struct");
 			r1 = newtmp("isel", fn);
-			*curi++ = (Ins){OCopy, 1, r1, {r}};
+			*curi++ = (Ins){OCopy, r1, {r}, Kl};
 			a->rty[0] = r1.val;
 			if (a->size > 8) {
 				r = TMP(rsave[ni++]);
 				r1 = newtmp("isel", fn);
-				*curi++ = (Ins){OCopy, 1, r1, {r}};
+				*curi++ = (Ins){OCopy, r1, {r}, Kl};
 				a->rty[1] = r1.val;
 			}
 		} else
-			*curi++ = (Ins){OCopy, i->wide, i->to, {r}};
+			*curi++ = (Ins){OCopy, i->to, {r}, i->cls};
 	}
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		if (i->op != OParc || a->inmem)
@@ -608,14 +636,14 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 		r1 = i->to;
 		r = TMP(a->rty[0]);
 		r2 = getcon(a->size, fn);
-		*curi++ = (Ins){OAlloc+al, 1, r1, {r2}};
-		*curi++ = (Ins){OStorel, 0, R, {r, r1}};
+		*curi++ = (Ins){OAlloc+al, r1, {r2}, Kl};
+		*curi++ = (Ins){OStorel, R, {r, r1}, 0};
 		if (a->size > 8) {
 			r = newtmp("isel", fn);
 			r2 = getcon(8, fn);
-			*curi++ = (Ins){OAdd, 1, r, {r1, r2}};
+			*curi++ = (Ins){OAdd, r, {r1, r2}, Kl};
 			r1 = TMP(a->rty[1]);
-			*curi++ = (Ins){OStorel, 0, R, {r1, r}};
+			*curi++ = (Ins){OStorel, R, {r1, r}, 0};
 		}
 	}
 }
@@ -640,9 +668,9 @@ ascale(Ref r, Con *con)
 
 	if (rtype(r) != RCon)
 		return 0;
-	if (con[r.val].type != CNum)
+	if (con[r.val].type != CBits)
 		return 0;
-	n = con[r.val].val;
+	n = con[r.val].bits.i;
 	return n == 1 || n == 2 || n == 4 || n == 8;
 }
 
@@ -737,7 +765,7 @@ amatch(Addr *a, Ref r, ANum *ai, Fn *fn, int top)
 	case 3: /* s * i */
 		if (!top) {
 			a->index = al;
-			a->scale = fn->con[ar.val].val;
+			a->scale = fn->con[ar.val].bits.i;
 		} else
 			a->base = r;
 		break;
@@ -834,7 +862,7 @@ isel(Fn *fn)
 			if (i->op == al) {
 				if (rtype(i->arg[0]) != RCon)
 					break;
-				sz = fn->con[i->arg[0].val].val;
+				sz = fn->con[i->arg[0].val].bits.i;
 				if (sz < 0 || sz >= INT_MAX-3)
 					diag("isel: invalid alloc size");
 				sz = (sz + n-1) & -n;
@@ -855,7 +883,7 @@ isel(Fn *fn)
 				s = rslot(p->arg[a], fn);
 				if (s != -1) {
 					p->arg[a] = newtmp("isel", fn);
-					emit(OAddr, 1, p->arg[a], SLOT(s), R);
+					emit(OAddr, Kl, p->arg[a], SLOT(s), R);
 				}
 			}
 		for (m=0; m<n; m++)

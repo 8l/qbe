@@ -56,6 +56,7 @@ func(Fn *fn)
 	fillpreds(fn);
 	filluse(fn);
 
+	isel(fn);
 	filllive(fn);
 #if 0
 	memopt(fn);

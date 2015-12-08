@@ -8,12 +8,12 @@ Non FP: udiv, srem, urem, store(4), load(7),
 -1 bit for s,d          16384
 
 New conversion instructions:
- - Bitcast conversion between fp and ints. cast
+ - Bitcast conversion between fp and ints. bcast
  - Convert fp to/from int. ftosi sitof (only signed at first, truncation)
  - Convert single to/from double fconv
 
 Summary:
-	Add cast, ftosi sitof, fconv
+	Add bcast, ftosi sitof, fconv
 	Add a 'floating point' bit to instructions
 	Conversions from/to unsigned types are hard!
 	I need to find a reference for that.

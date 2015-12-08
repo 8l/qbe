@@ -181,18 +181,32 @@ enum Op {
 	OAnd,
 	OCmp,
 	OCmp1 = OCmp + NCmp-1,
+
 	OStored,
 	OStores,
 	OStorel,
 	OStorew,
 	OStoreh,
 	OStoreb,
-	OLoad,
-	OLoad1 = OLoad + NTy-1,
+
+	OLoadl,
+	OLoadsw,
+	OLoaduw,
+	OLoadsh,
+	OLoaduh,
+	OLoadsb,
+	OLoadub,
+	OLoadd,
+	OLoads,
+	OLoad = OLoadl,
+	OLoad1 = OLoads,
+
 	OExt,
 	OExt1 = OExt + NTy-1,
+
 	OAlloc,
 	OAlloc1 = OAlloc + NAlign-1,
+
 	OCopy,
 	NPubOp,
 
@@ -321,6 +335,7 @@ struct Con {
 		double f;
 	} bits;
 	char flt;
+	char emit;
 };
 
 typedef struct Addr Addr;
