@@ -325,23 +325,26 @@ parseref()
 	Con c;
 	int i;
 
+	memset(&c, 0, sizeof c);
 	switch (next()) {
 	case TTmp:
 		return tmpref(tokval.str);
 	case TInt:
-		c = (Con){.type = CNum, .val = tokval.num};
+		c.type = CBits;
+		c.bits.i = tokval.num;
 		goto Look;
 	case TFlt:
-		c = (Con){.type = CNum, .flt = 1};
-		memcpy(&c.val, &tokval.flt, sizeof c.val);
+		c.type = CBits;
+		c.bits.f = tokval.flt;
+		c.flt = 1;
 		goto Look;
 	case TGlo:
-		c = (Con){.type = CAddr, .val = 0};
+		c.type = CAddr;
 		strcpy(c.label, tokval.str);
 	Look:
 		for (i=0; i<ncon; i++)
 			if (con[i].type == c.type
-			&& con[i].val == c.val
+			&& con[i].bits.i == c.bits.i
 			&& strcmp(con[i].label, c.label) == 0)
 				return CON(i);
 		vgrow(&con, ++ncon);
@@ -606,7 +609,7 @@ parsefn()
 	curi = insb;
 	tmp = vnew(ntmp, sizeof tmp[0]);
 	con = vnew(ncon, sizeof con[0]);
-	con[0].type = CNum;
+	con[0].type = CBits;
 	fn = alloc(sizeof *fn);
 	blink = &fn->start;
 	for (i=0; i<NBlk; i++)
@@ -829,22 +832,19 @@ parse(FILE *f, void data(Dat *), void func(Fn *))
 static void
 printcon(Con *c, FILE *f)
 {
-	double d;
-
 	switch (c->type) {
 	case CUndef:
 		break;
 	case CAddr:
 		fprintf(f, "$%s", c->label);
-		if (c->val)
-			fprintf(f, "%+"PRIi64, c->val);
+		if (c->bits.i)
+			fprintf(f, "%+"PRIi64, c->bits.i);
 		break;
-	case CNum:
-		if (c->flt) {
-			memcpy(&d, &c->val, sizeof d);
-			fprintf(f, "`%lf", d);
-		} else
-			fprintf(f, "%"PRIi64, c->val);
+	case CBits:
+		if (c->flt)
+			fprintf(f, "`%lf", c->bits.f);
+		else
+			fprintf(f, "%"PRIi64, c->bits.i);
 		break;
 	}
 }

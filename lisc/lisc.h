@@ -312,12 +312,15 @@ struct Tmp {
 struct Con {
 	enum {
 		CUndef,
-		CNum,
+		CBits,
 		CAddr,
 	} type;
-	char flt;
 	char label[NString];
-	int64_t val;
+	union {
+		int64_t i;
+		double f;
+	} bits;
+	char flt;
 };
 
 typedef struct Addr Addr;

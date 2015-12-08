@@ -209,11 +209,11 @@ getcon(int64_t val, Fn *fn)
 	int c;
 
 	for (c=0; c<fn->ncon; c++)
-		if (fn->con[c].type == CNum && fn->con[c].val == val)
+		if (fn->con[c].type == CBits && fn->con[c].bits.i == val)
 			return CON(c);
 	fn->ncon++;
 	vgrow(&fn->con, fn->ncon);
-	fn->con[c] = (Con){.type = CNum, .val = val};
+	fn->con[c] = (Con){.type = CBits, .bits.i = val};
 	return CON(c);
 }
 
@@ -229,6 +229,6 @@ addcon(Con *c0, Con *c1)
 			c0->type = CAddr;
 			strcpy(c0->label, c1->label);
 		}
-		c0->val += c1->val;
+		c0->bits.i += c1->bits.i;
 	}
 }
