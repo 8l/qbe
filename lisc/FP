@@ -27,6 +27,8 @@ Roadmap in isel.
 	through a memory load.  The load can be fused in some
 	instructions (add, sub, mul, div).  This should be
 	handled similarly to the large integer constants.
+	Note: contrary to large constants, the transformation
+	also needs to be run on phi nodes!
 
 	Complete ABI implementation, we should only need the
 	movsd instruction to transfer between sse registers and
