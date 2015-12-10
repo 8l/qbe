@@ -68,53 +68,44 @@ argcls(Ins *i)
 }
 
 static void
-fixargs(Ins *i, Fn *fn)
+fixarg(Ref *r, int k, int phi, Fn *fn)
 {
 	Addr a;
 	Ref r0, r1;
-	int s, n, k;
+	int s;
 
-	k = argcls(i);
-	for (n=0; n<2; n++) {
-		r0 = i->arg[n];
+	r1 = r0 = *r;
+	s = rslot(r0, fn);
+	if (KBASE(k) == 1 && rtype(r0) == RCon) {
 		/* load floating points from memory
-		 * slots, they can't be used as
-		 * immediates
-		 */
-		if (KBASE(k) == 1 && rtype(r0) == RCon) {
-			r1 = MEM(fn->nmem);
-			i->arg[n] = r1;
-			vgrow(&fn->mem, ++fn->nmem);
-			memset(&a, 0, sizeof a);
-			a.offset.type = CAddr;
-			sprintf(a.offset.label, ".fp%d", r0.val);
-			fn->con[r0.val].emit = 1;
-			fn->mem[fn->nmem-1] = a;
-			continue;
-		}
-		/* load constants that do not fit in
-		 * a 32bit signed integer into a
-		 * long temporary
-		 */
-		r0 = i->arg[n];
-		if (rtype(r0) == RCon && noimm(r0, fn)) {
-			r1 = newtmp("isel", fn);
-			i->arg[n] = r1;
-			emit(OCopy, Kl, r1, r0, R);
-			continue;
-		}
-		/* load fast locals' addresses into
-		 * temporaries right before the
-		 * instruction
-		 */
-		s = rslot(r0, fn);
-		if (s != -1) {
-			r1 = newtmp("isel", fn);
-			i->arg[n] = r1;
-			emit(OAddr, Kl, r1, SLOT(s), R);
-			continue;
-		}
+	 	* slots, they can't be used as
+	 	* immediates
+	 	*/
+		r1 = MEM(fn->nmem);
+		vgrow(&fn->mem, ++fn->nmem);
+		memset(&a, 0, sizeof a);
+		a.offset.type = CAddr;
+		sprintf(a.offset.label, ".fp%d", r0.val);
+		fn->con[r0.val].emit = 1;
+		fn->mem[fn->nmem-1] = a;
 	}
+	else if (!phi && rtype(r0) == RCon && noimm(r0, fn)) {
+		/* load constants that do not fit in
+	 	* a 32bit signed integer into a
+	 	* long temporary
+	 	*/
+		r1 = newtmp("isel", fn);
+		emit(OCopy, Kl, r1, r0, R);
+	}
+	else if (s != -1) {
+		/* load fast locals' addresses into
+	 	* temporaries right before the
+	 	* instruction
+	 	*/
+		r1 = newtmp("isel", fn);
+		emit(OAddr, Kl, r1, SLOT(s), R);
+	}
+	*r = r1;
 }
 
 static void
@@ -161,7 +152,7 @@ selcmp(Ref arg[2], int k, Fn *fn)
 	}
 	assert(rtype(arg[0]) != RCon);
 	emit(OXCmp, k, R, arg[1], arg[0]);
-	fixargs(curi, fn);
+	fixarg(&curi->arg[1], argcls(curi), 0, fn);
 }
 
 static void
@@ -226,7 +217,8 @@ sel(Ins i, ANum *an, Fn *fn)
 	case_OExt:
 Emit:
 		emiti(i);
-		fixargs(curi, fn);
+		fixarg(&curi->arg[0], argcls(curi), 0, fn);
+		fixarg(&curi->arg[1], argcls(curi), 0, fn);
 		break;
 	case OAlloc:
 	case OAlloc+1:
@@ -809,7 +801,7 @@ isel(Fn *fn)
 	Ins *i, *i0, *ip;
 	Phi *p;
 	uint a;
-	int n, m, al, s;
+	int n, m, al;
 	int64_t sz;
 	ANum *ainfo;
 
@@ -880,11 +872,7 @@ isel(Fn *fn)
 			for (p=(*sb)->phi; p; p=p->link) {
 				for (a=0; p->blk[a] != b; a++)
 					assert(a+1 < p->narg);
-				s = rslot(p->arg[a], fn);
-				if (s != -1) {
-					p->arg[a] = newtmp("isel", fn);
-					emit(OAddr, Kl, p->arg[a], SLOT(s), R);
-				}
+				fixarg(&p->arg[a], p->cls, 1, fn);
 			}
 		for (m=0; m<n; m++)
 			ainfo[m] = (ANum){.n = 0, .i = 0};
