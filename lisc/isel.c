@@ -461,50 +461,62 @@ classify(Ins *i0, Ins *i1, AClass *ac, int op)
 	return (6-nint) << 4;
 }
 
-int rsave[NRSave] = {RDI, RSI, RDX, RCX, R8, R9, R10, R11, RAX};
+int rsave[NRSave] = {
+	RDI, RSI, RDX, RCX, R8, R9, R10, R11, RAX,
+	XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM8,
+	XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, /* XMM15 */
+};
 int rclob[NRClob] = {RBX, R12, R13, R14, R15};
 
 ulong
-calldef(Ins i, int *p)
+calldef(Ins i, int p[2])
 {
 	ulong b;
-	int n;
+	int ni, nf;
 
-	n = i.arg[1].val & 15;
-	b = BIT(RAX);
-	if (n == 2)
+	b = 0;
+	ni = i.arg[1].val & 3;
+	nf = (i.arg[1].val >> 2) & 3;
+	if (ni >= 1)
+		b |= BIT(RAX);
+	if (ni >= 2)
 		b |= BIT(RDX);
-	if (p)
-		*p = n;
+	if (nf >= 1)
+		b |= BIT(XMM0);
+	if (nf >= 2)
+		b |= BIT(XMM1);
+	if (p) {
+		p[0] = ni;
+		p[1] = nf;
+	}
 	return b;
 }
 
 ulong
-calluse(Ins i, int *p)
+calluse(Ins i, int p[2])
 {
 	ulong b;
-	int j, n;
+	int j, ni, nf;
 
-	n = (i.arg[1].val >> 4) & 15;
-	for (j = 0, b = 0; j < n; j++)
+	b = 0;
+	ni = (i.arg[1].val >> 4) & 15;
+	nf = (i.arg[1].val >> 8) & 15;
+	for (j=0; j<ni; j++)
 		b |= BIT(rsave[j]);
-	if (p)
-		*p = n;
+	for (j=0; j<nf; j++)
+		b |= BIT(XMM0+j);
+	if (p) {
+		p[0] = ni;
+		p[1] = nf;
+	}
 	return b;
 }
 
 ulong
-callclb(Ins i, int *p)
+callclb(Ins i, int p[2])
 {
-	ulong b;
-	int j, n;
-
-	n = (i.arg[1].val >> 4) & 15;
-	for (j = n, b = 0; j < NRSave; j++)
-		b |= BIT(rsave[j]);
-	if (p)
-		*p = n;
-	return b;
+	(void)i; (void)p;
+	assert(!"oops");
 }
 
 static void
@@ -535,7 +547,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 		emit(OSAlloc, Kl, R, r, R);
 	}
 	emit(OCopy, i1->cls, i1->to, TMP(RAX), R);
-	emit(OCall, 0, R, i1->arg[0], CALL(1 + ci));
+	emit(OCall, i1->cls, R, i1->arg[0], CALL(1 + ci));
 
 	for (i=i0, a=ac, ni=0; i<i1; i++, a++) {
 		if (a->inmem)
