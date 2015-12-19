@@ -116,7 +116,6 @@ Again:
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			if ((--i)->op == OCall)
 				;
-#if 0
 			if (rtype(i->arg[1]) == RACall) {
 				b->in.t[0] &= ~calldef(*i, m);
 				for (k=0; k<2; k++)
@@ -129,7 +128,6 @@ Again:
 				for (k=0; k<2; k++)
 					nlv[k] += m[k];
 			}
-#endif
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
 				t = i->to.val;
