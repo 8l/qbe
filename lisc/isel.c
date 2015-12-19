@@ -512,13 +512,6 @@ calluse(Ins i, int p[2])
 	return b;
 }
 
-ulong
-callclb(Ins i, int p[2])
-{
-	(void)i; (void)p;
-	assert(!"oops");
-}
-
 static void
 selcall(Fn *fn, Ins *i0, Ins *i1)
 {
