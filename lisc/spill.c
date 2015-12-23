@@ -31,14 +31,20 @@ loopmark(Blk *hd, Blk *b, Phi *p)
 static void
 tmpuse(Ref r, int use, int loop, Fn *fn)
 {
+	Mem *m;
 	Tmp *t;
 
-	if (rtype(r) != RTmp || r.val < Tmp0)
-		return;
-	t = &fn->tmp[r.val];
-	t->nuse += use;
-	t->ndef += !use;
-	t->cost += loop;
+	if (rtype(r) == RAMem) {
+		m = &fn->mem[r.val & AMask];
+		tmpuse(m->base, 1, loop, fn);
+		tmpuse(m->index, 1, loop, fn);
+	}
+	else if (rtype(r) == RTmp && r.val >= Tmp0) {
+		t = &fn->tmp[r.val];
+		t->nuse += use;
+		t->ndef += !use;
+		t->cost += loop;
+	}
 }
 
 /* evaluate spill costs of temporaries,
