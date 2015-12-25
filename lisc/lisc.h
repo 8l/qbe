@@ -64,6 +64,7 @@ enum Reg {
 	Tmp0, /* first non-reg temporary */
 
 	NReg = RBX - RAX + 1,
+	NIReg = NReg,
 	NFReg = XMM15 - XMM0 + 1,
 	NISave = 9,
 	NFSave = 15,
@@ -153,11 +154,16 @@ static inline int isreg(Ref r)
 enum Cmp { CMPS(X) NCmp };
 #undef X
 
-#define TYS(X) X(l) X(sw) X(uw) X(sh) X(uh) X(sb) X(ub)
-
-#define X(t) T##t,
-enum Ty { TYS(X) NTy };
-#undef X
+enum Ty {
+	Tl,
+	Tsw,
+	Tuw,
+	Tsh,
+	Tuh,
+	Tsb
+	Tub,
+	NTy
+};
 
 enum Class {
 	Kw,
