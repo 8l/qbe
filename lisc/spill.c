@@ -22,8 +22,10 @@ loopmark(Blk *hd, Blk *b, Phi *p)
 	 * loop headers */
 	for (z=0; z<BITS; z++)
 		hd->gen.t[z] |= b->gen.t[z];
-	if (b->nlive > hd->nlive)
-		hd->nlive = b->nlive;
+	if (b->nlive[0] > hd->nlive[0])
+		hd->nlive[0] = b->nlive[0];
+	if (b->nlive[1] > hd->nlive[1])
+		hd->nlive[1] = b->nlive[1];
 	for (n=0; n<b->npred; n++)
 		loopmark(hd, b->pred[n], b->phi);
 }
@@ -77,7 +79,8 @@ fillcost(Fn *fn)
 			}
 		if (hd && debug['S']) {
 			fprintf(stderr, "\t%-10s", b->name);
-			fprintf(stderr, " (% 3d) ", b->nlive);
+			fprintf(stderr, " (% 3d ", b->nlive[0]);
+			fprintf(stderr, "% 3d) ", b->nlive[1]);
 			dumpts(&b->gen, fn->tmp, stderr);
 		}
 	}
@@ -155,7 +158,7 @@ slot(int t)
 		 *
 		 * invariant: slot4 <= slot8
 		 */
-		if (tmp[t].wide) {
+		if (KWIDE(tmp[t].cls)) {
 			s = slot8;
 			if (slot4 == slot8)
 				slot4 += 2;
@@ -172,15 +175,6 @@ slot(int t)
 		tmp[t].slot = s;
 	}
 	return SLOT(s);
-}
-
-static void
-store(Ref r, int s)
-{
-	if (tmp[r.val].wide)
-		emit(OStorel, 0, R, r, SLOT(s));
-	else
-		emit(OStorew, 0, R, r, SLOT(s));
 }
 
 static void
@@ -229,23 +223,48 @@ sethint(Bits *u, ulong r)
 static void
 reloads(Bits *u, Bits *v)
 {
-	int t;
+	/* fixme, oooh really... */
+	static int kload[] = {
+		[Kw] = OLoadsw, [Kl] = OLoadl,
+		[Ks] = OLoads, [Kd] = OLoadd
+	};
+	int t, k;
 
 	for (t=Tmp0; t<ntmp; t++)
-		if (BGET(*u, t) && !BGET(*v, t))
-			emit(OLoad, tmp[t].wide, TMP(t), slot(t), R);
+		if (BGET(*u, t) && !BGET(*v, t)) {
+			k = tmp[t].cls;
+			emit(kload[k], k, TMP(t), slot(t), R);
+		}
+}
+
+static void
+store(Ref r, int s)
+{
+	static int kstore[] = {
+		[Kw] = OStorew, [Kl] = OStorel,
+		[Ks] = OStores, [Kd] = OStored,
+	};
+
+	if (s != -1)
+		emit(kstore[tmp[r.val].cls], 0, R, r, SLOT(s));
+}
+
+static int
+regcpy(Ins *i)
+{
+	return i->op == OCopy && isreg(i->arg[0]);
 }
 
 static Ins *
 dopm(Blk *b, Ins *i, Bits *v)
 {
-	int n, s, t;
+	int n, t;
 	Bits u;
 	Ins *i1;
 	ulong r;
 
 	/* consecutive copies from
-	 * registers need to handled
+	 * registers need to be handled
 	 * as one large instruction
 	 *
 	 * fixme: there is an assumption
@@ -261,14 +280,10 @@ dopm(Blk *b, Ins *i, Bits *v)
 		if (!req(i->to, R))
 		if (BGET(*v, t)) {
 			BCLR(*v, t);
-			s = tmp[t].slot;
-			if (s != -1)
-				store(i->to, s);
+			store(i->to, tmp[t].slot);
 		}
 		BSET(*v, i->arg[0].val);
-	} while (i != b->ins &&
-		(i-1)->op == OCopy &&
-		isreg((i-1)->arg[0]));
+	} while (i != b->ins && regcpy(i-1));
 	u = *v;
 	if (i != b->ins && (i-1)->op == OCall) {
 		v->t[0] &= ~calldef(*(i-1), 0);
@@ -305,8 +320,8 @@ void
 spill(Fn *fn)
 {
 	Blk *b, *s1, *s2, *hd;
-	int n, m, z, l, t, lvarg[2];
-	Bits u, v, w;
+	int n, m, z, l, t, k, nr, lvarg[2];
+	Bits u, v[2], w, mask[2];
 	Ins *i;
 	int j, s;
 	Phi *p;
@@ -320,18 +335,14 @@ spill(Fn *fn)
 	slot8 = 0;
 	assert(ntmp < NBit*BITS);
 
-	for (b=fn->start; b; b=b->link) {
-		for (p=b->phi; p; p=p->link)
-			tmp[p->to.val].wide = p->wide;
-		for (i=b->ins; i-b->ins < b->nins; i++)
-			if (rtype(i->to) == RTmp)
-				/* Note: this only works because
-				 * all OCmp operations were eliminated
-				 * indeed, the wide bit of those refer
-				 * to the size of the operands
-				 */
-				tmp[i->to.val].wide = i->wide;
-	}
+	BZERO(mask[0]);
+	BZERO(mask[1]);
+	for (t=Tmp0; t<ntmp; t++)
+		BSET(mask[KBASE(tmp[t].cls)], t);
+	for (t=0; t < NIReg; t++)         /* could use the .cls of regs */
+		BSET(mask[0], RAX + t);
+	for (t=0; t < NFReg; t++)
+		BSET(mask[1], XMM0 + t);
 
 	for (n=fn->nblk-1; n>=0; n--) {
 		/* invariant: m>n => in,out of m updated */
@@ -342,44 +353,51 @@ spill(Fn *fn)
 		curi = 0;
 		s1 = b->s1;
 		s2 = b->s2;
-		BZERO(v);
 		hd = 0;
 		if (s1 && s1->id <= n)
 			hd = s1;
 		if (s2 && s2->id <= n)
 		if (!hd || s2->id >= hd->id)
 			hd = s2;
-		if (hd) {
-			/* back-edge */
-			l = hd->nlive;
-			for (z=0; z<BITS; z++)
-				v.t[z] = hd->gen.t[z] & b->out.t[z];
-			j = bcnt(&v);
-			if (j < NReg) {
-				w = b->out;
-				for (z=0; z<BITS; z++)
-					w.t[z] &= ~v.t[z];
-				j = bcnt(&w);   /* live through */
-				limit(&w, NReg - (l - j), 0);
-				for (z=0; z<BITS; z++)
-					v.t[z] |= w.t[z];
-			} else if (j > NReg)
-				limit(&v, NReg, 0);
-		} else if (s1) {
-			v = liveon(b, s1);
-			w = v;
-			if (s2) {
-				u = liveon(b, s2);
+		for (k=0; k<2; k++) {
+			nr = k == 0 ? NIReg : NFReg;
+			if (hd) {
+				/* back-edge */
 				for (z=0; z<BITS; z++) {
-					v.t[z] |= u.t[z];
-					w.t[z] &= u.t[z];
+					v[k].t[z] = b->out.t[z]
+						& hd->gen.t[z]
+						& mask[k].t[z];
+					w.t[z] = b->out.t[z]
+						& ~hd->gen.t[z]
+						& mask[k].t[z];
 				}
+				j = bcnt(&v[k]);
+				if (j < nr) {
+					j = bcnt(&w);   /* live through */
+					l = hd->nlive[k];
+					limit(&w, nr - (l - j), 0);
+					for (z=0; z<BITS; z++)
+						v[k].t[z] |= w.t[z];
+				} else
+					limit(&v[k], nr, 0);
+			} else if (s1) {
+				w = liveon(b, s1);
+				v[k] = w;
+				if (s2) {
+					u = liveon(b, s2);
+					for (z=0; z<BITS; z++) {
+						v[k].t[z] |= u.t[z];
+						v[k].t[z] &= mask[k].t[z];
+						w.t[z] &= u.t[z];
+					}
+				}
+				limit(&v[k], nr, &w);
 			}
-			assert(bcnt(&w) <= NReg);
-			limit(&v, NReg, &w);
 		}
-		b->out = v;
-		assert(bcnt(&v) <= NReg);
+		BZERO(b->out);
+		for (z=0; z<BITS; z++)
+			for (k=0; k<2; k++)
+				b->out.t[z] |= v[k].t[z];
 
 		/* 2. process the block instructions */
 		curi = &insb[NIns];
@@ -387,7 +405,7 @@ spill(Fn *fn)
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			assert(bcnt(&v) <= NReg);
 			i--;
-			if (i->op == OCopy && isreg(i->arg[0])) {
+			if (regcpy(i)) {
 				i = dopm(b, i, &v);
 				continue;
 			}
@@ -448,8 +466,7 @@ spill(Fn *fn)
 			if (r)
 				sethint(&v, r);
 			reloads(&u, &v);
-			if (s != -1)
-				store(i->to, s);
+			store(i->to, s);
 			emiti(*i);
 		}
 		assert(!r || b==fn->start);
@@ -459,9 +476,7 @@ spill(Fn *fn)
 			t = p->to.val;
 			if (BGET(v, t)) {
 				BCLR(v, t);
-				s = tmp[t].slot;
-				if (s != -1)
-					store(p->to, s);
+				store(p->to, tmp[t].slot);
 			} else
 				p->to = slot(p->to.val);
 		}
