@@ -319,13 +319,13 @@ dopm(Blk *b, Ins *i, Bits *v)
 void
 spill(Fn *fn)
 {
-	Blk *b, *s1, *s2, *hd;
-	int n, m, z, l, t, k, nr, lvarg[2];
+	Blk *b, *s1, *s2, *hd, **bp;
+	int n, z, l, t, k, nr, lvarg[2];
 	Bits u, v[2], w, mask[2];
 	Ins *i;
 	int j, s;
 	Phi *p;
-	Mem *ma;
+	Mem *m;
 	ulong r;
 
 	tmp = fn->tmp;
@@ -344,9 +344,10 @@ spill(Fn *fn)
 	for (t=0; t < NFReg; t++)
 		BSET(mask[1], XMM0 + t);
 
-	for (n=fn->nblk-1; n>=0; n--) {
-		/* invariant: m>n => in,out of m updated */
-		b = fn->rpo[n];
+	for (bp=&fn->rpo[fn->nblk-1]; bp!=fn->rpo;) {
+		b = *--bp;
+		/* invariant: all bocks with bigger rpo got
+		 * their in,out updated. */
 
 		/* 1. find temporaries in registers at
 		 * the end of the block (put them in v) */
@@ -403,69 +404,85 @@ spill(Fn *fn)
 		curi = &insb[NIns];
 		r = 0;
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
-			assert(bcnt(&v) <= NReg);
+			assert(bcnt(&v[0]) <= NIReg);
+			assert(bcnt(&v[1]) <= NFReg);
 			i--;
 			if (regcpy(i)) {
-				i = dopm(b, i, &v);
+				//                               LATER
+				// i = dopm(b, i, &v);
+				//                               LATER
 				continue;
 			}
 			s = -1;
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
 				t = i->to.val;
-				if (BGET(v, t))
-					BCLR(v, t);
-				else {
-					u = v;
-					limit(&v, NReg-1, 0);
-					reloads(&u, &v);
-				}
+				if (!BGET(v[0], t) && !BGET(v[1], t))
+					diag("obvious dead code in isel");
+				BCLR(v[0], t);
+				BCLR(v[1], t);
 				s = tmp[t].slot;
 			}
 			BZERO(w);
 			j = opdesc[i->op].nmem;
 			j -= rtype(i->arg[0]) == RAMem;
 			j -= rtype(i->arg[1]) == RAMem;
-			for (m=0; m<2; m++)
-				switch (rtype(i->arg[m])) {
+			for (n=0; n<2; n++)
+				switch (rtype(i->arg[n])) {
 				case RAMem:
-					t = i->arg[m].val;
-					ma = &fn->mem[t & AMask];
-					if (rtype(ma->base) == RTmp) {
-						BSET(v, ma->base.val);
-						BSET(w, ma->base.val);
+					t = i->arg[n].val;
+					m = &fn->mem[t & AMask];
+					if (rtype(m->base) == RTmp) {
+						BSET(v[0], m->base.val);
+						BSET(w, m->base.val);
 					}
-					if (rtype(ma->index) == RTmp) {
-						BSET(v, ma->index.val);
-						BSET(w, ma->index.val);
+					if (rtype(m->index) == RTmp) {
+						BSET(v[0], m->index.val);
+						BSET(w, m->index.val);
 					}
 					break;
 				case RTmp:
-					t = i->arg[m].val;
-					lvarg[m] = BGET(v, t);
-					BSET(v, t);
+					t = i->arg[n].val;
+					lvarg[n] = BGET(v[0], t) || BGET(v[1], t);
+					k = KBASE(tmp[t].cls);
+					BSET(v[k], t);
 					if (j-- <= 0)
 						BSET(w, t);
 					break;
 				}
-			u = v;
-			limit(&v, NReg, &w);
-			for (m=0; m<2; m++)
-				if (rtype(i->arg[m]) == RTmp) {
-					t = i->arg[m].val;
-					if (!BGET(v, t)) {
+			BZERO(u);
+			for (z=0; z<BITS; z++)
+				for (k=0; k<2; k++)
+					u.t[z] |= v[k].t[z];
+			limit(&v[0], NIReg, &w);
+			limit(&v[1], NFReg, &w);
+
+
+
+
+
+
+			for (n=0; n<2; n++)
+				if (rtype(i->arg[n]) == RTmp) {
+					t = i->arg[n].val;
+					if (!BGET(v[0], t)
+					&&  !BGET(v[1], t)) {
 						/* do not reload if the
 						 * the temporary was dead
 						 */
-						if (!lvarg[m])
+						if (!lvarg[n])
 							BCLR(u, t);
-						i->arg[m] = slot(t);
+						i->arg[n] = slot(t);
 					}
 				}
-			r = v.t[0] & (BIT(Tmp0)-1);
+			r = 0;
+			for (k=0; k<2; k++)
+				r |= v[k].t[0] & (BIT(Tmp0)-1);
 			if (r)
-				sethint(&v, r);
-			reloads(&u, &v);
+				for (k=0; k<2; k++)
+					sethint(&v[k], r);
+			for (k=0; k<2; k++)
+				reloads(&u, &v[k]);
 			store(i->to, s);
 			emiti(*i);
 		}
@@ -474,13 +491,17 @@ spill(Fn *fn)
 		for (p=b->phi; p; p=p->link) {
 			assert(rtype(p->to) == RTmp);
 			t = p->to.val;
-			if (BGET(v, t)) {
-				BCLR(v, t);
+			if (BGET(v[0], t) || BGET(v[1], t)) {
+				BCLR(v[0], t);
+				BCLR(v[1], t);
 				store(p->to, tmp[t].slot);
 			} else
 				p->to = slot(p->to.val);
 		}
-		b->in = v;
+		BZERO(b->in);
+		for (z=0; z<BITS; z++)
+			for (k=0; k<2; k++)
+				b->in.t[z] |= v[k].t[z];
 		b->nins = &insb[NIns] - curi;
 		idup(&b->ins, curi, b->nins);
 	}
