@@ -154,17 +154,6 @@ static inline int isreg(Ref r)
 enum Cmp { CMPS(X) NCmp };
 #undef X
 
-enum Ty {
-	Tl,
-	Tsw,
-	Tuw,
-	Tsh,
-	Tuh,
-	Tsb
-	Tub,
-	NTy
-};
-
 enum Class {
 	Kw,
 	Kl,
@@ -194,7 +183,8 @@ enum Op {
 	OStorew,
 	OStoreh,
 	OStoreb,
-
+	OStore = OStored,
+	OStore1 = OStoreb,
 	OLoadl,
 	OLoadsw,
 	OLoaduw,
@@ -206,9 +196,15 @@ enum Op {
 	OLoads,
 	OLoad = OLoadl,
 	OLoad1 = OLoads,
-
-	OExt,
-	OExt1 = OExt + NTy-1,
+	OExtl,
+	OExtsw,
+	OExtuw,
+	OExtsh,
+	OExtuh,
+	OExtsb,
+	OExtub,
+	OExt = OExtl,
+	OExt1 = OExtub,
 
 	OAlloc,
 	OAlloc1 = OAlloc + NAlign-1,
