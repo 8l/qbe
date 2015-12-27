@@ -15,6 +15,22 @@ OpDesc opdesc[NOp] = {
 	[OStorew] = { "storew", 0 },
 	[OStoreh] = { "storeh", 0 },
 	[OStoreb] = { "storeb", 0 },
+	[OLoadl]  = { "loadl",  0 },
+	[OLoadsw] = { "loadsw", 0 },
+	[OLoaduw] = { "loaduw", 0 },
+	[OLoadsh] = { "loadsh", 0 },
+	[OLoaduh] = { "loaduh", 0 },
+	[OLoadsb] = { "loadsb", 0 },
+	[OLoadub] = { "loadub", 0 },
+	[OLoadd]  = { "loadd",  0 },
+	[OLoads]  = { "loads",  0 },
+	[OExtl]   = { "extl",   0 }, /* buu... fix mem.c */
+	[OExtsw]  = { "extsw",  0 },
+	[OExtuw]  = { "extuw",  0 },
+	[OExtsh]  = { "extsh",  0 },
+	[OExtuh]  = { "extuh",  0 },
+	[OExtsb]  = { "extsb",  0 },
+	[OExtub]  = { "extub",  0 },
 	[OCopy]   = { "copy",   1 },
 	[ONop]    = { "nop",    0 },
 	[OSwap]   = { "swap",   2 },
@@ -33,13 +49,6 @@ OpDesc opdesc[NOp] = {
 	[OAlloc]   = { "alloc4",  1 },
 	[OAlloc+1] = { "alloc8",  1 },
 	[OAlloc+2] = { "alloc16", 1 },
-
-#define X(t) \
-	[OLoad+T##t] = { "load" #t, 0 }, \
-	[OExt+T##t]  = { "ext"  #t, 1 },
-	TYS(X)
-#undef X
-
 #define X(c) \
 	[OCmp+C##c]  = { "c"    #c, 0 }, \
 	[OXSet+C##c] = { "xset" #c, 0 },
@@ -144,7 +153,7 @@ lex()
 		{ "b", TB },
 		{ "d", TD },
 		{ "s", TS },
-		{ "loadw", OLoad+Tsw }, /* for convenience */
+		{ "loadw", OLoadsw }, /* for convenience */
 		{ 0, TXXX }
 	};
 	static char tok[NString];
