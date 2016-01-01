@@ -282,7 +282,7 @@ fillfron(Fn *fn)
 }
 
 static Ref
-index(int t, Fn *fn)
+refindex(int t, Fn *fn)
 {
 	return newtmp(fn->tmp[t].name, fn);
 }
@@ -322,7 +322,7 @@ phiins(Fn *fn)
 						if (fn->tmp[t].ndef == 1)
 							r = TMP(t);
 						else
-							r = index(t, fn);
+							r = refindex(t, fn);
 						i->to = r;
 					} else {
 						if (!BGET(u, b->id)) {
@@ -410,7 +410,7 @@ rendef(Ref *r, Blk *b, Name **stk, Fn *fn)
 	t = r->val;
 	if (req(*r, R) || !fn->tmp[t].visit)
 		return;
-	r1 = index(t, fn);
+	r1 = refindex(t, fn);
 	fn->tmp[r1.val].visit = t;
 	stk[t] = nnew(r1, b, stk[t]);
 	*r = r1;
