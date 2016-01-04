@@ -210,21 +210,8 @@ limit(Bits *b, int k, Bits *f)
 		slot(tarr[i]);
 }
 
-static int
-nreg(int k)
-{
-	switch (k) {
-	default:
-		diag("spill: nreg defaulted");
-	case 0:
-		return NIReg;
-	case 1:
-		return NFReg;
-	}
-}
-
 static void
-limit2(Bits *b, Bits *fst)
+limit2(Bits *b, int k1, int k2, Bits *fst)
 {
 	Bits u, t;
 	int k, z;
@@ -234,7 +221,7 @@ limit2(Bits *b, Bits *fst)
 	for (k=0; k<2; k++) {
 		for (z=0; z<BITS; z++)
 			u.t[z] = t.t[z] & mask[k].t[z];
-		limit(&u, nreg(k), fst);
+		limit(&u, k == 0 ? k1 : k2, fst);
 		for (z=0; z<BITS; z++)
 			b->t[z] |= u.t[z];
 	}
@@ -317,7 +304,7 @@ dopm(Blk *b, Ins *i, Bits *v)
 	u = *v;
 	if (i != b->ins && (i-1)->op == OCall) {
 		v->t[0] &= ~calldef(*(i-1), 0);
-		limit(v, NReg - NRSave, 0);
+		limit2(v, NIReg - NISave, NFReg - NFSave, 0);
 		r = 0;
 		for (n=0; n<NRSave; n++)
 			r |= BIT(rsave[n]);
@@ -395,7 +382,7 @@ spill(Fn *fn)
 			/* back-edge */
 			BZERO(v);
 			for (k=0; k<2; k++) {
-				n = nreg(k);
+				n = k == 0 ? NIReg : NFReg;
 				for (z=0; z<BITS; z++) {
 					u.t[z] = b->out.t[z]
 						& hd->gen.t[z]
@@ -425,7 +412,7 @@ spill(Fn *fn)
 					w.t[z] &= r;
 				}
 			}
-			limit2(&v, &w);
+			limit2(&v, NIReg, NFReg, &w);
 		}
 		b->out = v;
 
@@ -474,7 +461,7 @@ spill(Fn *fn)
 					break;
 				}
 			u = v;
-			limit2(&v, &w);
+			limit2(&v, NIReg, NFReg, &w);
 			for (n=0; n<2; n++)
 				if (rtype(i->arg[n]) == RTmp) {
 					t = i->arg[n].val;
