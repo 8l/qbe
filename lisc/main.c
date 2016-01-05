@@ -58,6 +58,8 @@ func(Fn *fn)
 
 	isel(fn);
 	filllive(fn);
+	fillcost(fn);
+	spill(fn);
 #if 0
 	memopt(fn);
 	ssa(fn);
