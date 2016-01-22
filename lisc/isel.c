@@ -78,9 +78,9 @@ fixarg(Ref *r, int k, int phi, Fn *fn)
 	s = rslot(r0, fn);
 	if (KBASE(k) == 1 && rtype(r0) == RCon) {
 		/* load floating points from memory
-	 	* slots, they can't be used as
-	 	* immediates
-	 	*/
+		 * slots, they can't be used as
+		 * immediates
+		 */
 		r1 = MEM(fn->nmem);
 		vgrow(&fn->mem, ++fn->nmem);
 		memset(&a, 0, sizeof a);
@@ -91,17 +91,17 @@ fixarg(Ref *r, int k, int phi, Fn *fn)
 	}
 	else if (!phi && rtype(r0) == RCon && noimm(r0, fn)) {
 		/* load constants that do not fit in
-	 	* a 32bit signed integer into a
-	 	* long temporary
-	 	*/
+		 * a 32bit signed integer into a
+		 * long temporary
+		 */
 		r1 = newtmp("isel", fn);
 		emit(OCopy, Kl, r1, r0, R);
 	}
 	else if (s != -1) {
 		/* load fast locals' addresses into
-	 	* temporaries right before the
-	 	* instruction
-	 	*/
+		 * temporaries right before the
+		 * instruction
+		 */
 		r1 = newtmp("isel", fn);
 		emit(OAddr, Kl, r1, SLOT(s), R);
 	}
