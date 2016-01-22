@@ -218,6 +218,8 @@ limit2(Bits *b, int k1, int k2, Bits *fst)
 
 	t = *b;
 	BZERO(*b);
+	k1 = NIReg - k1;
+	k2 = NFReg - k2;
 	for (k=0; k<2; k++) {
 		for (z=0; z<BITS; z++)
 			u.t[z] = t.t[z] & mask[k].t[z];
@@ -304,7 +306,7 @@ dopm(Blk *b, Ins *i, Bits *v)
 	u = *v;
 	if (i != b->ins && (i-1)->op == OCall) {
 		v->t[0] &= ~calldef(*(i-1), 0);
-		limit2(v, NIReg - NISave, NFReg - NFSave, 0);
+		limit2(v, NISave, NFSave, 0);
 		r = 0;
 		for (n=0; n<NRSave; n++)
 			r |= BIT(rsave[n]);
@@ -337,10 +339,9 @@ void
 spill(Fn *fn)
 {
 	Blk *b, *s1, *s2, *hd, **bp;
-	int n, z, l, t, k, lvarg[2];
+	int j, n, z, l, t, k, lvarg[2];
 	Bits u, v, w;
 	Ins *i;
-	int j, s;
 	Phi *p;
 	Mem *m;
 	ulong r;
@@ -412,7 +413,7 @@ spill(Fn *fn)
 					w.t[z] &= r;
 				}
 			}
-			limit2(&v, NIReg, NFReg, &w);
+			limit2(&v, 0, 0, &w);
 		}
 		b->out = v;
 
@@ -425,19 +426,23 @@ spill(Fn *fn)
 				i = dopm(b, i, &v);
 				continue;
 			}
-			s = -1;
+			BZERO(w);
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
 				t = i->to.val;
-				if (!BGET(v, t))
-					diag("obvious dead code in isel");
-				BCLR(v, t);
-				s = tmp[t].slot;
+				if (BGET(v, t))
+					BCLR(v, t);
+				else {
+					/* make sure we have a reg
+					 * for the result */
+					BSET(v, t);
+					BSET(w, t);
+				}
 			}
-			BZERO(w);
 			j = opdesc[i->op].nmem;
-			j -= rtype(i->arg[0]) == RAMem;
-			j -= rtype(i->arg[1]) == RAMem;
+			for (n=0; n<2; n++)
+				if (rtype(i->arg[n]) == RAMem)
+					j--;
 			for (n=0; n<2; n++)
 				switch (rtype(i->arg[n])) {
 				case RAMem:
@@ -461,7 +466,7 @@ spill(Fn *fn)
 					break;
 				}
 			u = v;
-			limit2(&v, NIReg, NFReg, &w);
+			limit2(&v, 0, 0, &w);
 			for (n=0; n<2; n++)
 				if (rtype(i->arg[n]) == RTmp) {
 					t = i->arg[n].val;
@@ -478,7 +483,11 @@ spill(Fn *fn)
 			if (r)
 				sethint(&v, r);
 			reloads(&u, &v);
-			store(i->to, s);
+			if (!req(i->to, R)) {
+				t = i->to.val;
+				store(i->to, tmp[t].slot);
+				BCLR(v, t);
+			}
 			emiti(*i);
 		}
 		assert(!r || b==fn->start);
