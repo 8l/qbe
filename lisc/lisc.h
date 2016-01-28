@@ -182,8 +182,8 @@ enum Op {
 	OStorew,
 	OStoreh,
 	OStoreb,
-	OStore = OStored,
-	OStore1 = OStoreb,
+#define OStore  OStored
+#define OStore1 OStoreb
 	OLoadl,
 	OLoadsw,
 	OLoaduw,
@@ -193,8 +193,8 @@ enum Op {
 	OLoadub,
 	OLoadd,
 	OLoads,
-	OLoad = OLoadl,
-	OLoad1 = OLoads,
+#define OLoad  OLoadl
+#define OLoad1 OLoads
 	OExtl,
 	OExtsw,
 	OExtuw,
@@ -202,8 +202,8 @@ enum Op {
 	OExtuh,
 	OExtsb,
 	OExtub,
-	OExt = OExtl,
-	OExt1 = OExtub,
+#define OExt  OExtl
+#define OExt1 OExtub
 
 	OAlloc,
 	OAlloc1 = OAlloc + NAlign-1,
