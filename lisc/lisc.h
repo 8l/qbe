@@ -63,8 +63,7 @@ enum Reg {
 
 	Tmp0, /* first non-reg temporary */
 
-	NReg = RBX - RAX + 1,
-	NIReg = NReg,
+	NIReg = RBX - RAX + 1,
 	NFReg = XMM15 - XMM0 + 1,
 	NISave = 9,
 	NFSave = 15,
