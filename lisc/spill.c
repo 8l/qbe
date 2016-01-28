@@ -307,8 +307,7 @@ dopm(Blk *b, Ins *i, Bits *v)
 	if (i != b->ins && (i-1)->op == OCall) {
 		v->t[0] &= ~calldef(*(i-1), 0);
 		limit2(v, NISave, NFSave, 0);
-		r = 0;
-		for (n=0; n<NRSave; n++)
+		for (r=0, n=0; n<NRSave; n++)
 			r |= BIT(rsave[n]);
 		v->t[0] |= calluse(*(i-1), 0);
 	} else {
