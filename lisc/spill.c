@@ -312,7 +312,7 @@ dopm(Blk *b, Ins *i, Bits *v)
 			r |= BIT(rsave[n]);
 		v->t[0] |= calluse(*(i-1), 0);
 	} else {
-		limit(v, NReg, 0);
+		limit2(v, 0, 0, 0);
 		r = v->t[0];
 	}
 	sethint(v, r);
