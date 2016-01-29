@@ -1,6 +1,51 @@
 #include "lisc.h"
 #include <stdarg.h>
 
+static struct {
+	int op;
+	int cls;
+	char *asm;
+} omap[] = {
+	{ OAdd,    -1, "=add%k %0, %1" },
+	{ OSub,    -1, "=sub%k %0, %1" },
+	{ OAnd,    -1, "=and%k %0, %1" },
+	{ OMul,    -1, "=imul%k %0, %1" },
+	{ OStorel, -1, "movq %L0, %M1" },
+	{ OStorew, -1, "movl %W0, %M1" },
+	{ OStoreh, -1, "movw %H0, %M1" },
+	{ OStoreb, -1, "movb %B0, %M1" },
+	{ OLoadl,  Kl, "movq %M0, %=" },
+	{ OLoadsw, Kl, "movslq %M0, %L=" },
+	{ OLoadsw, Kw, "movl %M0, %W=" },
+	{ OLoaduw, -1, "movl %M0, %W=" },
+	{ OLoadsh, -1, "movsw%k %M0, %=" },
+	{ OLoaduh, -1, "movzw%k %M0, %=" },
+	{ OLoadsb, -1, "movsb%k %M0, %=" },
+	{ OLoadub, -1, "movzb%k %M0, %=" },
+	{ OExtsw,  Kl, "movsq %W0, %L=" },
+	{ OExtuw,  Kl, "movl %W0, %W=" },
+	{ OExtsh,  -1, "movsw%k %H0, %=" },
+	{ OExtuh,  -1, "movzw%k %H0, %=" },
+	{ OExtsb,  -1, "movsb%k %B0, %=" },
+	{ OExtub,  -1, "movzb%k %B0, %=" },
+	{ OAddr,   -1, "lea%k %M0, %=" },
+	{ OSwap,   -1, "xchg%k %0, %1" },
+	{ OSign,   Kl, "cqto" },
+	{ OSign,   Kw, "cltd" },
+	{ OSAlloc, Kl, "subq %L0, %%rsp" }, /* fixme, ignores return value */
+	{ OXPush,  -1, "push%k %0" },
+	{ OXDiv,   -1, "idiv%k %0" },
+	{ OXCmp,   -1, "cmp%k, %0, %1" },
+	{ OXTest,  -1, "test%k %0, %1" },
+	{ ONop,    -1, "" },
+	{ OXSet+Ceq,  -1, "setz %B=\n\tmovzb%k %B=, %=" },
+	{ OXSet+Csle, -1, "setle %B=\n\tmovzb%k %B=, %=" },
+	{ OXSet+Cslt, -1, "setl %B=\n\tmovzb%k %B=, %=" },
+	{ OXSet+Csgt, -1, "setg %B=\n\tmovzb%k %B=, %=" },
+	{ OXSet+Csge, -1, "setge %B=\n\tmovzb%k %B=, %=" },
+	{ OXSet+Cne,  -1, "setnz %B=\n\tmovzb%k %B=, %=" },
+};
+
 enum { SLong, SWord, SShort, SByte };
 static char *rsub[][4] = {
 	[RXX] = {"BLACK CAT", "BROKEN MIRROR", "666", "NOOOO!"},
