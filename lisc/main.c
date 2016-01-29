@@ -60,6 +60,7 @@ func(Fn *fn)
 	filllive(fn);
 	fillcost(fn);
 	spill(fn);
+	rega(fn);
 #if 0
 	memopt(fn);
 	ssa(fn);

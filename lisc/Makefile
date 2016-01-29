@@ -1,6 +1,6 @@
 BIN = lisc
 # OBJ = main.o util.o parse.o mem.o ssa.o copy.o live.o isel.o spill.o rega.o emit.o
-OBJ = main.o util.o parse.o ssa.o live.o isel.o spill.o
+OBJ = main.o util.o parse.o ssa.o live.o isel.o spill.o rega.o
 
 CFLAGS = -Wall -Wextra -std=c99 -g -pedantic
 
