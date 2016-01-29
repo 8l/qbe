@@ -18,7 +18,7 @@ static Tmp *tmp;       /* function temporaries */
 static Mem *mem;       /* function mem references */
 static struct {
 	Ref src, dst;
-	int wide;
+	int cls;
 } *pm;                 /* parallel move constructed */
 static int cpm, npm;   /* capacity and size of pm */
 
@@ -154,7 +154,7 @@ mdump(RMap *m)
 }
 
 static void
-pmadd(Ref src, Ref dst, int w)
+pmadd(Ref src, Ref dst, int k)
 {
 	if (npm == cpm) {
 		cpm = cpm * 2 + 16;
@@ -164,33 +164,47 @@ pmadd(Ref src, Ref dst, int w)
 	}
 	pm[npm].src = src;
 	pm[npm].dst = dst;
-	pm[npm].wide = w;
+	pm[npm].cls = k;
 	npm++;
 }
 
 enum PMStat { ToMove, Moving, Moved };
 
 static Ref
-pmrec(enum PMStat *status, int i, int *w)
+pmrec(enum PMStat *status, int i, int *k)
 {
 	Ref swp, swp1;
-	int j, w1;
+	int j, k1;
+
+	/* note, this routine might emit
+	 * too many large instructions:
+	 *
+	 *                  , x -- x
+	 *      x -- x -- x        |
+	 *                  ` x -- x
+	 *
+	 * if only the first move is wide
+	 * the whole cycle will be wide,
+	 * this is safe but not necessary
+	 */
 
 	if (req(pm[i].src, pm[i].dst))
 		return R;
 	status[i] = Moving;
-	*w |= pm[i].wide;
+	assert(KBASE(*k) == KBASE(pm[i].cls));
+	assert((Kw|1) == Kl && (Ks|1) == Kd);
+	*k |= KWIDE(pm[i].cls); /* see above */
 	swp = R;
 	for (j=0; j<npm; j++) {
 		if (req(pm[j].src, pm[i].dst))
 			switch (status[j]) {
 			case ToMove:
-				w1 = *w;
-				swp1 = pmrec(status, j, &w1);
+				k1 = *k;
+				swp1 = pmrec(status, j, &k1);
 				if (!req(swp1, R)) {
 					assert(req(swp, R));
 					swp = swp1;
-					*w = w1;
+					*k = k1;
 				}
 				break;
 			case Moving:
@@ -203,10 +217,10 @@ pmrec(enum PMStat *status, int i, int *w)
 	}
 	status[i] = Moved;
 	if (req(swp, R)) {
-		*curi++ = (Ins){OCopy, pm[i].wide, pm[i].dst, {pm[i].src}};
+		*curi++ = (Ins){OCopy, pm[i].dst, {pm[i].src}, pm[i].cls};
 		return R;
 	} else if (!req(swp, pm[i].src)) {
-		*curi++ = (Ins){OSwap, *w, R, {pm[i].src, pm[i].dst}};
+		*curi++ = (Ins){OSwap, R, {pm[i].src, pm[i].dst}, *k};
 		return swp;
 	} else
 		return R;
@@ -282,9 +296,9 @@ dopm(Blk *b, Ins *i, RMap *m)
 		r1 = m->r[n];
 		r = rfind(&m0, t);
 		if (r != -1)
-			pmadd(TMP(r1), TMP(r), tmp[t].wide);
+			pmadd(TMP(r1), TMP(r), tmp[t].cls);
 		else if (s != -1)
-			pmadd(TMP(r1), SLOT(s), tmp[t].wide);
+			pmadd(TMP(r1), SLOT(s), tmp[t].cls);
 	}
 	for (ip=i; ip<i1; ip++) {
 		if (!req(ip->to, R))
@@ -478,7 +492,7 @@ rega(Fn *fn)
 				if (!BGET(cur.b, r)) {
 					rfree(&cur, t);
 					radd(&cur, t, r);
-					x = tmp[t].wide;
+					x = tmp[t].cls;
 					emit(OCopy, x, TMP(r1), TMP(r), R);
 				}
 			}
@@ -523,13 +537,13 @@ rega(Fn *fn)
 				src = p->arg[u];
 				if (rtype(src) == RTmp)
 					src = rref(&end[b->id], src.val);
-				pmadd(src, dst, p->wide);
+				pmadd(src, dst, p->cls);
 			}
 			for (t=Tmp0; t<fn->ntmp; t++)
 				if (BGET(s->in, t)) {
 					src = rref(&end[b->id], t);
 					dst = rref(&beg[s->id], t);
-					pmadd(src, dst, tmp[t].wide);
+					pmadd(src, dst, tmp[t].cls);
 				}
 			pmgen();
 			if (curi == insb)
@@ -552,8 +566,7 @@ rega(Fn *fn)
 		}
 	}
 	for (b=fn->start; b; b=b->link)
-		while (b->phi)
-			b->phi = b->phi->link;
+		b->phi = 0;
 	fn->reg = regu;
 
 	if (debug['R']) {
