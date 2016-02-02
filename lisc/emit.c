@@ -1,54 +1,87 @@
 #include "lisc.h"
-#include <stdarg.h>
 
+enum {
+	SLong = 0,
+	SWord = 1,
+	SShort = 2,
+	SByte = 3,
+
+	Ki = -1, /* matches Kw and Kl */
+	Ka = -2, /* matches all classes */
+};
+
+/* Instruction format strings:
+ *
+ * if the format string starts with -, the instruction
+ * is assumed to be 3-address and is put in 2-address
+ * mode using an extra mov if necessary
+ *
+ * if the format string starts with +, the same as the
+ * above applies, but commutativity is also assumed
+ *
+ * %k  is used to set the class of the instruction,
+ *     it'll expand to "l", "q", "ss", "sd", depending
+ *     on the instruction class
+ * %0  designates the first argument
+ * %1  designates the second argument
+ * %=  designates the result
+ *
+ * if %k is not used, a prefix to 0, 1, or = must be
+ * added, it can be:
+ *   M - memory reference
+ *   L - long  (64 bits)
+ *   W - word  (32 bits)
+ *   H - short (16 bits)
+ *   B - byte  (8 bits)
+ *   S - single precision float
+ *   D - double precision float
+ */
 static struct {
-	int op;
-	int cls;
+	short op;
+	short cls;
 	char *asm;
 } omap[] = {
-	{ OAdd,    -1, "=add%k %0, %1" },
-	{ OSub,    -1, "=sub%k %0, %1" },
-	{ OAnd,    -1, "=and%k %0, %1" },
-	{ OMul,    -1, "=imul%k %0, %1" },
-	{ OStorel, -1, "movq %L0, %M1" },
-	{ OStorew, -1, "movl %W0, %M1" },
-	{ OStoreh, -1, "movw %H0, %M1" },
-	{ OStoreb, -1, "movb %B0, %M1" },
+	{ OAdd,    Ka, "+add%k %0, %1" },
+	{ OAnd,    Ki, "+and%k %0, %1" },
+	{ OMul,    Ki, "+imul%k %0, %1" },
+	{ ODiv,    Ka, "-div%k %0, %1" },
+	{ OStorel, Ki, "movt q %L0, %M1" },
+	{ OStorew, Ki, "movl %W0, %M1" },
+	{ OStoreh, Ki, "movw %H0, %M1" },
+	{ OStoreb, Ki, "movb %B0, %M1" },
 	{ OLoadl,  Kl, "movq %M0, %=" },
 	{ OLoadsw, Kl, "movslq %M0, %L=" },
 	{ OLoadsw, Kw, "movl %M0, %W=" },
-	{ OLoaduw, -1, "movl %M0, %W=" },
-	{ OLoadsh, -1, "movsw%k %M0, %=" },
-	{ OLoaduh, -1, "movzw%k %M0, %=" },
-	{ OLoadsb, -1, "movsb%k %M0, %=" },
-	{ OLoadub, -1, "movzb%k %M0, %=" },
-	{ OExtsw,  Kl, "movsq %W0, %L=" },
+	{ OLoaduw, Ki, "movl %M0, %W=" },
+	{ OLoadsh, Ki, "movsw%k %M0, %=" },
+	{ OLoaduh, Ki, "movzw%k %M0, %=" },
+	{ OLoadsb, Ki, "movsb%k %M0, %=" },
+	{ OLoadub, Ki, "movzb%k %M0, %=" },
+	{ OExtsw,  Kl, "movslq %W0, %L=" },
 	{ OExtuw,  Kl, "movl %W0, %W=" },
-	{ OExtsh,  -1, "movsw%k %H0, %=" },
-	{ OExtuh,  -1, "movzw%k %H0, %=" },
-	{ OExtsb,  -1, "movsb%k %B0, %=" },
-	{ OExtub,  -1, "movzb%k %B0, %=" },
-	{ OAddr,   -1, "lea%k %M0, %=" },
-	{ OSwap,   -1, "xchg%k %0, %1" },
+	{ OExtsh,  Ki, "movsw%k %H0, %=" },
+	{ OExtuh,  Ki, "movzw%k %H0, %=" },
+	{ OExtsb,  Ki, "movsb%k %B0, %=" },
+	{ OExtub,  Ki, "movzb%k %B0, %=" },
+	{ OAddr,   Ki, "lea%k %M0, %=" },
+	{ OSwap,   Ki, "xchg%k %0, %1" },
 	{ OSign,   Kl, "cqto" },
 	{ OSign,   Kw, "cltd" },
-	{ OSAlloc, Kl, "subq %L0, %%rsp" }, /* fixme, ignores return value */
-	{ OXPush,  -1, "push%k %0" },
-	{ OXDiv,   -1, "idiv%k %0" },
-	{ OXCmp,   -1, "cmp%k, %0, %1" },
-	{ OXTest,  -1, "test%k %0, %1" },
-	{ ONop,    -1, "" },
-	{ OXSet+Ceq,  -1, "setz %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+Csle, -1, "setle %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+Cslt, -1, "setl %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+Csgt, -1, "setg %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+Csge, -1, "setge %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+Cne,  -1, "setnz %B=\n\tmovzb%k %B=, %=" },
+	{ OXPush,  Ki, "push%k %0" },
+	{ OXDiv,   Ki, "idiv%k %0" },
+	{ OXCmp,   Ks, "comiss %S0, %S1" },
+	{ OXCmp,   Kd, "comisd %S0, %S1" },
+	{ OXCmp,   Ki, "cmp%k, %0, %1" },
+	{ OXTest,  Ki, "test%k %0, %1" },
+	{ OXSet+Ceq,  Ki, "setz %B=\n\tmovzb%k %B=, %=" },
+	{ OXSet+Csle, Ki, "setle %B=\n\tmovzb%k %B=, %=" },
+	{ OXSet+Cslt, Ki, "setl %B=\n\tmovzb%k %B=, %=" },
+	{ OXSet+Csgt, Ki, "setg %B=\n\tmovzb%k %B=, %=" },
+	{ OXSet+Csge, Ki, "setge %B=\n\tmovzb%k %B=, %=" },
+	{ OXSet+Cne,  Ki, "setnz %B=\n\tmovzb%k %B=, %=" },
 };
 
-enum { SLong, SWord, SShort, SByte };
 static char *rsub[][4] = {
-	[RXX] = {"BLACK CAT", "BROKEN MIRROR", "666", "NOOOO!"},
 	[RAX] = {"rax", "eax", "ax", "al"},
 	[RBX] = {"rbx", "ebx", "bx", "bl"},
 	[RCX] = {"rcx", "ecx", "cx", "cl"},
@@ -65,15 +98,6 @@ static char *rsub[][4] = {
 	[R13] = {"r13", "r13d", "r13w", "r13b"},
 	[R14] = {"r14", "r14d", "r14w", "r14b"},
 	[R15] = {"r15", "r15d", "r15w", "r15b"},
-};
-
-static char *ctoa[NCmp] = {
-	[Ceq ] = "e",
-	[Csle] = "le",
-	[Cslt] = "l",
-	[Csgt] = "g",
-	[Csge] = "ge",
-	[Cne ] = "ne",
 };
 
 static int
@@ -109,7 +133,7 @@ emitcon(Con *con, FILE *f)
 }
 
 static void
-emitf(Fn *fn, FILE *f, char *fmt, ...)
+emitf(char *fmt, Ins *i, Fn *fn, FILE *f)
 {
 	static char stoa[] = "qlwb";
 	va_list ap;
