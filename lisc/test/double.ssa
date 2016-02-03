@@ -1,8 +1,8 @@
 function $test() {
 @start
-	%x1 =d copy `3e-1
-	%x2 =d sub %x1, `0.2
-	%x3 =d sub %x2, `0.1
+	%x1 =d copy `0.1
+	%x2 =d add `0.2, %x1
+	%x3 =d sub %x2, `0.3
 
 @loop
 	%x4 =d phi @start %x3, @loop %x5
