@@ -30,7 +30,6 @@ dumpts(Bits *b, Tmp *tmp, FILE *f)
 static void
 data(Dat *d)
 {
-#if 0
 	if (dbg)
 		return;
 	if (d->type == DEnd) {
@@ -38,7 +37,6 @@ data(Dat *d)
 		freeall();
 	}
 	emitdat(d, stdout);
-#endif
 }
 
 static void
@@ -55,18 +53,13 @@ func(Fn *fn)
 	fillrpo(fn);
 	fillpreds(fn);
 	filluse(fn);
-
-	isel(fn);
-	filllive(fn);
-	fillcost(fn);
-	spill(fn);
-	rega(fn);
 #if 0
 	memopt(fn);
 	ssa(fn);
 	filluse(fn);
 	copy(fn);
 	filluse(fn);
+#endif
 	isel(fn);
 	filllive(fn);
 	fillcost(fn);
@@ -84,7 +77,6 @@ func(Fn *fn)
 		emitfn(fn, stdout);
 		printf("/* end function %s */\n\n", fn->name);
 	} else
-#endif
 		fprintf(stderr, "\n");
 	freeall();
 }

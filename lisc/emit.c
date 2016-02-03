@@ -41,11 +41,11 @@ static struct {
 	short cls;
 	char *asm;
 } omap[] = {
-	{ OAdd,    Ka, "+add%k %0, %1" },
-	{ OSub,    Ka, "-sub%k %0, %1" },
-	{ OAnd,    Ki, "+and%k %0, %1" },
-	{ OMul,    Ki, "+imul%k %0, %1" },
-	{ ODiv,    Ka, "-div%k %0, %1" },
+	{ OAdd,    Ka, "+add%k %1, %0" },
+	{ OSub,    Ka, "-sub%k %1, %0" },
+	{ OAnd,    Ki, "+and%k %1, %0" },
+	{ OMul,    Ki, "+imul%k %1, %0" },
+	{ ODiv,    Ka, "-div%k %1, %0" },
 	{ OStorel, Ki, "movt q %L0, %M1" },
 	{ OStorew, Ki, "movl %W0, %M1" },
 	{ OStoreh, Ki, "movw %H0, %M1" },
@@ -71,8 +71,8 @@ static struct {
 	{ OXPush,  Ki, "push%k %0" },
 	{ OXDiv,   Ki, "idiv%k %0" },
 	{ OXCmp,   Ks, "comiss %S0, %S1" },
-	{ OXCmp,   Kd, "comisd %S0, %S1" },
-	{ OXCmp,   Ki, "cmp%k, %0, %1" },
+	{ OXCmp,   Kd, "comisd %D0, %D1" },
+	{ OXCmp,   Ki, "cmp%k %0, %1" },
 	{ OXTest,  Ki, "test%k %0, %1" },
 	{ OXSet+Ceq,  Ki, "setz %B=\n\tmovzb%k %B=, %=" },
 	{ OXSet+Csle, Ki, "setle %B=\n\tmovzb%k %B=, %=" },
@@ -80,6 +80,7 @@ static struct {
 	{ OXSet+Csgt, Ki, "setg %B=\n\tmovzb%k %B=, %=" },
 	{ OXSet+Csge, Ki, "setge %B=\n\tmovzb%k %B=, %=" },
 	{ OXSet+Cne,  Ki, "setnz %B=\n\tmovzb%k %B=, %=" },
+	{ NOp, 0, 0 }
 };
 
 static char *rname[][4] = {
@@ -126,22 +127,22 @@ emitcon(Con *con, FILE *f)
 		diag("emit: invalid constant");
 	case CAddr:
 		fputs(con->label, f);
-		if (con->val)
-			fprintf(f, "%+"PRId64, con->val);
+		if (con->bits.i)
+			fprintf(f, "%+"PRId64, con->bits.i);
 		break;
-	case CNum:
-		fprintf(f, "%"PRId64, con->val);
+	case CBits:
+		fprintf(f, "%"PRId64, con->bits.i);
 		break;
 	}
 }
 
-static void
+static char *
 regtoa(int reg, int sz)
 {
 	static char buf[6];
 
 	if (reg >= XMM0) {
-		sprintf(buf, "XMM%d", reg-XMM0);
+		sprintf(buf, "xmm%d", reg-XMM0);
 		return buf;
 	} else
 		return rname[reg][sz];
@@ -162,7 +163,7 @@ getarg(char c, Ins *i)
 	}
 }
 
-static void emiti(Ins, Fn *, FILE *);
+static void emitins(Ins, Fn *, FILE *);
 
 static void
 emitcopy(Ref r1, Ref r2, int k, Fn *fn, FILE *f)
@@ -172,21 +173,20 @@ emitcopy(Ref r1, Ref r2, int k, Fn *fn, FILE *f)
 	icp.op = OCopy;
 	icp.arg[0] = r2;
 	icp.to = r1;
-	icp.k = k;
-	emiti(icp, fn, f);
+	icp.cls = k;
+	emitins(icp, fn, f);
 }
 
 static void
 emitf(char *s, Ins *i, Fn *fn, FILE *f)
 {
-	static char ktoa[][3] = {"l", "q", "ss", "sd"};
-	char c, *s1;
-	int i, sz;
+	static char clstoa[][3] = {"l", "q", "ss", "sd"};
+	char c;
+	int sz;
 	Ref ref;
 	Mem *m;
 	Con off;
 
-	ty = SWord;
 	fputc('\t', f);
 
 	switch (*s) {
@@ -201,8 +201,10 @@ emitf(char *s, Ins *i, Fn *fn, FILE *f)
 		if (req(i->arg[1], i->to) && !req(i->arg[0], i->to))
 			diag("emit: cannot convert to 2-address");
 		emitcopy(i->arg[0], i->to, i->cls, fn, f);
+		s++;
 		break;
 	}
+
 Next:
 	while ((c = *s++) != '%')
 		if (!c) {
@@ -217,7 +219,7 @@ Next:
 		fputc('%', f);
 		break;
 	case 'k':
-		fputs(ktoa[ty], f);
+		fputs(clstoa[i->cls], f);
 		break;
 	case '0':
 	case '1':
@@ -244,8 +246,8 @@ Next:
 		Mem:
 			m = &fn->mem[ref.val & AMask];
 			if (rtype(m->base) == RSlot) {
-				off.type = CNum;
-				off.val = slot(m->base.val, fn);
+				off.type = CBits;
+				off.bits.i = slot(m->base.val, fn);
 				addcon(&m->offset, &off);
 				m->base = TMP(RBP);
 			}
@@ -306,10 +308,11 @@ Next:
 }
 
 static void
-emiti(Ins i, Fn *fn, FILE *f)
+emitins(Ins i, Fn *fn, FILE *f)
 {
 	Ref r;
 	int64_t val;
+	int o;
 
 	switch (i.op) {
 	default:
@@ -317,10 +320,19 @@ emiti(Ins i, Fn *fn, FILE *f)
 		/* most instructions are just pulled out of
 		 * the table omap[], some special cases are
 		 * detailed below */
-		//
-		// look in the table
-		//
-		diag("emit: unhandled instruction (3)");
+		for (o=0;; o++) {
+			/* this linear search should really be a binary
+			 * search */
+			if (omap[o].op == NOp)
+				diag("emit: no entry found for instruction");
+			if (omap[o].op == i.op)
+			if (omap[o].cls == i.cls
+			|| (omap[o].cls == Ki && KBASE(i.cls) == 0)
+			|| (omap[o].cls == Ka))
+				break;
+		}
+		emitf(omap[o].asm, &i, fn, f);
+		break;
 	case ONop:
 		/* just do nothing for nops, they are inserted
 		 * by some passes */
@@ -333,7 +345,7 @@ emiti(Ins i, Fn *fn, FILE *f)
 			i.arg[0] = i.arg[1];
 			i.arg[1] = r;
 		}
-		if (KTYPE(i.cls) == 0 /* only available for ints */
+		if (KBASE(i.cls) == 0 /* only available for ints */
 		&& rtype(i.arg[0]) == RCon
 		&& rtype(i.arg[1]) == RTmp) {
 			emitf("imul%k %0, %1, %=", &i, fn, f);
@@ -359,8 +371,8 @@ emiti(Ins i, Fn *fn, FILE *f)
 		if (isreg(i.to)
 		&& rtype(i.arg[0]) == RCon
 		&& i.cls == Kl
-		&& fn->con[i.arg[0].val].type == CNum
-		&& (val = fn->con[i.arg[0].val].val) >= 0
+		&& fn->con[i.arg[0].val].type == CBits
+		&& (val = fn->con[i.arg[0].val].bits.i) >= 0
 		&& val <= UINT32_MAX) {
 			emitf("movl %W0, %W=", &i, fn, f);
 		} else if (!req(i.arg[0], i.to))
@@ -422,6 +434,10 @@ framesz(Fn *fn)
 void
 emitfn(Fn *fn, FILE *f)
 {
+	static char *ctoa[] = {
+		[Ceq] = "z", [Csle] = "le", [Cslt] = "l",
+		[Csgt] = "g", [Csge] = "ge", [Cne] = "nz"
+	};
 	Blk *b, *s;
 	Ins *i, itmp;
 	int *r, c, fs;
@@ -447,7 +463,7 @@ emitfn(Fn *fn, FILE *f)
 	for (b=fn->start; b; b=b->link) {
 		fprintf(f, ".L%s:\n", b->name);
 		for (i=b->ins; i!=&b->ins[b->nins]; i++)
-			eins(*i, fn, f);
+			emitins(*i, fn, f);
 		switch (b->jmp.type) {
 		case JRet0:
 			for (r=&rclob[NRClob]; r>rclob;)
