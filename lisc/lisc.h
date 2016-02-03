@@ -132,7 +132,10 @@ enum {
                  (Ref){RAlt, (x)|(AMem<<AShift)})
 
 static inline int req(Ref a, Ref b)
-{ return a.type == b.type && a.val == b.val; }
+{
+	return a.type == b.type && a.val == b.val;
+}
+
 static inline int rtype(Ref r)
 {
 	if (req(r, R))
@@ -141,17 +144,29 @@ static inline int rtype(Ref r)
 		return RAlt + (r.val >> AShift);
 	return r.type;
 }
+
 static inline int isreg(Ref r)
-{ return rtype(r) == RTmp && r.val < Tmp0; }
+{
+	return rtype(r) == RTmp && r.val < Tmp0;
+}
 
 #define CMPS(X) \
-	X(eq) X(sle) X(slt) \
-	X(sgt) X(sge) X(ne) /* mirror opposite cmps! */
+	X(eq)   \
+	X(sle)  \
+	X(slt)  \
+	X(sgt)  \
+	X(sge)  \
+	X(ne)   /* mirror opposite cmps! */
+
 #define COP(c) (c==Ceq||c==Cne ? c : NCmp-1 - c)
 
+enum Cmp {
 #define X(c) C##c,
-enum Cmp { CMPS(X) NCmp };
+	CMPS(X)
 #undef X
+
+	NCmp
+};
 
 enum Class {
 	Kw,
