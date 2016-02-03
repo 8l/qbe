@@ -385,7 +385,7 @@ emitins(Ins i, Fn *fn, FILE *f)
 		default:
 			diag("emit: invalid call instruction");
 		case RCon:
-			emitf("callq %0", &i, fn, f);
+			emitf("callq %M0", &i, fn, f);
 			break;
 		case RTmp:
 			emitf("callq *%L0", &i, fn, f);
