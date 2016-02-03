@@ -42,6 +42,7 @@ static struct {
 	char *asm;
 } omap[] = {
 	{ OAdd,    Ka, "+add%k %0, %1" },
+	{ OSub,    Ka, "-sub%k %0, %1" },
 	{ OAnd,    Ki, "+and%k %0, %1" },
 	{ OMul,    Ki, "+imul%k %0, %1" },
 	{ ODiv,    Ka, "-div%k %0, %1" },
@@ -81,7 +82,7 @@ static struct {
 	{ OXSet+Cne,  Ki, "setnz %B=\n\tmovzb%k %B=, %=" },
 };
 
-static char *rsub[][4] = {
+static char *rname[][4] = {
 	[RAX] = {"rax", "eax", "ax", "al"},
 	[RBX] = {"rbx", "ebx", "bx", "bl"},
 	[RCX] = {"rcx", "ecx", "cx", "cl"},
@@ -100,11 +101,13 @@ static char *rsub[][4] = {
 	[R15] = {"r15", "r15d", "r15w", "r15b"},
 };
 
+
 static int
 slot(int s, Fn *fn)
 {
 	struct { int i:14; } x;
 
+	/* sign extend s using a bitfield */
 	x.i = s;
 	assert(NAlign == 3);
 	if (x.i < 0)
@@ -133,55 +136,106 @@ emitcon(Con *con, FILE *f)
 }
 
 static void
-emitf(char *fmt, Ins *i, Fn *fn, FILE *f)
+regtoa(int reg, int sz)
 {
-	static char stoa[] = "qlwb";
-	va_list ap;
-	char c, *s, *s1;
-	int i, ty;
+	static char buf[6];
+
+	if (reg >= XMM0) {
+		sprintf(buf, "XMM%d", reg-XMM0);
+		return buf;
+	} else
+		return rname[reg][sz];
+}
+
+static Ref
+getarg(char c, Ins *i)
+{
+	switch (c) {
+	default:
+		diag("emit: 0, 1, = expected in format");
+	case '0':
+		return i->arg[0];
+	case '1':
+		return i->arg[1];
+	case '=':
+		return i->to;
+	}
+}
+
+static void emiti(Ins, Fn *, FILE *);
+
+static void
+emitcopy(Ref r1, Ref r2, int k, Fn *fn, FILE *f)
+{
+	Ins icp;
+
+	icp.op = OCopy;
+	icp.arg[0] = r2;
+	icp.to = r1;
+	icp.k = k;
+	emiti(icp, fn, f);
+}
+
+static void
+emitf(char *s, Ins *i, Fn *fn, FILE *f)
+{
+	static char ktoa[][3] = {"l", "q", "ss", "sd"};
+	char c, *s1;
+	int i, sz;
 	Ref ref;
 	Mem *m;
 	Con off;
 
-	va_start(ap, fmt);
 	ty = SWord;
-	s = fmt;
 	fputc('\t', f);
+
+	switch (*s) {
+	case '+':
+		if (req(i->arg[1], i->to)) {
+			ref = i->arg[0];
+			i->arg[0] = i->arg[1];
+			i->arg[1] = ref;
+		}
+		/* fall through */
+	case '-':
+		if (req(i->arg[1], i->to) && !req(i->arg[0], i->to))
+			diag("emit: cannot convert to 2-address");
+		emitcopy(i->arg[0], i->to, i->cls, fn, f);
+		break;
+	}
 Next:
 	while ((c = *s++) != '%')
 		if (!c) {
-			va_end(ap);
 			fputc('\n', f);
 			return;
 		} else
 			fputc(c, f);
 	switch ((c = *s++)) {
 	default:
-		diag("emit: unknown escape");
-	case 'w':
-	case 'W':
-		i = va_arg(ap, int);
-		ty = i ? SLong: SWord;
-	if (0) {
-	case 't':
-	case 'T':
-		ty = va_arg(ap, int);
-	}
-		if (c == 't' || c == 'w')
-			fputc(stoa[ty], f);
+		diag("emit: invalid escape");
+	case '%':
+		fputc('%', f);
 		break;
-	case 's':
-		s1 = va_arg(ap, char *);
-		fputs(s1, f);
+	case 'k':
+		fputs(ktoa[ty], f);
 		break;
-	case 'R':
-		ref = va_arg(ap, Ref);
+	case '0':
+	case '1':
+	case '=':
+		sz = KWIDE(i->cls) ? SLong : SWord;
+		s--;
+		/* fall through */
+	case 'D':
+	case 'S':
+	Ref:
+		c = *s++;
+		ref = getarg(c, i);
 		switch (rtype(ref)) {
 		default:
 			diag("emit: invalid reference");
 		case RTmp:
 			assert(isreg(ref));
-			fprintf(f, "%%%s", rsub[ref.val][ty]);
+			fprintf(f, "%%%s", regtoa(ref.val, sz));
 			break;
 		case RSlot:
 			fprintf(f, "%d(%%rbp)", slot(ref.val, fn));
@@ -201,10 +255,10 @@ Next:
 				break;
 			fputc('(', f);
 			if (!req(m->base, R))
-				fprintf(f, "%%%s", rsub[m->base.val][SLong]);
+				fprintf(f, "%%%s", regtoa(m->base.val, SLong));
 			if (!req(m->index, R))
 				fprintf(f, ", %%%s, %d",
-					rsub[m->index.val][SLong],
+					regtoa(m->index.val, SLong),
 					m->scale
 				);
 			fputc(')', f);
@@ -215,8 +269,21 @@ Next:
 			break;
 		}
 		break;
+	case 'L':
+		sz = SLong;
+		goto Ref;
+	case 'W':
+		sz = SWord;
+		goto Ref;
+	case 'H':
+		sz = SShort;
+		goto Ref;
+	case 'B':
+		sz = SByte;
+		goto Ref;
 	case 'M':
-		ref = va_arg(ap, Ref);
+		c = *s++;
+		ref = getarg(c, i);
 		switch (rtype(ref)) {
 		default:
 			diag("emit: invalid memory reference");
@@ -230,7 +297,7 @@ Next:
 			break;
 		case RTmp:
 			assert(isreg(ref));
-			fprintf(f, "(%%%s)", rsub[ref.val][SLong]);
+			fprintf(f, "(%%%s)", regtoa(ref.val, SLong));
 			break;
 		}
 		break;
@@ -238,179 +305,104 @@ Next:
 	goto Next;
 }
 
+static void
+emiti(Ins i, Fn *fn, FILE *f)
+{
+	Ref r;
+	int64_t val;
+
+	switch (i.op) {
+	default:
+	Table:
+		/* most instructions are just pulled out of
+		 * the table omap[], some special cases are
+		 * detailed below */
+		//
+		// look in the table
+		//
+		diag("emit: unhandled instruction (3)");
+	case ONop:
+		/* just do nothing for nops, they are inserted
+		 * by some passes */
+		break;
+	case OMul:
+		/* here, we try to use the 3-addresss form
+		 * of multiplication when possible */
+		if (rtype(i.arg[1]) == RCon) {
+			r = i.arg[0];
+			i.arg[0] = i.arg[1];
+			i.arg[1] = r;
+		}
+		if (KTYPE(i.cls) == 0 /* only available for ints */
+		&& rtype(i.arg[0]) == RCon
+		&& rtype(i.arg[1]) == RTmp) {
+			emitf("imul%k %0, %1, %=", &i, fn, f);
+			break;
+		}
+		goto Table;
+	case OSub:
+		/* we have to use the negation trick to handle
+		 * some 3-address substractions */
+		if (req(i.to, i.arg[1])) {
+			emitf("neg%k %=", &i, fn, f);
+			emitf("add%k %0, %=", &i, fn, f);
+			break;
+		}
+		goto Table;
+	case OCopy:
+		/* make sure we don't emit useless copies,
+		 * also, we can use a trick to load 64-bits
+		 * registers, it's detailed in my note below
+		 * http://c9x.me/art/notes.html?09/19/2015 */
+		if (req(i.to, R) || req(i.arg[0], R))
+			break;
+		if (isreg(i.to)
+		&& rtype(i.arg[0]) == RCon
+		&& i.cls == Kl
+		&& fn->con[i.arg[0].val].type == CNum
+		&& (val = fn->con[i.arg[0].val].val) >= 0
+		&& val <= UINT32_MAX) {
+			emitf("movl %W0, %W=", &i, fn, f);
+		} else if (!req(i.arg[0], i.to))
+			emitf("mov%k %0, %=", &i, fn, f);
+		break;
+	case OCall:
+		/* calls simply have a weird syntax in AT&T
+		 * assembly... */
+		switch (rtype(i.arg[0])) {
+		default:
+			diag("emit: invalid call instruction");
+		case RCon:
+			emitf("callq %0", &i, fn, f);
+			break;
+		case RTmp:
+			emitf("callq *%L0", &i, fn, f);
+			break;
+		}
+		break;
+	case OSAlloc:
+		/* there is no good reason why this is here
+		 * maybe we should split OSAlloc in 2 different
+		 * instructions depending on the result
+		 */
+		emitf("subq %L0, %%rsp", &i, fn, f);
+		if (!req(i.to, R))
+			emitcopy(TMP(RSP), i.to, Kl, fn, f);
+		break;
+	}
+}
+
 static int
 cneg(int cmp)
 {
 	switch (cmp) {
-	default:   diag("cneg: unhandled comparison");
+	default:   diag("emit: cneg() unhandled comparison");
 	case Ceq:  return Cne;
 	case Csle: return Csgt;
 	case Cslt: return Csge;
 	case Csgt: return Csle;
 	case Csge: return Cslt;
 	case Cne:  return Ceq;
-	}
-}
-
-static void
-eins(Ins i, Fn *fn, FILE *f)
-{
-	static char *otoa[NOp] = {
-		[OAdd]    = "add",
-		[OSub]    = "sub",
-		[OMul]    = "imul",
-		[OAnd]    = "and",
-		[OLoad+Tl]  = "mov",
-		[OLoad+Tsw] = "movsl",
-		/* [OLoad+Tuw] treated manually */
-		[OLoad+Tsh] = "movsw",
-		[OLoad+Tuh] = "movzw",
-		[OLoad+Tsb] = "movsb",
-		[OLoad+Tub] = "movzb",
-	};
-	Ref r0, r1;
-	int64_t val;
-
-	switch (i.op) {
-	case OMul:
-		if (rtype(i.arg[1]) == RCon) {
-			r0 = i.arg[1];
-			r1 = i.arg[0];
-		} else {
-			r0 = i.arg[0];
-			r1 = i.arg[1];
-		}
-		if (rtype(r0) == RCon && rtype(r1) == RTmp) {
-			emitf(fn, f, "imul%w %R, %R, %R",
-				i.wide, r0, r1, i.to);
-			break;
-		}
-		/* fall through */
-	case OAdd:
-	case OSub:
-	case OAnd:
-		if (req(i.to, i.arg[1])) {
-			if (i.op == OSub) {
-				emitf(fn, f, "neg%w %R", i.wide, i.to);
-				emitf(fn, f, "add%w %R, %R",
-					i.wide, i.arg[0], i.to);
-				break;
-			}
-			i.arg[1] = i.arg[0];
-			i.arg[0] = i.to;
-		}
-		if (!req(i.to, i.arg[0]))
-			emitf(fn, f, "mov%w %R, %R",
-				i.wide, i.arg[0], i.to);
-		emitf(fn, f, "%s%w %R, %R", otoa[i.op],
-			i.wide, i.arg[1], i.to);
-		break;
-	case OCopy:
-		if (req(i.to, R) || req(i.arg[0], R))
-			break;
-		if (isreg(i.to)
-		&& i.wide
-		&& rtype(i.arg[0]) == RCon
-		&& fn->con[i.arg[0].val].type == CNum
-		&& (val = fn->con[i.arg[0].val].val) >= 0
-		&& val <= UINT32_MAX) {
-			emitf(fn, f, "movl %R, %R", i.arg[0], i.to);
-		} else if (!req(i.arg[0], i.to))
-			emitf(fn, f, "mov%w %R, %R",
-				i.wide, i.arg[0], i.to);
-		break;
-	case OStorel:
-	case OStorew:
-	case OStoreh:
-	case OStoreb:
-		emitf(fn, f, "mov%t %R, %M",
-			i.op - OStorel, i.arg[0], i.arg[1]);
-		break;
-	case OLoad+Tuw:
-		emitf(fn, f, "movl %M, %R", i.arg[0], i.to);
-		break;
-	case OLoad+Tsw:
-		if (i.wide == 0) {
-			emitf(fn, f, "movl %M, %R", i.arg[0], i.to);
-			break;
-		}
-	case OLoad+Tl:
-	case OLoad+Tsh:
-	case OLoad+Tuh:
-	case OLoad+Tsb:
-	case OLoad+Tub:
-		emitf(fn, f, "%s%w %M, %R", otoa[i.op],
-			i.wide, i.arg[0], i.to);
-		break;
-	case OExt+Tuw:
-		emitf(fn, f, "movl %R, %R", i.arg[0], i.to);
-		break;
-	case OExt+Tsw:
-	case OExt+Tsh:
-	case OExt+Tuh:
-	case OExt+Tsb:
-	case OExt+Tub:
-		emitf(fn, f, "mov%s%t%s %R, %W%R",
-			(i.op-OExt-Tsw)%2 ? "z" : "s",
-			1+(i.op-OExt-Tsw)/2,
-			i.wide ? "q" : "l",
-			i.arg[0], i.wide, i.to);
-		break;
-	case OCall:
-		switch (rtype(i.arg[0])) {
-		default:
-			diag("emit: invalid call instruction");
-		case RCon:
-			emitf(fn, f, "callq %M", i.arg[0]);
-			break;
-		case RTmp:
-			emitf(fn, f, "call%w *%R", 1, i.arg[0]);
-			break;
-		}
-		break;
-	case OAddr:
-		emitf(fn, f, "lea%w %M, %R", i.wide, i.arg[0], i.to);
-		break;
-	case OSwap:
-		emitf(fn, f, "xchg%w %R, %R", i.wide, i.arg[0], i.arg[1]);
-		break;
-	case OSign:
-		if (req(i.to, TMP(RDX)) && req(i.arg[0], TMP(RAX))) {
-			if (i.wide)
-				fprintf(f, "\tcqto\n");
-			else
-				fprintf(f, "\tcltd\n");
-		} else
-			diag("emit: unhandled instruction (2)");
-		break;
-	case OSAlloc:
-		emitf(fn, f, "sub%w %R, %R", 1, i.arg[0], TMP(RSP));
-		if (!req(i.to, R))
-			emitf(fn, f, "mov%w %R, %R", 1, TMP(RSP), i.to);
-		break;
-	case OXPush:
-		emitf(fn, f, "push%w %R", i.wide, i.arg[0]);
-		break;
-	case OXDiv:
-		emitf(fn, f, "idiv%w %R", i.wide, i.arg[0]);
-		break;
-	case OXCmp:
-		emitf(fn, f, "cmp%w %R, %R", i.wide, i.arg[0], i.arg[1]);
-		break;
-	case OXTest:
-		emitf(fn, f, "test%w %R, %R", i.wide, i.arg[0], i.arg[1]);
-		break;
-	case ONop:
-		break;
-	default:
-		if (OXSet <= i.op && i.op <= OXSet1) {
-			emitf(fn, f, "set%s%t %R",
-				ctoa[i.op-OXSet], SByte, i.to);
-			emitf(fn, f, "movzb%w %T%R, %W%R",
-				i.wide, SByte, i.to, i.wide, i.to);
-			break;
-		}
-		diag("emit: unhandled instruction (3)");
 	}
 }
 
@@ -431,7 +423,7 @@ void
 emitfn(Fn *fn, FILE *f)
 {
 	Blk *b, *s;
-	Ins *i;
+	Ins *i, itmp;
 	int *r, c, fs;
 
 	fprintf(f,
@@ -447,18 +439,22 @@ emitfn(Fn *fn, FILE *f)
 	if (fs)
 		fprintf(f, "\tsub $%d, %%rsp\n", fs);
 	for (r=rclob; r-rclob < NRClob; r++)
-		if (fn->reg & BIT(*r))
-			emitf(fn, f, "push%w %R", 1, TMP(*r));
+		if (fn->reg & BIT(*r)) {
+			itmp.arg[0] = TMP(*r);
+			emitf("pushq %L0", &itmp, fn, f);
+		}
 
 	for (b=fn->start; b; b=b->link) {
 		fprintf(f, ".L%s:\n", b->name);
-		for (i=b->ins; i-b->ins < b->nins; i++)
+		for (i=b->ins; i!=&b->ins[b->nins]; i++)
 			eins(*i, fn, f);
 		switch (b->jmp.type) {
 		case JRet0:
 			for (r=&rclob[NRClob]; r>rclob;)
-				if (fn->reg & BIT(*--r))
-					emitf(fn, f, "pop%w %R", 1, TMP(*r));
+				if (fn->reg & BIT(*--r)) {
+					itmp.arg[0] = TMP(*r);
+					emitf("popq %L0", &itmp, fn, f);
+				}
 			fprintf(f,
 				"\tleave\n"
 				"\tret\n"
