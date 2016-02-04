@@ -527,7 +527,7 @@ emitdat(Dat *d, FILE *f)
 		);
 		break;
 	case DA:
-		fprintf(f, "\t.string \"%s\"\n", d->u.str);
+		fprintf(f, "\t.asciz \"%s\"\n", d->u.str);
 		break;
 	default:
 		fprintf(f, "%s %"PRId64"\n", dtoa[d->type], d->u.num);
