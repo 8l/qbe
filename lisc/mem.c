@@ -4,6 +4,8 @@
  *
  * - replace alloced slots used only in
  *   load/store operations
+ *   Assumption: all the accesses have the
+ *   same size (this could be wrong...)
  */
 
 /* require use, maintains use counts */
@@ -28,35 +30,37 @@ memopt(Fn *fn)
 				goto NextIns;
 			l = u->u.ins;
 			if (l->op < OStorel || l->op > OStoreb)
-			if (l->op < OLoad || l->op > OLoad1)
+			if (l->op < OLoadl || l->op > OLoadub)
 				goto NextIns;
 		}
 		/* get rid of the alloc and replace uses */
 		*i = (Ins){.op = ONop};
 		t->ndef--;
 		ue = &t->use[t->nuse];
-		for (u=t->use; u != ue; u++) {
+		for (u=t->use; u!=ue; u++) {
 			l = u->u.ins;
 			if (OStorel <= l->op && l->op <= OStoreb) {
-				l->wide = (l->op == OStorel);
+				l->cls = l->op == OStorel ? Kl : Kw;
 				l->op = OCopy;
 				l->to = l->arg[1];
 				l->arg[1] = R;
 				t->nuse--;
 				t->ndef++;
 			} else
+				/* try to turn loads into copies so we
+				 * can eliminate them later */
 				switch(l->op) {
-				case OLoad+Tl:
-					l->wide = 1;
+				case OLoadl:
+					l->cls = Kl;
 					l->op = OCopy;
 					break;
-				case OLoad+Tsw:
-				case OLoad+Tuw:
-					l->wide = 0;
+				case OLoadsw:
+				case OLoaduw:
+					l->cls = Kw;
 					l->op = OCopy;
 					break;
 				default:
-					/* keep l->wide */
+					/* keep l->cls */
 					a = l->op - OLoad;
 					l->op = OExt + a;
 					break;
