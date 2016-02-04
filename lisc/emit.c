@@ -46,7 +46,7 @@ static struct {
 	{ OAnd,    Ki, "+and%k %1, %0" },
 	{ OMul,    Ki, "+imul%k %1, %0" },
 	{ ODiv,    Ka, "-div%k %1, %0" },
-	{ OStorel, Ki, "movt q %L0, %M1" },
+	{ OStorel, Ki, "movq %L0, %M1" },
 	{ OStorew, Ki, "movl %W0, %M1" },
 	{ OStoreh, Ki, "movw %H0, %M1" },
 	{ OStoreb, Ki, "movb %B0, %M1" },
