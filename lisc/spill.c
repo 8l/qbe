@@ -378,9 +378,9 @@ spill(Fn *fn)
 		if (s2 && s2->id <= n)
 		if (!hd || s2->id >= hd->id)
 			hd = s2;
+		BZERO(v);
 		if (hd) {
 			/* back-edge */
-			BZERO(v);
 			for (k=0; k<2; k++) {
 				n = k == 0 ? NIReg : NFReg;
 				for (z=0; z<BITS; z++) {
