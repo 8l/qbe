@@ -478,9 +478,6 @@ spill(Fn *fn)
 						i->arg[n] = slot(t);
 					}
 				}
-			r = v.t[0] & (BIT(Tmp0)-1);
-			if (r)
-				sethint(&v, r);
 			reloads(&u, &v);
 			if (!req(i->to, R)) {
 				t = i->to.val;
@@ -488,6 +485,9 @@ spill(Fn *fn)
 				BCLR(v, t);
 			}
 			emiti(*i);
+			r = v.t[0] & (BIT(Tmp0)-1);
+			if (r)
+				sethint(&v, r);
 		}
 		assert(!r || b==fn->start);
 
