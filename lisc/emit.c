@@ -385,7 +385,7 @@ emitins(Ins i, Fn *fn, FILE *f)
 		default:
 			diag("emit: invalid call instruction");
 		case RCon:
-			fprintf(f, "callq ");
+			fprintf(f, "\tcallq ");
 			emitcon(&fn->con[i.arg[0].val], f);
 			fprintf(f, "\n");
 			break;
