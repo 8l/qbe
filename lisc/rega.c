@@ -285,7 +285,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 	} while (i != b->ins && regcpy(i-1));
 	assert(m0.n <= m->n);
 	if (i != b->ins && (i-1)->op == OCall) {
-		def = calldef(*i, 0);
+		def = calldef(*(i-1), 0);
 		for (r=0; r<NRSave; r++)
 			if (!(BIT(rsave[r]) & def))
 				move(rsave[r], R, m);
