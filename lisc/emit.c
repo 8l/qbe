@@ -295,6 +295,7 @@ Next:
 			break;
 		case RCon:
 			emitcon(&fn->con[ref.val], f);
+			fprintf(f, "(%%rip)");
 			break;
 		case RTmp:
 			assert(isreg(ref));
@@ -384,7 +385,9 @@ emitins(Ins i, Fn *fn, FILE *f)
 		default:
 			diag("emit: invalid call instruction");
 		case RCon:
-			emitf("callq %M0", &i, fn, f);
+			fprintf(f, "callq ");
+			emitcon(&fn->con[i.arg[0].val], f);
+			fprintf(f, "\n");
 			break;
 		case RTmp:
 			emitf("callq *%L0", &i, fn, f);
