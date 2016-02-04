@@ -362,7 +362,7 @@ spill(Fn *fn)
 		BSET(mask[k], t);
 	}
 
-	for (bp=&fn->rpo[fn->nblk-1]; bp!=fn->rpo;) {
+	for (bp=&fn->rpo[fn->nblk]; bp!=fn->rpo;) {
 		b = *--bp;
 		/* invariant: all bocks with bigger rpo got
 		 * their in,out updated. */
