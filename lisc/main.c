@@ -55,8 +55,10 @@ func(Fn *fn)
 	filluse(fn);
 #if 0
 	memopt(fn);
+#endif
 	ssa(fn);
 	filluse(fn);
+#if 0
 	copy(fn);
 	filluse(fn);
 #endif

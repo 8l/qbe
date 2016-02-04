@@ -171,8 +171,6 @@ fillrpo(Fn *f)
 	}
 }
 
-#if 0
-
 /* for dominators computation, read
  * "A Simple, Fast Dominance Algorithm"
  * by K. Cooper, T. Harvey, and K. Kennedy.
@@ -295,7 +293,7 @@ phiins(Fn *fn)
 	Ins *i;
 	Phi *p;
 	Ref r;
-	int t, n, w, nt;
+	int t, n, k, nt;
 
 	blist = emalloc(fn->nblk * sizeof blist[0]);
 	be = &blist[fn->nblk];
@@ -305,7 +303,7 @@ phiins(Fn *fn)
 		if (fn->tmp[t].phi != 0)
 			continue;
 		BZERO(u);
-		w = -1;
+		k = -1;
 		bp = be;
 		for (b=fn->start; b; b=b->link) {
 			b->visit = 0;
@@ -329,9 +327,9 @@ phiins(Fn *fn)
 							BSET(u, b->id);
 							*--bp = b;
 						}
-						if (w == -1)
-							w = i->wide;
-						if (w != i->wide)
+						if (k == -1)
+							k = i->cls;
+						if (k != i->cls)
 							/* uh, oh, warn */
 							;
 					}
@@ -350,7 +348,7 @@ phiins(Fn *fn)
 				if (a->visit++ == 0)
 				if (BGET(a->in, t)) {
 					p = alloc(sizeof *p);
-					p->wide = w;
+					p->cls = k;
 					p->to = TMP(t);
 					p->link = a->phi;
 					a->phi = p;
@@ -514,5 +512,3 @@ ssa(Fn *fn)
 		printfn(fn, stderr);
 	}
 }
-
-#endif
