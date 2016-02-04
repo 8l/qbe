@@ -41,11 +41,11 @@ static struct {
 	short cls;
 	char *asm;
 } omap[] = {
-	{ OAdd,    Ka, "+add%k %1, %0" },
-	{ OSub,    Ka, "-sub%k %1, %0" },
-	{ OAnd,    Ki, "+and%k %1, %0" },
-	{ OMul,    Ki, "+imul%k %1, %0" },
-	{ ODiv,    Ka, "-div%k %1, %0" },
+	{ OAdd,    Ka, "+add%k %1, %=" },
+	{ OSub,    Ka, "-sub%k %1, %=" },
+	{ OAnd,    Ki, "+and%k %1, %=" },
+	{ OMul,    Ki, "+imul%k %1, %=" },
+	{ ODiv,    Ka, "-div%k %1, %=" },
 	{ OStorel, Ki, "movq %L0, %M1" },
 	{ OStorew, Ki, "movl %W0, %M1" },
 	{ OStoreh, Ki, "movw %H0, %M1" },
@@ -187,8 +187,6 @@ emitf(char *s, Ins *i, Fn *fn, FILE *f)
 	Mem *m;
 	Con off;
 
-	fputc('\t', f);
-
 	switch (*s) {
 	case '+':
 		if (req(i->arg[1], i->to)) {
@@ -200,11 +198,12 @@ emitf(char *s, Ins *i, Fn *fn, FILE *f)
 	case '-':
 		if (req(i->arg[1], i->to) && !req(i->arg[0], i->to))
 			diag("emit: cannot convert to 2-address");
-		emitcopy(i->arg[0], i->to, i->cls, fn, f);
+		emitcopy(i->to, i->arg[0], i->cls, fn, f);
 		s++;
 		break;
 	}
 
+	fputc('\t', f);
 Next:
 	while ((c = *s++) != '%')
 		if (!c) {
