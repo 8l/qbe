@@ -74,12 +74,14 @@ static struct {
 	{ OXCmp,   Kd, "comisd %D0, %D1" },
 	{ OXCmp,   Ki, "cmp%k %0, %1" },
 	{ OXTest,  Ki, "test%k %0, %1" },
-	{ OXSet+Ceq,  Ki, "setz %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+Csle, Ki, "setle %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+Cslt, Ki, "setl %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+Csgt, Ki, "setg %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+Csge, Ki, "setge %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+Cne,  Ki, "setnz %B=\n\tmovzb%k %B=, %=" },
+	{ OXSet+ICeq,  Ki, "setz %B=\n\tmovzb%k %B=, %=" },
+	{ OXSet+ICsle, Ki, "setle %B=\n\tmovzb%k %B=, %=" },
+	{ OXSet+ICslt, Ki, "setl %B=\n\tmovzb%k %B=, %=" },
+	{ OXSet+ICsgt, Ki, "setg %B=\n\tmovzb%k %B=, %=" },
+	{ OXSet+ICsge, Ki, "setge %B=\n\tmovzb%k %B=, %=" },
+	{ OXSet+ICne,  Ki, "setnz %B=\n\tmovzb%k %B=, %=" },
+	{ OXSet+ICXnp, Ki, "setnp %B=\n\tmovsb%k %B=, %=" },
+	{ OXSet+ICXp,  Ki, "setp %B=\n\tmovsb%k %B=, %=" },
 	{ NOp, 0, 0 }
 };
 
@@ -411,12 +413,18 @@ cneg(int cmp)
 {
 	switch (cmp) {
 	default:   diag("emit: cneg() unhandled comparison");
-	case Ceq:  return Cne;
-	case Csle: return Csgt;
-	case Cslt: return Csge;
-	case Csgt: return Csle;
-	case Csge: return Cslt;
-	case Cne:  return Ceq;
+	case ICule: return ICugt;
+	case ICult: return ICuge;
+	case ICsle: return ICsgt;
+	case ICslt: return ICsge;
+	case ICsgt: return ICsle;
+	case ICsge: return ICslt;
+	case ICugt: return ICule;
+	case ICuge: return ICult;
+	case ICeq:  return ICne;
+	case ICne:  return ICeq;
+	case ICXnp: return ICXp;
+	case ICXp:  return ICXnp;
 	}
 }
 
@@ -437,8 +445,18 @@ void
 emitfn(Fn *fn, FILE *f)
 {
 	static char *ctoa[] = {
-		[Ceq] = "z", [Csle] = "le", [Cslt] = "l",
-		[Csgt] = "g", [Csge] = "ge", [Cne] = "nz"
+		[ICeq]  = "z",
+		[ICule] = "be",
+		[ICult] = "b",
+		[ICsle] = "le",
+		[ICslt] = "l",
+		[ICsgt] = "g",
+		[ICsge] = "ge",
+		[ICugt] = "a",
+		[ICuge] = "ae",
+		[ICne]  = "nz",
+		[ICXnp] = "np",
+		[ICXp]  = "p"
 	};
 	Blk *b, *s;
 	Ins *i, itmp;
@@ -484,7 +502,7 @@ emitfn(Fn *fn, FILE *f)
 			break;
 		default:
 			c = b->jmp.type - JXJc;
-			if (0 <= c && c <= NCmp) {
+			if (0 <= c && c <= NXICmp) {
 				if (b->link == b->s2) {
 					s = b->s1;
 				} else if (b->link == b->s1) {

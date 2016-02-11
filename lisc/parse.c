@@ -49,10 +49,18 @@ OpDesc opdesc[NOp] = {
 	[OAlloc]   = { "alloc4",  1 },
 	[OAlloc+1] = { "alloc8",  1 },
 	[OAlloc+2] = { "alloc16", 1 },
+	[OXSetnp] = { "xsetnp", 0},
+	[OXSetp]  = { "xsetp",  0},
 #define X(c) \
-	[OCmp+C##c]  = { "c"    #c, 0 }, \
-	[OXSet+C##c] = { "xset" #c, 0 },
-	CMPS(X)
+	[OCmpw+IC##c] = { "c"    #c "w", 0 }, \
+	[OCmpl+IC##c] = { "c"    #c "l", 0 }, \
+	[OXSet+IC##c] = { "xset" #c,     0 },
+	ICMPS(X)
+#undef X
+#define X(c) \
+	[OCmps+FC##c] = { "c"    #c "s", 0 }, \
+	[OCmpd+FC##c] = { "c"    #c "d", 0 },
+	FCMPS(X)
 #undef X
 };
 
@@ -917,8 +925,10 @@ printfn(Fn *fn, FILE *f)
 		[JRetl]     = "retl",
 		[JRetc]     = "retc",
 		[JJnz]      = "jnz",
-	#define X(c) [JXJc+C##c] = "xj" #c,
-		CMPS(X)
+		[JXJnp]     = "xjnp",
+		[JXJp]      = "xjp",
+	#define X(c) [JXJc+IC##c] = "xj" #c,
+		ICMPS(X)
 	#undef X
 	};
 	static char prcls[NOp] = {

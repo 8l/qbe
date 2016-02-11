@@ -150,22 +150,49 @@ static inline int isreg(Ref r)
 	return rtype(r) == RTmp && r.val < Tmp0;
 }
 
-#define CMPS(X) \
-	X(eq)   \
-	X(sle)  \
-	X(slt)  \
-	X(sgt)  \
-	X(sge)  \
-	X(ne)   /* mirror opposite cmps! */
+enum ICmp {
+#define ICMPS(X) \
+	X(ule)   \
+	X(ult)   \
+	X(sle)   \
+	X(slt)   \
+	X(sgt)   \
+	X(sge)   \
+	X(ugt)   \
+	X(uge)   \
+	X(eq)    \
+	X(ne) /* make sure icmpop() below works! */
 
-#define COP(c) (c==Ceq||c==Cne ? c : NCmp-1 - c)
-
-enum Cmp {
-#define X(c) C##c,
-	CMPS(X)
+#define X(c) IC##c,
+	ICMPS(X)
 #undef X
+	NICmp,
 
-	NCmp
+	ICXnp = NICmp, /* x64 specific */
+	ICXp,
+	NXICmp
+};
+
+static inline int icmpop(int c)
+{
+	return c >= ICeq ? c : ICuge - c;
+}
+
+enum FCmp {
+#define FCMPS(X) \
+	X(le)    \
+	X(lt)    \
+	X(gt)    \
+	X(ge)    \
+	X(ne)    \
+	X(eq)    \
+	X(o)     \
+	X(uo)
+
+#define X(c) FC##c,
+	FCMPS(X)
+#undef X
+	NFCmp
 };
 
 enum Class {
@@ -188,8 +215,14 @@ enum Op {
 	ORem,
 	OMul,
 	OAnd,
-	OCmp,
-	OCmp1 = OCmp + NCmp-1,
+	OCmpw,
+	OCmpw1 = OCmpw + NICmp-1,
+	OCmpl,
+	OCmpl1 = OCmpl + NICmp-1,
+	OCmps,
+	OCmps1 = OCmps + NFCmp-1,
+	OCmpd,
+	OCmpd1 = OCmpd + NFCmp-1,
 
 	OStored,
 	OStores,
@@ -243,7 +276,8 @@ enum Op {
 	OXDiv,
 	OXCmp,
 	OXSet,
-	OXSet1 = OXSet + NCmp-1,
+	OXSetnp = OXSet + NICmp,
+	OXSetp,
 	OXTest,
 	NOp
 };
@@ -257,7 +291,8 @@ enum Jmp {
 	JJmp,
 	JJnz,
 	JXJc,
-	JXJc1 = JXJc + NCmp-1,
+	JXJnp = JXJc + NICmp,
+	JXJp,
 	NJmp
 };
 
@@ -456,10 +491,9 @@ void copy(Fn *);
 Bits liveon(Blk *, Blk *);
 void filllive(Fn *);
 
-
 /* isel.c */
-extern int rsave[NRSave];
-extern int rclob[NRClob];
+extern int rsave[/* NRSave */];
+extern int rclob[/* NRClob */];
 ulong calldef(Ins, int[2]);
 ulong calluse(Ins, int[2]);
 void isel(Fn *);

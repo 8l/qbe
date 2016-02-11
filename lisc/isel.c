@@ -31,6 +31,48 @@ struct ANum {
 static void amatch(Addr *, Ref, ANum *, Fn *, int);
 
 static int
+fcmptoi(int fc)
+{
+	switch (fc) {
+	default:   diag("isel: fcmptoi defaulted");
+	case FCle: return ICule;
+	case FClt: return ICult;
+	case FCgt: return ICugt;
+	case FCge: return ICuge;
+	case FCne: return ICne;
+	case FCeq: return ICeq;
+	case FCo:  return ICXnp;
+	case FCuo: return ICXp;
+	}
+}
+
+static int
+iscmp(int op, int *k, int *c)
+{
+	if (OCmpw <= op && op <= OCmpw1) {
+		*c = op - OCmpw;
+		*k = Kw;
+		return 1;
+	}
+	if (OCmpl <= op && op <= OCmpl1) {
+		*c = op - OCmpl;
+		*k = Kl;
+		return 1l;
+	}
+	if (OCmps <= op && op <= OCmps1) {
+		*c = fcmptoi(op - OCmps);
+		*k = Ks;
+		return 1;
+	}
+	if (OCmpd <= op && op <= OCmpd1) {
+		*c = fcmptoi(op - OCmpd);
+		*k = Kd;
+		return 1;
+	}
+	return 0;
+}
+
+static int
 noimm(Ref r, Fn *fn)
 {
 	int64_t val;
@@ -159,7 +201,7 @@ static void
 sel(Ins i, ANum *an, Fn *fn)
 {
 	Ref r0, r1;
-	int x, k;
+	int x, k, kc;
 	int64_t val;
 	Ins *i0;
 
@@ -248,12 +290,11 @@ Emit:
 			goto case_OExt;
 		if (OLoad <= i.op && i.op <= OLoad1)
 			goto case_OLoad;
-		if (OCmp <= i.op && i.op <= OCmp1) {
-			x = i.op - OCmp;
+		if (iscmp(i.op, &kc, &x)) {
 			if (rtype(i.arg[0]) == RCon)
-				x = COP(x);
-			emit(OXSet+x, Kw, i.to, R, R);
-			selcmp(i.arg, k, fn);
+				x = icmpop(x);
+			emit(OXSet+x, k, i.to, R, R);
+			selcmp(i.arg, kc, fn);
 			break;
 		}
 		diag("isel: non-exhaustive implementation");
@@ -271,7 +312,10 @@ flagi(Ins *i0, Ins *i)
 	while (i>i0)
 		switch ((--i)->op) {
 		default:
-			if (OCmp <= i->op && i->op <= OCmp1)
+			if ((OCmpw <= i->op && i->op <= OCmpw1)
+			||  (OCmpl <= i->op && i->op <= OCmpl1)
+			||  (OCmps <= i->op && i->op <= OCmps1)
+			||  (OCmpd <= i->op && i->op <= OCmpd1))
 				return i;
 			if (OExt <= i->op && i->op <= OExt1)
 				continue;
@@ -295,7 +339,7 @@ static void
 seljmp(Blk *b, Fn *fn)
 {
 	Ref r;
-	int c, w;
+	int c, w, k;
 	Ins *fi;
 
 	switch (b->jmp.type) {
@@ -325,10 +369,9 @@ seljmp(Blk *b, Fn *fn)
 	}
 	fi = flagi(b->ins, &b->ins[b->nins]);
 	if (fi && req(fi->to, r)) {
-		if (OCmp <= fi->op && fi->op <= OCmp1) {
-			c = fi->op - OCmp;
+		if (iscmp(fi->op, &k, &c)) {
 			if (rtype(fi->arg[0]) == RCon)
-				c = COP(c);
+				c = icmpop(c);
 			b->jmp.type = JXJc + c;
 			if (fn->tmp[r.val].nuse == 1) {
 				assert(fn->tmp[r.val].ndef == 1);
@@ -342,7 +385,7 @@ seljmp(Blk *b, Fn *fn)
 		    rtype(fi->arg[1]) == RTmp)) {
 			fi->op = OXTest;
 			fi->to = R;
-			b->jmp.type = JXJc + Cne;
+			b->jmp.type = JXJc + ICne;
 			if (rtype(fi->arg[1]) == RCon) {
 				r = fi->arg[1];
 				fi->arg[1] = fi->arg[0];
@@ -351,12 +394,12 @@ seljmp(Blk *b, Fn *fn)
 			return;
 		}
 		if (fn->tmp[r.val].nuse > 1) {
-			b->jmp.type = JXJc + Cne;
+			b->jmp.type = JXJc + ICne;
 			return;
 		}
 	}
 	selcmp((Ref[2]){r, CON_Z}, 0, fn); /* todo, add long branch if non-zero */
-	b->jmp.type = JXJc + Cne;
+	b->jmp.type = JXJc + ICne;
 }
 
 struct AClass {
