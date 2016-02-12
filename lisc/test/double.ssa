@@ -1,15 +1,15 @@
 function $test() {
 @start
-	%x1 =d copy `0.1
-	%x2 =d add `0.2, %x1
-	%x3 =d sub %x2, `0.3
+	%x1 =d copy d_0.1
+	%x2 =d add d_0.2, %x1
+	%x3 =d sub %x2, d_0.3
 
 @loop
 	%x4 =d phi @start %x3, @loop %x5
 	%i1 =w phi @start 0, @loop %i2
 	%x5 =d add %x4, %x4
 	%i2 =w add %i1, 1
-	%c0 =w cled %x5, `1
+	%c0 =w cled %x5, d_1
 	jnz %c0, @loop, @end
 
 @end

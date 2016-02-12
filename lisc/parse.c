@@ -91,7 +91,8 @@ enum {
 	TS,
 
 	TInt,
-	TFlt,
+	TFlts,
+	TFltd,
 	TTmp,
 	TLbl,
 	TGlo,
@@ -111,7 +112,8 @@ enum {
 static FILE *inf;
 static int thead;
 static struct {
-	double flt;
+	double fltd;
+	float flts;
 	int64_t num;
 	char *str;
 } tokval;
@@ -165,12 +167,13 @@ lex()
 		{ 0, TXXX }
 	};
 	static char tok[NString];
-	int c, i;
+	int c, c1, i;
 	int t;
 
 	do
 		c = fgetc(inf);
 	while (isblank(c));
+	t = TXXX;
 	switch (c) {
 	case EOF:
 		return TEOF;
@@ -186,10 +189,24 @@ lex()
 		return TRBrace;
 	case '=':
 		return TEq;
-	case '`':
-		if (fscanf(inf, "%lf", &tokval.flt) != 1)
+	case 's':
+		c1 = fgetc(inf);
+		if (c1 != '_') {
+			ungetc(c1, inf);
+			break;
+		}
+		if (fscanf(inf, "%f", &tokval.flts) != 1)
 			err("invalid floating point literal");
-		return TFlt;
+		return TFlts;
+	case 'd':
+		c1 = fgetc(inf);
+		if (c1 != '_') {
+			ungetc(c1, inf);
+			break;
+		}
+		if (fscanf(inf, "%lf", &tokval.fltd) != 1)
+			err("invalid floating point literal");
+		return TFltd;
 	case '%':
 		t = TTmp;
 		goto Alpha;
@@ -226,7 +243,6 @@ lex()
 			tokval.str[i] = c;
 		}
 	}
-	t = TXXX;
 	if (0)
 Alpha:		c = fgetc(inf);
 	if (!isalpha(c) && c != '.')
@@ -337,10 +353,15 @@ parseref()
 		c.type = CBits;
 		c.bits.i = tokval.num;
 		goto Look;
-	case TFlt:
+	case TFlts:
 		c.type = CBits;
-		c.bits.f = tokval.flt;
+		c.bits.s = tokval.flts;
 		c.flt = 1;
+		goto Look;
+	case TFltd:
+		c.type = CBits;
+		c.bits.d = tokval.fltd;
+		c.flt = 2;
 		goto Look;
 	case TGlo:
 		c.type = CAddr;
@@ -740,8 +761,6 @@ static void
 parsedat(void cb(Dat *))
 {
 	char s[NString];
-	float fs;
-	double fd;
 	int t;
 	Dat d;
 
@@ -780,23 +799,20 @@ parsedat(void cb(Dat *))
 			case TD: d.type = DL; break;
 			}
 			t = nextnl();
-			if (t != TInt && t != TFlt)
-				err("number expected");
 			do {
 
-				if (t == TFlt) {
-					fd = tokval.flt;
-					fs = tokval.flt;
-					d.u.num = 0;
-					if (d.type == DL)
-						memcpy(&d.u.num, &fd, sizeof fd);
-					else
-						memcpy(&d.u.num, &fs, sizeof fs);
-				} else
+				memset(&d.u, 0, sizeof d.u);
+				if (t == TFlts)
+					d.u.flts = tokval.flts;
+				else if (t == TFltd)
+					d.u.fltd = tokval.fltd;
+				else if (t == TInt)
 					d.u.num = tokval.num;
+				else
+					err("constant literal expected");
 				cb(&d);
 				t = nextnl();
-			} while (t == TInt || t == TFlt);
+			} while (t == TInt || t == TFlts || t == TFltd);
 			if (t == TRBrace)
 				break;
 			if (t != TComma)
@@ -845,8 +861,10 @@ printcon(Con *c, FILE *f)
 			fprintf(f, "%+"PRIi64, c->bits.i);
 		break;
 	case CBits:
-		if (c->flt)
-			fprintf(f, "`%lf", c->bits.f);
+		if (c->flt == 1)
+			fprintf(f, "s_%f", c->bits.s);
+		else if (c->flt == 2)
+			fprintf(f, "d_%lf", c->bits.d);
 		else
 			fprintf(f, "%"PRIi64, c->bits.i);
 		break;

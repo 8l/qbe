@@ -383,9 +383,10 @@ struct Con {
 	char label[NString];
 	union {
 		int64_t i;
-		double f;
+		double d;
+		float s;
 	} bits;
-	char flt;
+	char flt; /* 1 for single precision, 2 for double */
 	char emit;
 };
 
@@ -440,6 +441,8 @@ struct Dat {
 	} type;
 	union {
 		int64_t num;
+		double fltd;
+		float flts;
 		char *str;
 	} u;
 };
