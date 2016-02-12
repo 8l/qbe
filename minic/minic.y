@@ -312,13 +312,14 @@ expr(Node *n)
 		['/'] = "div",
 		['%'] = "rem",
 		['&'] = "and",
-		['<'] = "cslt",  /* meeeeh, careful with pointers/long */
+		['<'] = "cslt",  /* meeeeh, wrong for pointers! */
 		['l'] = "csle",
 		['e'] = "ceq",
 		['n'] = "cne",
 	};
 	Symb sr, s0, s1, sl;
 	int o, l;
+	char ty[2];
 
 	sr.t = Tmp;
 	sr.u.n = tmp++;
@@ -411,12 +412,15 @@ expr(Node *n)
 		o = n->op;
 	Binop:
 		sr.ctyp = prom(o, &s0, &s1);
-		if (strchr("ne<l", n->op))
+		if (strchr("ne<l", n->op)) {
+			sprintf(ty, "%c", irtyp(sr.ctyp));
 			sr.ctyp = INT;
+		} else
+			strcpy(ty, "");
 		fprintf(of, "\t");
 		psymb(sr);
 		fprintf(of, " =%c", irtyp(sr.ctyp));
-		fprintf(of, " %s ", otoa[o]);
+		fprintf(of, " %s%s ", otoa[o], ty);
 	Args:
 		psymb(s0);
 		fprintf(of, ", ");
