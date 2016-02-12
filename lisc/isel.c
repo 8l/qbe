@@ -57,7 +57,7 @@ iscmp(int op, int *k, int *c)
 	if (OCmpl <= op && op <= OCmpl1) {
 		*c = op - OCmpl;
 		*k = Kl;
-		return 1l;
+		return 1;
 	}
 	if (OCmps <= op && op <= OCmps1) {
 		*c = fcmptoi(op - OCmps);
