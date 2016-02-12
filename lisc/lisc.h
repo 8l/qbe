@@ -276,8 +276,8 @@ enum Op {
 	OXDiv,
 	OXCmp,
 	OXSet,
-	OXSetnp = OXSet + NICmp,
-	OXSetp,
+	OXSetnp = OXSet + ICXnp,
+	OXSetp  = OXSet + ICXp,
 	OXTest,
 	NOp
 };
@@ -291,8 +291,8 @@ enum Jmp {
 	JJmp,
 	JJnz,
 	JXJc,
-	JXJnp = JXJc + NICmp,
-	JXJp,
+	JXJnp = JXJc + ICXnp,
+	JXJp  = JXJc + ICXp,
 	NJmp
 };
 
