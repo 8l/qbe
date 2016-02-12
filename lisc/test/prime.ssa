@@ -14,11 +14,11 @@ function $test() {
 @next
 	%t1 =w add 2, %t
 	%tsq =w mul %t1, %t1
-	%c0 =w csgt %tsq, %p
+	%c0 =w csgtw %tsq, %p
 	jnz %c0, @yes, @tloop
 @yes
 	%n1 =w add 1, %n
-	%c1 =w ceq 10001, %n1
+	%c1 =w ceqw 10001, %n1
 	jnz %c1, @end, @loop
 @end
 	storew %p, $a

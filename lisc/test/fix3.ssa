@@ -3,7 +3,7 @@ function w $test() {
 	%x =w copy 100
 	%s =w copy 0
 @l
-	%c =w csle %x, 10
+	%c =w cslew %x, 10
 	jnz %c, @a, @b
 @a
 	%s =w add %s, %x

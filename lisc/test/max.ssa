@@ -15,7 +15,7 @@ function $test() {
 	%loc1 =l add 1, %loc
 	jnz %byt, @iter, @end
 @iter
-	%cmp =w csle %max, %byt
+	%cmp =w cslew %max, %byt
 	jnz %cmp, @new, @old
 @new
 	jmp @loop

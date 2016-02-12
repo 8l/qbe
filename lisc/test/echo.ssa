@@ -7,10 +7,10 @@ function w $main(w %argc, l %argv) {
 @loop
 	%av =l phi @start %av0, @loop2 %av1
 	%ac =w phi @start %ac0, @loop2 %ac1
-	%c0 =w ceq %ac, 0
+	%c0 =w ceqw %ac, 0
 	jnz %c0, @end, @loop1
 @loop1
-	%c1 =w ceq %ac, 1
+	%c1 =w ceqw %ac, 1
 	jnz %c1, @last, @nolast
 @last
 	jmp @loop2

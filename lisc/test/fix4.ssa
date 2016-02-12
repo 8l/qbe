@@ -3,14 +3,14 @@ function $test() {
 	%x =w copy 3
 	%n =w copy 2
 @loop
-	%c =w ceq %n, 10000
+	%c =w ceqw %n, 10000
 	jnz %c, @end, @next
 @next
 	%t =w copy 3
 	%x =w add %x, 2
 @tloop
 	%s =w mul %t, %t
-	%c =w csgt %s, %x
+	%c =w csgtw %s, %x
 	jnz %c, @prime, @test
 @test
 	%r =w rem %x, %t

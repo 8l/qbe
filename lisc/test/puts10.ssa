@@ -9,7 +9,7 @@ function $test() {
 	storeb %c, %y
 	%r =w call $puts(l %y)
 	%n1 =w add %n, 1
-	%cmp =w csle %n1, 9
+	%cmp =w cslew %n1, 9
 	jnz %cmp, @loop, @end
 @end
 	ret

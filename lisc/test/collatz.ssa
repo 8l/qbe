@@ -9,15 +9,15 @@ function $test() {
 @loop
 	%n =w phi @start 1, @newm %n9, @oldm %n9
 	%cmax =w phi @start 0, @newm %c, @oldm %cmax
-	%fin =w cslt %n, 1000
+	%fin =w csltw %n, 1000
 	jnz %fin, @cloop, @end
 @cloop
 	%n0 =w phi @loop %n, @odd %n2, @even %n3
 	%c0 =w phi @loop 0, @odd %c1, @even %c1
-	%no1 =w cne %n0, 1
+	%no1 =w cnew %n0, 1
 	jnz %no1, @iter0, @endcl
 @iter0
-	%ism =w cslt %n0, %n
+	%ism =w csltw %n0, %n
 	jnz %ism, @getmemo, @iter1
 @iter1
 	%c1 =w add %c0, 1
@@ -43,7 +43,7 @@ function $test() {
 	%loc1 =l add %idx1, %mem
 	storew %c, %loc1
 	%n9 =w add 1, %n
-	%big =w csle %cmax, %c
+	%big =w cslew %cmax, %c
 	jnz %big, @newm, @oldm
 @newm
 	jmp @loop
