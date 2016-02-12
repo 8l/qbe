@@ -194,7 +194,7 @@ selcmp(Ref arg[2], int k, Fn *fn)
 	}
 	assert(rtype(arg[0]) != RCon);
 	emit(OXCmp, k, R, arg[1], arg[0]);
-	fixarg(&curi->arg[0], argcls(curi), 0, fn);
+	fixarg(&curi->arg[0], k, 0, fn);
 }
 
 static void
@@ -375,7 +375,7 @@ seljmp(Blk *b, Fn *fn)
 			b->jmp.type = JXJc + c;
 			if (fn->tmp[r.val].nuse == 1) {
 				assert(fn->tmp[r.val].ndef == 1);
-				selcmp(fi->arg, fi->cls, fn);
+				selcmp(fi->arg, k, fn);
 				*fi = (Ins){.op = ONop};
 			}
 			return;
@@ -398,7 +398,7 @@ seljmp(Blk *b, Fn *fn)
 			return;
 		}
 	}
-	selcmp((Ref[2]){r, CON_Z}, 0, fn); /* todo, add long branch if non-zero */
+	selcmp((Ref[2]){r, CON_Z}, Kw, fn); /* todo, add long branch if non-zero */
 	b->jmp.type = JXJc + ICne;
 }
 
