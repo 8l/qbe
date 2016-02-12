@@ -165,7 +165,7 @@ lex()
 		{ 0, TXXX }
 	};
 	static char tok[NString];
-	int c, i, sgn;
+	int c, i;
 	int t;
 
 	do
@@ -188,7 +188,7 @@ lex()
 		return TEq;
 	case '`':
 		if (fscanf(inf, "%lf", &tokval.flt) != 1)
-			err("invalid floating point");
+			err("invalid floating point literal");
 		return TFlt;
 	case '%':
 		t = TTmp;
@@ -209,23 +209,10 @@ lex()
 		lnum++;
 		return TNL;
 	}
-	if (isdigit(c) || c == '-') {
-		if (c == '-') {
-			tokval.num = 0;
-			sgn = -1;
-		} else {
-			tokval.num = c - '0';
-			sgn = 1;
-		}
-		for (;;) {
-			c = fgetc(inf);
-			if (!isdigit(c))
-				break;
-			tokval.num *= 10;
-			tokval.num += c - '0';
-		}
+	if (isdigit(c) || c == '-' || c == '+') {
 		ungetc(c, inf);
-		tokval.num *= sgn;
+		if (fscanf(inf, "%"SCNd64, &tokval.num) != 1)
+			err("invalid integer literal");
 		return TInt;
 	}
 	if (c == '"') {
