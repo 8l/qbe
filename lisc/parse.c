@@ -167,7 +167,7 @@ lex()
 		{ 0, TXXX }
 	};
 	static char tok[NString];
-	int c, c1, i;
+	int c, i;
 	int t;
 
 	do
@@ -190,22 +190,12 @@ lex()
 	case '=':
 		return TEq;
 	case 's':
-		c1 = fgetc(inf);
-		if (c1 != '_') {
-			ungetc(c1, inf);
+		if (fscanf(inf, "_%f", &tokval.flts) != 1)
 			break;
-		}
-		if (fscanf(inf, "%f", &tokval.flts) != 1)
-			err("invalid floating point literal");
 		return TFlts;
 	case 'd':
-		c1 = fgetc(inf);
-		if (c1 != '_') {
-			ungetc(c1, inf);
+		if (fscanf(inf, "_%lf", &tokval.fltd) != 1)
 			break;
-		}
-		if (fscanf(inf, "%lf", &tokval.fltd) != 1)
-			err("invalid floating point literal");
 		return TFltd;
 	case '%':
 		t = TTmp;
