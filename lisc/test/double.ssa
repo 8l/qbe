@@ -9,7 +9,7 @@ function $test() {
 	%i1 =w phi @start 0, @loop %i2
 	%x5 =d add %x4, %x4
 	%i2 =w add %i1, 1
-	%c0 =w cled %x5, d_1
+	%c0 =w cled %x5, 4607182418800017408 # d_1.0
 	jnz %c0, @loop, @end
 
 @end
