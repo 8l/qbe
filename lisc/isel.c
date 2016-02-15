@@ -114,7 +114,7 @@ fixarg(Ref *r, int k, int phi, Fn *fn)
 {
 	Addr a;
 	Ref r0, r1;
-	int s;
+	int s, n;
 
 	r1 = r0 = *r;
 	s = rslot(r0, fn);
@@ -127,8 +127,8 @@ fixarg(Ref *r, int k, int phi, Fn *fn)
 		vgrow(&fn->mem, ++fn->nmem);
 		memset(&a, 0, sizeof a);
 		a.offset.type = CAddr;
-		sprintf(a.offset.label, ".fp%d", r0.val);
-		fn->con[r0.val].emit = 1;
+		n = stashfp(fn->con[r0.val].bits.i, KWIDE(k));
+		sprintf(a.offset.label, ".Lfp%d", n);
 		fn->mem[fn->nmem-1] = a;
 	}
 	else if (!phi && rtype(r0) == RCon && noimm(r0, fn)) {

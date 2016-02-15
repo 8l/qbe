@@ -552,3 +552,66 @@ emitdat(Dat *d, FILE *f)
 		break;
 	}
 }
+
+typedef struct FBits FBits;
+
+struct FBits {
+	int64_t bits;
+	int wide;
+	FBits *link;
+};
+
+static FBits *stash;
+
+int
+stashfp(int64_t n, int w)
+{
+	FBits **pb, *b;
+	int i;
+
+	/* does a dumb de-dup of fp constants
+	 * this should be the linker's job */
+	for (pb=&stash, i=0; (b=*pb); pb=&b->link, i++)
+		if (n == b->bits && w == b->wide)
+			return i;
+	b = emalloc(sizeof *b);
+	b->bits = n;
+	b->wide = w;
+	b->link = 0;
+	*pb = b;
+	return i;
+}
+
+void
+emitfin(FILE *f)
+{
+	FBits *b;
+	int i;
+
+	if (!stash)
+		return;
+	fprintf(f, "/* floating point constants */\n");
+	fprintf(f, ".data\n.align 8\n");
+	for (b=stash, i=0; b; b=b->link, i++)
+		if (b->wide)
+			fprintf(f,
+				".Lfp%d:\n"
+				"\t.quad %"PRId64
+				" /* %f */\n",
+				i, b->bits,
+				*(double *)&b->bits
+			);
+	for (b=stash, i=0; b; b=b->link, i++)
+		if (!b->wide)
+			fprintf(f,
+				".Lfp%d:\n"
+				"\t.long %"PRId64
+				" /* %lf */\n",
+				i, b->bits & 0xffffffff,
+				*(float *)&b->bits
+			);
+	while ((b=stash)) {
+		stash = b->link;
+		free(b);
+	}
+}

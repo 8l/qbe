@@ -114,6 +114,8 @@ main(int ac, char *av[])
 	}
 
 	parse(inf, data, func);
+	if (!dbg)
+		emitfin(stdout);
 	fclose(inf);
 	exit(0);
 

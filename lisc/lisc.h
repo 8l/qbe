@@ -386,8 +386,7 @@ struct Con {
 		double d;
 		float s;
 	} bits;
-	char flt; /* 1 for single precision, 2 for double */
-	char emit;
+	char flt; /* for printing, see parse.c */
 };
 
 typedef struct Addr Addr;
@@ -511,3 +510,5 @@ void rega(Fn *);
 /* emit.c */
 void emitfn(Fn *, FILE *);
 void emitdat(Dat *, FILE *);
+int stashfp(int64_t, int);
+void emitfin(FILE *);
