@@ -240,6 +240,8 @@ sel(Ins i, ANum *an, Fn *fn)
 		break;
 	case ONop:
 		break;
+	case OStored:
+	case OStores:
 	case OStorel:
 	case OStorew:
 	case OStoreh:
