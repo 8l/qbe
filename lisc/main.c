@@ -120,6 +120,6 @@ main(int ac, char *av[])
 	exit(0);
 
 Usage:
-	fprintf(stderr, "usage: %s [-d PCILSR] {file.ssa, -}\n", av[0]);
+	fprintf(stderr, "usage: %s [-d <flags>] {file.ssa, -}\n", av[0]);
 	exit(1);
 }
