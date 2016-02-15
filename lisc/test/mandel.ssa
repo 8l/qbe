@@ -52,12 +52,12 @@ function w $main() {
 	jmp @loopx1
 @loopx1
 	%x1 =d add %x, d_0.032
-	%cmp1 =w cgtd %x1, d_1.0
+	%cmp1 =w cgtd %x1, d_1
 	jnz %cmp1, @loopy1, @loopx
 @loopy1
 	%r2 =w call $putchar(w 10)   # '\n'
 	%y1 =d add %y, d_0.032
-	%cmp2 =w cgtd %y1, d_1.0
+	%cmp2 =w cgtd %y1, d_1
 	jnz %cmp2, @ret, @loopy
 @ret
 	ret 0
