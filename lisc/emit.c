@@ -62,8 +62,8 @@ static struct {
 	{ OLoaduh, Ki, "movzw%k %M0, %=" },
 	{ OLoadsb, Ki, "movsb%k %M0, %=" },
 	{ OLoadub, Ki, "movzb%k %M0, %=" },
-	{ OLoads,  Ks, "movss %M0, %=" },     /* fixme, Kf */
-	{ OLoadd,  Kd, "movsd %M0, %=" },
+	{ OLoads,  Ks, "movss %M0, %S=" },
+	{ OLoadd,  Kd, "movsd %M0, %D=" },
 	{ OExtsw,  Kl, "movslq %W0, %L=" },
 	{ OExtuw,  Kl, "movl %W0, %W=" },
 	{ OExtsh,  Ki, "movsw%k %H0, %=" },
@@ -76,7 +76,7 @@ static struct {
 	{ OSign,   Kw, "cltd" },
 	{ OXPush,  Ki, "push%k %0" },
 	{ OXDiv,   Ki, "idiv%k %0" },
-	{ OXCmp,   Ks, "comiss %S0, %S1" },
+	{ OXCmp,   Ks, "comiss %S0, %S1" },  /* fixme, Kf */
 	{ OXCmp,   Kd, "comisd %D0, %D1" },
 	{ OXCmp,   Ki, "cmp%k %0, %1" },
 	{ OXTest,  Ki, "test%k %0, %1" },
