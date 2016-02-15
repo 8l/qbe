@@ -230,7 +230,7 @@ pmrec(enum PMStat *status, int i, int *k)
 static void
 pmgen()
 {
-	int i, w;
+	int i, k;
 	enum PMStat *status;
 
 	status = alloc(npm * sizeof status[0]);
@@ -238,8 +238,8 @@ pmgen()
 	curi = insb;
 	for (i=0; i<npm; i++)
 		if (status[i] == ToMove) {
-			w = 0;
-			pmrec(status, i, &w);
+			k = pm[i].cls;
+			pmrec(status, i, &k);
 		}
 }
 
