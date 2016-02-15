@@ -1,0 +1,68 @@
+# Print the Mandelbrot set on the
+# terminal line output.
+
+# function w $mandel(d %x, d %y) {
+function w $mandel() {
+@mandel
+	%x =d loadd $x
+	%y =d loadd $y
+
+	%cr =d sub %y, d_0.5
+	%ci =d copy %x
+@loop
+	%i =w phi @mandel 0, @loop1 %i1
+	%zr =d phi @mandel d_0, @loop1 %zr1
+	%zi =d phi @mandel d_0, @loop1 %zi1
+	%i1 =w add 1, %i
+	%tmp =d mul %zr, %zi
+	%zr2 =d mul %zr, %zr
+	%zi2 =d mul %zi, %zi
+	%zrx =d sub %zr2, %zi2
+	%zr1 =d add %zrx, %cr
+	%zix =d add %tmp, %tmp
+	%zi1 =d add %zix, %ci
+	%sum =d add %zi2, %zr2
+	%cmp1 =w cgtd %sum, d_16
+	jnz %cmp1, @reti, @loop1
+@loop1
+	%cmp2 =w csgtw %i1, 1000
+	jnz %cmp2, @ret0, @loop
+@reti
+	ret %i1
+@ret0
+	ret 0
+}
+
+function w $main() {
+@main
+@loopy
+	%y =d phi @main d_-1, @loopy1 %y1
+@loopx
+	%x =d phi @loopy d_-1, @loopx1 %x1
+	# %i =w call $mandel(d %x, d %y)
+	stored %x, $x
+	stored %y, $y
+	%i =w call $mandel()
+	jnz %i, @out, @in
+@in
+	%r0 =w call $putchar(w 42)   # '*'
+	jmp @loopx1
+@out
+	%r1 =w call $putchar(w 32)   # ' '
+	jmp @loopx1
+@loopx1
+	%x1 =d add %x, d_0.1
+	%cmp1 =w cgtd %x1, d_1.0
+	jnz %cmp1, @loopy1, @loopx
+@loopy1
+	%r2 =w call $putchar(w 10)   # '\n'
+	%y1 =d add %y, d_0.1
+	%cmp2 =w cgtd %y1, d_1.0
+	jnz %cmp2, @ret, @loopy
+@ret
+	ret 0
+}
+
+# ABI not implemented, yet.
+data $x = { l 0 }
+data $y = { l 0 }
