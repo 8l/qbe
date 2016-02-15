@@ -106,6 +106,8 @@ static int
 argcls(Ins *i)
 {
 	/* fixme, not correct for some instructions (bcast) */
+	if (OLoad <= i->op && i->op <= OLoad1)
+		return Kl;
 	return i->cls;
 }
 
