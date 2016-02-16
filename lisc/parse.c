@@ -881,7 +881,7 @@ printref(Ref r, Fn *fn, FILE *f)
 		fprintf(f, "S%d", r.val);
 		break;
 	case RACall:
-		fprintf(f, "%x", r.val & AMask);
+		fprintf(f, "%03x", r.val & AMask);
 		break;
 	case RAType:
 		fprintf(f, ":%s", typ[r.val & AMask].name);
