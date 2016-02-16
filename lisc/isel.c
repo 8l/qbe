@@ -466,7 +466,7 @@ aclass(AClass *a, Typ *t)
 static int
 classify(Ins *i0, Ins *i1, AClass *ac, int op)
 {
-	int nint, ni, nsse, ns, n;
+	int nint, ni, nsse, ns, n, *pn;
 	AClass *a;
 	Ins *i;
 
@@ -474,14 +474,18 @@ classify(Ins *i0, Ins *i1, AClass *ac, int op)
 	nsse = 8;
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		if (i->op == op) {
-			if (nint > 0) {
-				nint--;
+			if (KBASE(i->cls) == 0)
+				pn = &nint;
+			else
+				pn = &nsse;
+			if (*pn > 0) {
+				--*pn;
 				a->inmem = 0;
 			} else
 				a->inmem = 2;
 			a->align = 3;
 			a->size = 8;
-			a->rty[0] = RInt;
+			a->rty[0] = RInt + KBASE(i->cls);
 		} else {
 			n = i->arg[0].val & AMask;
 			aclass(a, &typ[n]);
@@ -505,7 +509,7 @@ classify(Ins *i0, Ins *i1, AClass *ac, int op)
 		}
 	}
 
-	return (6-nint) << 4;
+	return ((6-nint) << 4) | ((8-nsse) << 8);
 }
 
 int rsave[/* NRSave */] = {
@@ -567,7 +571,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 {
 	Ins *i;
 	AClass *ac, *a;
-	int ci, ni;
+	int ci, ni, ns;
 	uint stk, sz;
 	Ref r, r1;
 
@@ -592,7 +596,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 	emit(OCopy, i1->cls, i1->to, TMP(RAX), R);
 	emit(OCall, i1->cls, R, i1->arg[0], CALL(1 + ci));
 
-	for (i=i0, a=ac, ni=0; i<i1; i++, a++) {
+	for (i=i0, a=ac, ni=ns=0; i<i1; i++, a++) {
 		if (a->inmem)
 			continue;
 		if (i->op == OArgc) {
@@ -610,7 +614,10 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 				r = TMP(rsave[ni++]);
 			emit(OLoadl, Kl, r, i->arg[1], R);
 		} else {
-			r = TMP(rsave[ni++]);
+			if (KBASE(i->cls) == 0)
+				r = TMP(rsave[ni++]);
+			else
+				r = TMP(XMM0 + ns++);
 			emit(OCopy, i->cls, r, i->arg[0], R);
 		}
 	}
@@ -638,7 +645,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 {
 	AClass *ac, *a;
 	Ins *i;
-	int ni, stk, al;
+	int ni, ns, stk, al;
 	Ref r, r1, r2;
 
 	ac = alloc((i1-i0) * sizeof ac[0]);
@@ -658,7 +665,10 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 			*curi++ = (Ins){OLoad, i->to, {SLOT(stk)}, i->cls};
 			continue;
 		}
-		r = TMP(rsave[ni++]);
+		if (KBASE(i->cls) == 0)
+			r = TMP(rsave[ni++]);
+		else
+			r = TMP(XMM0 + ns++);
 		if (i->op == OParc) {
 			if (a->rty[0] == RSse || a->rty[1] == RSse)
 				diag("isel: unsupported float struct");
