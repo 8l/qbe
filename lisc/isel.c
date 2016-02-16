@@ -571,12 +571,12 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 {
 	Ins *i;
 	AClass *ac, *a;
-	int ci, ni, ns;
+	int ca, ni, ns;
 	uint stk, sz;
 	Ref r, r1;
 
 	ac = alloc((i1-i0) * sizeof ac[0]);
-	ci = classify(i0, i1, ac, OArg);
+	ca = classify(i0, i1, ac, OArg);
 
 	for (stk=0, a=&ac[i1-i0]; a>ac;)
 		if ((--a)->inmem) {
@@ -594,7 +594,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 		emit(OSAlloc, Kl, R, r, R);
 	}
 	emit(OCopy, i1->cls, i1->to, TMP(RAX), R);
-	emit(OCall, i1->cls, R, i1->arg[0], CALL(1 + ci));
+	emit(OCall, i1->cls, R, i1->arg[0], CALL(1 + ca));
 
 	for (i=i0, a=ac, ni=ns=0; i<i1; i++, a++) {
 		if (a->inmem)
