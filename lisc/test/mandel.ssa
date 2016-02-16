@@ -1,12 +1,8 @@
 # Print the Mandelbrot set on the
 # terminal line output.
 
-# function w $mandel(d %x, d %y) {
-function w $mandel() {
+function w $mandel(d %x, d %y) {
 @mandel
-	%x =d loadd $x
-	%y =d loadd $y
-
 	%cr =d sub %y, d_0.5
 	%ci =d copy %x
 @loop
@@ -39,10 +35,7 @@ function w $main() {
 	%y =d phi @main d_-1, @loopy1 %y1
 @loopx
 	%x =d phi @loopy d_-1, @loopx1 %x1
-	# %i =w call $mandel(d %x, d %y)
-	stored %x, $x
-	stored %y, $y
-	%i =w call $mandel()
+	%i =w call $mandel(d %x, d %y)
 	jnz %i, @out, @in
 @in
 	%r0 =w call $putchar(w 42)   # '*'
@@ -62,7 +55,3 @@ function w $main() {
 @ret
 	ret 0
 }
-
-# ABI not implemented, yet.
-data $x = { l 0 }
-data $y = { l 0 }
