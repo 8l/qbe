@@ -29,8 +29,9 @@ memopt(Fn *fn)
 			if (u->type != UIns)
 				goto NextIns;
 			l = u->u.ins;
-			if (l->op < OStorel || l->op > OStoreb)
 			if (l->op < OLoadl || l->op > OLoadub)
+			if (l->op < OStorel || l->op > OStoreb
+			|| req(i->to, l->arg[0]))
 				goto NextIns;
 		}
 		/* get rid of the alloc and replace uses */
