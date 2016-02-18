@@ -103,12 +103,23 @@ rslot(Ref r, Fn *fn)
 }
 
 static int
-argcls(Ins *i)
+argcls(Ins *i, int n)
 {
-	/* fixme, not correct for some instructions (bcast) */
-	if (OLoad <= i->op && i->op <= OLoad1)
+	switch (i->op) {
+	case OStores:
+	case OStored:
+		diag("isel: argcls called on fp store");
+	case OStoreb:
+	case OStoreh:
+	case OStorew:
+		return n == 0 ? Kw : Kl;
+	case OStorel:
 		return Kl;
-	return i->cls;
+	default:
+		if (OLoad <= i->op && i->op <= OLoad1)
+			return Kl;
+		return i->cls;
+	}
 }
 
 static void
@@ -241,7 +252,11 @@ sel(Ins i, ANum *an, Fn *fn)
 	case ONop:
 		break;
 	case OStored:
+		if (rtype(i.arg[0]) == RCon)
+			i.op = OStorel;
 	case OStores:
+		if (rtype(i.arg[0]) == RCon)
+			i.op = OStorew;
 	case OStorel:
 	case OStorew:
 	case OStoreh:
@@ -263,8 +278,8 @@ sel(Ins i, ANum *an, Fn *fn)
 	case_OExt:
 Emit:
 		emiti(i);
-		fixarg(&curi->arg[0], argcls(curi), 0, fn);
-		fixarg(&curi->arg[1], argcls(curi), 0, fn);
+		fixarg(&curi->arg[0], argcls(curi, 0), 0, fn);
+		fixarg(&curi->arg[1], argcls(curi, 1), 0, fn);
 		break;
 	case OAlloc:
 	case OAlloc+1:
@@ -566,6 +581,19 @@ calluse(Ins i, int p[2])
 	return b;
 }
 
+static Ref
+rarg(int ty, int *ni, int *ns)
+{
+	switch (ty) {
+	default:
+		diag("isel: rarg defaulted");
+	case RInt:
+		return TMP(rsave[(*ni)++]);
+	case RSse:
+		return TMP(XMM0 + (*ns)++);
+	}
+}
+
 static void
 selcall(Fn *fn, Ins *i0, Ins *i1)
 {
@@ -573,7 +601,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 	AClass *ac, *a;
 	int ca, ni, ns;
 	uint stk, sz;
-	Ref r, r1;
+	Ref r, r1, r2;
 
 	ac = alloc((i1-i0) * sizeof ac[0]);
 	ca = classify(i0, i1, ac, OArg);
@@ -594,32 +622,28 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 		emit(OSAlloc, Kl, R, r, R);
 	}
 	emit(OCopy, i1->cls, i1->to, TMP(RAX), R);
-	emit(OCall, i1->cls, R, i1->arg[0], CALL(1 + ca));
+	emit(OCall, i1->cls, R, i1->arg[0], CALL(1 | ca));
 
 	for (i=i0, a=ac, ni=ns=0; i<i1; i++, a++) {
 		if (a->inmem)
 			continue;
+		r1 = rarg(a->rty[0], &ni, &ns);
 		if (i->op == OArgc) {
-			if (a->rty[0] == RSse || a->rty[1] == RSse)
-				diag("isel: unsupported float struct");
 			if (a->size > 8) {
-				r = TMP(rsave[ni+1]);
-				r1 = newtmp("isel", fn);
-				emit(OLoadl, Kl, r, r1, R);
-				r = getcon(8, fn);
-				emit(OAdd, Kl, r1, i->arg[1], r);
-				r = TMP(rsave[ni]);
-				ni += 2;
-			} else
-				r = TMP(rsave[ni++]);
-			emit(OLoadl, Kl, r, i->arg[1], R);
-		} else {
-			if (KBASE(i->cls) == 0)
-				r = TMP(rsave[ni++]);
+				r2 = rarg(a->rty[1], &ni, &ns);
+				r = newtmp("isel", fn);
+				if (a->rty[1] == RInt)              /* fixme, add OLoad? */
+					emit(OLoadl, Kl, r2, r, R);
+				else
+					emit(OLoadd, Kd, r2, r, R);
+				emit(OAdd, Kl, r, i->arg[1], getcon(8, fn));
+			}
+			if (a->rty[0] == RInt)                      /* fixme! */
+				emit(OLoadl, Kl, r1, i->arg[1], R);
 			else
-				r = TMP(XMM0 + ns++);
-			emit(OCopy, i->cls, r, i->arg[0], R);
-		}
+				emit(OLoadd, Kd, r1, i->arg[1], R);
+		} else
+			emit(OCopy, i->cls, r1, i->arg[0], R);
 	}
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		if (!a->inmem)
@@ -665,10 +689,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 			*curi++ = (Ins){OLoad, i->to, {SLOT(stk)}, i->cls};
 			continue;
 		}
-		if (KBASE(i->cls) == 0)
-			r = TMP(rsave[ni++]);
-		else
-			r = TMP(XMM0 + ns++);
+		r = rarg(a->rty[0], &ni, &ns);
 		if (i->op == OParc) {
 			if (a->rty[0] == RSse || a->rty[1] == RSse)
 				diag("isel: unsupported float struct");
