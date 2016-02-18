@@ -433,19 +433,13 @@ struct AClass {
 	int inmem;
 	int align;
 	uint size;
-	int rty[2];
-};
-
-enum {
-	RNone,
-	RInt,
-	RSse,
+	int cls[2];
 };
 
 static void
 aclass(AClass *a, Typ *t)
 {
-	int e, s, n, rty;
+	int e, s, n, cls;
 	uint sz, al;
 
 	sz = t->size;
@@ -472,17 +466,17 @@ aclass(AClass *a, Typ *t)
 	}
 
 	for (e=0, s=0; e<2; e++) {
-		rty = RNone;
+		cls = -1;
 		for (n=0; n<8 && t->seg[s].len; s++) {
 			if (t->seg[s].flt) {
-				if (rty == RNone)
-					rty = RSse;
+				if (cls == -1)
+					cls = Kd;
 			} else
-				rty = RInt;
+				cls = Kl;
 			n += t->seg[s].len;
 		}
 		assert(n <= 8);
-		a->rty[e] = rty;
+		a->cls[e] = cls;
 	}
 }
 
@@ -508,7 +502,7 @@ classify(Ins *i0, Ins *i1, AClass *ac, int op)
 				a->inmem = 2;
 			a->align = 3;
 			a->size = 8;
-			a->rty[0] = RInt + KBASE(i->cls);
+			a->cls[0] = i->cls;
 		} else {
 			n = i->arg[0].val & AMask;
 			aclass(a, &typ[n]);
@@ -516,14 +510,10 @@ classify(Ins *i0, Ins *i1, AClass *ac, int op)
 				continue;
 			ni = ns = 0;
 			for (n=0; n<2; n++)
-				switch (a->rty[n]) {
-				case RInt:
+				if (a->cls[n] == 0)
 					ni++;
-					break;
-				case RSse:
+				else
 					ns++;
-					break;
-				}
 			if (nint > ni && nsse > ns) {
 				nint -= ni;
 				nsse -= ns;
@@ -592,14 +582,10 @@ calluse(Ins i, int p[2])
 static Ref
 rarg(int ty, int *ni, int *ns)
 {
-	switch (ty) {
-	default:
-		diag("isel: rarg defaulted");
-	case RInt:
+	if (KBASE(ty) == 0)
 		return TMP(rsave[(*ni)++]);
-	case RSse:
+	else
 		return TMP(XMM0 + (*ns)++);
-	}
 }
 
 static void
@@ -635,18 +621,18 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 	for (i=i0, a=ac, ni=ns=0; i<i1; i++, a++) {
 		if (a->inmem)
 			continue;
-		r1 = rarg(a->rty[0], &ni, &ns);
+		r1 = rarg(a->cls[0], &ni, &ns);
 		if (i->op == OArgc) {
 			if (a->size > 8) {
-				r2 = rarg(a->rty[1], &ni, &ns);
+				r2 = rarg(a->cls[1], &ni, &ns);
 				r = newtmp("isel", fn);
-				if (a->rty[1] == RInt)              /* fixme, add OLoad? */
+				if (a->cls[1] == Kl)              /* fixme, add OLoad? */
 					emit(OLoadl, Kl, r2, r, R);
 				else
 					emit(OLoadd, Kd, r2, r, R);
 				emit(OAdd, Kl, r, i->arg[1], getcon(8, fn));
 			}
-			if (a->rty[0] == RInt)                      /* fixme! */
+			if (a->cls[0] == Kl)                      /* fixme! */
 				emit(OLoadl, Kl, r1, i->arg[1], R);
 			else
 				emit(OLoadd, Kd, r1, i->arg[1], R);
@@ -697,18 +683,18 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 			*curi++ = (Ins){OLoad, i->to, {SLOT(stk)}, i->cls};
 			continue;
 		}
-		r = rarg(a->rty[0], &ni, &ns);
+		r = rarg(a->cls[0], &ni, &ns);
 		if (i->op == OParc) {
-			if (a->rty[0] == RSse || a->rty[1] == RSse)
+			if (KBASE(a->cls[0]) == 1)
 				diag("isel: unsupported float struct");
 			r1 = newtmp("isel", fn);
 			*curi++ = (Ins){OCopy, r1, {r}, Kl};
-			a->rty[0] = r1.val;
+			a->cls[0] = r1.val;
 			if (a->size > 8) {
 				r = TMP(rsave[ni++]);
 				r1 = newtmp("isel", fn);
 				*curi++ = (Ins){OCopy, r1, {r}, Kl};
-				a->rty[1] = r1.val;
+				a->cls[1] = r1.val;
 			}
 		} else
 			*curi++ = (Ins){OCopy, i->to, {r}, i->cls};
@@ -720,7 +706,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 		for (al=0; a->align >> (al+2); al++)
 			;
 		r1 = i->to;
-		r = TMP(a->rty[0]);
+		r = TMP(a->cls[0]);
 		r2 = getcon(a->size, fn);
 		*curi++ = (Ins){OAlloc+al, r1, {r2}, Kl};
 		*curi++ = (Ins){OStorel, R, {r, r1}, 0};
@@ -728,7 +714,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 			r = newtmp("isel", fn);
 			r2 = getcon(8, fn);
 			*curi++ = (Ins){OAdd, r, {r1, r2}, Kl};
-			r1 = TMP(a->rty[1]);
+			r1 = TMP(a->cls[1]);
 			*curi++ = (Ins){OStorel, R, {r1, r}, 0};
 		}
 	}
