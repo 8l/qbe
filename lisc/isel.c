@@ -108,7 +108,8 @@ argcls(Ins *i, int n)
 	switch (i->op) {
 	case OStores:
 	case OStored:
-		diag("isel: argcls called on fp store");
+	Invalid:
+		diag("isel: invald call to argcls");
 	case OStoreb:
 	case OStoreh:
 	case OStorew:
@@ -116,8 +117,15 @@ argcls(Ins *i, int n)
 	case OStorel:
 		return Kl;
 	default:
+		if ((OCmpw <= i->op && i->op <= OCmpw1)
+		|| (OCmpl <= i->op && i->op <= OCmpl1)
+		|| (OCmps <= i->op && i->op <= OCmps1)
+		|| (OCmpd <= i->op && i->op <= OCmpd1))
+			goto Invalid;
 		if (OLoad <= i->op && i->op <= OLoad1)
 			return Kl;
+		if (OExt <= i->op && i->op <= OExt1)
+			return i->op == OExtl ? Kl : Kw;
 		return i->cls;
 	}
 }
