@@ -160,7 +160,10 @@ lex()
 		{ "b", TB },
 		{ "d", TD },
 		{ "s", TS },
-		{ "loadw", OLoadsw }, /* for convenience */
+		{ "loadw", OLoad }, /* for convenience */
+		{ "loadl", OLoad },
+		{ "loads", OLoad },
+		{ "loadd", OLoad },
 		{ 0, TXXX }
 	};
 	static char tok[NString];
