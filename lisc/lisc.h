@@ -230,28 +230,22 @@ enum Op {
 	OStorew,
 	OStoreh,
 	OStoreb,
-#define OStore  OStored
-#define OStore1 OStoreb
-	OLoadl,  /* needs to match OExt (mem.c) */
-	OLoadsw,
+#define isstore(o) (OStored <= o && o <= OStoreb)
+	OLoadsw,  /* needs to match OExt (mem.c) */
 	OLoaduw,
 	OLoadsh,
 	OLoaduh,
 	OLoadsb,
 	OLoadub,
-	OLoadd,
-	OLoads,
-#define OLoad  OLoadl
-#define OLoad1 OLoads
-	OExtl,
+	OLoad,
+#define isload(o) (OLoadsw <= o && o <= OLoad)
 	OExtsw,
 	OExtuw,
 	OExtsh,
 	OExtuh,
 	OExtsb,
 	OExtub,
-#define OExt  OExtl
-#define OExt1 OExtub
+#define isext(o) (OExtsw <= o && o <= OExtub)
 
 	OAlloc,
 	OAlloc1 = OAlloc + NAlign-1,

@@ -29,9 +29,8 @@ memopt(Fn *fn)
 			if (u->type != UIns)
 				goto NextIns;
 			l = u->u.ins;
-			if (l->op < OLoadl || l->op > OLoadub)
-			if (l->op < OStorel || l->op > OStoreb
-			|| req(i->to, l->arg[0]))
+			if (!isload(l->op)
+			&& (!isstore(l->op) || req(i->to, l->arg[0])))
 				goto NextIns;
 		}
 		/* get rid of the alloc and replace uses */
@@ -40,8 +39,15 @@ memopt(Fn *fn)
 		ue = &t->use[t->nuse];
 		for (u=t->use; u!=ue; u++) {
 			l = u->u.ins;
-			if (OStorel <= l->op && l->op <= OStoreb) {
-				l->cls = l->op == OStorel ? Kl : Kw;
+			if (isstore(l->op)) {
+				if (l->op == OStores)
+					l->cls = Kd;
+				else if (l->op == OStored)
+					l->cls = Kd;
+				else if (l->op == OStorel)
+					l->cls = Kl;
+				else
+					l->cls = Kw;
 				l->op = OCopy;
 				l->to = l->arg[1];
 				l->arg[1] = R;
@@ -51,8 +57,7 @@ memopt(Fn *fn)
 				/* try to turn loads into copies so we
 				 * can eliminate them later */
 				switch(l->op) {
-				case OLoadl:
-					l->cls = Kl;
+				case OLoad:
 					l->op = OCopy;
 					break;
 				case OLoadsw:
@@ -62,8 +67,8 @@ memopt(Fn *fn)
 					break;
 				default:
 					/* keep l->cls */
-					a = l->op - OLoad;
-					l->op = OExt + a;
+					a = l->op - OLoadsw;
+					l->op = OExtsw + a;
 					break;
 				}
 		}

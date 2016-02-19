@@ -117,15 +117,12 @@ argcls(Ins *i, int n)
 	case OStorel:
 		return Kl;
 	default:
-		if ((OCmpw <= i->op && i->op <= OCmpw1)
-		|| (OCmpl <= i->op && i->op <= OCmpl1)
-		|| (OCmps <= i->op && i->op <= OCmps1)
-		|| (OCmpd <= i->op && i->op <= OCmpd1))
+		if (OCmpw <= i->op && i->op <= OCmpd1)
 			goto Invalid;
-		if (OLoad <= i->op && i->op <= OLoad1)
+		if (isload(i->op))
 			return Kl;
-		if (OExt <= i->op && i->op <= OExt1)
-			return i->op == OExtl ? Kl : Kw;
+		if (isext(i->op))
+			return Kw;
 		return i->cls;
 	}
 }
@@ -313,9 +310,9 @@ Emit:
 		}
 		break;
 	default:
-		if (OExt <= i.op && i.op <= OExt1)
+		if (isext(i.op))
 			goto case_OExt;
-		if (OLoad <= i.op && i.op <= OLoad1)
+		if (isload(i.op))
 			goto case_OLoad;
 		if (iscmp(i.op, &kc, &x)) {
 			if (rtype(i.arg[0]) == RCon)
@@ -344,9 +341,7 @@ flagi(Ins *i0, Ins *i)
 			||  (OCmps <= i->op && i->op <= OCmps1)
 			||  (OCmpd <= i->op && i->op <= OCmpd1))
 				return i;
-			if (OExt <= i->op && i->op <= OExt1)
-				continue;
-			if (OLoad <= i->op && i->op <= OLoad1)
+			if (isext(i->op) || isload(i->op))
 				continue;
 			return 0;
 		case OAdd:  /* flag-setting */
@@ -626,16 +621,10 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 			if (a->size > 8) {
 				r2 = rarg(a->cls[1], &ni, &ns);
 				r = newtmp("isel", fn);
-				if (a->cls[1] == Kl)              /* fixme, add OLoad? */
-					emit(OLoadl, Kl, r2, r, R);
-				else
-					emit(OLoadd, Kd, r2, r, R);
+				emit(OLoad, a->cls[1], r2, r, R);
 				emit(OAdd, Kl, r, i->arg[1], getcon(8, fn));
 			}
-			if (a->cls[0] == Kl)                      /* fixme! */
-				emit(OLoadl, Kl, r1, i->arg[1], R);
-			else
-				emit(OLoadd, Kd, r1, i->arg[1], R);
+			emit(OLoad, a->cls[0], r1, i->arg[1], R);
 		} else
 			emit(OCopy, i->cls, r1, i->arg[0], R);
 	}
