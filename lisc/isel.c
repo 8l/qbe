@@ -107,9 +107,9 @@ argcls(Ins *i, int n)
 {
 	switch (i->op) {
 	case OStores:
+		return n == 0 ? Ks : Kl;
 	case OStored:
-	Invalid:
-		diag("isel: invald call to argcls");
+		return n == 0 ? Kd : Kl;
 	case OStoreb:
 	case OStoreh:
 	case OStorew:
@@ -118,7 +118,7 @@ argcls(Ins *i, int n)
 		return Kl;
 	default:
 		if (OCmpw <= i->op && i->op <= OCmpd1)
-			goto Invalid;
+			diag("isel: invalid call to argcls");
 		if (isload(i->op))
 			return Kl;
 		if (isext(i->op))
@@ -346,6 +346,8 @@ flagi(Ins *i0, Ins *i)
 		case OAnd:
 			return i;
 		case OCopy: /* flag-transparent */
+		case OStored:
+		case OStores:
 		case OStorel:
 		case OStorew:
 		case OStoreh:
@@ -650,7 +652,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	AClass *ac, *a;
 	Ins *i;
 	int ni, ns, stk, al;
-	Ref r, r1, r2;
+	Ref r, r1;
 
 	ac = alloc((i1-i0) * sizeof ac[0]);
 	classify(i0, i1, ac, OPar);
@@ -669,21 +671,19 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 			*curi++ = (Ins){OLoad, i->to, {SLOT(stk)}, i->cls};
 			continue;
 		}
-		r = rarg(a->cls[0], &ni, &ns);
+		r1 = rarg(a->cls[0], &ni, &ns);
 		if (i->op == OParc) {
-			if (KBASE(a->cls[0]) == 1)
-				diag("isel: unsupported float struct");
-			r1 = newtmp("isel", fn);
-			*curi++ = (Ins){OCopy, r1, {r}, Kl};
-			a->cls[0] = r1.val;
+			r = newtmp("isel", fn);
+			*curi++ = (Ins){OCopy, r, {r1}, Kl};
+			a->cls[0] = r.val;
 			if (a->size > 8) {
-				r = TMP(rsave[ni++]);
+				r1 = rarg(a->cls[1], &ni, &ns);
 				r1 = newtmp("isel", fn);
-				*curi++ = (Ins){OCopy, r1, {r}, Kl};
+				*curi++ = (Ins){OCopy, r, {r1}, Kl};
 				a->cls[1] = r1.val;
 			}
 		} else
-			*curi++ = (Ins){OCopy, i->to, {r}, i->cls};
+			*curi++ = (Ins){OCopy, i->to, {r1}, i->cls};
 	}
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		if (i->op != OParc || a->inmem)
@@ -691,15 +691,13 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 		assert(NAlign == 3);
 		for (al=0; a->align >> (al+2); al++)
 			;
-		r1 = i->to;
 		r = TMP(a->cls[0]);
-		r2 = getcon(a->size, fn);
-		*curi++ = (Ins){OAlloc+al, r1, {r2}, Kl};
+		r1 = i->to;
+		*curi++ = (Ins){OAlloc+al, r1, {getcon(a->size, fn)}, Kl};
 		*curi++ = (Ins){OStorel, R, {r, r1}, 0};
 		if (a->size > 8) {
 			r = newtmp("isel", fn);
-			r2 = getcon(8, fn);
-			*curi++ = (Ins){OAdd, r, {r1, r2}, Kl};
+			*curi++ = (Ins){OAdd, r, {r1, getcon(8, fn)}, Kl};
 			r1 = TMP(a->cls[1]);
 			*curi++ = (Ins){OStorel, R, {r1, r}, 0};
 		}
