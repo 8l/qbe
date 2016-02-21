@@ -50,23 +50,23 @@ static int
 iscmp(int op, int *k, int *c)
 {
 	if (OCmpw <= op && op <= OCmpw1) {
-		*c = op - OCmpw;
-		*k = Kw;
+		c && (*c = op - OCmpw);
+		k && (*k = Kw);
 		return 1;
 	}
 	if (OCmpl <= op && op <= OCmpl1) {
-		*c = op - OCmpl;
-		*k = Kl;
+		c && (*c = op - OCmpl);
+		k && (*k = Kl);
 		return 1;
 	}
 	if (OCmps <= op && op <= OCmps1) {
-		*c = fcmptoi(op - OCmps);
-		*k = Ks;
+		c && (*c = fcmptoi(op - OCmps));
+		k && (*k = Ks);
 		return 1;
 	}
 	if (OCmpd <= op && op <= OCmpd1) {
-		*c = fcmptoi(op - OCmpd);
-		*k = Kd;
+		c && (*c = fcmptoi(op - OCmpd));
+		k && (*k = Kd);
 		return 1;
 	}
 	return 0;
@@ -336,10 +336,7 @@ flagi(Ins *i0, Ins *i)
 	while (i>i0)
 		switch ((--i)->op) {
 		default:
-			if ((OCmpw <= i->op && i->op <= OCmpw1)
-			||  (OCmpl <= i->op && i->op <= OCmpl1)
-			||  (OCmps <= i->op && i->op <= OCmps1)
-			||  (OCmpd <= i->op && i->op <= OCmpd1))
+			if (iscmp(i->op, 0, 0))
 				return i;
 			if (isext(i->op) || isload(i->op))
 				continue;
