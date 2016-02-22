@@ -242,13 +242,11 @@ sethint(Bits *u, ulong r)
 static void
 reloads(Bits *u, Bits *v)
 {
-	int t, k;
+	int t;
 
 	for (t=Tmp0; t<ntmp; t++)
-		if (BGET(*u, t) && !BGET(*v, t)) {
-			k = tmp[t].cls;
-			emit(OLoad, k, TMP(t), slot(t), R);
-		}
+		if (BGET(*u, t) && !BGET(*v, t))
+			emit(OLoad, tmp[t].cls, TMP(t), slot(t), R);
 }
 
 static void
