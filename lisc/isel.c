@@ -678,9 +678,9 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 			a->cls[0] = r.val;
 			if (a->size > 8) {
 				r1 = rarg(a->cls[1], &ni, &ns);
-				r1 = newtmp("isel", fn);
+				r = newtmp("isel", fn);
 				*curi++ = (Ins){OCopy, r, {r1}, Kl};
-				a->cls[1] = r1.val;
+				a->cls[1] = r.val;
 			}
 		} else
 			*curi++ = (Ins){OCopy, i->to, {r1}, i->cls};
