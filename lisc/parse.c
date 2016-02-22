@@ -478,7 +478,7 @@ parseline(PState ps)
 		err("label or } expected");
 	switch (t) {
 	default:
-		if (OStored <= t && t <= OStoreb) {
+		if (isstore(t)) {
 			/* operations without result */
 			r = R;
 			k = 0;
