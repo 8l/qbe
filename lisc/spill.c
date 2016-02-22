@@ -492,7 +492,8 @@ spill(Fn *fn)
 			if (BGET(v, t)) {
 				BCLR(v, t);
 				store(p->to, tmp[t].slot);
-			} else
+			} else if (BGET(b->in, t))
+				/* only if the phi is live */
 				p->to = slot(p->to.val);
 		}
 		b->in = v;
