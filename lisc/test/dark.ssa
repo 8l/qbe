@@ -1,0 +1,24 @@
+# a hack example,
+# we use a dark type to get
+# a pointer to the stack.
+
+type :magic = align 1 { 0 }
+
+data $ret = { l 0 }
+
+function $test(:magic %p) {
+@start
+	%av =w loadw $a
+	%a1 =w add 1, %av
+	storew %a1, $a       # increment $a
+	%r1 =l loadl $ret    # fetch from $ret
+	%p1 =l sub %p, 8
+	%r2 =l loadl %p1     # get the return address
+	storel %r2, $ret     # store it in $ret
+	%c =w ceql %r1, %r2
+	jnz %c, @fin, @cal
+@cal
+	%i =w call $test()   # no argument given, intentionally!
+@fin
+	ret
+}
