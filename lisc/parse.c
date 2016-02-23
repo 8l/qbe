@@ -418,9 +418,9 @@ parserefl(int arg)
 			err("invalid function parameter");
 		if (k == 4)
 			if (arg)
-				*curi = (Ins){OArgc, R, {TYPE(ty), r}, 0};
+				*curi = (Ins){OArgc, R, {TYPE(ty), r}, Kl};
 			else
-				*curi = (Ins){OParc, r, {TYPE(ty)}, 0};
+				*curi = (Ins){OParc, r, {TYPE(ty)}, Kl};
 		else
 			if (arg)
 				*curi = (Ins){OArg, R, {r}, k};
@@ -920,6 +920,8 @@ printfn(Fn *fn, FILE *f)
 		[JRetw]     = "retw",
 		[JRetl]     = "retl",
 		[JRetc]     = "retc",
+		[JRets]     = "rets",
+		[JRetd]     = "retd",
 		[JJnz]      = "jnz",
 		[JXJnp]     = "xjnp",
 		[JXJp]      = "xjp",
@@ -984,6 +986,8 @@ printfn(Fn *fn, FILE *f)
 		case JRetw:
 		case JRetl:
 		case JRetc:
+		case JRets:
+		case JRetd:
 			fprintf(f, "\t%s", jtoa[b->jmp.type]);
 			if (b->jmp.type != JRet0) {
 				fprintf(f, " ");
