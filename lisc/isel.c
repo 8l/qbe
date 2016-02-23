@@ -47,29 +47,33 @@ fcmptoi(int fc)
 }
 
 static int
-iscmp(int op, int *k, int *c)
+iscmp(int op, int *pk, int *pc)
 {
+	int k, c;
+
 	if (OCmpw <= op && op <= OCmpw1) {
-		c && (*c = op - OCmpw);
-		k && (*k = Kw);
-		return 1;
+		c = op - OCmpw;
+		k = Kw;
 	}
-	if (OCmpl <= op && op <= OCmpl1) {
-		c && (*c = op - OCmpl);
-		k && (*k = Kl);
-		return 1;
+	else if (OCmpl <= op && op <= OCmpl1) {
+		c = op - OCmpl;
+		k = Kl;
 	}
-	if (OCmps <= op && op <= OCmps1) {
-		c && (*c = fcmptoi(op - OCmps));
-		k && (*k = Ks);
-		return 1;
+	else if (OCmps <= op && op <= OCmps1) {
+		c = fcmptoi(op - OCmps);
+		k = Ks;
 	}
-	if (OCmpd <= op && op <= OCmpd1) {
-		c && (*c = fcmptoi(op - OCmpd));
-		k && (*k = Kd);
-		return 1;
+	else if (OCmpd <= op && op <= OCmpd1) {
+		c = fcmptoi(op - OCmpd);
+		k = Kd;
 	}
-	return 0;
+	else
+		return 0;
+	if (pk)
+		*pk = k;
+	if (pc)
+		*pc = c;
+	return 1;
 }
 
 static int
@@ -360,7 +364,7 @@ static void
 seljmp(Blk *b, Fn *fn)
 {
 	Ref r;
-	int c, w, k;
+	int c, k;
 	Ins *fi;
 
 	switch (b->jmp.type) {
@@ -370,11 +374,16 @@ seljmp(Blk *b, Fn *fn)
 		assert(!"retc todo");
 	case JRetw:
 	case JRetl:
-		w = b->jmp.type == JRetl;
+	case JRets:
+	case JRetd:
+		k = b->jmp.type - JRetw;
 		b->jmp.type = JRet0;
 		r = b->jmp.arg;
 		b->jmp.arg = R;
-		emit(OCopy, w ? Kl : Kw, TMP(RAX), r, R);
+		if (KBASE(k) == 0)
+			emit(OCopy, k, TMP(RAX), r, R);
+		else
+			emit(OCopy, k, TMP(XMM0), r, R);
 		return;
 	case JJnz:;
 	}

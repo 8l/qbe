@@ -281,6 +281,8 @@ enum Jmp {
 	JRet0,
 	JRetw,
 	JRetl,
+	JRets,
+	JRetd,
 	JRetc,
 	JJmp,
 	JJnz,

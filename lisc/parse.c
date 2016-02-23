@@ -507,9 +507,10 @@ parseline(PState ps)
 	case TRet:
 		curb->jmp.type = (int[]){
 			JRetw, JRetl,
+			JRets, JRetd,
 			JRetc, JRet0
 		}[rcls];
-		if (rcls < 3) {
+		if (rcls < 5) {
 			r = parseref();
 			if (req(r, R))
 				err("return value expected");
@@ -632,7 +633,7 @@ parsefn()
 	if (peek() != TGlo)
 		rcls = parsecls(&fn->retty);
 	else
-		rcls = 3;
+		rcls = 5;
 	if (next() != TGlo)
 		err("function name expected");
 	strcpy(fn->name, tokval.str);
