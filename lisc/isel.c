@@ -668,6 +668,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 
 	curi = insb;
 	ni = 0;
+	ns = 0;
 	assert(NAlign == 3);
 	stk = -2;
 	for (i=i0, a=ac; i<i1; i++, a++) {
