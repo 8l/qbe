@@ -877,7 +877,7 @@ isel(Fn *fn)
 	Ins *i, *i0, *ip;
 	Phi *p;
 	uint a;
-	int n, m, al;
+	int n, al;
 	int64_t sz;
 	ANum *ainfo;
 
@@ -951,8 +951,7 @@ isel(Fn *fn)
 					assert(a+1 < p->narg);
 				fixarg(&p->arg[a], p->cls, 1, fn);
 			}
-		for (m=0; m<n; m++)
-			ainfo[m] = (ANum){.n = 0, .i = 0};
+		memset(ainfo, 0, n * sizeof ainfo[0]);
 		anumber(ainfo, b, fn->con);
 		seljmp(b, fn);
 		for (i=&b->ins[b->nins]; i!=b->ins;)
