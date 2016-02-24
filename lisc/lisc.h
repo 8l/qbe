@@ -128,7 +128,7 @@ enum {
 #define SLOT(x)  (Ref){RSlot, x}
 #define TYPE(x)  (Ref){RAlt, (x)|(AType<<AShift)}
 #define CALL(x)  (Ref){RAlt, (x)|(ACall<<AShift)}
-#define MEM(x)   (assert(x<(1<<(AShift-1)) && "too many mems"), \
+#define MEM(x)   (assert(x<(1<<AShift) && "too many mems"), \
                  (Ref){RAlt, (x)|(AMem<<AShift)})
 
 static inline int req(Ref a, Ref b)
