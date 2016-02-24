@@ -582,19 +582,24 @@ calluse(Ins i, int p[2])
 	return b;
 }
 
-#if 0
 static void
-blit(int s0, Ref base, uint sz, Fn *fn)
+blit(Ref rstk, uint soff, Ref rsrc, uint sz, Fn *fn)
 {
-	Ref ro, r8, r;
+	Ref r, r1;
+	uint boff;
 
-	ro = CON_Z;
-	r8 = getcon(8, fn);
-
-	for (; sz>0; sz-=8) {
+	/* it's an impolite blit, we might go across the end
+	 * of the source object a little bit... */
+	for (boff=0; sz>0; sz-=8, soff+=8, boff+=8) {
+		r = newtmp("abi", fn);
+		r1 = newtmp("abi", fn);
+		emit(OStorel, 0, R, r, r1);
+		emit(OAdd, Kl, r1, rstk, getcon(soff, fn));
+		r1 = newtmp("abi", fn);
+		emit(OLoad, Kl, r, r1, R);
+		emit(OAdd, Kl, r1, rsrc, getcon(boff, fn));
 	}
 }
-#endif
 
 static Ref
 rarg(int ty, int *ni, int *ns)
@@ -611,7 +616,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 	Ins *i;
 	AClass *ac, *a;
 	int ca, ni, ns;
-	uint stk, sz;
+	uint stk, off;
 	Ref r, r1, r2;
 
 	ac = alloc((i1-i0) * sizeof ac[0]);
@@ -652,19 +657,19 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 	}
 
 	r = newtmp("abi", fn);
-	for (i=i0, a=ac, sz=0; i<i1; i++, a++) {
+	for (i=i0, a=ac, off=0; i<i1; i++, a++) {
 		if (!a->inmem)
 			continue;
 		if (i->op == OArgc) {
 			if (a->align == 4)
-				sz += sz & 15;
-			// blit(r, i->arg[0], a->size, fn);
+				off += off & 15;
+			blit(r, off, i->arg[1], a->size, fn);
 		} else {
 			r1 = newtmp("abi", fn);
 			emit(OStorel, 0, R, i->arg[0], r1);
-			emit(OAdd, Kl, r1, r, getcon(sz, fn));
+			emit(OAdd, Kl, r1, r, getcon(off, fn));
 		}
-		sz += a->size;
+		off += a->size;
 	}
 	emit(OSAlloc, Kl, r, getcon(stk, fn), R);
 }
