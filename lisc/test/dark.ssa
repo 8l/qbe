@@ -12,7 +12,7 @@ function $test(:magic %p) {
 	%a1 =w add 1, %av
 	storew %a1, $a       # increment $a
 	%r1 =l loadl $ret    # fetch from $ret
-	%p1 =l sub %p, 8
+	%p1 =l add %p, -8
 	%r2 =l loadl %p1     # get the return address
 	storel %r2, $ret     # store it in $ret
 	%c =w ceql %r1, %r2
