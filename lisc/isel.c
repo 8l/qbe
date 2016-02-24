@@ -660,7 +660,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 {
 	AClass *ac, *a;
 	Ins *i;
-	int ni, ns, stk, al;
+	int ni, ns, s, al;
 	Ref r, r1;
 
 	ac = alloc((i1-i0) * sizeof ac[0]);
@@ -669,15 +669,19 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	curi = insb;
 	ni = ns = 0;
 	assert(NAlign == 3);
-	stk = -2;
+	s = 4;
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		switch (a->inmem) {
 		case 1:
-			assert(!"argc todo 2");
+			assert(a->align <= 4); /* todo, bigger alignments */
+			if (a->align == 4)
+				s = (s+3) & -4;
+			fn->tmp[i->to.val].slot = -s; /* HACK! */
+			s += a->size;
 			continue;
 		case 2:
-			stk -= 2;
-			*curi++ = (Ins){OLoad, i->to, {SLOT(stk)}, i->cls};
+			*curi++ = (Ins){OLoad, i->to, {SLOT(-s)}, i->cls};
+			s += 2;
 			continue;
 		}
 		r1 = rarg(a->cls[0], &ni, &ns);
