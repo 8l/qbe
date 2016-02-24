@@ -200,6 +200,8 @@ newtmp(char *prfx, Fn *fn)
 	vgrow(&fn->tmp, fn->ntmp);
 	sprintf(fn->tmp[t].name, "%s%d", prfx, ++n);
 	fn->tmp[t].slot = -1;
+	fn->tmp[t].nuse = +1;
+	fn->tmp[t].ndef = +1;
 	return TMP(t);
 }
 
