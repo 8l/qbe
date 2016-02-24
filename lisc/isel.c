@@ -582,6 +582,20 @@ calluse(Ins i, int p[2])
 	return b;
 }
 
+#if 0
+static void
+blit(int s0, Ref base, uint sz, Fn *fn)
+{
+	Ref ro, r8, r;
+
+	ro = CON_Z;
+	r8 = getcon(8, fn);
+
+	for (; sz>0; sz-=8) {
+	}
+}
+#endif
+
 static Ref
 rarg(int ty, int *ni, int *ns)
 {
@@ -607,7 +621,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 		if ((--a)->inmem) {
 			assert(a->align <= 4);
 			stk += a->size;
-			if (a->align == 4) /* todo, bigger alignments */
+			if (a->align == 4)
 				stk += stk & 15;
 		}
 	stk += stk & 15;
@@ -628,7 +642,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 		if (i->op == OArgc) {
 			if (a->size > 8) {
 				r2 = rarg(a->cls[1], &ni, &ns);
-				r = newtmp("isel", fn);
+				r = newtmp("abi", fn);
 				emit(OLoad, a->cls[1], r2, r, R);
 				emit(OAdd, Kl, r, i->arg[1], getcon(8, fn));
 			}
@@ -636,23 +650,23 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 		} else
 			emit(OCopy, i->cls, r1, i->arg[0], R);
 	}
-	for (i=i0, a=ac; i<i1; i++, a++) {
+
+	r = newtmp("abi", fn);
+	for (i=i0, a=ac, sz=0; i<i1; i++, a++) {
 		if (!a->inmem)
 			continue;
-		sz = a->size;
-		if (a->align == 4)
-			sz += (stk-sz) & 15;
-		stk -= sz;
 		if (i->op == OArgc) {
-			assert(!"argc todo 1");
+			if (a->align == 4)
+				sz += sz & 15;
+			// blit(r, i->arg[0], a->size, fn);
 		} else {
-			emit(OXPush, Kl, R, i->arg[0], R);
+			r1 = newtmp("abi", fn);
+			emit(OStorel, 0, R, i->arg[0], r1);
+			emit(OAdd, Kl, r1, r, getcon(sz, fn));
 		}
+		sz += a->size;
 	}
-	if (stk) {
-		assert(stk == 8);
-		emit(OXPush, Kl, R, CON_Z, R);
-	}
+	emit(OSAlloc, Kl, r, getcon(stk, fn), R);
 }
 
 static void
@@ -673,7 +687,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		switch (a->inmem) {
 		case 1:
-			assert(a->align <= 4); /* todo, bigger alignments */
+			assert(a->align <= 4);
 			if (a->align == 4)
 				s = (s+3) & -4;
 			fn->tmp[i->to.val].slot = -s; /* HACK! */
@@ -686,12 +700,12 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 		}
 		r1 = rarg(a->cls[0], &ni, &ns);
 		if (i->op == OParc) {
-			r = newtmp("isel", fn);
+			r = newtmp("abi", fn);
 			*curi++ = (Ins){OCopy, r, {r1}, Kl};
 			a->cls[0] = r.val;
 			if (a->size > 8) {
 				r1 = rarg(a->cls[1], &ni, &ns);
-				r = newtmp("isel", fn);
+				r = newtmp("abi", fn);
 				*curi++ = (Ins){OCopy, r, {r1}, Kl};
 				a->cls[1] = r.val;
 			}
@@ -709,7 +723,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 		*curi++ = (Ins){OAlloc+al, r1, {getcon(a->size, fn)}, Kl};
 		*curi++ = (Ins){OStorel, R, {r, r1}, 0};
 		if (a->size > 8) {
-			r = newtmp("isel", fn);
+			r = newtmp("abi", fn);
 			*curi++ = (Ins){OAdd, r, {r1, getcon(8, fn)}, Kl};
 			r1 = TMP(a->cls[1]);
 			*curi++ = (Ins){OStorel, R, {r1, r}, 0};
