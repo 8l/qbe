@@ -257,6 +257,7 @@ Next:
 				m->base = TMP(RBP);
 			}
 			if (m->offset.type != CUndef)
+			if (m->offset.bits.i != 0)
 				emitcon(&m->offset, f);
 			if (req(m->base, R) && req(m->index, R))
 				break;
