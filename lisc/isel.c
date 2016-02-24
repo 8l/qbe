@@ -944,6 +944,7 @@ isel(Fn *fn)
 	n = fn->ntmp;
 	ainfo = emalloc(n * sizeof ainfo[0]);
 	for (b=fn->start; b; b=b->link) {
+		curi = &insb[NIns];
 		for (sb=(Blk*[3]){b->s1, b->s2, 0}; *sb; sb++)
 			for (p=(*sb)->phi; p; p=p->link) {
 				for (a=0; p->blk[a] != b; a++)
@@ -953,7 +954,6 @@ isel(Fn *fn)
 		for (m=0; m<n; m++)
 			ainfo[m] = (ANum){.n = 0, .i = 0};
 		anumber(ainfo, b, fn->con);
-		curi = &insb[NIns];
 		seljmp(b, fn);
 		for (i=&b->ins[b->nins]; i!=b->ins;)
 			sel(*--i, ainfo, fn);
