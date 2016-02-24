@@ -407,7 +407,7 @@ emitins(Ins i, Fn *fn, FILE *f)
 		 */
 		emitf("subq %L0, %%rsp", &i, fn, f);
 		if (!req(i.to, R))
-			emitcopy(TMP(RSP), i.to, Kl, fn, f);
+			emitcopy(i.to, TMP(RSP), Kl, fn, f);
 		break;
 	}
 }
