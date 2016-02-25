@@ -1,31 +1,45 @@
-System V ABI for calls on x64
-=============================
+                  System V ABI x64
+                  ================
+
+
+This document describes concisely the subset of the x64
+as it is implemented in QBE.  The subset can handle
+correctly arbitrary standard C-like structs containing
+float and integer types.  Structs that have unaligned
+members are also supported through "dark" types, see
+the IR description document for more information about
+them.
+
+
+- ABI Subset Implemented
+-----------------------------
 
 Data classes of interest as defined by the ABI:
  - INTEGER
  - SSE
  - MEMORY
 
-Unions are treated like structures with the alignment
-of their most demanding member, and the size of their
-largest member.
 
 Classification:
+
 1. The size of each argument gets rounded up to eightbytes.
    (It keeps the stack always 8 bytes aligned.)
 2. _Bool, char, short, int, long, long long and pointers
-   are in the INTEGER class.
-3. float and double are in the SSE class.
+   are in the INTEGER class.  In the context of QBE, it
+   means that 'l' and 'w' are in the INTEGER class.
+3. float and double are in the SSE class.  In the context
+   of QBE, it means that 's' and 'd' are in the SSE class.
 4. If the size of an object is larger than two eightbytes
    or if contains unaligned fields, it has class MEMORY.
+   In the context of QBE, those are big aggregate types
+   and "dark" types.
 5. Otherwise, recursively classify fields and determine
    the class of the two eightbytes using the classes of
-   their components.  If any of them is MEMORY the result
-   is MEMORY (but I don't think it can happen), if any is
-   INTEGER the result is INTEGER, otherwise the result
-   is SSE.
+   their components.  If any is INTEGER the result is
+   INTEGER, otherwise the result is SSE.
 
 Passing:
+
  - Classify arguments in order.
  - INTEGER arguments use in order %rdi %rsi %rdx %rcx
    %r8 %r9.
@@ -42,6 +56,7 @@ Passing:
  - Registers %rbx, %r12 - %r15 are callee-save.
 
 Returning:
+
  - Classify the return type.
  - Use %rax and %rdx in order for INTEGER return values.
  - Use %xmm0 and %xmm1 in order for SSE return values.
@@ -50,3 +65,8 @@ Returning:
    area big enough to fit the return value.  The function
    writes the return value there and returns the address
    (that was in %rdi) in %rax.
+
+
+- Various Remarks
+-----------------------------
+
