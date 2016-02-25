@@ -1,12 +1,22 @@
 #include "lisc.h"
 
-Bits
-liveon(Blk *b, Blk *s)
+void
+liveon(BSet *v, Blk *b, Blk *s)
 {
-	Bits v;
 	Phi *p;
 	uint a;
 
+	bsunion(v, s->in);
+	for (p=s->phi; p; p=p->link) {
+		bsclr(v, p->to.val);
+		for (a=0; a<p->narg; a++)
+			if (p->blk[a] == b)
+			if (rtype(p->arg[a]) == RTmp)
+				bsset(v, p->arg[a].val);
+	}
+	return;
+
+	/*
 	v = s->in;
 	for (p=s->phi; p; p=p->link) {
 		BCLR(v, p->to.val);
@@ -16,6 +26,7 @@ liveon(Blk *b, Blk *s)
 				BSET(v, p->arg[a].val);
 	}
 	return v;
+	*/
 }
 
 static int
@@ -56,11 +67,11 @@ bset(Ref r, Blk *b, int *nlv, short *phi, Tmp *tmp)
 
 	if (rtype(r) != RTmp)
 		return;
-	BSET(b->gen, r.val);
+	bsset(b->gen, r.val);
 	phifix(r.val, phi, tmp);
-	if (!BGET(b->in, r.val)) {
+	if (!bshas(b->in, r.val)) {
 		nlv[KBASE(tmp[r.val].cls)]++;
-		BSET(b->in, r.val);
+		bsset(b->in, r.val);
 	}
 }
 
@@ -72,41 +83,40 @@ filllive(Fn *f)
 {
 	Blk *b;
 	Ins *i;
-	int k, t, z, m[2], n, chg, nlv[2];
+	int k, t, m[2], n, chg, nlv[2];
 	short *phi;
-	Bits u, v;
+	BSet u[1], v[1];
 	Mem *ma;
 
-	assert(f->ntmp <= NBit*BITS);
+	bsinit(u, f->ntmp); /* todo, free those */
+	bsinit(v, f->ntmp);
 	phi = emalloc(f->ntmp * sizeof phi[0]);
 	for (b=f->start; b; b=b->link) {
-		BZERO(b->in);
-		BZERO(b->out);
-		BZERO(b->gen);
+		bsinit(b->in, f->ntmp);
+		bsinit(b->out, f->ntmp);
+		bsinit(b->gen, f->ntmp);
 	}
 	chg = 1;
 Again:
 	for (n=f->nblk-1; n>=0; n--) {
 		b = f->rpo[n];
 
-		u = b->out;
-		if (b->s1) {
-			v = liveon(b, b->s1);
-			for (z=0; z<BITS; z++)
-				b->out.t[z] |= v.t[z];
-		}
-		if (b->s2) {
-			v = liveon(b, b->s2);
-			for (z=0; z<BITS; z++)
-				b->out.t[z] |= v.t[z];
-		}
-		chg |= memcmp(&b->out, &u, sizeof(Bits));
+		bscopy(u, b->out);
+		if (b->s1)
+			liveon(b->out, b, b->s1);
+		if (b->s2)
+			liveon(b->out, b, b->s2);
+
+		if (bsequal(b->out, u))
+			continue;
+		else
+			chg = 1;
 
 		memset(phi, 0, f->ntmp * sizeof phi[0]);
 		memset(nlv, 0, sizeof nlv);
-		b->in = b->out;
+		bscopy(b->in, b->out);
 		for (t=0; t<f->ntmp; t++)
-			if (BGET(b->in, t)) {
+			if (bshas(b->in, t)) {
 				phifix(t, phi, f->tmp);
 				nlv[KBASE(f->tmp[t].cls)]++;
 			}
@@ -114,26 +124,25 @@ Again:
 		for (k=0; k<2; k++)
 			b->nlive[k] = nlv[k];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
-			if ((--i)->op == OCall
-			&& rtype(i->arg[1]) == RACall) {
-				b->in.t[0] &= ~calldef(*i, m);
+			if ((--i)->op == OCall && rtype(i->arg[1]) == RACall) {
+				b->in->t[0] &= ~calldef(*i, m);
 				for (k=0; k<2; k++)
 					nlv[k] -= m[k];
 				if (nlv[0] + NISave > b->nlive[0])
 					b->nlive[0] = nlv[0] + NISave;
 				if (nlv[1] + NFSave > b->nlive[1])
 					b->nlive[1] = nlv[1] + NFSave;
-				b->in.t[0] |= calluse(*i, m);
+				b->in->t[0] |= calluse(*i, m);
 				for (k=0; k<2; k++)
 					nlv[k] += m[k];
 			}
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
 				t = i->to.val;
-				if (BGET(b->in, i->to.val))
+				if (bshas(b->in, i->to.val))
 					nlv[KBASE(f->tmp[t].cls)]--;
-				BSET(b->gen, t);
-				BCLR(b->in, t);
+				bsset(b->gen, t);
+				bsclr(b->in, t);
 				phi[phitmp(t, f->tmp)] = 0;
 			}
 			for (k=0; k<2; k++)
@@ -162,11 +171,11 @@ Again:
 		fprintf(stderr, "\n> Liveness analysis:\n");
 		for (b=f->start; b; b=b->link) {
 			fprintf(stderr, "\t%-10sin:   ", b->name);
-			dumpts(&b->in, f->tmp, stderr);
+			dumpts(b->in, f->tmp, stderr);
 			fprintf(stderr, "\t          out:  ");
-			dumpts(&b->out, f->tmp, stderr);
+			dumpts(b->out, f->tmp, stderr);
 			fprintf(stderr, "\t          gen:  ");
-			dumpts(&b->gen, f->tmp, stderr);
+			dumpts(b->gen, f->tmp, stderr);
 			fprintf(stderr, "\t          live: ");
 			fprintf(stderr, "%d %d\n", b->nlive[0], b->nlive[1]);
 		}

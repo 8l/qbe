@@ -3,11 +3,6 @@
 typedef struct Bitset Bitset;
 typedef struct Vec Vec;
 
-struct Bitset {
-	uint nchunk;
-	ulong *chunk;
-};
-
 struct Vec {
 	ulong mag;
 	size_t esz;
@@ -244,8 +239,8 @@ void
 bsinit(BSet *bs, uint n)
 {
 	n = (n + NBit-1) / NBit;
-	bs->nchunk = n;
-	bs->chunk = alloc(n * sizeof bs->chunk[0]);
+	bs->nt = n;
+	bs->t = alloc(n * sizeof bs->t[0]);
 }
 
 uint
@@ -254,9 +249,9 @@ bscount(BSet *bs)
 	uint i, j, n;
 
 	n = 0;
-	for (i=0; i<bs->nchunk; i++)
+	for (i=0; i<bs->nt; i++)
 		for (j=0; j<NBit; j++)
-			if (bs->chunk[i] & BIT(j))
+			if (bs->t[i] & BIT(j))
 				n++;
 	return n;
 }
@@ -264,41 +259,42 @@ bscount(BSet *bs)
 static inline uint
 bsmax(BSet *bs)
 {
-	return bs->nchunk * NBit;
+	return bs->nt * NBit;
 }
 
 int
 bshas(BSet *bs, uint elt)
 {
 	assert(elt < bsmax(bs));
-	return (bs->chunk[elt/NBit] & BIT(elt%NBit)) != 0;
+	return (bs->t[elt/NBit] & BIT(elt%NBit)) != 0;
 }
 
 void
 bsset(BSet *bs, uint elt)
 {
 	assert(elt < bsmax(bs));
-	bs->chunk[elt/NBit] |= BIT(elt%NBit);
+	bs->t[elt/NBit] |= BIT(elt%NBit);
 }
 
 void
 bsclr(BSet *bs, uint elt)
 {
 	assert(elt < bsmax(bs));
-	bs->chunk[elt/NBit] &= ~BIT(elt%NBit);
+	bs->t[elt/NBit] &= ~BIT(elt%NBit);
 }
 
-#define BSOP(f, op)                                      \
-	void                                             \
-	f(BSet *a, BSet *b)                              \
-	{                                                \
-		uint i;                                  \
-		                                         \
-		assert(a->nchunk == b->nchunk);          \
-		for (i=0; i<a->nchunk; i++)              \
-			a->chunk[i] op b->chunk[i];      \
+#define BSOP(f, op)                           \
+	void                                  \
+	f(BSet *a, BSet *b)                   \
+	{                                     \
+		uint i;                       \
+		                              \
+		assert(a->nt == b->nt);       \
+		for (i=0; i<a->nt; i++)       \
+			a->t[i] op b->t[i];   \
 	}
 
+BSOP(bscopy, =)
 BSOP(bsunion, |=)
 BSOP(bsinter, &=)
 BSOP(bsdiff, &= ~)
@@ -321,7 +317,7 @@ bsiter(BSet *bs, uint *elt)
 	uint i;
 
 	for (i = *elt; i < bsmax(bs); i++) {
-		while (i < bsmax(bs) && !bs->chunk[i/NBit])
+		while (i < bsmax(bs) && !bs->t[i/NBit])
 			i = (i + NBit) & -NBit;
 		if (bshas(bs, i)) {
 			*elt = i;

@@ -9,7 +9,7 @@ typedef unsigned short ushort;
 typedef unsigned long ulong;
 
 typedef struct Bits Bits;
-typedef struct Bitset BSet;
+typedef struct BSet BSet;
 typedef struct Ref Ref;
 typedef struct OpDesc OpDesc;
 typedef struct Ins Ins;
@@ -83,6 +83,11 @@ enum {
 
 	BITS    = 4,
 	NBit    = 64,
+};
+
+struct BSet {
+	uint nt;
+	ulong *t;
 };
 
 struct Bits {
@@ -336,7 +341,7 @@ struct Blk {
 
 	Blk **pred;
 	uint npred;
-	Bits in, out, gen;
+	BSet in[1], out[1], gen[1];
 	int nlive[2];
 	int loop;
 	char name[NString];
@@ -468,6 +473,18 @@ Ref newtmp(char *, Fn *);
 Ref getcon(int64_t, Fn *);
 void addcon(Con *, Con *);
 
+void bsinit(BSet *, uint);
+void bszero(BSet *);
+uint bscount(BSet *);
+int bshas(BSet *, uint);
+void bsset(BSet *, uint);
+void bsclr(BSet *, uint);
+void bscopy(BSet *, BSet *);
+void bsunion(BSet *, BSet *);
+void bsinter(BSet *, BSet *);
+void bsdiff(BSet *, BSet *);
+int bsiter(BSet *, uint *);
+
 /* parse.c */
 extern OpDesc opdesc[NOp];
 void parse(FILE *, void (Dat *), void (Fn *));
@@ -487,7 +504,7 @@ void ssa(Fn *);
 void copy(Fn *);
 
 /* live.c */
-Bits liveon(Blk *, Blk *);
+void liveon(BSet *, Blk *, Blk *);
 void filllive(Fn *);
 
 /* isel.c */
