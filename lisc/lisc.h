@@ -9,6 +9,7 @@ typedef unsigned short ushort;
 typedef unsigned long ulong;
 
 typedef struct Bits Bits;
+typedef struct Bitset BSet;
 typedef struct Ref Ref;
 typedef struct OpDesc OpDesc;
 typedef struct Ins Ins;

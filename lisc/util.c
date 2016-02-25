@@ -1,6 +1,12 @@
 #include "lisc.h"
 
+typedef struct Bitset Bitset;
 typedef struct Vec Vec;
+
+struct Bitset {
+	uint nchunk;
+	ulong *chunk;
+};
 
 struct Vec {
 	ulong mag;
@@ -12,7 +18,6 @@ struct Vec {
 		void *ptr;
 	} align[];
 };
-
 
 enum {
 	VMin = 2,
@@ -233,4 +238,103 @@ addcon(Con *c0, Con *c1)
 		}
 		c0->bits.i += c1->bits.i;
 	}
+}
+
+void
+bsinit(BSet *bs, uint n)
+{
+	n = (n + NBit-1) / NBit;
+	bs->nchunk = n;
+	bs->chunk = alloc(n * sizeof bs->chunk[0]);
+}
+
+void
+bszero(BSet *bs)
+{
+	uint n;
+
+	for (n=0; n<bs->nchunk; n++)
+		bs->chunk[n] = 0;
+}
+
+uint
+bscount(BSet *bs)
+{
+	uint i, j, n;
+
+	n = 0;
+	for (i=0; i<bs->nchunk; i++)
+		for (j=0; j<NBit; j++)
+			if (bs->chunk[i] & BIT(j))
+				n++;
+	return n;
+}
+
+static inline uint
+bsmax(BSet *bs)
+{
+	return bs->nchunk * NBit;
+}
+
+int
+bshas(BSet *bs, uint elt)
+{
+	assert(elt < bsmax(bs));
+	return (bs->chunk[elt/NBit] & BIT(elt%NBit)) != 0;
+}
+
+void
+bsset(BSet *bs, uint elt)
+{
+	assert(elt < bsmax(bs));
+	bs->chunk[elt/NBit] |= BIT(elt%NBit);
+}
+
+void
+bsclr(BSet *bs, uint elt)
+{
+	assert(elt < bsmax(bs));
+	bs->chunk[elt/NBit] &= ~BIT(elt%NBit);
+}
+
+void
+bsunion(BSet *a, BSet *b)
+{
+	uint i;
+
+	assert(a->nchunk == b->nchunk);
+	for (i=0; i<a->nchunk; i++)
+		a->chunk[i] |= b->chunk[i];
+}
+
+void
+bsinter(BSet *a, BSet *b)
+{
+	uint i;
+
+	assert(a->nchunk == b->nchunk);
+	for (i=0; i<a->nchunk; i++)
+		a->chunk[i] &= b->chunk[i];
+}
+
+/* Iterates on a bitset, use as follows.
+ *
+ * 	for (i=0; bsiter(set, &i); i++)
+ * 		use(i);
+ *
+ */
+int
+bsiter(BSet *bs, uint *elt)
+{
+	uint i;
+
+	for (i = *elt; i < bsmax(bs); i++) {
+		while (i < bsmax(bs) && !bs->chunk[i/NBit])
+			i = (i + NBit) & -NBit;
+		if (bshas(bs, i)) {
+			*elt = i;
+			return 1;
+		}
+	}
+	return 0;
 }
