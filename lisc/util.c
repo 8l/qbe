@@ -248,15 +248,6 @@ bsinit(BSet *bs, uint n)
 	bs->chunk = alloc(n * sizeof bs->chunk[0]);
 }
 
-void
-bszero(BSet *bs)
-{
-	uint n;
-
-	for (n=0; n<bs->nchunk; n++)
-		bs->chunk[n] = 0;
-}
-
 uint
 bscount(BSet *bs)
 {
@@ -297,24 +288,25 @@ bsclr(BSet *bs, uint elt)
 	bs->chunk[elt/NBit] &= ~BIT(elt%NBit);
 }
 
+#define BSOP(f, op)                                      \
+	void                                             \
+	f(BSet *a, BSet *b)                              \
+	{                                                \
+		uint i;                                  \
+		                                         \
+		assert(a->nchunk == b->nchunk);          \
+		for (i=0; i<a->nchunk; i++)              \
+			a->chunk[i] op b->chunk[i];      \
+	}
+
+BSOP(bsunion, |=)
+BSOP(bsinter, &=)
+BSOP(bsdiff, &= ~)
+
 void
-bsunion(BSet *a, BSet *b)
+bszero(BSet *bs)
 {
-	uint i;
-
-	assert(a->nchunk == b->nchunk);
-	for (i=0; i<a->nchunk; i++)
-		a->chunk[i] |= b->chunk[i];
-}
-
-void
-bsinter(BSet *a, BSet *b)
-{
-	uint i;
-
-	assert(a->nchunk == b->nchunk);
-	for (i=0; i<a->nchunk; i++)
-		a->chunk[i] &= b->chunk[i];
+	bsdiff(bs, bs);
 }
 
 /* Iterates on a bitset, use as follows.
