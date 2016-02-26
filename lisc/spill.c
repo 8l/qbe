@@ -274,7 +274,7 @@ dopm(Blk *b, Ins *i, BSet *v)
 	Ins *i1;
 	ulong r;
 
-	bsinit(u, ntmp); /* fixme, free those */
+	bsinit(u, ntmp); /* todo, free those */
 	/* consecutive copies from
 	 * registers need to be handled
 	 * as one large instruction
