@@ -528,15 +528,15 @@ classify(Ins *i0, Ins *i1, AClass *ac, int op)
 	return ((6-nint) << 4) | ((8-nsse) << 8);
 }
 
-int rsave[/* NRSave */] = {
+int rsave[] = {
 	RDI, RSI, RDX, RCX, R8, R9, R10, R11, RAX,
 	XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7,
 	XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14
 };
-typedef char make_sure_rsave_has_correct_size[
-	sizeof rsave == NRSave * sizeof(int) ? 1 : -1
-];
-int rclob[NRClob] = {RBX, R12, R13, R14, R15};
+int rclob[] = {RBX, R12, R13, R14, R15};
+
+MAKESURE(rsave_has_correct_size, sizeof rsave == NRSave * sizeof(int));
+MAKESURE(rclob_has_correct_size, sizeof rclob == NRClob * sizeof(int));
 
 ulong
 calldef(Ins i, int p[2])

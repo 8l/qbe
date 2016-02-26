@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAKESURE(what, x) typedef char make_sure_##what[(x)?1:-1]
+
 typedef unsigned int uint;
 typedef unsigned short ushort;
 typedef unsigned long ulong;
@@ -85,6 +87,8 @@ enum {
 	BITS    = 4,
 	NBit    = CHAR_BIT * sizeof(ulong),
 };
+
+MAKESURE(NBit_is_enough, NBit >= (int)Tmp0);
 
 struct BSet {
 	uint nt;
