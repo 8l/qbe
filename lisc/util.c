@@ -328,15 +328,16 @@ bsiter(BSet *bs, uint *elt)
 {
 	uint i;
 
-	for (i = *elt; i < bsmax(bs); i++) {
+	for (i=*elt;; i++) {
 		while (i < bsmax(bs) && !bs->t[i/NBit])
 			i = (i + NBit) & -NBit;
+		if (i >= bsmax(bs))
+			return 0;
 		if (bshas(bs, i)) {
 			*elt = i;
 			return 1;
 		}
 	}
-	return 0;
 }
 
 void
