@@ -397,7 +397,6 @@ spill(Fn *fn)
 		} else if (s1) {
 			liveon(v, b, s1);
 			if (s2) {
-				bszero(u);
 				liveon(u, b, s2);
 				bscopy(w, u);
 				bsinter(w, v);

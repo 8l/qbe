@@ -6,7 +6,7 @@ liveon(BSet *v, Blk *b, Blk *s)
 	Phi *p;
 	uint a;
 
-	bsunion(v, s->in);
+	bscopy(v, s->in);
 	for (p=s->phi; p; p=p->link) {
 		bsclr(v, p->to.val);
 		for (a=0; a<p->narg; a++)
@@ -14,19 +14,6 @@ liveon(BSet *v, Blk *b, Blk *s)
 			if (rtype(p->arg[a]) == RTmp)
 				bsset(v, p->arg[a].val);
 	}
-	return;
-
-	/*
-	v = s->in;
-	for (p=s->phi; p; p=p->link) {
-		BCLR(v, p->to.val);
-		for (a=0; a<p->narg; a++)
-			if (p->blk[a] == b)
-			if (rtype(p->arg[a]) == RTmp)
-				BSET(v, p->arg[a].val);
-	}
-	return v;
-	*/
 }
 
 static int
@@ -102,15 +89,15 @@ Again:
 		b = f->rpo[n];
 
 		bscopy(u, b->out);
-		if (b->s1)
-			liveon(b->out, b, b->s1);
-		if (b->s2)
-			liveon(b->out, b, b->s2);
-
-		if (bsequal(b->out, u))
-			continue;
-		else
-			chg = 1;
+		if (b->s1) {
+			liveon(v, b, b->s1);
+			bsunion(b->out, v);
+		}
+		if (b->s2) {
+			liveon(v, b, b->s2);
+			bsunion(b->out, v);
+		}
+		chg |= !bsequal(b->out, u);
 
 		memset(phi, 0, f->ntmp * sizeof phi[0]);
 		memset(nlv, 0, sizeof nlv);
