@@ -290,8 +290,8 @@ dopm(Blk *b, Ins *i, BSet *v)
 		i--;
 		t = i->to.val;
 		if (!req(i->to, R))
-		if (BGET(*v, t)) {
-			BCLR(*v, t);
+		if (bshas(v, t)) {
+			bsclr(v, t);
 			store(i->to, tmp[t].slot);
 		}
 		bsset(v, i->arg[0].val);

@@ -108,23 +108,6 @@ emiti(Ins i)
 	emit(i.op, i.cls, i.to, i.arg[0], i.arg[1]);
 }
 
-int
-bcnt(Bits *b)
-{
-	int z, i, j;
-	ulong tmp;
-
-	i = 0;
-	for (z=0; z<BITS; z++) {
-		tmp = b->t[z];
-		for (j=0; j<64; j++) {
-			i += 1 & tmp;
-			tmp >>= 1;
-		}
-	}
-	return i;
-}
-
 void
 idup(Ins **pd, Ins *s, ulong n)
 {

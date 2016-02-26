@@ -11,7 +11,8 @@ typedef unsigned int uint;
 typedef unsigned short ushort;
 typedef unsigned long ulong;
 
-typedef struct Bits Bits;
+#define BIT(n) (1ul << (n))
+
 typedef struct BSet BSet;
 typedef struct Ref Ref;
 typedef struct OpDesc OpDesc;
@@ -94,16 +95,6 @@ struct BSet {
 	uint nt;
 	ulong *t;
 };
-
-struct Bits {
-	ulong t[BITS];
-};
-
-#define BIT(n)     (1ul << (n))
-#define BZERO(b)   ((b) = (Bits){{0}})
-#define BGET(b, n) (1&((b).t[n/NBit]>>(n%NBit)))
-#define BSET(b, n) ((b).t[n/NBit] |= BIT(n%NBit))
-#define BCLR(b, n) ((b).t[n/NBit] &= ~BIT(n%NBit))
 
 struct Ref {
 	uint16_t type:2;
@@ -467,7 +458,6 @@ void freeall(void);
 Blk *bnew(void);
 void emit(int, int, Ref, Ref, Ref);
 void emiti(Ins);
-int bcnt(Bits *);
 void idup(Ins **, Ins *, ulong);
 Ins *icpy(Ins *, Ins *, ulong);
 void *vnew(ulong, size_t);
