@@ -9,7 +9,7 @@ typedef struct RMap RMap;
 struct RMap {
 	int t[NIReg+NFReg];
 	int r[NIReg+NFReg];
-	Bits b;
+	BSet b[1];
 	int n;
 };
 
@@ -37,6 +37,15 @@ sethint(int t, int r)
 	if (*hint(t) == -1)
 	if (!(BIT(r) & m))
 		*hint(t) = r;
+}
+
+static void
+rcopy(RMap *ma, RMap *mb)
+{
+	memcpy(ma->t, mb->t, sizeof ma->t);
+	memcpy(ma->r, mb->r, sizeof ma->r);
+	bscopy(ma->b, mb->b);
+	ma->n = mb->n;
 }
 
 static int
@@ -69,11 +78,11 @@ radd(RMap *m, int t, int r)
 {
 	assert((t >= Tmp0 || t == r) && "invalid temporary");
 	assert(((RAX <= r && r < RAX + NIReg) || (XMM0 <= r && r < XMM0 + NFReg)) && "invalid register");
-	assert(!BGET(m->b, t) && "temporary has mapping");
-	assert(!BGET(m->b, r) && "register already allocated");
+	assert(!bshas(m->b, t) && "temporary has mapping");
+	assert(!bshas(m->b, r) && "register already allocated");
 	assert(m->n <= NIReg+NFReg && "too many mappings");
-	BSET(m->b, t);
-	BSET(m->b, r);
+	bsset(m->b, t);
+	bsset(m->b, r);
 	m->t[m->n] = t;
 	m->r[m->n] = r;
 	m->n++;
@@ -87,18 +96,18 @@ ralloc(RMap *m, int t)
 	int r, r0, r1;
 
 	if (t < Tmp0) {
-		assert(BGET(m->b, t));
+		assert(bshas(m->b, t));
 		return TMP(t);
 	}
-	if (BGET(m->b, t)) {
+	if (bshas(m->b, t)) {
 		r = rfind(m, t);
 		assert(r != -1);
 		return TMP(r);
 	}
 	r = *hint(t);
-	if (r == -1 || BGET(m->b, r)) {
+	if (r == -1 || bshas(m->b, r)) {
 		regs = tmp[phicls(t, tmp)].hint.m;
-		regs |= m->b.t[0];
+		regs |= m->b->t[0];
 		switch (KBASE(tmp[t].cls)) {
 		case 0:
 			r0 = RAX;
@@ -113,7 +122,7 @@ ralloc(RMap *m, int t)
 			if (!(regs & BIT(r)))
 				goto Found;
 		for (r=r0; r<r1; r++)
-			if (!BGET(m->b, r))
+			if (!bshas(m->b, r))
 				goto Found;
 		diag("rega: no more regs");
 	}
@@ -128,13 +137,13 @@ rfree(RMap *m, int t)
 {
 	int i, r;
 
-	if (!BGET(m->b, t))
+	if (!bshas(m->b, t))
 		return -1;
 	for (i=0; m->t[i] != t; i++)
 		assert(i+1 < m->n);
 	r = m->r[i];
-	BCLR(m->b, t);
-	BCLR(m->b, r);
+	bsclr(m->b, t);
+	bsclr(m->b, r);
 	m->n--;
 	memmove(&m->t[i], &m->t[i+1], (m->n-i) * sizeof m->t[0]);
 	memmove(&m->r[i], &m->r[i+1], (m->n-i) * sizeof m->r[0]);
@@ -249,15 +258,15 @@ move(int r, Ref to, RMap *m)
 	int n, t, r1;
 
 	r1 = req(to, R) ? -1 : rfree(m, to.val);
-	if (BGET(m->b, r) && r1 != r) {
+	if (bshas(m->b, r) && r1 != r) {
 		/* r is used and not by to */
 		for (n=0; m->r[n] != r; n++)
 			assert(n+1 < m->n);
 		t = m->t[n];
 		rfree(m, t);
-		BSET(m->b, r);
+		bsset(m->b, r);
 		ralloc(m, t);
-		BCLR(m->b, r);
+		bsclr(m->b, r);
 	}
 	t = req(to, R) ? r : to.val;
 	radd(m, t, r);
@@ -425,6 +434,14 @@ rega(Fn *fn)
 	mem = fn->mem;
 	end = alloc(fn->nblk * sizeof end[0]);
 	beg = alloc(fn->nblk * sizeof beg[0]);
+
+	for (n=0; n<fn->nblk; n++) {            /* todo, free those */
+		bsinit(end[n].b, fn->ntmp);
+		bsinit(beg[n].b, fn->ntmp);
+	}
+	bsinit(cur.b, fn->ntmp);
+	bsinit(old.b, fn->ntmp);
+
 	for (t=Tmp0; t<fn->ntmp; t++)
 		*hint(t) = -1;
 	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
@@ -439,23 +456,23 @@ rega(Fn *fn)
 	for (n=fn->nblk-1; n>=0; n--) {
 		b = fn->rpo[n];
 		cur.n = 0;
-		BZERO(cur.b);
+		bszero(cur.b);
 		for (x=0; x<2; x++)
 			for (t=Tmp0; t<fn->ntmp; t++) {
-				assert(BGET(b->out, t) ||
-					!BGET(cur.b, t));
-				if (BGET(b->out, t))
-				if (!BGET(cur.b, t))
+				assert(bshas(b->out, t) ||
+					!bshas(cur.b, t));
+				if (bshas(b->out, t))
+				if (!bshas(cur.b, t))
 				if (x || (r=*hint(t)) != -1)
-				if (x || !BGET(cur.b, r))
+				if (x || !bshas(cur.b, r))
 					ralloc(&cur, t);
 			}
-		end[n] = cur;
+		rcopy(&end[n], &cur);
 		doblk(b, &cur);
-		b->in = cur.b;
+		bscopy(b->in, cur.b);
 		for (p=b->phi; p; p=p->link)
 			if (rtype(p->to) == RTmp) {
-				BCLR(b->in, p->to.val);
+				bsclr(b->in, p->to.val);
 				/* heuristic 0:
 				 * if the phi destination has an
 				 * argument from a frequent block
@@ -482,14 +499,14 @@ rega(Fn *fn)
 			 * when it's simple and we have
 			 * multiple predecessors
 			 */
-			old = cur;
+			rcopy(&old, &cur);
 			curi = &insb[NIns];
 			for (j=0; j<old.n; j++) {
 				t = old.t[j];
 				r = *hint(t);
 				r1 = rfind(&cur, t);
 				if (r != -1 && r != r1)
-				if (!BGET(cur.b, r)) {
+				if (!bshas(cur.b, r)) {
 					rfree(&cur, t);
 					radd(&cur, t, r);
 					x = tmp[t].cls;
@@ -503,7 +520,7 @@ rega(Fn *fn)
 				b->ins = i;
 			}
 		}
-		beg[n] = cur;
+		rcopy(&beg[n], &cur);
 	}
 	if (debug['R'])  {
 		fprintf(stderr, "\n> Register mappings:\n");
@@ -540,7 +557,7 @@ rega(Fn *fn)
 				pmadd(src, dst, p->cls);
 			}
 			for (t=Tmp0; t<fn->ntmp; t++)
-				if (BGET(s->in, t)) {
+				if (bshas(s->in, t)) {
 					src = rref(&end[b->id], t);
 					dst = rref(&beg[s->id], t);
 					pmadd(src, dst, tmp[t].cls);
