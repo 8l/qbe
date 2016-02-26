@@ -3,7 +3,7 @@
 static void
 loopmark(Blk *hd, Blk *b, Phi *p)
 {
-	int k, z, head;
+	int k, head;
 	uint n, a;
 
 	head = hd->id;
@@ -13,15 +13,14 @@ loopmark(Blk *hd, Blk *b, Phi *p)
 		for (a=0; a<p->narg; a++)
 			if (p->blk[a] == b)
 			if (rtype(p->arg[a]) == RTmp)
-				BSET(hd->gen, p->arg[a].val);
+				bsset(hd->gen, p->arg[a].val);
 	if (b->visit == head)
 		return;
 	b->visit = head;
 	b->loop *= 10;
 	/* aggregate looping information at
 	 * loop headers */
-	for (z=0; z<BITS; z++)
-		hd->gen.t[z] |= b->gen.t[z];
+	bsunion(hd->gen, b->gen);
 	for (k=0; k<2; k++)
 		if (b->nlive[k] > hd->nlive[k])
 			hd->nlive[k] = b->nlive[k];
@@ -80,7 +79,7 @@ fillcost(Fn *fn)
 			fprintf(stderr, "\t%-10s", b->name);
 			fprintf(stderr, " (% 3d ", b->nlive[0]);
 			fprintf(stderr, "% 3d) ", b->nlive[1]);
-			dumpts(&b->gen, fn->tmp, stderr);
+			dumpts(b->gen, fn->tmp, stderr);
 		}
 	}
 	for (t=fn->tmp; t-fn->tmp < fn->ntmp; t++) {
@@ -119,13 +118,13 @@ fillcost(Fn *fn)
 	}
 }
 
-static Bits *fst; /* temps to prioritize in registers (for tcmp1) */
+static BSet *fst; /* temps to prioritize in registers (for tcmp1) */
 static Tmp *tmp;  /* current temporaries (for tcmpX) */
 static int ntmp;  /* current # of temps (for limit) */
 static int locs;  /* stack size used by locals */
 static int slot4; /* next slot of 4 bytes */
 static int slot8; /* ditto, 8 bytes */
-static Bits mask[2]; /* class masks */
+static BSet mask[2][1]; /* class masks */
 
 static int
 tcmp0(const void *pa, const void *pb)
@@ -138,7 +137,7 @@ tcmp1(const void *pa, const void *pb)
 {
 	int c;
 
-	c = BGET(*fst, *(int *)pb) - BGET(*fst, *(int *)pa);
+	c = bshas(fst, *(int *)pb) - bshas(fst, *(int *)pa);
 	return c ? c : tcmp0(pa, pb);
 }
 
@@ -178,12 +177,12 @@ slot(int t)
 }
 
 static void
-limit(Bits *b, int k, Bits *f)
+limit(BSet *b, int k, BSet *f)
 {
 	static int *tarr, maxt;
 	int i, t, nt;
 
-	nt = bcnt(b);
+	nt = bscount(b);
 	if (nt <= k)
 		return;
 	if (nt > maxt) {
@@ -193,8 +192,8 @@ limit(Bits *b, int k, Bits *f)
 	}
 	i = 0;
 	for (t=0; t<ntmp; t++)
-		if (BGET(*b, t)) {
-			BCLR(*b, t);
+		if (bshas(b, t)) {
+			bsclr(b, t);
 			tarr[i++] = t;
 		}
 	assert(i == nt);
@@ -205,47 +204,47 @@ limit(Bits *b, int k, Bits *f)
 		qsort(tarr, nt, sizeof tarr[0], tcmp1);
 	}
 	for (i=0; i<k && i<nt; i++)
-		BSET(*b, tarr[i]);
+		bsset(b, tarr[i]);
 	for (; i<nt; i++)
 		slot(tarr[i]);
 }
 
 static void
-limit2(Bits *b, int k1, int k2, Bits *fst)
+limit2(BSet *b, int k1, int k2, BSet *fst)
 {
-	Bits u, t;
-	int k, z;
+	BSet u[1], t[1];
+	int k;
 
-	t = *b;
-	BZERO(*b);
+	bsinit(u, ntmp); /* todo, free those */
+	bsinit(t, ntmp);
+	bscopy(t, b);
+	bszero(b);
 	k1 = NIReg - k1;
 	k2 = NFReg - k2;
 	for (k=0; k<2; k++) {
-		for (z=0; z<BITS; z++)
-			u.t[z] = t.t[z] & mask[k].t[z];
-		limit(&u, k == 0 ? k1 : k2, fst);
-		for (z=0; z<BITS; z++)
-			b->t[z] |= u.t[z];
+		bscopy(u, t);
+		bsinter(u, mask[k]);
+		limit(u, k == 0 ? k1 : k2, fst);
+		bsunion(b, u);
 	}
 }
 
 static void
-sethint(Bits *u, ulong r)
+sethint(BSet *u, ulong r)
 {
-	int t;
+	uint t;
 
-	for (t=Tmp0; t<ntmp; t++)
-		if (BGET(*u, t))
-			tmp[phicls(t, tmp)].hint.m |= r;
+	for (t=Tmp0; bsiter(u, &t); t++)
+		tmp[phicls(t, tmp)].hint.m |= r;
 }
 
 static void
-reloads(Bits *u, Bits *v)
+reloads(BSet *u, BSet *v)
 {
-	int t;
+	uint t;
 
-	for (t=Tmp0; t<ntmp; t++)
-		if (BGET(*u, t) && !BGET(*v, t))
+	for (t=Tmp0; bsiter(u, &t); t++)
+		if (!bshas(v, t))
 			emit(OLoad, tmp[t].cls, TMP(t), slot(t), R);
 }
 
@@ -268,13 +267,14 @@ regcpy(Ins *i)
 }
 
 static Ins *
-dopm(Blk *b, Ins *i, Bits *v)
+dopm(Blk *b, Ins *i, BSet *v)
 {
 	int n, t;
-	Bits u;
+	BSet u[1];
 	Ins *i1;
 	ulong r;
 
+	bsinit(u, ntmp); /* fixme, free those */
 	/* consecutive copies from
 	 * registers need to be handled
 	 * as one large instruction
@@ -294,9 +294,9 @@ dopm(Blk *b, Ins *i, Bits *v)
 			BCLR(*v, t);
 			store(i->to, tmp[t].slot);
 		}
-		BSET(*v, i->arg[0].val);
+		bsset(v, i->arg[0].val);
 	} while (i != b->ins && regcpy(i-1));
-	u = *v;
+	bscopy(u, v);
 	if (i != b->ins && (i-1)->op == OCall) {
 		v->t[0] &= ~calldef(*(i-1), 0);
 		limit2(v, NISave, NFSave, 0);
@@ -308,7 +308,7 @@ dopm(Blk *b, Ins *i, Bits *v)
 		r = v->t[0];
 	}
 	sethint(v, r);
-	reloads(&u, v);
+	reloads(u, v);
 	do
 		emiti(*--i1);
 	while (i1 != i);
@@ -331,8 +331,8 @@ void
 spill(Fn *fn)
 {
 	Blk *b, *s1, *s2, *hd, **bp;
-	int j, n, z, l, t, k, lvarg[2];
-	Bits u, v, w;
+	int j, n, l, t, k, lvarg[2];
+	BSet u[1], v[1], w[1];
 	Ins *i;
 	Phi *p;
 	Mem *m;
@@ -340,19 +340,23 @@ spill(Fn *fn)
 
 	tmp = fn->tmp;
 	ntmp = fn->ntmp;
-	assert(ntmp < NBit*BITS);
+
+	bsinit(u, ntmp); /* todo, free those */
+	bsinit(v, ntmp);
+	bsinit(w, ntmp);
+	bsinit(mask[0], ntmp);
+	bsinit(mask[1], ntmp);
+
 	locs = fn->slot;
 	slot4 = 0;
 	slot8 = 0;
-	BZERO(mask[0]);
-	BZERO(mask[1]);
 	for (t=0; t<ntmp; t++) {
 		k = 0;
 		if (t >= XMM0 && t < XMM0 + NFReg)
 			k = 1;
 		else if (t >= Tmp0)
 			k = KBASE(tmp[t].cls);
-		BSET(mask[k], t);
+		bsset(mask[k], t);
 	}
 
 	for (bp=&fn->rpo[fn->nblk]; bp!=fn->rpo;) {
@@ -371,43 +375,37 @@ spill(Fn *fn)
 		if (s2 && s2->id <= n)
 		if (!hd || s2->id >= hd->id)
 			hd = s2;
-		BZERO(v);
+		bszero(v);
 		if (hd) {
 			/* back-edge */
 			for (k=0; k<2; k++) {
 				n = k == 0 ? NIReg : NFReg;
-				for (z=0; z<BITS; z++) {
-					u.t[z] = b->out.t[z]
-						& hd->gen.t[z]
-						& mask[k].t[z];
-					w.t[z] = b->out.t[z]
-						& ~hd->gen.t[z]
-						& mask[k].t[z];
-				}
-				if (bcnt(&u) < n) {
-					j = bcnt(&w);   /* live through */
+				bscopy(u, b->out);
+				bsinter(u, mask[k]);
+				bscopy(w, u);
+				bsinter(u, hd->gen);
+				bsdiff(w, hd->gen);
+				if ((int)bscount(u) < n) { /* fixme */
+					j = bscount(w);   /* live through */
 					l = hd->nlive[k];
-					limit(&w, n - (l - j), 0);
-					for (z=0; z<BITS; z++)
-						u.t[z] |= w.t[z];
+					limit(w, n - (l - j), 0);
+					bsunion(u, w);
 				} else
-					limit(&u, n, 0);
-				for (z=0; z<BITS; z++)
-					v.t[z] |= u.t[z];
+					limit(u, n, 0);
+				bsunion(v, u);
 			}
 		} else if (s1) {
-			v = liveon(b, s1);
+			liveon(v, b, s1);
 			if (s2) {
-				w = liveon(b, s2);
-				for (z=0; z<BITS; z++) {
-					r = v.t[z];
-					v.t[z] |= w.t[z];
-					w.t[z] &= r;
-				}
+				bszero(u);
+				liveon(u, b, s2);
+				bscopy(w, u);
+				bsinter(w, v);
+				bsunion(v, u);
 			}
-			limit2(&v, 0, 0, &w);
+			limit2(v, 0, 0, w);
 		}
-		b->out = v;
+		bscopy(b->out, v);
 
 		/* 2. process the block instructions */
 		curi = &insb[NIns];
@@ -415,20 +413,20 @@ spill(Fn *fn)
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			i--;
 			if (regcpy(i)) {
-				i = dopm(b, i, &v);
+				i = dopm(b, i, v);
 				continue;
 			}
-			BZERO(w);
+			bszero(w);
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
 				t = i->to.val;
-				if (BGET(v, t))
-					BCLR(v, t);
+				if (bshas(v, t))
+					bsclr(v, t);
 				else {
 					/* make sure we have a reg
 					 * for the result */
-					BSET(v, t);
-					BSET(w, t);
+					bsset(v, t);
+					bsset(w, t);
 				}
 			}
 			j = opdesc[i->op].nmem;
@@ -441,60 +439,60 @@ spill(Fn *fn)
 					t = i->arg[n].val;
 					m = &fn->mem[t & AMask];
 					if (rtype(m->base) == RTmp) {
-						BSET(v, m->base.val);
-						BSET(w, m->base.val);
+						bsset(v, m->base.val);
+						bsset(w, m->base.val);
 					}
 					if (rtype(m->index) == RTmp) {
-						BSET(v, m->index.val);
-						BSET(w, m->index.val);
+						bsset(v, m->index.val);
+						bsset(w, m->index.val);
 					}
 					break;
 				case RTmp:
 					t = i->arg[n].val;
-					lvarg[n] = BGET(v, t);
-					BSET(v, t);
+					lvarg[n] = bshas(v, t);
+					bsset(v, t);
 					if (j-- <= 0)
-						BSET(w, t);
+						bsset(w, t);
 					break;
 				}
-			u = v;
-			limit2(&v, 0, 0, &w);
+			bscopy(u, v);
+			limit2(v, 0, 0, w);
 			for (n=0; n<2; n++)
 				if (rtype(i->arg[n]) == RTmp) {
 					t = i->arg[n].val;
-					if (!BGET(v, t)) {
+					if (!bshas(v, t)) {
 						/* do not reload if the
 						 * the temporary was dead
 						 */
 						if (!lvarg[n])
-							BCLR(u, t);
+							bsclr(u, t);
 						i->arg[n] = slot(t);
 					}
 				}
-			reloads(&u, &v);
+			reloads(u, v);
 			if (!req(i->to, R)) {
 				t = i->to.val;
 				store(i->to, tmp[t].slot);
-				BCLR(v, t);
+				bsclr(v, t);
 			}
 			emiti(*i);
-			r = v.t[0] & (BIT(Tmp0)-1);
+			r = v->t[0] & (BIT(Tmp0)-1);
 			if (r)
-				sethint(&v, r);
+				sethint(v, r);
 		}
 		assert(!r || b==fn->start);
 
 		for (p=b->phi; p; p=p->link) {
 			assert(rtype(p->to) == RTmp);
 			t = p->to.val;
-			if (BGET(v, t)) {
-				BCLR(v, t);
+			if (bshas(v, t)) {
+				bsclr(v, t);
 				store(p->to, tmp[t].slot);
-			} else if (BGET(b->in, t))
+			} else if (bshas(b->in, t))
 				/* only if the phi is live */
 				p->to = slot(p->to.val);
 		}
-		b->in = v;
+		bscopy(b->in, v);
 		b->nins = &insb[NIns] - curi;
 		idup(&b->ins, curi, b->nins);
 	}
@@ -508,7 +506,7 @@ spill(Fn *fn)
 		fprintf(stderr, "\n> Block information:\n");
 		for (b=fn->start; b; b=b->link) {
 			printf("\t%-10s (% 5d) ", b->name, b->loop);
-			dumpts(&b->out, fn->tmp, stdout);
+			dumpts(b->out, fn->tmp, stdout);
 		}
 		fprintf(stderr, "\n> After spilling:\n");
 		printfn(fn, stderr);
