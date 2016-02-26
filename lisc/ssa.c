@@ -288,13 +288,15 @@ refindex(int t, Fn *fn)
 static void
 phiins(Fn *fn)
 {
-	Bits u, defs;
+	BSet u[1], defs[1];
 	Blk *a, *b, **blist, **be, **bp;
 	Ins *i;
 	Phi *p;
 	Ref r;
 	int t, n, k, nt;
 
+	bsinit(u, fn->ntmp); /* todo, free those */
+	bsinit(defs, fn->ntmp);
 	blist = emalloc(fn->nblk * sizeof blist[0]);
 	be = &blist[fn->nblk];
 	nt = fn->ntmp;
@@ -302,7 +304,7 @@ phiins(Fn *fn)
 		fn->tmp[t].visit = 0;
 		if (fn->tmp[t].phi != 0)
 			continue;
-		BZERO(u);
+		bszero(u);
 		k = -1;
 		bp = be;
 		for (b=fn->start; b; b=b->link) {
@@ -316,45 +318,43 @@ phiins(Fn *fn)
 						i->arg[1] = r;
 				}
 				if (req(i->to, TMP(t))) {
-					if (!BGET(b->out, t)) {
+					if (!bshas(b->out, t)) {
 						if (fn->tmp[t].ndef == 1)
 							r = TMP(t);
 						else
 							r = refindex(t, fn);
 						i->to = r;
 					} else {
-						if (!BGET(u, b->id)) {
-							BSET(u, b->id);
+						if (!bshas(u, b->id)) {
+							bsset(u, b->id);
 							*--bp = b;
 						}
 						if (k == -1)
 							k = i->cls;
-						if (k != i->cls)
-							/* uh, oh, warn */
-							;
+						assert(k == i->cls);
 					}
 				}
 			}
 			if (!req(r, R) && req(b->jmp.arg, TMP(t)))
 				b->jmp.arg = r;
 		}
-		defs = u;
+		bscopy(defs, u);
 		while (bp != be) {
 			fn->tmp[t].visit = t;
 			b = *bp++;
-			BCLR(u, b->id);
+			bsclr(u, b->id);
 			for (n=0; n<b->nfron; n++) {
 				a = b->fron[n];
 				if (a->visit++ == 0)
-				if (BGET(a->in, t)) {
+				if (bshas(a->in, t)) {
 					p = alloc(sizeof *p);
 					p->cls = k;
 					p->to = TMP(t);
 					p->link = a->phi;
 					a->phi = p;
-					if (!BGET(defs, a->id))
-					if (!BGET(u, a->id)) {
-						BSET(u, a->id);
+					if (!bshas(defs, a->id))
+					if (!bshas(u, a->id)) {
+						bsset(u, a->id);
 						*--bp = a;
 					}
 				}
