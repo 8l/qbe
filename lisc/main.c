@@ -15,18 +15,6 @@ char debug['Z'+1] = {
 
 static int dbg;
 
-void
-dumpts(Bits *b, Tmp *tmp, FILE *f)
-{
-	int t;
-
-	fprintf(f, "[");
-	for (t=Tmp0; t<BITS*NBit; t++)
-		if (BGET(*b, t))
-			fprintf(f, " %s", tmp[t].name);
-	fprintf(f, " ]\n");
-}
-
 static void
 data(Dat *d)
 {

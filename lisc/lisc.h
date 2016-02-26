@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -82,7 +83,7 @@ enum {
 	NTyp    = 128,
 
 	BITS    = 4,
-	NBit    = 64,
+	NBit    = CHAR_BIT * sizeof(ulong),
 };
 
 struct BSet {
@@ -451,7 +452,6 @@ struct Dat {
 
 /* main.c */
 extern char debug['Z'+1];
-void dumpts(Bits *, Tmp *, FILE *);
 
 /* util.c */
 extern Typ typ[NTyp];
@@ -472,6 +472,7 @@ int phicls(int, Tmp *);
 Ref newtmp(char *, Fn *);
 Ref getcon(int64_t, Fn *);
 void addcon(Con *, Con *);
+void dumpts(BSet *, Tmp *, FILE *);
 
 void bsinit(BSet *, uint);
 void bszero(BSet *);
@@ -483,6 +484,7 @@ void bscopy(BSet *, BSet *);
 void bsunion(BSet *, BSet *);
 void bsinter(BSet *, BSet *);
 void bsdiff(BSet *, BSet *);
+int bsequal(BSet *, BSet *);
 int bsiter(BSet *, uint *);
 
 /* parse.c */

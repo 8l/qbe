@@ -299,13 +299,25 @@ BSOP(bsunion, |=)
 BSOP(bsinter, &=)
 BSOP(bsdiff, &= ~)
 
+int
+bsequal(BSet *a, BSet *b)
+{
+	uint i;
+
+	assert(a->nt == b->nt);
+	for (i=0; i<a->nt; i++)
+		if (a->t[i] != b->t[i])
+			return 0;
+	return 1;
+}
+
 void
 bszero(BSet *bs)
 {
 	bsdiff(bs, bs);
 }
 
-/* Iterates on a bitset, use as follows.
+/* iterates on a bitset, use as follows
  *
  * 	for (i=0; bsiter(set, &i); i++)
  * 		use(i);
@@ -325,4 +337,15 @@ bsiter(BSet *bs, uint *elt)
 		}
 	}
 	return 0;
+}
+
+void
+dumpts(BSet *bs, Tmp *tmp, FILE *f)
+{
+	uint t;
+
+	fprintf(f, "[");
+	for (t=Tmp0; bsiter(bs, &t); t++)
+		fprintf(f, " %s", tmp[t].name);
+	fprintf(f, " ]\n");
 }
