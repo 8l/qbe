@@ -297,7 +297,7 @@ bsequal(BSet *a, BSet *b)
 void
 bszero(BSet *bs)
 {
-	bsdiff(bs, bs);
+	memset(bs->t, 0, bs->nt * sizeof bs->t[0]);
 }
 
 /* iterates on a bitset, use as follows
