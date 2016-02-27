@@ -83,8 +83,6 @@ enum {
 	NAlign  = 3,
 	NSeg    = 32,
 	NTyp    = 128,
-
-	BITS    = 4,
 	NBit    = CHAR_BIT * sizeof(bits),
 };
 
