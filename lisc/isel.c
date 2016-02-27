@@ -538,10 +538,10 @@ int rclob[] = {RBX, R12, R13, R14, R15};
 MAKESURE(rsave_has_correct_size, sizeof rsave == NRSave * sizeof(int));
 MAKESURE(rclob_has_correct_size, sizeof rclob == NRClob * sizeof(int));
 
-ulong
+bits
 calldef(Ins i, int p[2])
 {
-	ulong b;
+	bits b;
 	int ni, nf;
 
 	b = 0;
@@ -562,10 +562,10 @@ calldef(Ins i, int p[2])
 	return b;
 }
 
-ulong
+bits
 calluse(Ins i, int p[2])
 {
-	ulong b;
+	bits b;
 	int j, ni, nf;
 
 	b = 0;

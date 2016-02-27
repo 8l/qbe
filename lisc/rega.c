@@ -13,7 +13,7 @@ struct RMap {
 	int n;
 };
 
-static ulong regu;     /* registers used */
+static bits regu;      /* registers used */
 static Tmp *tmp;       /* function temporaries */
 static Mem *mem;       /* function mem references */
 static struct {
@@ -31,7 +31,7 @@ hint(int t)
 static void
 sethint(int t, int r)
 {
-	ulong m;
+	bits m;
 
 	m = tmp[phicls(t, tmp)].hint.m;
 	if (*hint(t) == -1)
@@ -92,7 +92,7 @@ radd(RMap *m, int t, int r)
 static Ref
 ralloc(RMap *m, int t)
 {
-	ulong regs;
+	bits regs;
 	int r, r0, r1;
 
 	if (t < Tmp0) {
@@ -284,7 +284,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 	RMap m0;
 	int n, r, r1, t, s;
 	Ins *i0, *i1, *ip, *ir;
-	ulong def;
+	bits def;
 
 	m0 = *m;
 	i1 = ++i;
@@ -357,7 +357,7 @@ static void
 doblk(Blk *b, RMap *cur)
 {
 	int x, r, nr;
-	ulong rs;
+	bits rs;
 	Ins *i;
 	Mem *m;
 	Ref *ra[4];

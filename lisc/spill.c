@@ -230,7 +230,7 @@ limit2(BSet *b, int k1, int k2, BSet *fst)
 }
 
 static void
-sethint(BSet *u, ulong r)
+sethint(BSet *u, bits r)
 {
 	uint t;
 
@@ -272,7 +272,7 @@ dopm(Blk *b, Ins *i, BSet *v)
 	int n, t;
 	BSet u[1];
 	Ins *i1;
-	ulong r;
+	bits r;
 
 	bsinit(u, ntmp); /* todo, free those */
 	/* consecutive copies from
@@ -336,7 +336,7 @@ spill(Fn *fn)
 	Ins *i;
 	Phi *p;
 	Mem *m;
-	ulong r;
+	bits r;
 
 	tmp = fn->tmp;
 	ntmp = fn->ntmp;

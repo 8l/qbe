@@ -10,8 +10,7 @@
 typedef unsigned int uint;
 typedef unsigned short ushort;
 typedef unsigned long ulong;
-
-#define BIT(n) (1ul << (n))
+typedef unsigned long bits;
 
 typedef struct BSet BSet;
 typedef struct Ref Ref;
@@ -86,14 +85,16 @@ enum {
 	NTyp    = 128,
 
 	BITS    = 4,
-	NBit    = CHAR_BIT * sizeof(ulong),
+	NBit    = CHAR_BIT * sizeof(bits),
 };
 
 MAKESURE(NBit_is_enough, NBit >= (int)Tmp0);
 
+#define BIT(n) ((bits)1 << (n))
+
 struct BSet {
 	uint nt;
-	ulong *t;
+	bits *t;
 };
 
 struct Ref {
@@ -366,7 +367,7 @@ struct Tmp {
 	short cls;
 	struct {
 		int r;
-		ulong m;
+		bits m;
 	} hint;
 	int phi;
 	int visit;
@@ -407,7 +408,7 @@ struct Fn {
 	int nblk;
 	int retty;
 	Blk **rpo;
-	ulong reg;
+	bits reg;
 	int slot;
 	char name[NString];
 };
@@ -506,8 +507,8 @@ void filllive(Fn *);
 /* isel.c */
 extern int rsave[/* NRSave */];
 extern int rclob[/* NRClob */];
-ulong calldef(Ins, int[2]);
-ulong calluse(Ins, int[2]);
+bits calldef(Ins, int[2]);
+bits calluse(Ins, int[2]);
 void isel(Fn *);
 
 /* spill.c */
