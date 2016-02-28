@@ -208,20 +208,17 @@ limit(BSet *b, int k, BSet *f)
 }
 
 static void
-limit2(BSet *b, int k1, int k2, BSet *fst)
+limit2(BSet *b1, int k1, int k2, BSet *fst)
 {
-	BSet b1[1], b2[1];
+	BSet b2[1];
 
-	bsinit(b1, ntmp); /* todo, free those */
-	bsinit(b2, ntmp);
-	bscopy(b1, b);
-	bscopy(b2, b);
+	bsinit(b2, ntmp); /* todo, free those */
+	bscopy(b2, b1);
 	bsinter(b1, mask[0]);
 	bsinter(b2, mask[1]);
 	limit(b1, NIReg - k1, fst);
 	limit(b2, NFReg - k2, fst);
-	bscopy(b, b1);
-	bsunion(b, b2);
+	bsunion(b1, b2);
 }
 
 static void
