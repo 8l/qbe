@@ -75,7 +75,7 @@ filllive(Fn *f)
 	BSet u[1], v[1];
 	Mem *ma;
 
-	bsinit(u, f->ntmp); /* todo, free those */
+	bsinit(u, f->ntmp);
 	bsinit(v, f->ntmp);
 	phi = emalloc(f->ntmp * sizeof phi[0]);
 	for (b=f->start; b; b=b->link) {

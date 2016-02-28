@@ -295,7 +295,7 @@ phiins(Fn *fn)
 	Ref r;
 	int t, n, k, nt;
 
-	bsinit(u, fn->nblk); /* todo, free those */
+	bsinit(u, fn->nblk);
 	bsinit(defs, fn->nblk);
 	blist = emalloc(fn->nblk * sizeof blist[0]);
 	be = &blist[fn->nblk];

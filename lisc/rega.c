@@ -434,8 +434,7 @@ rega(Fn *fn)
 	mem = fn->mem;
 	end = alloc(fn->nblk * sizeof end[0]);
 	beg = alloc(fn->nblk * sizeof beg[0]);
-
-	for (n=0; n<fn->nblk; n++) {            /* todo, free those */
+	for (n=0; n<fn->nblk; n++) {
 		bsinit(end[n].b, fn->ntmp);
 		bsinit(beg[n].b, fn->ntmp);
 	}

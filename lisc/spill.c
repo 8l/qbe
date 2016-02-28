@@ -180,7 +180,8 @@ static void
 limit(BSet *b, int k, BSet *f)
 {
 	static int *tarr, maxt;
-	int i, t, nt;
+	int i, nt;
+	uint t;
 
 	nt = bscount(b);
 	if (nt <= k)
@@ -190,13 +191,10 @@ limit(BSet *b, int k, BSet *f)
 		tarr = emalloc(nt * sizeof tarr[0]);
 		maxt = nt;
 	}
-	i = 0;
-	for (t=0; t<ntmp; t++)
-		if (bshas(b, t)) {
-			bsclr(b, t);
-			tarr[i++] = t;
-		}
-	assert(i == nt);
+	for (i=0, t=0; bsiter(b, &t); t++) {
+		bsclr(b, t);
+		tarr[i++] = t;
+	}
 	if (!f)
 		qsort(tarr, nt, sizeof tarr[0], tcmp0);
 	else {
@@ -212,21 +210,18 @@ limit(BSet *b, int k, BSet *f)
 static void
 limit2(BSet *b, int k1, int k2, BSet *fst)
 {
-	BSet u[1], t[1];
-	int k;
+	BSet b1[1], b2[1];
 
-	bsinit(u, ntmp); /* todo, free those */
-	bsinit(t, ntmp);
-	bscopy(t, b);
-	bszero(b);
-	k1 = NIReg - k1;
-	k2 = NFReg - k2;
-	for (k=0; k<2; k++) {
-		bscopy(u, t);
-		bsinter(u, mask[k]);
-		limit(u, k == 0 ? k1 : k2, fst);
-		bsunion(b, u);
-	}
+	bsinit(b1, ntmp); /* todo, free those */
+	bsinit(b2, ntmp);
+	bscopy(b1, b);
+	bscopy(b2, b);
+	bsinter(b1, mask[0]);
+	bsinter(b2, mask[1]);
+	limit(b1, NIReg - k1, fst);
+	limit(b2, NFReg - k2, fst);
+	bscopy(b, b1);
+	bsunion(b, b2);
 }
 
 static void
@@ -340,13 +335,11 @@ spill(Fn *fn)
 
 	tmp = fn->tmp;
 	ntmp = fn->ntmp;
-
-	bsinit(u, ntmp); /* todo, free those */
+	bsinit(u, ntmp);
 	bsinit(v, ntmp);
 	bsinit(w, ntmp);
 	bsinit(mask[0], ntmp);
 	bsinit(mask[1], ntmp);
-
 	locs = fn->slot;
 	slot4 = 0;
 	slot8 = 0;
