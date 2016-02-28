@@ -1,5 +1,6 @@
 #include "lisc.h"
 #include <ctype.h>
+#include <getopt.h>
 
 char debug['Z'+1] = {
 	['P'] = 0, /* parsing */
@@ -13,6 +14,7 @@ char debug['Z'+1] = {
 	['R'] = 0, /* reg. allocation */
 };
 
+static FILE *outf;
 static int dbg;
 
 static void
@@ -24,7 +26,7 @@ data(Dat *d)
 		puts("/* end data */\n");
 		freeall();
 	}
-	emitdat(d, stdout);
+	emitdat(d, outf);
 }
 
 static void
@@ -60,8 +62,8 @@ func(Fn *fn)
 		} else
 			fn->rpo[n]->link = fn->rpo[n+1];
 	if (!dbg) {
-		emitfn(fn, stdout);
-		printf("/* end function %s */\n\n", fn->name);
+		emitfn(fn, outf);
+		fprintf(outf, "/* end function %s */\n\n", fn->name);
 	} else
 		fprintf(stderr, "\n");
 	freeall();
@@ -70,44 +72,45 @@ func(Fn *fn)
 int
 main(int ac, char *av[])
 {
-	char *o, *f;
 	FILE *inf;
+	char *f;
+	int c;
 
-	if (ac > 1 && strncmp(av[1], "-d", 2) == 0) {
-		if (av[1][2] == 0) {
-			if (ac <= 2)
-				goto Usage;
-			o = av[2];
-			f = av[3];
-		} else {
-			o = &av[1][2];
-			f = av[2];
+	outf = stdout;
+	while ((c = getopt(ac, av, "d:o:")) != -1)
+		switch (c) {
+		case 'd':
+			for (; *optarg; optarg++)
+				if (isalpha(*optarg)) {
+					debug[toupper(*optarg)] = 1;
+					dbg = 1;
+				}
+			break;
+		case 'o':
+			if (strcmp(optarg, "-") != 0)
+				outf = fopen(optarg, "w");
+			break;
+		default:
+			fprintf(stderr, "usage: %s [-d <flags>] [-o out] {file.ssa, -}\n", av[0]);
+			exit(1);
 		}
-		for (; *o; o++)
-			if (isalpha(*o)) {
-				debug[toupper(*o)] = 1;
-				dbg = 1;
+
+	do {
+		f = av[optind];
+		if (!f || strcmp(f, "-") == 0)
+			inf = stdin;
+		else {
+			inf = fopen(f, "r");
+			if (!inf) {
+				fprintf(stderr, "cannot open '%s'\n", f);
+				exit(1);
 			}
-	} else
-		f = av[1];
-
-	if (!f || strcmp(f, "-") == 0)
-		inf = stdin;
-	else {
-		inf = fopen(f, "r");
-		if (!inf) {
-			fprintf(stderr, "cannot open '%s'\n", f);
-			goto Usage;
 		}
-	}
+		parse(inf, data, func);
+	} while (++optind < ac);
 
-	parse(inf, data, func);
 	if (!dbg)
-		emitfin(stdout);
-	fclose(inf);
-	exit(0);
+		emitfin(outf);
 
-Usage:
-	fprintf(stderr, "usage: %s [-d <flags>] {file.ssa, -}\n", av[0]);
-	exit(1);
+	exit(0);
 }
