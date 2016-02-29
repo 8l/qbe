@@ -893,20 +893,20 @@ yylex()
 		i = 0;
 		n = 32;
 		p = alloc(n);
-		p[0] = '"';
-		for (i=1;; i++) {
+		strcpy(p, "{ b \"");
+		for (i=5;; i++) {
 			c = getchar();
 			if (c == EOF)
 				die("unclosed string literal");
-			if (i+1 >= n) {
+			if (i+8 >= n) {
 				p = memcpy(alloc(n*2), p, n);
 				n *= 2;
 			}
 			p[i] = c;
-			if (c == '"' && (!i || p[i-1]!='\\'))
+			if (c == '"' && p[i-1]!='\\')
 				break;
 		}
-		p[i+1] = 0;
+		strcpy(&p[i], "\", b 0 }");
 		if (nglo == NGlo)
 			die("too many globals");
 		ini[nglo] = p;
@@ -950,6 +950,6 @@ main()
 	if (yyparse() != 0)
 		die("parse error");
 	for (i=1; i<nglo; i++)
-		fprintf(of, "data $glo%d = {b %s, b 0 }\n", i, ini[i]);
+		fprintf(of, "data $glo%d = %s\n", i, ini[i]);
 	return 0;
 }
