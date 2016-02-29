@@ -549,6 +549,9 @@ emitdat(Dat *d, FILE *f)
 			d->u.str, d->u.str, d->u.str
 		);
 		break;
+	case DZ:
+		fprintf(f, "\t.fill %"PRId64",1,0\n", d->u.num);
+		break;
 	case DB:
 		if (d->isstr) {
 			fprintf(f, "\t.ascii \"%s\"\n", d->u.str);

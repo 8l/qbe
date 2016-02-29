@@ -432,7 +432,8 @@ struct Dat {
 		DB,
 		DH,
 		DW,
-		DL
+		DL,
+		DZ
 	} type;
 	union {
 		int64_t num;

@@ -87,6 +87,7 @@ enum {
 	TB,
 	TD,
 	TS,
+	TZ,
 
 	TPlus,
 
@@ -175,6 +176,7 @@ lex()
 		{ "b", TB },
 		{ "d", TD },
 		{ "s", TS },
+		{ "z", TZ },
 		{ "loadw", OLoad }, /* for convenience */
 		{ "loadl", OLoad },
 		{ "loads", OLoad },
@@ -827,6 +829,7 @@ parsedat(void cb(Dat *))
 		case TB: d.type = DB; break;
 		case TS: d.type = DW; break;
 		case TD: d.type = DL; break;
+		case TZ: d.type = DZ; break;
 		}
 		t = nextnl();
 		do {
