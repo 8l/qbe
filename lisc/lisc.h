@@ -491,6 +491,7 @@ extern OpDesc opdesc[NOp];
 void parse(FILE *, char *, void (Dat *), void (Fn *));
 void printfn(Fn *, FILE *);
 void printref(Ref, Fn *, FILE *);
+void err(char *, ...);
 
 /* mem.c */
 void memopt(Fn *);

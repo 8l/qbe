@@ -136,7 +136,7 @@ static int ntyp;
 
 
 
-static void
+void
 err(char *s, ...)
 {
 	char buf[100], *p, *end;
@@ -266,8 +266,8 @@ Alpha:		c = fgetc(inf);
 	} while (isalpha(c) || c == '$' || c == '.' || c == '_' || isdigit(c));
 	tok[i] = 0;
 	ungetc(c, inf);
+	tokval.str = tok;
 	if (t != TXXX) {
-		tokval.str = tok;
 		return t;
 	}
 	for (i=0; i<NPubOp; i++)
@@ -277,7 +277,7 @@ Alpha:		c = fgetc(inf);
 	for (i=0; tmap[i].str; i++)
 		if (strcmp(tok, tmap[i].str) == 0)
 			return tmap[i].tok;
-	err("unknown keyword");
+	err("unknown keyword %s", tokval.str);
 	return TXXX;
 }
 
