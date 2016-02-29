@@ -482,7 +482,7 @@ int bsiter(BSet *, uint *);
 
 /* parse.c */
 extern OpDesc opdesc[NOp];
-void parse(FILE *, void (Dat *), void (Fn *));
+void parse(FILE *, char *, void (Dat *), void (Fn *));
 void printfn(Fn *, FILE *);
 void printref(Ref, Fn *, FILE *);
 

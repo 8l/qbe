@@ -1,5 +1,6 @@
 #include "lisc.h"
 #include <ctype.h>
+#include <stdarg.h>
 
 OpDesc opdesc[NOp] = {
 	/*            NAME     NM */
@@ -107,6 +108,7 @@ enum {
 
 
 static FILE *inf;
+static char *inpath;
 static int thead;
 static struct {
 	double fltd;
@@ -129,12 +131,22 @@ static int rcls;
 static int ntyp;
 
 
-static void
-err(char *s)
-{
-	char buf[100];
 
-	snprintf(buf, sizeof buf, "parse: %s (line %d)", s, lnum);
+static void
+err(char *s, ...)
+{
+	char buf[100], *p, *end;
+	va_list ap;
+
+
+	p = buf;
+	end = buf + sizeof(buf);
+
+	va_start(ap, s);
+	p += snprintf(p, end - p, "%s:%d: ", inpath, lnum);
+	p += vsnprintf(p, end - p, s, ap);
+	va_end(ap);
+
 	diag(buf);
 }
 
@@ -815,9 +827,10 @@ parsedat(void cb(Dat *))
 }
 
 void
-parse(FILE *f, void data(Dat *), void func(Fn *))
+parse(FILE *f, char *path, void data(Dat *), void func(Fn *))
 {
 	inf = f;
+	inpath = path;
 	lnum = 1;
 	thead = TXXX;
 	ntyp = 0;

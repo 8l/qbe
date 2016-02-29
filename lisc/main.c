@@ -97,16 +97,17 @@ main(int ac, char *av[])
 
 	do {
 		f = av[optind];
-		if (!f || strcmp(f, "-") == 0)
+		if (!f || strcmp(f, "-") == 0) {
 			inf = stdin;
-		else {
+			f = "-";
+		} else {
 			inf = fopen(f, "r");
 			if (!inf) {
 				fprintf(stderr, "cannot open '%s'\n", f);
 				exit(1);
 			}
 		}
-		parse(inf, data, func);
+		parse(inf, f, data, func);
 	} while (++optind < ac);
 
 	if (!dbg)
