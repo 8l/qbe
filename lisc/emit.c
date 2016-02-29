@@ -559,6 +559,8 @@ emitdat(Dat *d, FILE *f)
 		}
 		/* fallthrough */
 	default:
+		if (d->isstr)
+			err("strings only supported for 'b' currently");
 		if (d->isref)
 			fprintf(f, "%s %s+%"PRId64"\n", dtoa[d->type], d->u.ref.nam, d->u.ref.off);
 		else
