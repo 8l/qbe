@@ -135,13 +135,11 @@ static int rcls;
 static int ntyp;
 
 
-
 void
 err(char *s, ...)
 {
 	char buf[100], *p, *end;
 	va_list ap;
-
 
 	p = buf;
 	end = buf + sizeof(buf);
@@ -769,7 +767,7 @@ parsetyp()
 }
 
 static void
-parsedataref(Dat *d)
+parsedatref(Dat *d)
 {
 	int t;
 
@@ -786,7 +784,7 @@ parsedataref(Dat *d)
 }
 
 static void
-parsedatastr(Dat *d)
+parsedatstr(Dat *d)
 {
 	d->isstr = 1;
 	d->u.str = tokval.str;
@@ -843,9 +841,9 @@ parsedat(void cb(Dat *))
 			else if (t == TInt)
 				d.u.num = tokval.num;
 			else if (t == TGlo)
-				parsedataref(&d);
+				parsedatref(&d);
 			else if (t == TStr)
-				parsedatastr(&d);
+				parsedatstr(&d);
 			else
 				err("constant literal expected");
 			cb(&d);

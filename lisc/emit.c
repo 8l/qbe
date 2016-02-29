@@ -562,7 +562,7 @@ emitdat(Dat *d, FILE *f)
 		if (d->isstr)
 			err("strings only supported for 'b' currently");
 		if (d->isref)
-			fprintf(f, "%s %s+%"PRId64"\n", dtoa[d->type], d->u.ref.nam, d->u.ref.off);
+			fprintf(f, "%s %s%+"PRId64"\n", dtoa[d->type], d->u.ref.nam, d->u.ref.off);
 		else
 			fprintf(f, "%s %"PRId64"\n", dtoa[d->type], d->u.num);
 		break;
