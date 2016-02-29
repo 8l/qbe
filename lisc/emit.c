@@ -549,9 +549,12 @@ emitdat(Dat *d, FILE *f)
 			d->u.str, d->u.str, d->u.str
 		);
 		break;
-	case DA:
-		fprintf(f, "\t.asciz \"%s\"\n", d->u.str);
-		break;
+	case DB:
+		if (d->isstr) {
+			fprintf(f, "\t.ascii \"%s\"\n", d->u.str);
+			break;
+		}
+		/* fallthrough */
 	default:
 		if (d->isref)
 			fprintf(f, "%s %s+%"PRId64"\n", dtoa[d->type], d->u.ref.nam, d->u.ref.off);

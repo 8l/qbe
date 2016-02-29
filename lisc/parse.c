@@ -769,15 +769,25 @@ parsetyp()
 static void
 parsedataref(Dat *d)
 {
+	int t;
+
 	d->isref = 1;
 	d->u.ref.nam = tokval.str;
 	d->u.ref.off = 0;
-	if (peek() == TPlus) {
+	t = peek();
+	if (t == TPlus) {
 		next();
 		if (next() != TInt)
 			err("invalid token after offset in ref");
 		d->u.ref.off = tokval.num;
 	}
+}
+
+static void
+parsedatastr(Dat *d)
+{
+	d->isstr = 1;
+	d->u.str = tokval.str;
 }
 
 static void
@@ -804,47 +814,44 @@ parsedat(void cb(Dat *))
 	d.type = DName;
 	d.u.str = s;
 	cb(&d);
-	if (t == TStr) {
-		d.type = DA;
-		d.u.str = tokval.str;
-		d.isref = 0;
-		cb(&d);
-	} else {
-		if (t != TLBrace)
-			err("data contents must be { .. } or \" .. \"");
-		for (;;) {
-			switch (nextnl()) {
-			default: err("invalid size specifier %c in data", tokval.chr);
-			case TRBrace: goto Done;
-			case TL: d.type = DL; break;
-			case TW: d.type = DW; break;
-			case TH: d.type = DH; break;
-			case TB: d.type = DB; break;
-			case TS: d.type = DW; break;
-			case TD: d.type = DL; break;
-			}
-			t = nextnl();
-			do {
-				d.isref = 0;
-				memset(&d.u, 0, sizeof d.u);
-				if (t == TFlts)
-					d.u.flts = tokval.flts;
-				else if (t == TFltd)
-					d.u.fltd = tokval.fltd;
-				else if (t == TInt)
-					d.u.num = tokval.num;
-				else if (t == TGlo)
-					parsedataref(&d);
-				else
-					err("constant literal expected");
-				cb(&d);
-				t = nextnl();
-			} while (t == TInt || t == TFlts || t == TFltd);
-			if (t == TRBrace)
-				break;
-			if (t != TComma)
-				err(", or } expected");
+
+	if (t != TLBrace)
+		err("expected data contents in { .. }");
+	for (;;) {
+		switch (nextnl()) {
+		default: err("invalid size specifier %c in data", tokval.chr);
+		case TRBrace: goto Done;
+		case TL: d.type = DL; break;
+		case TW: d.type = DW; break;
+		case TH: d.type = DH; break;
+		case TB: d.type = DB; break;
+		case TS: d.type = DW; break;
+		case TD: d.type = DL; break;
 		}
+		t = nextnl();
+		do {
+			d.isref = 0;
+			d.isstr = 0;
+			memset(&d.u, 0, sizeof d.u);
+			if (t == TFlts)
+				d.u.flts = tokval.flts;
+			else if (t == TFltd)
+				d.u.fltd = tokval.fltd;
+			else if (t == TInt)
+				d.u.num = tokval.num;
+			else if (t == TGlo)
+				parsedataref(&d);
+			else if (t == TStr)
+				parsedatastr(&d);
+			else
+				err("constant literal expected");
+			cb(&d);
+			t = nextnl();
+		} while (t == TInt || t == TFlts || t == TFltd);
+		if (t == TRBrace)
+			break;
+		if (t != TComma)
+			err(", or } expected");
 	}
 Done:
 	d.type = DEnd;

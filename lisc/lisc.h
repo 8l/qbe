@@ -429,7 +429,6 @@ struct Dat {
 		DEnd,
 		DName,
 		DAlign,
-		DA,
 		DB,
 		DH,
 		DW,
@@ -446,6 +445,7 @@ struct Dat {
 		} ref;
 	} u;
 	char isref;
+	char isstr;
 };
 
 

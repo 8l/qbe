@@ -950,6 +950,6 @@ main()
 	if (yyparse() != 0)
 		die("parse error");
 	for (i=1; i<nglo; i++)
-		fprintf(of, "data $glo%d = %s\n", i, ini[i]);
+		fprintf(of, "data $glo%d = {b %s, b 0 }\n", i, ini[i]);
 	return 0;
 }
