@@ -89,8 +89,6 @@ enum {
 	TS,
 	TZ,
 
-	TPlus,
-
 	TInt,
 	TFlts,
 	TFltd,
@@ -99,6 +97,8 @@ enum {
 	TGlo,
 	TTyp,
 	TStr,
+
+	TPlus,
 	TEq,
 	TComma,
 	TLParen,
