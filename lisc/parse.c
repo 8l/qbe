@@ -247,15 +247,15 @@ lex()
 	}
 	if (0)
 Alpha:		c = fgetc(inf);
-	if (!isalpha(c) && c != '.')
-		err("lexing failure");
+	if (!isalpha(c) && c != '.' && c != '_')
+		err("lexing failure: invalid character %c (%d)", c, c);
 	i = 0;
 	do {
 		if (i >= NString-1)
 			err("identifier too long");
 		tok[i++] = c;
 		c = fgetc(inf);
-	} while (isalpha(c) || c == '.' || c == '_' || isdigit(c));
+	} while (isalpha(c) || c == '$' || c == '.' || c == '_' || isdigit(c));
 	tok[i] = 0;
 	ungetc(c, inf);
 	if (t != TXXX) {
