@@ -553,7 +553,10 @@ emitdat(Dat *d, FILE *f)
 		fprintf(f, "\t.asciz \"%s\"\n", d->u.str);
 		break;
 	default:
-		fprintf(f, "%s %"PRId64"\n", dtoa[d->type], d->u.num);
+		if (d->isref)
+			fprintf(f, "%s %s+%"PRId64"\n", dtoa[d->type], d->u.ref.nam, d->u.ref.off);
+		else
+			fprintf(f, "%s %"PRId64"\n", dtoa[d->type], d->u.num);
 		break;
 	}
 }

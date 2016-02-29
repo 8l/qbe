@@ -88,6 +88,8 @@ enum {
 	TD,
 	TS,
 
+	TPlus,
+
 	TInt,
 	TFlts,
 	TFltd,
@@ -111,6 +113,7 @@ static FILE *inf;
 static char *inpath;
 static int thead;
 static struct {
+	char chr;
 	double fltd;
 	float flts;
 	int64_t num;
@@ -186,6 +189,7 @@ lex()
 		c = fgetc(inf);
 	while (isblank(c));
 	t = TXXX;
+	tokval.chr = c;
 	switch (c) {
 	case EOF:
 		return TEOF;
@@ -201,6 +205,8 @@ lex()
 		return TRBrace;
 	case '=':
 		return TEq;
+	case '+':
+		return TPlus;
 	case 's':
 		if (fscanf(inf, "_%f", &tokval.flts) != 1)
 			break;
@@ -710,7 +716,7 @@ parsetyp()
 		for (;;) {
 			flt = 0;
 			switch (t) {
-			default: err("invalid size specifier");
+			default: err("invalid size specifier %c", tokval.chr);
 			case TD: flt = 1;
 			case TL: s = 8; a = 3; break;
 			case TS: flt = 1;
@@ -761,6 +767,20 @@ parsetyp()
 }
 
 static void
+parsedataref(Dat *d)
+{
+	d->isref = 1;
+	d->u.ref.nam = tokval.str;
+	d->u.ref.off = 0;
+	if (peek() == TPlus) {
+		next();
+		if (next() != TInt)
+			err("invalid token after offset in ref");
+		d->u.ref.off = tokval.num;
+	}
+}
+
+static void
 parsedat(void cb(Dat *))
 {
 	char s[NString];
@@ -787,13 +807,15 @@ parsedat(void cb(Dat *))
 	if (t == TStr) {
 		d.type = DA;
 		d.u.str = tokval.str;
+		d.isref = 0;
 		cb(&d);
 	} else {
 		if (t != TLBrace)
 			err("data contents must be { .. } or \" .. \"");
 		for (;;) {
 			switch (nextnl()) {
-			default: err("invalid size specifier in data");
+			default: err("invalid size specifier %c in data", tokval.chr);
+			case TRBrace: goto Done;
 			case TL: d.type = DL; break;
 			case TW: d.type = DW; break;
 			case TH: d.type = DH; break;
@@ -803,7 +825,7 @@ parsedat(void cb(Dat *))
 			}
 			t = nextnl();
 			do {
-
+				d.isref = 0;
 				memset(&d.u, 0, sizeof d.u);
 				if (t == TFlts)
 					d.u.flts = tokval.flts;
@@ -811,6 +833,8 @@ parsedat(void cb(Dat *))
 					d.u.fltd = tokval.fltd;
 				else if (t == TInt)
 					d.u.num = tokval.num;
+				else if (t == TGlo)
+					parsedataref(&d);
 				else
 					err("constant literal expected");
 				cb(&d);
@@ -822,6 +846,7 @@ parsedat(void cb(Dat *))
 				err(", or } expected");
 		}
 	}
+Done:
 	d.type = DEnd;
 	cb(&d);
 }

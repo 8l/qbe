@@ -440,7 +440,12 @@ struct Dat {
 		double fltd;
 		float flts;
 		char *str;
+		struct {
+			char *nam;
+			int64_t off;
+		} ref;
 	} u;
+	char isref;
 };
 
 
