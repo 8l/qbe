@@ -23,7 +23,7 @@ data(Dat *d)
 	if (dbg)
 		return;
 	if (d->type == DEnd) {
-		puts("/* end data */\n");
+		fputs("/* end data */\n", outf);
 		freeall();
 	}
 	emitdat(d, outf);
