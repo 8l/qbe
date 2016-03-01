@@ -11,8 +11,7 @@ the IR description document for more information about
 them.
 
 
-- ABI Subset Implemented
------------------------------
+:|: ABI Subset Implemented
 
 Data classes of interest as defined by the ABI:
  - INTEGER
@@ -44,7 +43,10 @@ Passing:
  - INTEGER arguments use in order %rdi %rsi %rdx %rcx
    %r8 %r9.
  - SSE arguments use in order %xmm0 - %xmm7.
- - MEMORY gets passed on the stack.
+ - MEMORY gets passed on the stack.  They are "pushed"
+   in the right-to-left order, so from the callee's
+   point of view, the left-most argument appears first
+   on the stack.
  - When we run out of registers for an aggregate, revert
    the assignment for the first eightbytes and pass it
    on the stack.
@@ -67,6 +69,66 @@ Returning:
    (that was in %rdi) in %rax.
 
 
-- Various Remarks
------------------------------
+:|: Alignment on the Stack
 
+The ABI is unclear on the alignment requirement of the
+stack.  What must be ensured is that, right before
+executing a 'call' instruction, the stack pointer %rsp
+is aligned on 16 bytes.  On entry of the called
+function, the stack pointer is 8 modulo 16.  Since most
+functions will have a prelude pushing %rbp, the frame
+pointer, upon entry of the body code of the function is
+also aligned on 16 bytes (== 0 mod 16).
+
+Here is a diagram of the stack layout after a call from
+g() to f().
+
+                   |             |
+                   | g() locals  |
+                   +-------------+ 
+              ^    |             | \
+              |    | stack arg 2 |  '
+              |    |xxxxxxxxxxxxx|  | f()'s MEMORY
+     growing  |    +-------------+  |  arguments
+    addresses |    | stack arg 1 |  ,
+              |    |xxxxxxxxxxxxx| /
+              |    +-------------+ -> 0 mod 16
+              |    |   ret addr  |
+                   +-------------+ -> f()'s %rbp
+                   |  saved %rbp |
+                   +-------------+ -> 0 mod 16
+                   | f() locals  |
+                   |   ...       |
+                                   -> %rsp
+
+Legend:
+ - xxxxx    Optional padding.
+   
+
+:|: Remarks
+
+ - A struct can be returned in registers in one of three
+   ways.  Either %rax, %rdx are used, or %xmm0, %xmm1,
+   or finally %rax, %xmm0.  This should be clear from
+   the "Returning" section above.
+
+ - The size of the arguments area of the stack needs to
+   be computed first, then arguments are packed starting
+   from the bottom of the argument area, respecting
+   alignment constraints.  The ABI mentions "pushing"
+   arguments in right-to-left order, but I think it's a
+   mistaken view because of the alignment constraints.
+
+   Example: If three 8 bytes MEMORY arguments are passed
+   to the callee and the caller's stack pointer is 16 bytes
+   algined, the layout will be like this.
+
+                   +-------------+
+                   |xxxxxxxxxxxxx|    padding
+                   | stack arg 3 |
+                   | stack arg 2 |
+                   | stack arg 1 |
+                   +-------------+ -> 0 mod 16
+
+   The padding must not be at the end of the stack area.
+   A "pushing" logic would put it at the end.
