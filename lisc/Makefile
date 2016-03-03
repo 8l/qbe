@@ -8,8 +8,10 @@ $(BIN): $(OBJ)
 
 $(OBJ): lisc.h
 
-.PHONY: clean syndoc
+.PHONY: clean test syndoc
 clean:
 	rm -f $(BIN) $(OBJ)
+test: $(BIN)
+	test/go.sh all
 syndoc:
 	unison -auto doc ssh://qcar@h/data/d/ssa-doc

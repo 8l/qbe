@@ -26,3 +26,7 @@ function w $main(w %argc, l %argv) {
 @end
 	ret 0
 }
+
+# >>> output
+# a b c
+# <<<

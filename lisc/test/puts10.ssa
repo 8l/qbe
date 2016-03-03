@@ -1,4 +1,4 @@
-function $test() {
+function $main() {
 @start
 	%y  =l alloc4 4
 	%y1 =l add %y, 1
@@ -14,3 +14,16 @@ function $test() {
 @end
 	ret
 }
+
+# >>> output
+# 0
+# 1
+# 2
+# 3
+# 4
+# 5
+# 6
+# 7
+# 8
+# 9
+# <<<

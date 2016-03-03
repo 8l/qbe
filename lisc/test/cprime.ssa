@@ -2,7 +2,7 @@
 # compiler from the C program
 # following in comments
 
-function $test() {
+function w $main() {
 @start
 	%v0 =l alloc8 4
 	%v1 =l alloc8 4
@@ -64,13 +64,11 @@ function $test() {
 	%v26 =w cnew %v25, 104743
 	jnz %v26, @L13, @L7
 @L13
-	storew 1, $a
-	ret
+	ret 1
 @L7
-	storew 0, $a
-	ret
+	ret 0
 @end
-	ret
+	ret 0
 }
 
 # int

@@ -16,3 +16,9 @@ function $test() {
 	storew %a, $a
 	ret
 }
+
+# >>> driver
+# extern void test(void);
+# int a;
+# int main() { test(); return !(a == 1); }
+# <<<

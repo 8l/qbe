@@ -25,3 +25,9 @@ function $test() {
 	storew %max, $a
 	ret
 }
+
+# >>> driver
+# extern void test(void);
+# int a;
+# int main() { test(); return !(a == 200); }
+# <<<

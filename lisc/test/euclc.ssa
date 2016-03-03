@@ -23,3 +23,7 @@ function w $test() {
 	ret %t13
 }
 
+# >>> driver
+# extern int test(void);
+# int main() { return !(test() == 1); }
+# <<<

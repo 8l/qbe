@@ -8,3 +8,9 @@ function $test() {
 	storew %n, $a
 	ret
 }
+
+# >>> driver
+# extern void test(void);
+# int a;
+# int main() { test(); return !(a == 8 || a == -8); }
+# <<<

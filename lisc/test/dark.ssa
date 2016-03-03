@@ -22,3 +22,9 @@ function $test(:magic %p) {
 @fin
 	ret
 }
+
+# >>> driver
+# extern void test(void);
+# int a = 2;
+# int main() { test(); return !(a == 5); }
+# <<<

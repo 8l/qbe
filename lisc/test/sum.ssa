@@ -18,3 +18,14 @@ function w $sum(l %arr, w %num) {
 @end
 	ret %s0
 }
+
+# >>> driver
+# extern int sum(int *, int);
+# int arr[] = { 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21 };
+# #define N sizeof arr / sizeof arr[0]
+# int main() {
+# 	int i, s;
+# 	for (s=i=0; i<N; i++) s+=arr[i];
+# 	return !(sum(arr, N) == s);
+# }
+# <<<

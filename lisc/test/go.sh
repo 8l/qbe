@@ -1,8 +1,5 @@
 #!/bin/sh
 
-QBE=./lisc
-CC=cc
-
 TMP=/tmp/qbe.zzzz
 
 DRV=$TMP.c
@@ -44,7 +41,7 @@ once() {
 
 	printf "$T... "
 
-	if ! $QBE $T -o $ASM 2> /dev/null
+	if ! ./lisc $T -o $ASM 2> /dev/null
 	then
 		echo "[qbe fail]"
 		return 1
@@ -60,7 +57,7 @@ once() {
 		LNK="$ASM"
 	fi
 
-	if ! $CC -o $BIN $LNK
+	if ! cc -o $BIN $LNK
 	then
 		echo "[cc fail]"
 		return 1
@@ -68,11 +65,11 @@ once() {
 
 	if test -s $OUT
 	then
-		$BIN | diff - $OUT > /dev/null
+		$BIN a b c | diff - $OUT > /dev/null
 		RET=$?
 		REASON="output"
 	else
-		$BIN
+		$BIN a b c
 		RET=$?
 		REASON="return"
 	fi
@@ -92,7 +89,7 @@ once() {
 case $1 in
 	"all")
 		F=0
-		for T in test/*
+		for T in test/[!_]*.ssa
 		do
 			once $T
 			F=`expr $F + $?`
