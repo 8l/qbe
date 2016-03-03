@@ -71,12 +71,12 @@ once() {
 	else
 		$BIN a b c
 		RET=$?
-		REASON="return"
+		REASON="ret code"
 	fi
 
 	if test $RET -ne 0
 	then
-		echo "[$REASON, fail]"
+		echo "[$REASON fail]"
 		return 1
 	fi
 
