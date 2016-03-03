@@ -10,3 +10,8 @@ function $test() {
 @end
 	ret
 }
+
+# >>> driver
+# extern void test();
+# int main() { test(); return 0; }
+# <<<
