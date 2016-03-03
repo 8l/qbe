@@ -39,9 +39,9 @@ once() {
 		exit 1
 	fi
 
-	printf "$T... "
+	echo "$T... "
 
-	if ! ./lisc $T -o $ASM 2> /dev/null
+	if ! ./lisc $T -o $ASM
 	then
 		echo "[qbe fail]"
 		return 1
@@ -80,11 +80,17 @@ once() {
 		return 1
 	fi
 
-	echo "[ok]"
+	printf "\033[1A\033[45C[ok]\n"
 }
 
 
 #trap cleanup TERM QUIT
+
+if test -z "$1"
+then
+	echo "usage: test/go.sh {all, SSAFILE}" 2>&1
+	exit 1
+fi
 
 case $1 in
 	"all")
