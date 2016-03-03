@@ -14,7 +14,7 @@ function w $main() {
 	storew 12, %v3
 @L0
 	%v5 =w loadw %v1
-	%v6 =w cnew %v5, 10001
+	%v6 =w cnew %v5, 201
 	jnz %v6, @L8, @L1
 @L8
 	storew 1, %v4
@@ -61,7 +61,7 @@ function w $main() {
 	jmp @L0
 @L1
 	%v25 =w loadw %v2
-	%v26 =w cnew %v25, 104743
+	%v26 =w cnew %v25, 1229
 	jnz %v26, @L13, @L7
 @L13
 	ret 1
@@ -79,7 +79,7 @@ function w $main() {
 #         n = 5;
 #         p = 11;
 #         next = 12;
-#         while(n != 10001) {
+#         while(n != 201) {
 #                 isprime = 1;
 #                 if(next % 2 == 0) {
 #                         isprime = 0;
@@ -97,7 +97,7 @@ function w $main() {
 #                 }
 #                 next = next + 1;
 #         }
-#         if(p != 104743)
+#         if(p != 1229)
 #                 return 1;
 #         return 0;
 # }
