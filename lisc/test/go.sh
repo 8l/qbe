@@ -57,7 +57,7 @@ once() {
 		LNK="$ASM"
 	fi
 
-	if ! cc -o $BIN $LNK
+	if ! cc -g -o $BIN $LNK
 	then
 		echo "[cc fail]"
 		return 1
@@ -71,7 +71,7 @@ once() {
 	else
 		$BIN a b c
 		RET=$?
-		REASON="ret code"
+		REASON="returned $RET"
 	fi
 
 	if test $RET -ne 0
