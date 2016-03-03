@@ -65,7 +65,7 @@ once() {
 
 	if test -s $OUT
 	then
-		$BIN a b c | diff - $OUT > /dev/null
+		$BIN a b c | diff - $OUT
 		RET=$?
 		REASON="output"
 	else

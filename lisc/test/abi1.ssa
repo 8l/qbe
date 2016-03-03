@@ -1,0 +1,59 @@
+# test calling into C with two
+# large struct arguments (passed
+# on the stack)
+
+type :mem = { b 17 }
+
+function $alpha(l %p, w %l, l %n) {
+@ini
+	%pe =l add %p, %n
+@lop
+	%p1 =l phi @ini %p, @lop %p2
+	%l1 =w phi @ini %l, @lop %l2
+	storeb %l1, %p1
+	%p2 =l add %p1, 1
+	%l2 =w add %l1, 1
+	%c1 =w ceql %p1, %pe
+	jnz %c1, @end, @lop
+@end
+	storeb 0, %pe
+	ret
+}
+
+function $test() {
+@start
+	%p =l alloc4 17
+	%q =l alloc4 17
+	%r0 =w call $alpha(l %p, w 65, l 16)
+	%r1 =w call $alpha(l %q, w 97, l 16)
+	%r2 =w call $fcb(:mem %p, w 1, w 2, w 3, w 4, w 5, w 6, w 7, w 8, w 9, :mem %q)
+	ret
+}
+
+
+# >>> driver
+# #include <stdio.h>
+# typedef struct { char t[17]; } mem;
+# extern void test();
+# void fcb(mem m, int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8, int i9, mem n) {
+# 	printf("fcb: m = (mem){ t = \"%s\" }\n", m.t);
+# 	printf("     n = (mem){ t = \"%s\" }\n", n.t);
+# 	#define T(n) printf("     i%d = %d\n", n, i##n);
+# 	T(1) T(2) T(3) T(4) T(5) T(6) T(7) T(8) T(9)
+# }
+# int main() { test(); return 0; }
+# <<<
+
+# >>> output
+# fcb: m = (mem){ t = "ABCDEFGHIJKLMNOP" }
+#      n = (mem){ t = "abcdefghijklmnop" }
+#      i1 = 1
+#      i2 = 2
+#      i3 = 3
+#      i4 = 4
+#      i5 = 5
+#      i6 = 6
+#      i7 = 7
+#      i8 = 8
+#      i9 = 9
+# <<<
