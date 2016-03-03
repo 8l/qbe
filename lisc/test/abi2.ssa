@@ -13,6 +13,6 @@ function s $sum(:fps %p) {
 # typedef struct { float f1; char b; float f2; } fps;
 # extern float sum(fps);
 # int main() { fps x = { 1.23, -1, 2.34 }; return !(sum(x) == 1.23f+2.34f); }
-# /* Note the f above are important
+# /* Note the f suffixes above are important
 #  * otherwise C does double operations. */
 # <<<
