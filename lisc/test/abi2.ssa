@@ -1,0 +1,18 @@
+type :fps = { s, b, s }
+
+function s $sum(:fps %p) {
+@start
+	%f1 =s load %p
+	%p8 =l add 8, %p
+	%f2 =s load %p8
+	%s =s add %f1, %f2
+	ret %s
+}
+
+# >>> driver
+# typedef struct { float f1; char b; float f2; } fps;
+# extern float sum(fps);
+# int main() { fps x = { 1.23, -1, 2.34 }; return !(sum(x) == 1.23f+2.34f); }
+# /* Note the f above are important
+#  * otherwise C does double operations. */
+# <<<
