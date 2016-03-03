@@ -66,6 +66,23 @@ once() {
 		return 1
 	fi
 
+	if test -s $OUT
+	then
+		$BIN | diff - $OUT > /dev/null
+		RET=$?
+		REASON="output"
+	else
+		$BIN
+		RET=$?
+		REASON="return"
+	fi
+
+	if test $RET -ne 0
+	then
+		echo "[$REASON, fail]"
+		return 1
+	fi
+
 	echo "[ok]"
 }
 
