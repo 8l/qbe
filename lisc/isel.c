@@ -120,6 +120,14 @@ argcls(Ins *i, int n)
 		return n == 0 ? Kw : Kl;
 	case OStorel:
 		return Kl;
+	case OExts:
+		return Ks;
+	case OTruncd:
+		return Kd;
+	case OFtosi:
+		return KWIDE(i->cls) ? Kl : Kw;
+	case OSitof:
+		return KWIDE(i->cls) ? Kd : Ks;
 	default:
 		if (OCmpw <= i->op && i->op <= OCmpd1)
 			diag("isel: invalid call to argcls");
@@ -283,6 +291,8 @@ sel(Ins i, ANum *an, Fn *fn)
 	case OSub:
 	case OMul:
 	case OAnd:
+	case OOr:
+	case OXor:
 	case OXTest:
 	case_OExt:
 Emit:
@@ -348,6 +358,8 @@ flagi(Ins *i0, Ins *i)
 		case OAdd:  /* flag-setting */
 		case OSub:
 		case OAnd:
+		case OOr:
+		case OXor:
 			return i;
 		case OCopy: /* flag-transparent */
 		case OStored:
@@ -355,7 +367,12 @@ flagi(Ins *i0, Ins *i)
 		case OStorel:
 		case OStorew:
 		case OStoreh:
-		case OStoreb:;
+		case OStoreb:
+		case OExts:
+		case OTruncd:
+		case OFtosi:
+		case OSitof:
+			;
 		}
 	return 0;
 }

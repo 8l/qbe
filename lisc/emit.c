@@ -44,6 +44,8 @@ static struct {
 	{ OAdd,    Ka, "+add%k %1, %=" },
 	{ OSub,    Ka, "-sub%k %1, %=" },
 	{ OAnd,    Ki, "+and%k %1, %=" },
+	{ OOr,     Ki, "+or%k %1, %=" },
+	{ OXor,    Ki, "+xor%k %1, %=" },
 	{ OMul,    Ki, "+imul%k %1, %=" },
 	{ OMul,    Ks, "+mulss %1, %=" }, /* fixme */
 	{ OMul,    Kd, "+mulsd %1, %=" },
@@ -68,6 +70,14 @@ static struct {
 	{ OExtuh,  Ki, "movzw%k %H0, %=" },
 	{ OExtsb,  Ki, "movsb%k %B0, %=" },
 	{ OExtub,  Ki, "movzb%k %B0, %=" },
+
+	{ OExts,   Kd, "cvtss2sd %0, %=" },  /* see if factorization is possible */
+	{ OTruncd, Ks, "cvttsd2ss %0, %=" },
+	{ OFtosi,  Kw, "cvttss2si %0, %=" },
+	{ OFtosi,  Kl, "cvttsd2si %0, %=" },
+	{ OSitof,  Ks, "cvtsi2ss %W0, %=" },
+	{ OSitof,  Kd, "cvtsi2sd %L0, %=" },
+
 	{ OAddr,   Ki, "lea%k %M0, %=" },
 	{ OSwap,   Ki, "xchg%k %0, %1" },
 	{ OSign,   Kl, "cqto" },

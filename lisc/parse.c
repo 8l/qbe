@@ -10,6 +10,8 @@ OpDesc opdesc[NOp] = {
 	[ORem]    = { "rem",    2 },
 	[OMul]    = { "mul",    2 },
 	[OAnd]    = { "and",    2 },
+	[OOr]     = { "or",     2 },
+	[OXor]    = { "xor",    2 },
 	[OStored] = { "stored", 0 },
 	[OStores] = { "stores", 0 },
 	[OStorel] = { "storel", 0 },
@@ -29,6 +31,10 @@ OpDesc opdesc[NOp] = {
 	[OExtuh]  = { "extuh",  0 },
 	[OExtsb]  = { "extsb",  0 },
 	[OExtub]  = { "extub",  0 },
+	[OExts]   = { "exts",   0 },
+	[OTruncd] = { "truncd", 0 },
+	[OFtosi]  = { "ftosi",  0 },
+	[OSitof]  = { "sitof",  0 },
 	[OCopy]   = { "copy",   1 },
 	[ONop]    = { "nop",    0 },
 	[OSwap]   = { "swap",   2 },
@@ -179,6 +185,8 @@ lex()
 		{ "loadl", OLoad },
 		{ "loads", OLoad },
 		{ "loadd", OLoad },
+		{ "alloc1", OAlloc },
+		{ "alloc2", OAlloc },
 		{ 0, TXXX }
 	};
 	static char tok[NString];

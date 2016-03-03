@@ -216,6 +216,8 @@ enum Op {
 	ORem,
 	OMul,
 	OAnd,
+	OOr,
+	OXor,
 	OCmpw,
 	OCmpw1 = OCmpw + NICmp-1,
 	OCmpl,
@@ -247,6 +249,11 @@ enum Op {
 	OExtsb,
 	OExtub,
 #define isext(o) (OExtsw <= o && o <= OExtub)
+
+	OExts,
+	OTruncd,
+	OFtosi,
+	OSitof,
 
 	OAlloc,
 	OAlloc1 = OAlloc + NAlign-1,
