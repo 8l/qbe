@@ -78,7 +78,7 @@ enum Reg {
 enum {
 	NString = 32,
 	NPred   = 15,
-	NIns    = 256,
+	NIns    = 8192,
 	NAlign  = 3,
 	NSeg    = 32,
 	NTyp    = 128,
