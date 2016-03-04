@@ -81,7 +81,7 @@ freeall()
 }
 
 Blk *
-bnew()
+blknew()
 {
 	static Blk z;
 	Blk *b;

@@ -133,7 +133,7 @@ static Con *con;
 static int ntmp;
 static int ncon;
 static Phi **plink;
-static Blk *bmap[NBlk+1];
+static Blk **bmap;
 static Blk *curb;
 static Blk **blink;
 static int nblk;
@@ -466,17 +466,12 @@ findblk(char *name)
 {
 	int i;
 
-	assert(name[0]);
-	for (i=0; i<NBlk; i++)
-		if (!bmap[i] || strcmp(bmap[i]->name, name) == 0)
-			break;
-	if (i == NBlk)
-		err("too many blocks");
-	if (!bmap[i]) {
-		bmap[i] = bnew();
-		nblk++;
-		strcpy(bmap[i]->name, name);
-	}
+	for (i=0; i<nblk; i++)
+		if (strcmp(bmap[i]->name, name) == 0)
+			return bmap[i];
+	vgrow(&bmap, ++nblk);
+	bmap[i] = blknew();
+	strcpy(bmap[i]->name, name);
 	return bmap[i];
 }
 
@@ -640,7 +635,6 @@ DoOp:
 static Fn *
 parsefn()
 {
-	int i;
 	PState ps;
 	Fn *fn;
 
@@ -651,11 +645,10 @@ parsefn()
 	curi = insb;
 	tmp = vnew(ntmp, sizeof tmp[0]);
 	con = vnew(ncon, sizeof con[0]);
+	bmap = vnew(nblk, sizeof bmap[0]);
 	con[0].type = CBits;
 	fn = alloc(sizeof *fn);
 	blink = &fn->start;
-	for (i=0; i<NBlk; i++)
-		bmap[i] = 0;
 	if (peek() != TGlo)
 		rcls = parsecls(&fn->retty);
 	else

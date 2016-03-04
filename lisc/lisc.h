@@ -78,7 +78,6 @@ enum Reg {
 enum {
 	NString = 32,
 	NPred   = 15,
-	NBlk    = 128,
 	NIns    = 256,
 	NAlign  = 3,
 	NSeg    = 32,
@@ -467,7 +466,7 @@ void diag(char *);
 void *emalloc(size_t);
 void *alloc(size_t);
 void freeall(void);
-Blk *bnew(void);
+Blk *blknew(void);
 void emit(int, int, Ref, Ref, Ref);
 void emiti(Ins);
 void idup(Ins **, Ins *, ulong);
