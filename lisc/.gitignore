@@ -2,3 +2,4 @@ lisc
 doc
 .comfile
 *.o
+*.out
