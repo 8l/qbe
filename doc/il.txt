@@ -2,10 +2,16 @@
                  QBE Intermediate Language
                 ===========================
 
-Table of Contents:
 
+
+- Table of Contents
+-------------------
+
+  0. Basic Concepts
+      * Sigils
+      * Undefined Behavior
   1. Types
-      * Syntax
+      * Simple Types
       * Subtyping
   2. Definitions
       * Aggregate Types
@@ -27,6 +33,189 @@ Table of Contents:
       * Memory
       * Comparisons
   7. Special Instructions
-      * Phi
-      * Conversions
+      * Conversions and Extensions
       * Casts
+      * Phis
+
+
+- 0. Basic Concepts
+-------------------
+
+~ Sigils
+~~~~~~~~
+
+All user defined names are prefixed with a sigil.  This is
+to avoid keyword conflicts, and also to quickly spot the
+scope and kind of an identifier.
+
+ * `:` Aggregate types, see <@ Aggregate Types >.
+ * `$` File-scope symbols.
+ * `%` Function-scope temporaries.
+
+~ Undefined Behavior
+~~~~~~~~~~~~~~~~~~~~
+
+TODO
+
+
+- 1. Types
+----------
+
+~ Simple Types
+~~~~~~~~~~~~~~
+
+    [BNF]
+    BASETY := 'w' | 'l' | 's' | 'd'  # Base types
+    EXTTY := BASETY | 'h' | 'b'      # Extended types
+
+We makes very minimal use of types.  The types used are only
+what is necessary for unambiguous compilation to machine
+code and C interfacing.
+
+The four base types are `w` (word), `l` (long), `s` (single),
+and `d` (double), they stand respectively for 32 bits and
+64 bits integers, and 32 bits and 64 bits floating points.
+Values in the IR can only have a basic type.
+
+Extended types contain base types and add `h` (half word)
+and `b` (byte), for respectively 16 bits and 8 bits integers.
+They are used in <@ Aggregate Types> and <@ Data> definitions.
+
+The IL also provides user-defined aggregate types, these are
+used for C interfacing.  The syntax used to designate them is
+`:foo`.  Details about their definition are given in the
+<@ Aggregate Types > section.
+
+
+
+~ Subtyping
+~~~~~~~~~~~
+
+The IL has a minimal subtyping feature for integer types.
+Any value of type `l` can be used in a `w` context.  When that
+happens only the 32 least significant bits of the word value
+are used.
+
+Note that a long value must not be used in word context.
+The rationale is that the 32 high bits of the extended long
+value could very well be zeroes or the result of a sign
+extension of the word.
+
+
+- 2. Definitions
+----------------
+
+An IL file is composed of a sequence of top-level definitions.
+Definitions are of three types: Aggregate type definitions,
+global data, and function definitions.  Aggregate types
+always have file scope, data and functions can be exported
+by prefixing the `export` keyword to their definitions.
+
+~ Aggregate Types
+~~~~~~~~~~~~~~~~~
+
+    [BNF]
+    TYPEDEF :=
+      # Regular type
+      'type' :IDNT '=' [ 'align' NUMBER ]
+      '{'
+          ( EXTTY [ NUMBER ] ),
+          [ ',' ]            # Optional trailing ,
+      '}'
+    | # Opaque type
+      'type' :IDNT '=' 'align' NUMBER '{' NUMBER '}'
+
+Aggregate type definitions start with the `type` keyword.
+The inner structure of a type is expressed by a comma
+separated list of <@ Simple Types> enclosed in curly braces.
+
+    type :fourfloats = { s, s, d, d }
+
+For ease of generation, a trailing comma is tolerated by
+the parser.  In case many items of the same type are
+sequenced (like in a C array), the sorter array syntax
+can be used.
+
+    type :abyteandmanywords = { b, w 100 }
+
+By default, the alignment of an aggregate type is the
+biggest alignment of its members.  The alignment can be
+explicitely specified by the programmer
+
+Opaque types are used when the inner structure of an
+aggregate cannot be specified, the alignment for opaque
+types is mandatory.  They are defined by simply enclosing
+their size between curly braces.
+
+    type :opaque = align 16 { 32 }
+
+~ Data
+~~~~~~
+
+   [BNF]
+   DATADEF :=
+     ['export'] 'data' $IDNT '='
+     '{'
+         ( EXTTY DATAITEM+
+         | 'z'   NUMBER    ),
+         [ ',' ]            # Optional trailing ,
+     '}'
+
+   DATAITEM :=
+     $IDNT [ '+' NUMBER ]   # Symbol and offset
+   |  '"' ... '"'           # String
+   |  IMMEDIATE             # Immediate
+
+Data definitions define objects that will be emitted in the
+compiled file.  They can be local to the file or exported
+with global visibility to the whole program.
+
+They define a global identifier (starting with the sigil
+`$`), that will contain a pointer to the object specified
+within curly braces.
+
+Objects are described by a sequence of fields that start with
+a type letter.  This letter can either be an extended type,
+or the `z` letter.
+
+If the letter used is an extended type, the data item
+following specifies the bits to be stored in the field.
+When several data items follow a letter, they initialize
+multiple fields of the same size.
+
+The members of a struct automatically respect their
+natural alignment.  If this is not the desired behavior,
+each and every byte of the object can be specified using
+`b`.
+
+When the `z` letter is used the number following indicates
+the size of the field, the contents of the field are zero
+initialized.
+
+Here are various examples of data definitions.
+
+    # Three 32 bits values 1, 2, and 3
+    # followed by a 0 byte.
+    data $a = { w 1 2 3, b 0 }
+
+    # A thousand bytes 0 initialized.
+    data $b = { z 1000 }
+
+    # An object containing with two 64 bits
+    # fields, with all bits sets and the
+    # other containing a pointer to the
+    # object itself.
+    data $c = { l -1, l $c }
+
+~ Functions
+~~~~~~~~~~~
+
+    [BNF]
+    FUNCDEF :=
+      ['export'] 'function' [BASETY | :IDNT] $IDNT PARAMS
+      '{'
+         BLOCK+
+      '}'
+
+    PARAMS :=
+      '(' ( (BASETY | :IDNT) %IDNT ), ')'
