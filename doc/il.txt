@@ -1,0 +1,32 @@
+                ===========================
+                 QBE Intermediate Language
+                ===========================
+
+Table of Contents:
+
+  1. Types
+      * Syntax
+      * Subtyping
+  2. Definitions
+      * Aggregate Types
+      * Data
+      * Functions
+  3. Control
+      * Blocks
+      * Instructions
+      * Jumps
+  4. Immediate Constants
+      * Semantics
+      * Floating Sugar
+  5. Integer Instructions
+      * Arithmetic
+      * Memory
+      * Comparisons
+  6. Floating Point Instructions
+      * Arithmetic
+      * Memory
+      * Comparisons
+  7. Special Instructions
+      * Phi
+      * Conversions
+      * Casts
