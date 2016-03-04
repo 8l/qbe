@@ -245,13 +245,6 @@ bsmax(BSet *bs)
 	return bs->nt * NBit;
 }
 
-int
-bshas(BSet *bs, uint elt)
-{
-	assert(elt < bsmax(bs));
-	return (bs->t[elt/NBit] & BIT(elt%NBit)) != 0;
-}
-
 void
 bsset(BSet *bs, uint elt)
 {

@@ -482,7 +482,6 @@ void dumpts(BSet *, Tmp *, FILE *);
 void bsinit(BSet *, uint);
 void bszero(BSet *);
 uint bscount(BSet *);
-int bshas(BSet *, uint);
 void bsset(BSet *, uint);
 void bsclr(BSet *, uint);
 void bscopy(BSet *, BSet *);
@@ -491,6 +490,13 @@ void bsinter(BSet *, BSet *);
 void bsdiff(BSet *, BSet *);
 int bsequal(BSet *, BSet *);
 int bsiter(BSet *, uint *);
+
+static inline int
+bshas(BSet *bs, uint elt)
+{
+	assert(elt < bs->nt * NBit);
+	return (bs->t[elt/NBit] & BIT(elt%NBit)) != 0;
+}
 
 /* parse.c */
 extern OpDesc opdesc[NOp];
