@@ -1,0 +1,31 @@
+
+# l is for long word (64bits)
+# w is for word      (32bits)
+# h is for half word (16bits)
+# b is for byte      (8bits)
+
+type :four = {l, b, w}
+
+function $test() {
+ @start
+	%y  =w copy 0
+
+	%s  =l alloc8 16   # allocate a :four struct
+	%s1 =l add %s, 12  # get address of the w
+	storel 3, %s       # set the l
+	storew 4, %s1      # set the w
+
+	# function call with the above :four
+	# struct as first argument and 5 int
+	# arguments
+
+	%f  =l copy $F
+	%x  =w call %f(w %y, w 1, w 2, :four %s, w 5, w 6)
+
+	# store the result in the
+	# global variable a
+
+	%x1 =w add %y, %x
+	storew %x1, $a
+	ret
+}
