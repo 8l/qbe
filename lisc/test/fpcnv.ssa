@@ -19,8 +19,9 @@ function d $ftrunc(d %f) {
 # extern float fneg(float);
 # extern double ftrunc(double);
 # int main() {
-# 	if (fneg(1.234f) != -1.234f) return 1;
-# 	if (ftrunc(3.1415) != 3.0) return 2;
+# 	if (fneg(1.23f) != -1.23f)  return 1;
+# 	if (ftrunc(3.1415) != 3.0)  return 2;
+# 	if (ftrunc(-1.234) != -1.0) return 3;
 # 	return 0;
 # }
 # <<<
