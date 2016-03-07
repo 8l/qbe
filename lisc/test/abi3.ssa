@@ -13,7 +13,7 @@ function $test() {
 	storew 5, %s1      # set the w
 
 	# only the last argument should be on the stack
-	%f  =l add $F, 0
+	%f  =l add $F, %y
 	%x  =w call %f(w %y, w 1, w 2, w 3, :four %s, w 6)
 
 	# store the result in the
