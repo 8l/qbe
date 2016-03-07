@@ -81,7 +81,8 @@ noimm(Ref r, Fn *fn)
 {
 	int64_t val;
 
-	assert(rtype(r) == RCon);
+	if (rtype(r) != RCon)
+		return 0;
 	switch (fn->con[r.val].type) {
 	default:
 		diag("isel: invalid constant");
@@ -161,7 +162,7 @@ fixarg(Ref *r, int k, int phi, Fn *fn)
 		sprintf(a.offset.label, ".Lfp%d", n);
 		fn->mem[fn->nmem-1] = a;
 	}
-	else if (!phi && rtype(r0) == RCon && noimm(r0, fn)) {
+	else if (!phi && k == Kl && noimm(r0, fn)) {
 		/* load constants that do not fit in
 		 * a 32bit signed integer into a
 		 * long temporary
