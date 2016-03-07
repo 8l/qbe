@@ -530,11 +530,11 @@ classify(Ins *i0, Ins *i1, AClass *ac, int op)
 				continue;
 			ni = ns = 0;
 			for (n=0; n<2; n++)
-				if (a->cls[n] == 0)
+				if (KBASE(a->cls[n]) == 0)
 					ni++;
 				else
 					ns++;
-			if (nint > ni && nsse > ns) {
+			if (nint >= ni && nsse >= ns) {
 				nint -= ni;
 				nsse -= ns;
 			} else
