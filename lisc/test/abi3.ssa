@@ -1,26 +1,20 @@
-
-# l is for long word (64bits)
-# w is for word      (32bits)
-# h is for half word (16bits)
-# b is for byte      (8bits)
-
 type :four = {l, b, w}
+
+data $a = { w 0 }
 
 function $test() {
  @start
-	%y  =w copy 0
+	%a  =w loadw $a
+	%y  =w add %a, %a
 
 	%s  =l alloc8 16   # allocate a :four struct
 	%s1 =l add %s, 12  # get address of the w
-	storel 3, %s       # set the l
-	storew 4, %s1      # set the w
+	storel 4, %s       # set the l
+	storew 5, %s1      # set the w
 
-	# function call with the above :four
-	# struct as first argument and 5 int
-	# arguments
-
-	%f  =l copy $F
-	%x  =w call %f(w %y, w 1, w 2, :four %s, w 5, w 6)
+	# only the last argument should be on the stack
+	%f  =l add $F, 0
+	%x  =w call %f(w %y, w 1, w 2, w 3, :four %s, w 6)
 
 	# store the result in the
 	# global variable a
@@ -29,3 +23,21 @@ function $test() {
 	storew %x1, $a
 	ret
 }
+
+# >>> driver
+# #include <stdio.h>
+# struct four { long l; char c; int i; };
+# extern void test(void);
+# int F(int a0, int a1, int a2, int a3, struct four s, int a6) {
+# 	printf("%d %d %d %d %d %d %d\n",
+# 		a0, a1, a2, a3, (int)s.l, s.i, a6);
+# 	return 42;
+# }
+# int a;
+# int main() { test(); printf("%d\n", a); return 0; }
+# <<<
+
+# >>> output
+# 0 1 2 3 4 5 6
+# 42
+# <<<
