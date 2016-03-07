@@ -129,6 +129,13 @@ argcls(Ins *i, int n)
 		return KWIDE(i->cls) ? Kl : Kw;
 	case OSitof:
 		return KWIDE(i->cls) ? Kd : Ks;
+	case OCast:
+		switch (i->cls) {
+		case Kw: return Ks;
+		case Kl: return Kd;
+		case Ks: return Kw;
+		case Kd: return Kl;
+		}
 	default:
 		if (OCmpw <= i->op && i->op <= OCmpd1)
 			diag("isel: invalid call to argcls");
@@ -295,6 +302,9 @@ sel(Ins i, ANum *an, Fn *fn)
 	case OOr:
 	case OXor:
 	case OXTest:
+	case OFtosi:
+	case OSitof:
+	case OCast:
 	case_OExt:
 Emit:
 		emiti(i);
@@ -373,6 +383,7 @@ flagi(Ins *i0, Ins *i)
 		case OTruncd:
 		case OFtosi:
 		case OSitof:
+		case OCast:
 			;
 		}
 	return 0;

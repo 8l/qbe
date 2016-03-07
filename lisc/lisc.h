@@ -253,6 +253,7 @@ enum Op {
 	OTruncd,
 	OFtosi,
 	OSitof,
+	OCast,
 
 	OAlloc,
 	OAlloc1 = OAlloc + NAlign-1,

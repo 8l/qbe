@@ -35,6 +35,7 @@ OpDesc opdesc[NOp] = {
 	[OTruncd] = { "truncd", 0 },
 	[OFtosi]  = { "ftosi",  0 },
 	[OSitof]  = { "sitof",  0 },
+	[OCast]   = { "cast",   0 },
 	[OCopy]   = { "copy",   1 },
 	[ONop]    = { "nop",    0 },
 	[OSwap]   = { "swap",   2 },

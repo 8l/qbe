@@ -77,6 +77,8 @@ static struct {
 	{ OFtosi,  Kl, "cvttsd2si %0, %=" },
 	{ OSitof,  Ks, "cvtsi2ss %W0, %=" },
 	{ OSitof,  Kd, "cvtsi2sd %L0, %=" },
+	{ OCast,   Ki, "movq %D0, %L=" },
+	{ OCast,   Ka, "movq %L0, %D=" },
 
 	{ OAddr,   Ki, "lea%k %M0, %=" },
 	{ OSwap,   Ki, "xchg%k %0, %1" },
