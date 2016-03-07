@@ -56,15 +56,12 @@ visitins(Ins *i, Ref *cp, RList **w)
 {
 	Ref r;
 
-	if (i->op != OCopy) {
-		if (!req(i->to, R)) {
-			assert(rtype(i->to) == RTmp);
-			update(i->to, i->to, cp, w);
-		}
-	} else {
-		assert(rtype(i->to) == RTmp);
+	if (i->op == OCopy) {
 		r = copyof(i->arg[0], cp);
 		update(i->to, r, cp, w);
+	} else if (!req(i->to, R)) {
+		assert(rtype(i->to) == RTmp);
+		update(i->to, i->to, cp, w);
 	}
 }
 
