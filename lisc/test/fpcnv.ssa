@@ -1,0 +1,26 @@
+# floating point casts and conversions
+
+function s $fneg(s %f) {
+@fneg
+	%b0 =w cast %f
+	%b1 =w xor 2147483648, %b0
+	%rs =s cast %b1
+	ret %rs
+}
+
+function d $ftrunc(d %f) {
+@ftrunc
+	%l0 =l ftosi %f
+	%rt =d sitof %l0
+	ret %rt
+}
+
+# >>> driver
+# extern float fneg(float);
+# extern double ftrunc(double);
+# int main() {
+# 	if (fneg(1.234f) != -1.234f) return 1;
+# 	if (ftrunc(3.1415) != 3.0) return 2;
+# 	return 0;
+# }
+# <<<
