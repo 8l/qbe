@@ -1,10 +1,10 @@
 type :four = {l, b, w}
 
-data $a = { w 0 }
+data $z = { w 0 }
 
 function $test() {
  @start
-	%a  =w loadw $a
+	%a  =w loadw $z
 	%y  =w add %a, %a
 
 	%s  =l alloc8 16   # allocate a :four struct
