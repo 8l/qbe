@@ -337,8 +337,7 @@ expect(int t)
 		return;
 	s1 = ttoa[t] ? ttoa[t] : "??";
 	s2 = ttoa[t1] ? ttoa[t1] : "??";
-	snprintf(buf, sizeof buf,
-		"%s expected (got %s instead)", s1, s2);
+	sprintf(buf, "%s expected, got %s instead", s1, s2);
 	err(buf);
 }
 
