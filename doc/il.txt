@@ -183,14 +183,16 @@ following specifies the bits to be stored in the field.
 When several data items follow a letter, they initialize
 multiple fields of the same size.
 
-The members of a struct automatically respect their
-natural alignment.  If this is not the desired behavior,
-each and every byte of the object can be specified using
-`b`.
+The members of a struct will be packed.  This means that
+padding has to be emitted by the frontend when necessary.
+Alignment of the whole data objects can be manually specified,
+when no alignment is provided, the maximum alignment of the
+platform is used.
 
 When the `z` letter is used the number following indicates
 the size of the field, the contents of the field are zero
-initialized.
+initialized.  It can be used to add padding between fields
+or zero-initialize big arrays.
 
 Here are various examples of data definitions.
 
@@ -219,3 +221,9 @@ Here are various examples of data definitions.
 
     PARAMS :=
       '(' ( (BASETY | :IDNT) %IDNT ), ')'
+
+Function definitions contain the actual code to emit in
+the compiled file.  They define a global symbol that can
+be exported or not.  There is no need for function
+declarations, like in C, because all global symbols in
+one program are defined mutually recursive.
