@@ -152,19 +152,19 @@ their size between curly braces.
 ~ Data
 ~~~~~~
 
-   [BNF]
-   DATADEF :=
-     ['export'] 'data' $IDNT '='
-     '{'
-         ( EXTTY DATAITEM+
-         | 'z'   NUMBER    ),
-         [ ',' ]            # Optional trailing ,
-     '}'
+    [BNF]
+    DATADEF :=
+      ['export'] 'data' $IDNT '='
+      '{'
+          ( EXTTY DATAITEM+
+          | 'z'   NUMBER    ),
+          [ ',' ]            # Optional trailing ,
+      '}'
 
-   DATAITEM :=
-     $IDNT [ '+' NUMBER ]   # Symbol and offset
-   |  '"' ... '"'           # String
-   |  IMMEDIATE             # Immediate
+    DATAITEM :=
+      $IDNT [ '+' NUMBER ]   # Symbol and offset
+    |  '"' ... '"'           # String
+    |  IMMEDIATE             # Immediate
 
 Data definitions define objects that will be emitted in the
 compiled file.  They can be local to the file or exported
