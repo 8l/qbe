@@ -2,72 +2,80 @@
 #include <ctype.h>
 #include <stdarg.h>
 
+enum {
+	Kx = -1, /* Invalid operand */
+	Km = Kl, /* Memory pointer */
+};
+
 OpDesc opdesc[NOp] = {
-	/*            NAME     NM */
-	[OAdd]    = { "add",    2 },
-	[OSub]    = { "sub",    2 },
-	[ODiv]    = { "div",    2 },
-	[ORem]    = { "rem",    2 },
-	[OMul]    = { "mul",    2 },
-	[OAnd]    = { "and",    2 },
-	[OOr]     = { "or",     2 },
-	[OXor]    = { "xor",    2 },
-	[OStored] = { "stored", 0 },
-	[OStores] = { "stores", 0 },
-	[OStorel] = { "storel", 0 },
-	[OStorew] = { "storew", 0 },
-	[OStoreh] = { "storeh", 0 },
-	[OStoreb] = { "storeb", 0 },
-	[OLoad]   = { "load",   0 },
-	[OLoadsw] = { "loadsw", 0 },
-	[OLoaduw] = { "loaduw", 0 },
-	[OLoadsh] = { "loadsh", 0 },
-	[OLoaduh] = { "loaduh", 0 },
-	[OLoadsb] = { "loadsb", 0 },
-	[OLoadub] = { "loadub", 0 },
-	[OExtsw]  = { "extsw",  0 },
-	[OExtuw]  = { "extuw",  0 },
-	[OExtsh]  = { "extsh",  0 },
-	[OExtuh]  = { "extuh",  0 },
-	[OExtsb]  = { "extsb",  0 },
-	[OExtub]  = { "extub",  0 },
-	[OExts]   = { "exts",   0 },
-	[OTruncd] = { "truncd", 0 },
-	[OFtosi]  = { "ftosi",  0 },
-	[OSitof]  = { "sitof",  0 },
-	[OCast]   = { "cast",   0 },
-	[OCopy]   = { "copy",   1 },
-	[ONop]    = { "nop",    0 },
-	[OSwap]   = { "swap",   2 },
-	[OSign]   = { "sign",   0 },
-	[OXPush]  = { "xpush",  1 },
-	[OSAlloc] = { "salloc", 0 },
-	[OXDiv]   = { "xdiv",   1 },
-	[OXCmp]   = { "xcmp",   1 },
-	[OXTest]  = { "xtest",  1 },
-	[OAddr]   = { "addr",   0 },
-	[OPar]    = { "parn",   0 },
-	[OParc]   = { "parc",   0 },
-	[OArg]    = { "arg",    0 },
-	[OArgc]   = { "argc",   0 },
-	[OCall]   = { "call",   0 },
-	[OAlloc]   = { "alloc4",  1 },
-	[OAlloc+1] = { "alloc8",  1 },
-	[OAlloc+2] = { "alloc16", 1 },
-	[OXSetnp] = { "xsetnp", 0},
-	[OXSetp]  = { "xsetp",  0},
+#define A(a,b,c,d) {[Kw]=K##a, [Kl]=K##b, [Ks]=K##c, [Kd]=K##d}
+
+	/*            NAME     NM      ARGCLS0     ARGCLS1  */
+	[OAdd]    = { "add",    2, {A(w,l,s,d), A(w,l,s,d)} },
+	[OSub]    = { "sub",    2, {A(w,l,s,d), A(w,l,s,d)} },
+	[ODiv]    = { "div",    2, {A(w,l,s,d), A(w,l,s,d)} },
+	[ORem]    = { "rem",    2, {A(w,l,x,x), A(w,l,x,x)} },
+	[OMul]    = { "mul",    2, {A(w,l,s,d), A(w,l,s,d)} },
+	[OAnd]    = { "and",    2, {A(w,l,s,d), A(w,l,s,d)} },
+	[OOr]     = { "or",     2, {A(w,l,s,d), A(w,l,s,d)} },
+	[OXor]    = { "xor",    2, {A(w,l,s,d), A(w,l,s,d)} },
+	[OStored] = { "stored", 0, {A(d,d,d,d), A(m,m,m,m)} },
+	[OStores] = { "stores", 0, {A(s,s,s,s), A(m,m,m,m)} },
+	[OStorel] = { "storel", 0, {A(l,l,l,l), A(m,m,m,m)} },
+	[OStorew] = { "storew", 0, {A(w,w,w,w), A(m,m,m,m)} },
+	[OStoreh] = { "storeh", 0, {A(w,w,w,w), A(m,m,m,m)} },
+	[OStoreb] = { "storeb", 0, {A(w,w,w,w), A(m,m,m,m)} },
+	[OLoad]   = { "load",   0, {A(m,m,m,m), A(x,x,x,x)} },
+	[OLoadsw] = { "loadsw", 0, {A(m,m,m,m), A(x,x,x,x)} },
+	[OLoaduw] = { "loaduw", 0, {A(m,m,m,m), A(x,x,x,x)} },
+	[OLoadsh] = { "loadsh", 0, {A(m,m,m,m), A(x,x,x,x)} },
+	[OLoaduh] = { "loaduh", 0, {A(m,m,m,m), A(x,x,x,x)} },
+	[OLoadsb] = { "loadsb", 0, {A(m,m,m,m), A(x,x,x,x)} },
+	[OLoadub] = { "loadub", 0, {A(m,m,m,m), A(x,x,x,x)} },
+	[OExtsw]  = { "extsw",  0, {A(w,w,w,w), A(x,x,x,x)} },
+	[OExtuw]  = { "extuw",  0, {A(w,w,w,w), A(x,x,x,x)} },
+	[OExtsh]  = { "extsh",  0, {A(w,w,w,w), A(x,x,x,x)} },
+	[OExtuh]  = { "extuh",  0, {A(w,w,w,w), A(x,x,x,x)} },
+	[OExtsb]  = { "extsb",  0, {A(w,w,w,w), A(x,x,x,x)} },
+	[OExtub]  = { "extub",  0, {A(w,w,w,w), A(x,x,x,x)} },
+	[OExts]   = { "exts",   0, {A(w,w,w,w), A(x,x,x,x)} },
+	[OTruncd] = { "truncd", 0, {A(d,d,d,d), A(x,x,x,x)} },
+	[OFtosi]  = { "ftosi",  0, {A(s,d,x,x), A(x,x,x,x)} },
+	[OSitof]  = { "sitof",  0, {A(x,x,w,l), A(x,x,x,x)} },
+	[OCast]   = { "cast",   0, {A(s,d,w,l), A(x,x,x,x)} },
+	[OCopy]   = { "copy",   1, {A(w,l,s,d), A(x,x,x,x)} },
+	[ONop]    = { "nop",    0, {A(x,x,x,x), A(x,x,x,x)} },
+	[OSwap]   = { "swap",   2, {A(w,l,s,d), A(w,l,s,d)} },
+	[OSign]   = { "sign",   0, {A(w,l,x,x), A(x,x,x,x)} },
+	[OSAlloc] = { "salloc", 0, {A(x,l,x,x), A(x,x,x,x)} },
+	[OXDiv]   = { "xdiv",   1, {A(w,l,x,x), A(x,x,x,x)} },
+	[OXCmp]   = { "xcmp",   1, {A(w,l,s,d), A(w,l,s,d)} },
+	[OXTest]  = { "xtest",  1, {A(w,l,x,x), A(w,l,x,x)} },
+	[OAddr]   = { "addr",   0, {A(x,m,x,x), A(x,x,x,x)} },
+	[OPar]    = { "parn",   0, {A(x,x,x,x), A(x,x,x,x)} },
+	[OParc]   = { "parc",   0, {A(x,x,x,x), A(x,x,x,x)} },
+	[OArg]    = { "arg",    0, {A(x,x,x,x), A(x,x,x,x)} },
+	[OArgc]   = { "argc",   0, {A(x,x,x,x), A(x,x,x,x)} },
+	[OCall]   = { "call",   0, {A(m,m,m,m), A(x,x,x,x)} },
+	[OXSetnp] = { "xsetnp", 0, {A(x,x,x,x), A(x,x,x,x)} },
+	[OXSetp]  = { "xsetp",  0, {A(x,x,x,x), A(x,x,x,x)}},
+	[OAlloc]   = { "alloc4",  1, {A(l,l,l,l), A(x,x,x,x)} },
+	[OAlloc+1] = { "alloc8",  1, {A(l,l,l,l), A(x,x,x,x)} },
+	[OAlloc+2] = { "alloc16", 1, {A(l,l,l,l), A(x,x,x,x)} },
 #define X(c) \
-	[OCmpw+IC##c] = { "c"    #c "w", 0 }, \
-	[OCmpl+IC##c] = { "c"    #c "l", 0 }, \
-	[OXSet+IC##c] = { "xset" #c,     0 },
+	[OCmpw+IC##c] = { "c"    #c "w", 0, {A(w,w,x,x), A(w,w,x,x)} }, \
+	[OCmpl+IC##c] = { "c"    #c "l", 0, {A(l,l,x,x), A(l,l,x,x)} }, \
+	[OXSet+IC##c] = { "xset" #c,     0, {A(x,x,x,x), A(x,x,x,x)} },
 	ICMPS(X)
 #undef X
 #define X(c) \
-	[OCmps+FC##c] = { "c"    #c "s", 0 }, \
-	[OCmpd+FC##c] = { "c"    #c "d", 0 },
+	[OCmps+FC##c] = { "c"    #c "s", 0, {A(s,s,x,x), A(s,s,x,x)} }, \
+	[OCmpd+FC##c] = { "c"    #c "d", 0, {A(d,d,x,x), A(d,d,x,x)} },
 	FCMPS(X)
 #undef X
+
 };
+#undef A
 
 typedef enum {
 	PXXX,
@@ -983,7 +991,6 @@ printfn(Fn *fn, FILE *f)
 		[OSwap] = 1,
 		[OXCmp] = 1,
 		[OXTest] = 1,
-		[OXPush] = 1,
 		[OXDiv] = 1,
 	};
 	static char ktoc[] = "wlsd";

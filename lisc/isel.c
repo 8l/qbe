@@ -291,7 +291,6 @@ sel(Ins i, ANum *an, Fn *fn)
 	case_OLoad:
 		seladdr(&i.arg[0], an, fn);
 		goto Emit;
-	case OXPush:
 	case OCall:
 	case OSAlloc:
 	case OCopy:

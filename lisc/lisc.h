@@ -274,7 +274,6 @@ enum Op {
 	OSwap,
 	OSign,
 	OSAlloc,
-	OXPush,
 	OXDiv,
 	OXCmp,
 	OXSet,
@@ -303,6 +302,7 @@ enum Jmp {
 struct OpDesc {
 	char *name;
 	int nmem;
+	char argcls[2][4];
 };
 
 struct Ins {
