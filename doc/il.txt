@@ -203,8 +203,8 @@ Here are various examples of data definitions.
     # A thousand bytes 0 initialized.
     data $b = { z 1000 }
 
-    # An object containing with two 64 bits
-    # fields, with all bits sets and the
+    # An object containing two 64 bits
+    # fields, one with all bits sets and the
     # other containing a pointer to the
     # object itself.
     data $c = { l -1, l $c }
