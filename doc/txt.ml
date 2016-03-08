@@ -27,19 +27,28 @@ end
 let warn n e =
   Printf.eprintf "Warning line %d: %s.\n" n e
 
-let dedent s =
+let getdent s =
   let rec f n =
-    if n >= String.length s then (0, "") else
+    if n >= String.length s then 0 else
     if s.[n] = ' ' then f (n+1) else
     if s.[n] = '\t' then f (n+8) else
-    (n/dent, String.suff s n) in
+    n/dent in
   f 0
+
+let dedent s i =
+  let rec f i j =
+    if i <= 0 then (-i, j) else
+    if j >= String.length s then (0, j) else
+    if s.[j] = ' ' then f (i-1) (j+1) else
+    if s.[j] = '\t' then f (i-8) (j+1) else
+    (0, j) in
+  let (p, j) = f (i*dent) 0 in
+  String.make p ' ' ^ String.suff s j
 
 let rec getlines acc n =
   match try Some (read_line ()) with End_of_file -> None with
   | Some s ->
-    let (lvl, s) = dedent s in
-    getlines ((n, lvl, s) :: acc) (n+1)
+    getlines ((n, getdent s, s) :: acc) (n+1)
   | None -> List.rev acc
 
 let endnum s =
@@ -52,6 +61,7 @@ let endnum s =
     0 in
   f 0
 let skipnum s = String.suff s (endnum s)
+let skipbullet s = String.suff (dedent s 1000) 2
 
 let gettitles lines =
   let titles = Hashtbl.create 100 in
@@ -82,14 +92,14 @@ let push lines l =
   lines := l :: !lines
 
 let isolist l = endnum l <> 0
-let isulist l = String.haspref "* " l
+let isulist l = String.haspref "* " (dedent l 1000)
 
 let getverb lines idnt =
   let rec f ls =
     match top lines with
     | Some (n, i, l) when i >= idnt || l = "" ->
       pop lines |> ignore;
-      f (l :: ls)
+      f (dedent l idnt :: ls)
     | _ ->
       let ls =
         if List.hd ls = ""
@@ -148,7 +158,7 @@ let rec getdoc lines si acc =
     end else
     if i = si && isulist l then begin             (* Ulist item *)
       pop lines |> ignore;
-      push lines (n, i+1, String.suff l 2);
+      push lines (n, i+1, skipbullet l);
       let li = getdoc lines (si+1) [] in
       getdoc lines si (Ulist [li] :: acc);
     end else
