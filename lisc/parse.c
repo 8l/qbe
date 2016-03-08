@@ -799,6 +799,8 @@ parsedat(void cb(Dat *))
 	Dat d;
 
 	d.type = DStart;
+	d.isstr = 0;
+	d.isref = 0;
 	cb(&d);
 	if (nextnl() != TGlo || nextnl() != TEq)
 		err("data name, then = expected");

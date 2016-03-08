@@ -538,6 +538,7 @@ emitfn(Fn *fn, FILE *f)
 void
 emitdat(Dat *d, FILE *f)
 {
+	static int align;
 	static char *dtoa[] = {
 		[DAlign] = ".align",
 		[DB] = "\t.byte",
@@ -548,11 +549,14 @@ emitdat(Dat *d, FILE *f)
 
 	switch (d->type) {
 	case DStart:
+		align = 0;
 		fprintf(f, ".data\n");
 		break;
 	case DEnd:
 		break;
 	case DName:
+		if (!align)
+			fprintf(f, ".align 8\n");
 		fprintf(f,
 			".globl %s\n"
 			".type %s, @object\n"
@@ -563,19 +567,24 @@ emitdat(Dat *d, FILE *f)
 	case DZ:
 		fprintf(f, "\t.fill %"PRId64",1,0\n", d->u.num);
 		break;
-	case DB:
-		if (d->isstr) {
-			fprintf(f, "\t.ascii \"%s\"\n", d->u.str);
-			break;
-		}
-		/* fallthrough */
 	default:
-		if (d->isstr)
-			err("strings only supported for 'b' currently");
-		if (d->isref)
-			fprintf(f, "%s %s%+"PRId64"\n", dtoa[d->type], d->u.ref.nam, d->u.ref.off);
-		else
-			fprintf(f, "%s %"PRId64"\n", dtoa[d->type], d->u.num);
+		if (d->type == DAlign)
+			align = 1;
+
+		if (d->isstr) {
+			if (d->type != DB)
+				err("strings only supported for 'b' currently");
+			fprintf(f, "\t.ascii \"%s\"\n", d->u.str);
+		}
+		else if (d->isref) {
+			fprintf(f, "%s %s%+"PRId64"\n",
+				dtoa[d->type], d->u.ref.nam,
+				d->u.ref.off);
+		}
+		else {
+			fprintf(f, "%s %"PRId64"\n",
+				dtoa[d->type], d->u.num);
+		}
 		break;
 	}
 }
