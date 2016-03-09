@@ -111,12 +111,9 @@ let getverb lines idnt =
       pop lines;
       f (dedent l idnt :: ls)
     | _ ->
-      let ls =
-        if List.hd ls = ""
-          then List.tl ls
-          else ls in
       List.rev ls |>
-      String.concat "\n" in
+      String.concat "\n" |>
+      String.trim in
   f []
 
 let getpar lines idnt =
