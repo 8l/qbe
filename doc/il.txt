@@ -8,6 +8,8 @@
 -------------------
 
   1. <@ Basic Concepts >
+      * <@ Input Files >
+      * <@ BNF Syntax >
       * <@ Sigils >
   2. <@ Types >
       * <@ Simple Types >
@@ -16,10 +18,10 @@
       * <@ Aggregate Types >
       * <@ Data >
       * <@ Functions >
-  4. Control
-      * Blocks
-      * Instructions
-      * Jumps
+  4. <@ Control >
+      * <@ Blocks >
+      * <@ Instructions >
+      * <@ Jumps >
   5. Immediate Constants
       * Semantics
       * Floating Sugar
@@ -34,23 +36,77 @@
   8. Special Instructions
       * Conversions and Extensions
       * Casts
-      * Phis
-
+      * Phi
 
 - 1. Basic Concepts
 -------------------
 
+The intermediate language (IL) is a higher-level language
+than the machine's assembly language.  It smoothes most
+of the irregularities of the underlying hardware and
+allows an infinite number of temporaries to be used.
+This higher abstraction level allows frontend programmers
+to focus on language design issues.
+
+~ Input Files
+~~~~~~~~~~~~~
+
+The intermediate language is provided to QBE as text files.
+Usually, one file is generated per each compilation unit of
+the frontend input language.  An IL file is a sequence of
+<@ Definitions > for data, functions, and types.  Once
+processed by QBE, the resulting file can be assembled and
+linked using a standard toolchain (e.g. GNU binutils).
+
+Here is a complete "Hello World" IL file, it defines a
+function that prints to the screen.  Since the string is
+not a first class object (only the pointer is) it is
+defined outside the function's body.
+
+    # Define the string constant.
+    data $str = { b "hello world", b 0 }
+
+    function w $main() {
+    @start
+            # Call the puts function with $str as argument.
+            %r =w call $puts(l $str)
+            ret 0
+    }
+
+If you have read the LLVM language reference, you might
+recognize the above example.  In comparison, QBE makes a
+much lighter use of types and the syntax is terser.
+
+~ BNF Syntax
+~~~~~~~~~~~~
+
+The language syntax is vaporously described in the sections
+below using BNF syntax.  The different BNF constructs used
+are described in the following list.
+
+  * Keywords are enclosed between quotes;
+  * `... | ...` expresses disjunctions;
+  * `[ ... ]` marks some syntax as optional;
+  * `( ... ),` designates a comma-separated list of the
+    enclosed syntax;
+  * `...*` and `...+` as used for arbitrary and
+    at-least-once repetition.
+
 ~ Sigils
 ~~~~~~~~
 
-All user defined names are prefixed with a sigil.  This is
+The intermediate language makes heavy use of sigils, all
+user-defined names are prefixed with a sigil.  This is
 to avoid keyword conflicts, and also to quickly spot the
 scope and kind of an identifier.
 
- * `:` Aggregate types, see <@ Aggregate Types >.
- * `$` File-scope symbols.
- * `%` Function-scope temporaries.
+ * `:` is for user-defined <@ Aggregate Types>
+ * `$` is for globals (represented by a pointer)
+ * `%` is for function-scope temporaries
+ * `@` is for function labels
 
+In BNF syntax, we use `?IDENT` to designate an identifier
+starting with the sigil `?`.
 
 - 2. Types
 ----------
@@ -58,9 +114,9 @@ scope and kind of an identifier.
 ~ Simple Types
 ~~~~~~~~~~~~~~
 
-    [BNF]
+    `bnf
     BASETY := 'w' | 'l' | 's' | 'd'  # Base types
-    EXTTY := BASETY | 'h' | 'b'      # Extended types
+    EXTTY  := BASETY    | 'h' | 'b'  # Extended types
 
 We makes very minimal use of types.  The types used are only
 what is necessary for unambiguous compilation to machine
@@ -69,18 +125,16 @@ code and C interfacing.
 The four base types are `w` (word), `l` (long), `s` (single),
 and `d` (double), they stand respectively for 32 bits and
 64 bits integers, and 32 bits and 64 bits floating points.
-Values in the IR can only have a basic type.
+Temporaries in the IL can only have a basic type.
 
 Extended types contain base types and add `h` (half word)
-and `b` (byte), for respectively 16 bits and 8 bits integers.
+and `b` (byte), respectively for 16 bits and 8 bits integers.
 They are used in <@ Aggregate Types> and <@ Data> definitions.
 
 The IL also provides user-defined aggregate types, these are
 used for C interfacing.  The syntax used to designate them is
 `:foo`.  Details about their definition are given in the
 <@ Aggregate Types > section.
-
-
 
 ~ Subtyping
 ~~~~~~~~~~~
@@ -99,29 +153,32 @@ extension of the word.
 - 3. Definitions
 ----------------
 
-An IL file is composed of a sequence of top-level definitions.
-Definitions are of three types: Aggregate type definitions,
-global data, and function definitions.  Aggregate types
-always have file scope, data and functions can be exported
-by prefixing the `export` keyword to their definitions.
+Definitions are the essential components of an IL file.
+They can define three types of objects: Aggregate types,
+data, and functions.  Aggregate types are never exported
+and do not compile to any code.  Data and function
+definitions have file scope and are mutually recursive
+(even across IL files).  Their visibility can be controlled
+using the `export` keyword.
 
 ~ Aggregate Types
 ~~~~~~~~~~~~~~~~~
 
-    [BNF]
+    `bnf
     TYPEDEF :=
-      # Regular type
-      'type' :IDNT '=' [ 'align' NUMBER ]
-      '{'
-          ( EXTTY [ NUMBER ] ),
-          [ ',' ]            # Optional trailing ,
-      '}'
-    | # Opaque type
-      'type' :IDNT '=' 'align' NUMBER '{' NUMBER '}'
+        # Regular type
+        'type' :IDENT '=' [ 'align' NUMBER ]
+        '{'
+            ( EXTTY [ NUMBER ] ),
+        '}'
+      | # Opaque type
+        'type' :IDENT '=' 'align' NUMBER '{' NUMBER '}'
 
 Aggregate type definitions start with the `type` keyword.
-The inner structure of a type is expressed by a comma
-separated list of <@ Simple Types> enclosed in curly braces.
+They have file scope but types must be defined before their
+first use.  The inner structure of a type is expressed by a
+comma separated list of <@ Simple Types> enclosed in curly
+braces.
 
     type :fourfloats = { s, s, d, d }
 
@@ -133,7 +190,7 @@ can be used.
     type :abyteandmanywords = { b, w 100 }
 
 By default, the alignment of an aggregate type is the
-biggest alignment of its members.  The alignment can be
+maximum alignment of its members.  The alignment can be
 explicitely specified by the programmer
 
 Opaque types are used when the inner structure of an
@@ -146,19 +203,18 @@ their size between curly braces.
 ~ Data
 ~~~~~~
 
-    [BNF]
+    `bnf
     DATADEF :=
-      ['export'] 'data' $IDNT '='
-      '{'
-          ( EXTTY DATAITEM+
-          | 'z'   NUMBER    ),
-          [ ',' ]            # Optional trailing ,
-      '}'
+        ['export'] 'data' $IDENT '='
+        '{'
+            ( EXTTY DATAITEM+
+            | 'z'   NUMBER ),
+        '}'
 
     DATAITEM :=
-      $IDNT [ '+' NUMBER ]   # Symbol and offset
-    |  '"' ... '"'           # String
-    |  IMMEDIATE             # Immediate
+        $IDENT [ '+' NUMBER ]  # Symbol and offset
+      |  '"' ... '"'           # String
+      |  IMMEDIATE             # Immediate
 
 Data definitions define objects that will be emitted in the
 compiled file.  They can be local to the file or exported
@@ -166,22 +222,20 @@ with global visibility to the whole program.
 
 They define a global identifier (starting with the sigil
 `$`), that will contain a pointer to the object specified
-within curly braces.
+by the definition.
 
 Objects are described by a sequence of fields that start with
 a type letter.  This letter can either be an extended type,
-or the `z` letter.
-
-If the letter used is an extended type, the data item
-following specifies the bits to be stored in the field.
-When several data items follow a letter, they initialize
-multiple fields of the same size.
+or the `z` letter.  If the letter used is an extended type,
+the data item following specifies the bits to be stored in
+the field.  When several data items follow a letter, they
+initialize multiple fields of the same size.
 
 The members of a struct will be packed.  This means that
 padding has to be emitted by the frontend when necessary.
 Alignment of the whole data objects can be manually specified,
-when no alignment is provided, the maximum alignment of the
-platform is used.
+and when no alignment is provided, the maximum alignment of
+the platform is used.
 
 When the `z` letter is used the number following indicates
 the size of the field, the contents of the field are zero
@@ -206,18 +260,53 @@ Here are various examples of data definitions.
 ~ Functions
 ~~~~~~~~~~~
 
-    [BNF]
+    `bnf
     FUNCDEF :=
-      ['export'] 'function' [BASETY | :IDNT] $IDNT PARAMS
-      '{'
-         BLOCK+
-      '}'
+        ['export'] 'function' [BASETY | :IDENT] $IDENT PARAMS
+        '{'
+           BLOCK+
+        '}'
 
-    PARAMS :=
-      '(' ( (BASETY | :IDNT) %IDNT ), ')'
+    PARAMS := '(' ( (BASETY | :IDENT) %IDENT ), ')'
 
 Function definitions contain the actual code to emit in
-the compiled file.  They define a global symbol that can
-be exported or not.  There is no need for function
-declarations, like in C, because all global symbols in
-one program are defined mutually recursive.
+the compiled file.  They define a global symbol that
+contains a pointer to the function code.  This pointer
+can be used in call instructions or stored in memory.
+
+Since global symbols are defined mutually recursive,
+there is no need for function declarations: A function
+can be referenced before its definition.
+Similarly, functions from other modules can be used
+without previous declarations.  All the type information
+is provided in the call instructions.
+
+The syntax and semantics for the body of functions
+is described in the <@ Control > section.
+
+- Control
+---------
+
+The IL represents programs as textual transcriptions of
+control flow graphs.  A program is given as a sequence
+of blocks of straight-line instructions ending with a
+jump to other blocks or returning from the function.
+Because QBE uses static single assignment, blocks
+can start with a sequence of <@ Phi > instructions.
+
+~ Blocks
+~~~~~~~~
+
+    `bnf
+    BLOCK :=
+        @IDENT    # Block label
+        PHI*      # Phi instructions
+        INST*     # Regular instructions
+        JUMP      # Jump or return
+
+
+~ Instructions
+~~~~~~~~~~~~~~
+
+~ Jumps
+~~~~~~~
