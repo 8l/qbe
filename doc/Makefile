@@ -1,6 +1,8 @@
 .PHONY: all clean
 
-all: html/abi.html html/il.html
+DOCS = abi il
+
+all: $(DOCS:%=html/%.html)
 
 clean:
 	rm -fr html
