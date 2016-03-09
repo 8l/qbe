@@ -65,7 +65,7 @@ Data classes of interest as defined by the ABI:
   * Use `%rax` and `%rdx` in order for INTEGER return
     values.
   * Use `%xmm0` and `%xmm1` in order for SSE return values.
-  * I the return value's class is MEMORY, the first
+  * If the return value's class is MEMORY, the first
     argument of the function `%rdi` was a pointer to an
     area big enough to fit the return value.  The function
     writes the return value there and returns the address
