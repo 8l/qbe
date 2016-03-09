@@ -98,10 +98,10 @@ g() to f().
               |    |xxxxxxxxxxxxx| /
               |    +-------------+ -> 0 mod 16
               |    |   ret addr  |
-                   +-------------+ -> f()'s %rbp
+                   +-------------+
                    |  saved %rbp |
-                   +-------------+ -> 0 mod 16
-                   | f() locals  |
+                   +-------------+ -> f()'s %rbp
+                   | f() locals  |    0 mod 16
                    |   ...       |
                                    -> %rsp
 
