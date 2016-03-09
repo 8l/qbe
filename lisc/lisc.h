@@ -303,6 +303,8 @@ struct OpDesc {
 	char *name;
 	int nmem;
 	char argcls[2][4];
+	uint sflag:1; /* sets flags */
+	uint lflag:1; /* leaves flags */
 };
 
 struct Ins {

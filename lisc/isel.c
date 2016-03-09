@@ -110,41 +110,7 @@ rslot(Ref r, Fn *fn)
 static int
 argcls(Ins *i, int n)
 {
-	switch (i->op) {
-	case OStores:
-		return n == 0 ? Ks : Kl;
-	case OStored:
-		return n == 0 ? Kd : Kl;
-	case OStoreb:
-	case OStoreh:
-	case OStorew:
-		return n == 0 ? Kw : Kl;
-	case OStorel:
-		return Kl;
-	case OExts:
-		return Ks;
-	case OTruncd:
-		return Kd;
-	case OFtosi:
-		return KWIDE(i->cls) ? Kl : Kw;
-	case OSitof:
-		return KWIDE(i->cls) ? Kd : Ks;
-	case OCast:
-		switch (i->cls) {
-		case Kw: return Ks;
-		case Kl: return Kd;
-		case Ks: return Kw;
-		case Kd: return Kl;
-		}
-	default:
-		if (OCmpw <= i->op && i->op <= OCmpd1)
-			diag("isel: invalid call to argcls");
-		if (isload(i->op))
-			return Kl;
-		if (isext(i->op))
-			return Kw;
-		return i->cls;
-	}
+	return opdesc[i->op].argcls[n][i->cls];
 }
 
 static void
@@ -357,34 +323,14 @@ Emit:
 static Ins *
 flagi(Ins *i0, Ins *i)
 {
-	while (i>i0)
-		switch ((--i)->op) {
-		default:
-			if (iscmp(i->op, 0, 0))
-				return i;
-			if (isext(i->op) || isload(i->op))
-				continue;
-			return 0;
-		case OAdd:  /* flag-setting */
-		case OSub:
-		case OAnd:
-		case OOr:
-		case OXor:
+	while (i>i0) {
+		i--;
+		if (opdesc[i->op].sflag)
 			return i;
-		case OCopy: /* flag-transparent */
-		case OStored:
-		case OStores:
-		case OStorel:
-		case OStorew:
-		case OStoreh:
-		case OStoreb:
-		case OExts:
-		case OTruncd:
-		case OFtosi:
-		case OSitof:
-		case OCast:
-			;
-		}
+		if (opdesc[i->op].lflag)
+			continue;
+		return 0;
+	}
 	return 0;
 }
 
