@@ -175,9 +175,9 @@ let rec getdoc lines si acc =
     if i > si then begin                          (* Verb item *)
       let ty =
         let l = dedent l i in
-        if l.[0] <> '[' then "" else begin
+        if l.[0] <> '`' then "" else begin
           pop lines;
-          l
+          String.suff l 1
         end in
       let verb = getverb lines (si+1) in
       getdoc lines si (Verb (ty, verb) :: acc);
@@ -292,8 +292,10 @@ let rec dochtml titles d =
       printf "<ul>\n";
       plist l;
       printf "</ul>\n";
-    | Verb (_, v) ->
-      printf "<pre>\n";
+    | Verb (cls, v) ->
+      if cls <> ""
+      then printf "<pre class=\"%s\">" cls
+      else printf "<pre>\n";
       escape v;
       printf "\n</pre>\n";
     | Par p ->
