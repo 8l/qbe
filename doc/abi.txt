@@ -77,7 +77,7 @@ Data classes of interest as defined by the ABI:
 
 The ABI is unclear on the alignment requirement of the
 stack.  What must be ensured is that, right before
-executing a 'call' instruction, the stack pointer %rsp
+executing a 'call' instruction, the stack pointer `%rsp`
 is aligned on 16 bytes.  On entry of the called
 function, the stack pointer is 8 modulo 16.  Since most
 functions will have a prelude pushing `%rbp`, the frame
