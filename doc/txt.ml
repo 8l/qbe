@@ -271,11 +271,11 @@ let rec dochtml titles d =
     | Title (0, n, t) ->
       printf "<h3><a id='%d'>" n;
       escape t;
-      printf "</h3>\n";
+      printf "</a></h3>\n";
     | Title (_, n, t) ->
-      printf "<h3><a id='%d'>" n;
+      printf "<h4><a id='%d'>" n;
       escape t;
-      printf "</h4>\n";
+      printf "</a></h4>\n";
     | Olist l ->
       printf "<ol>\n";
       plist l;
