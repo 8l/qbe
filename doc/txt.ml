@@ -51,17 +51,18 @@ let rec getlines acc n =
     getlines ((n, getdent s, s) :: acc) (n+1)
   | None -> List.rev acc
 
-let endnum s =
+let matchs skip fin s =
   let rec f n =
     if n >= String.length s then 0 else
-    let c = Char.code s.[n] in
-    if c >= 48 && c <= 57 then f (n+1) else
-    if s.[n] = ' ' then f (n+1) else
-    if s.[n] = '.' then (n+1) else
+    if s.[n] = fin then (n+1) else
+    if String.contains skip s.[n] then f (n+1) else
     0 in
   f 0
+
+let endnum = matchs " 0123456789" '.'
+let endbul = matchs " " '*'
 let skipnum s = String.suff s (endnum s)
-let skipbullet s = String.suff (dedent s 1000) 2
+let skipbul s = String.suff s (endbul s)
 
 let gettitles lines =
   let titles = Hashtbl.create 100 in
@@ -92,7 +93,7 @@ let push lines l =
   lines := l :: !lines
 
 let isolist l = endnum l <> 0
-let isulist l = String.haspref "* " (dedent l 1000)
+let isulist l = endbul l <> 0
 
 let getverb lines idnt =
   let rec f ls =
@@ -158,7 +159,7 @@ let rec getdoc lines si acc =
     end else
     if i = si && isulist l then begin             (* Ulist item *)
       pop lines |> ignore;
-      push lines (n, i+1, skipbullet l);
+      push lines (n, i+1, skipbul l);
       let li = getdoc lines (si+1) [] in
       getdoc lines si (Ulist [li] :: acc);
     end else
