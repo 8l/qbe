@@ -4,7 +4,7 @@
 
 
 This document describes concisely the subset of the x64
-as it is implemented in QBE.  The subset can handle
+ABI as it is implemented in QBE.  The subset can handle
 correctly arbitrary standard C-like structs containing
 float and integer types.  Structs that have unaligned
 members are also supported through "dark" types, see
