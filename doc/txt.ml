@@ -10,6 +10,8 @@ and item =
 
 let (|>) x f = f x
 
+let isspace = String.contains " \n\t"
+
 module String = struct
   include String
 
@@ -22,6 +24,15 @@ module String = struct
     let lp = String.length p in
     String.length s >= lp &&
     p = String.sub s 0 lp
+
+  let trim s =
+    let l = String.length s in
+    let i = ref 0 and j = ref (l-1) in
+    while !i<l && isspace s.[!i]
+      do incr i done;
+    while !j>=0 && isspace s.[!j]
+      do decr j done;
+    if !j = -1 then s else sub s !i (!j- !i+1)
 end
 
 let warn = Printf.eprintf
@@ -66,7 +77,7 @@ let skipbul s = String.suff s (endbul s)
 let gettitles lines =
   let titles = Hashtbl.create 100 in
   let insert lvl n t =
-    let t = skipnum (String.suff t 2) in
+    let t = String.trim (skipnum (String.suff t 2)) in
     if Hashtbl.mem titles t then
       warn "line %d: title has multiple definitions\n" n;
     Hashtbl.add titles t (lvl, n) in
@@ -199,7 +210,6 @@ type printer =
 
 let print pp s =
   let l = String.length s in
-  let isspace = String.contains " \n\t" in
   let rec getlink j spc =
     if j >= l || s.[j] = '>' then j+1, "" else
     if isspace s.[j] then
@@ -212,9 +222,7 @@ let print pp s =
         j', Printf.sprintf  "%c%s" s.[j] t in
   let getlink j =
     let j', s = getlink j false in
-    if isspace s.[0]
-      then j', String.suff s 1
-      else j', s in
+    j', String.trim s in
   let rec getdlim j d =
     if j >= l || s.[j] = d then j+1, "" else
     let j', t = getdlim (j+1) d in
