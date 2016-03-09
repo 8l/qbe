@@ -6,7 +6,7 @@ and item =
   | Par of string
   | Ulist of doc list
   | Olist of doc list
-  | Title of int * string
+  | Title of int * int * string
 
 let (|>) x f = f x
 
@@ -24,8 +24,7 @@ module String = struct
     p = String.sub s 0 lp
 end
 
-let warn n e =
-  Printf.eprintf "Warning line %d: %s.\n" n e
+let warn = Printf.eprintf
 
 let getdent s =
   let rec f n =
@@ -67,9 +66,9 @@ let skipbul s = String.suff s (endbul s)
 let gettitles lines =
   let titles = Hashtbl.create 100 in
   let insert lvl n t =
-    let t = skipnum t in
+    let t = skipnum (String.suff t 2) in
     if Hashtbl.mem titles t then
-      warn n "title has multiple definitions";
+      warn "line %d: title has multiple definitions\n" n;
     Hashtbl.add titles t (lvl, n) in
   lines |> List.iter begin fun (n, lvl, t) ->
     if lvl <> 0 then () else
@@ -85,10 +84,7 @@ let top lines =
   | l :: _ -> Some l
 
 let pop lines =
-  match top lines with
-  | None -> None
-  | l -> lines := List.tl !lines; l
-
+  lines := List.tl !lines
 let push lines l =
   lines := l :: !lines
 
@@ -99,7 +95,7 @@ let getverb lines idnt =
   let rec f ls =
     match top lines with
     | Some (n, i, l) when i >= idnt || l = "" ->
-      pop lines |> ignore;
+      pop lines;
       f (dedent l idnt :: ls)
     | _ ->
       let ls =
@@ -118,7 +114,7 @@ let getpar lines idnt =
         && l <> ""
         && not (isolist l)
         && not (isulist l) ->
-      pop lines |> ignore;
+      pop lines;
       f (l :: ls)
     | _ ->
       List.rev ls |>
@@ -152,37 +148,38 @@ let rec getdoc lines si acc =
   match top lines with
   | Some (n, i, l) ->
     if i = si && isolist l then begin             (* Olist item *)
-      pop lines |> ignore;
+      pop lines;
       push lines (n, i+1, skipnum l);
       let li = getdoc lines (si+1) [] in
       getdoc lines si (Olist [li] :: acc);
     end else
     if i = si && isulist l then begin             (* Ulist item *)
-      pop lines |> ignore;
+      pop lines;
       push lines (n, i+1, skipbul l);
       let li = getdoc lines (si+1) [] in
       getdoc lines si (Ulist [li] :: acc);
     end else
     if i > si then begin                          (* Verb item *)
       let ty =
+        let l = dedent l i in
         if l.[0] <> '[' then "" else begin
-          pop lines |> ignore;
+          pop lines;
           l
         end in
       let verb = getverb lines i in
       getdoc lines si (Verb (ty, verb) :: acc);
     end else
     if si = 0 && String.haspref "~ " l
-    || si = 0 && String.haspref "- " l then begin  (* Titles *)
-      pop lines |> ignore;
+    || si = 0 && String.haspref "- " l then begin (* Titles *)
+      pop lines;
       let lvl = if l.[0] = '-' then 0 else 1 in
       let tit = String.suff l 2 in
-      getdoc lines si (Title (lvl, tit) :: acc);
+      getdoc lines si (Title (lvl, n, tit) :: acc);
     end else
     if String.haspref "---" l
     || String.haspref "~~~" l
     || l = "" then begin                          (* Decorations *)
-      pop lines |> ignore;
+      pop lines;
       getdoc lines si acc;
     end else
     if i = si then begin                          (* Par item *)
@@ -192,34 +189,110 @@ let rec getdoc lines si acc =
       List.rev acc |> mergedoc
   | None -> List.rev acc |> mergedoc
 
-let rec dochtml d =
+type printer =
+  { pchar: char -> unit
+  ; plink: string -> unit
+  ; pcode: string -> unit
+  }
+
+let print pp s =
+  let l = String.length s in
+  let isspace = String.contains " \n\t" in
+  let rec getlink j spc =
+    if j >= l || s.[j] = '>' then j+1, "" else
+    if isspace s.[j] then
+      getlink (j+1) true
+    else
+      let j', t = getlink (j+1) false in
+      if spc then
+        j', Printf.sprintf " %c%s" s.[j] t
+      else
+        j', Printf.sprintf  "%c%s" s.[j] t in
+  let getlink j =
+    let j', s = getlink j false in
+    if isspace s.[0]
+      then j', String.suff s 1
+      else j', s in
+  let rec getdlim j d =
+    if j >= l || s.[j] = d then j+1, "" else
+    let j', t = getdlim (j+1) d in
+    j', Printf.sprintf "%c%s" s.[j] t in
+  let rec f i =
+    if i >= l then () else
+    match s.[i] with
+    | '<' when i < l-1 && s.[i+1] = '@' ->
+      let i, t = getlink (i+2) in
+      pp.plink t;
+      f i
+    | '`' ->
+      let i, t = getdlim (i+1) '`' in
+      pp.pcode t;
+      f i
+    | c ->
+      pp.pchar c;
+      f (i+1)
+  in f 0
+
+let rec dochtml titles d =
   let open Printf in
-  let rec prlist =
+  let pchar = function
+    | '<' -> printf "&lt;"
+    | '>' -> printf "&gt;"
+    | '&' -> printf "&amp;"
+    | c   -> printf "%c" c in
+  let escape = String.iter pchar in
+  let plink l =
+    try
+      let (_, n) = Hashtbl.find titles l in
+      printf "<a href=\"#%d\">%s</a>" n l
+    with Not_found ->
+      warn "warning: unresolved link '%s'\n" l;
+      printf "<a href=\"#\">%s</a>" l in
+  let pcode s =
+    printf "<code>";
+    escape s;
+    printf "</code>"; in
+  let pp = {pchar; plink; pcode} in
+  let rec plist =
     List.iter begin fun d ->
       match d with
-      | Par p :: d -> printf "<li>%s\n" p; dochtml d
-      | d -> printf "<li>"; dochtml d;
+      | Par p :: d ->
+        printf "<li>";
+        print pp p;
+        printf "\n";
+        dochtml titles d;
+      | d ->
+        printf "<li>";
+        dochtml titles d;
     end in
   let itemhtml = function
-    | Title (0, t) ->
-      printf "<h3>%s</h3>\n" t;
-    | Title (_, t) ->
-      printf "<h4>%s</h4>\n" t;
+    | Title (0, n, t) ->
+      printf "<h3><a id='%d'>" n;
+      escape t;
+      printf "</h3>\n";
+    | Title (_, n, t) ->
+      printf "<h3><a id='%d'>" n;
+      escape t;
+      printf "</h4>\n";
     | Olist l ->
       printf "<ol>\n";
-      prlist l;
+      plist l;
       printf "</ol>\n";
     | Ulist l ->
       printf "<ul>\n";
-      prlist l;
+      plist l;
       printf "</ul>\n";
     | Verb (_, v) ->
-      printf "<pre>\n%s\n</pre>\n" v;
+      printf "<pre>\n";
+      escape v;
+      printf "\n</pre>\n";
     | Par p ->
-      printf "<p>\n%s\n</p>\n" p; in
+      printf "<p>\n";
+      print pp p;
+      printf "\n</p>\n"; in
   List.iter itemhtml d
 
 let _ =
   let lines = getlines [] 1 in
-  let _ = gettitles lines in
-  getdoc (ref lines) 0 [] |> dochtml
+  let titles = gettitles lines in
+  getdoc (ref lines) 0 [] |> dochtml titles
