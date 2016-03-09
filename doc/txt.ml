@@ -94,7 +94,9 @@ let isulist l = endbul l <> 0
 let getverb lines idnt =
   let rec f ls =
     match top lines with
-    | Some (n, i, l) when i >= idnt || l = "" ->
+    | Some (n, i, l)
+      when i >= idnt
+        || dedent l (i+1) = "" ->
       pop lines;
       f (dedent l idnt :: ls)
     | _ ->
@@ -166,7 +168,7 @@ let rec getdoc lines si acc =
           pop lines;
           l
         end in
-      let verb = getverb lines i in
+      let verb = getverb lines (si+1) in
       getdoc lines si (Verb (ty, verb) :: acc);
     end else
     if si = 0 && String.haspref "~ " l
