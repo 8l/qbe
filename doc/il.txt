@@ -284,8 +284,8 @@ is provided in the call instructions.
 The syntax and semantics for the body of functions
 is described in the <@ Control > section.
 
-- Control
----------
+- 4. Control
+------------
 
 The IL represents programs as textual transcriptions of
 control flow graphs.  A program is given as a sequence
