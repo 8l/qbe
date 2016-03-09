@@ -1,3 +1,4 @@
+                  ================
                   System V ABI x64
                   ================
 
@@ -11,72 +12,75 @@ the IR description document for more information about
 them.
 
 
-:|: ABI Subset Implemented
+- ABI Subset Implemented
+------------------------
 
 Data classes of interest as defined by the ABI:
- - INTEGER
- - SSE
- - MEMORY
+ * INTEGER
+ * SSE
+ * MEMORY
 
 
-Classification:
+~ Classification
 
-1. The size of each argument gets rounded up to eightbytes.
-   (It keeps the stack always 8 bytes aligned.)
-2. _Bool, char, short, int, long, long long and pointers
-   are in the INTEGER class.  In the context of QBE, it
-   means that 'l' and 'w' are in the INTEGER class.
-3. float and double are in the SSE class.  In the context
-   of QBE, it means that 's' and 'd' are in the SSE class.
-4. If the size of an object is larger than two eightbytes
-   or if contains unaligned fields, it has class MEMORY.
-   In the context of QBE, those are big aggregate types
-   and "dark" types.
-5. Otherwise, recursively classify fields and determine
-   the class of the two eightbytes using the classes of
-   their components.  If any is INTEGER the result is
-   INTEGER, otherwise the result is SSE.
+ 1. The size of each argument gets rounded up to eightbytes.
+    (It keeps the stack always 8 bytes aligned.)
+ 2. _Bool, char, short, int, long, long long and pointers
+    are in the INTEGER class.  In the context of QBE, it
+    means that 'l' and 'w' are in the INTEGER class.
+ 3. float and double are in the SSE class.  In the context
+    of QBE, it means that 's' and 'd' are in the SSE class.
+ 4. If the size of an object is larger than two eightbytes
+    or if contains unaligned fields, it has class MEMORY.
+    In the context of QBE, those are big aggregate types
+    and "dark" types.
+ 5. Otherwise, recursively classify fields and determine
+    the class of the two eightbytes using the classes of
+    their components.  If any is INTEGER the result is
+    INTEGER, otherwise the result is SSE.
 
-Passing:
+~ Passing
 
- - Classify arguments in order.
- - INTEGER arguments use in order %rdi %rsi %rdx %rcx
-   %r8 %r9.
- - SSE arguments use in order %xmm0 - %xmm7.
- - MEMORY gets passed on the stack.  They are "pushed"
-   in the right-to-left order, so from the callee's
-   point of view, the left-most argument appears first
-   on the stack.
- - When we run out of registers for an aggregate, revert
-   the assignment for the first eightbytes and pass it
-   on the stack.
- - When all registers are taken, write arguments on the
-   stack from right to left.
- - When calling a variadic function, %al stores the number
-   of vector registers used to pass arguments (it must be
-   an upper bound and does not have to be exact).
- - Registers %rbx, %r12 - %r15 are callee-save.
+  * Classify arguments in order.
+  * INTEGER arguments use in order `%rdi` `%rsi` `%rdx`
+    `%rcx` `%r8` `%r9`.
+  * SSE arguments use in order `%xmm0` - `%xmm7`.
+  * MEMORY gets passed on the stack.  They are "pushed"
+    in the right-to-left order, so from the callee's
+    point of view, the left-most argument appears first
+    on the stack.
+  * When we run out of registers for an aggregate, revert
+    the assignment for the first eightbytes and pass it
+    on the stack.
+  * When all registers are taken, write arguments on the
+    stack from right to left.
+  * When calling a variadic function, %al stores the number
+    of vector registers used to pass arguments (it must be
+    an upper bound and does not have to be exact).
+  * Registers `%rbx`, `%r12` - `%r15` are callee-save.
 
-Returning:
+~ Returning
 
- - Classify the return type.
- - Use %rax and %rdx in order for INTEGER return values.
- - Use %xmm0 and %xmm1 in order for SSE return values.
- - I the return value's class is MEMORY, the first
-   argument of the function %rdi was a pointer to an
-   area big enough to fit the return value.  The function
-   writes the return value there and returns the address
-   (that was in %rdi) in %rax.
+  * Classify the return type.
+  * Use `%rax` and `%rdx` in order for INTEGER return
+    values.
+  * Use `%xmm0` and `%xmm1` in order for SSE return values.
+  * I the return value's class is MEMORY, the first
+    argument of the function `%rdi` was a pointer to an
+    area big enough to fit the return value.  The function
+    writes the return value there and returns the address
+    (that was in `%rdi`) in `%rax`.
 
 
-:|: Alignment on the Stack
+- Alignment on the Stack
+------------------------
 
 The ABI is unclear on the alignment requirement of the
 stack.  What must be ensured is that, right before
 executing a 'call' instruction, the stack pointer %rsp
 is aligned on 16 bytes.  On entry of the called
 function, the stack pointer is 8 modulo 16.  Since most
-functions will have a prelude pushing %rbp, the frame
+functions will have a prelude pushing `%rbp`, the frame
 pointer, upon entry of the body code of the function is
 also aligned on 16 bytes (== 0 mod 16).
 
@@ -85,7 +89,7 @@ g() to f().
 
                    |             |
                    | g() locals  |
-                   +-------------+ 
+                   +-------------+
               ^    |             | \
               |    | stack arg 2 |  '
               |    |xxxxxxxxxxxxx|  | f()'s MEMORY
@@ -102,26 +106,27 @@ g() to f().
                                    -> %rsp
 
 Legend:
- - xxxxx    Optional padding.
-   
+ * `xxxxx`    Optional padding.
 
-:|: Remarks
 
- - A struct can be returned in registers in one of three
-   ways.  Either %rax, %rdx are used, or %xmm0, %xmm1,
-   or finally %rax, %xmm0.  This should be clear from
-   the "Returning" section above.
+- Remarks
+---------
 
- - The size of the arguments area of the stack needs to
-   be computed first, then arguments are packed starting
-   from the bottom of the argument area, respecting
-   alignment constraints.  The ABI mentions "pushing"
-   arguments in right-to-left order, but I think it's a
-   mistaken view because of the alignment constraints.
+  * A struct can be returned in registers in one of three
+    ways.  Either `%rax`, `%rdx` are used, or `%xmm0`,
+    `%xmm1`, or finally `%rax`, `%xmm0`.  This should be
+    clear from the <@Returning> section above.
 
-   Example: If three 8 bytes MEMORY arguments are passed
-   to the callee and the caller's stack pointer is 16 bytes
-   algined, the layout will be like this.
+  * The size of the arguments area of the stack needs to
+    be computed first, then arguments are packed starting
+    from the bottom of the argument area, respecting
+    alignment constraints.  The ABI mentions "pushing"
+    arguments in right-to-left order, but I think it's a
+    mistaken view because of the alignment constraints.
+
+    Example: If three 8 bytes MEMORY arguments are passed
+    to the callee and the caller's stack pointer is 16 bytes
+    algined, the layout will be like this.
 
                    +-------------+
                    |xxxxxxxxxxxxx|    padding
@@ -130,5 +135,5 @@ Legend:
                    | stack arg 1 |
                    +-------------+ -> 0 mod 16
 
-   The padding must not be at the end of the stack area.
-   A "pushing" logic would put it at the end.
+    The padding must not be at the end of the stack area.
+    A "pushing" logic would put it at the end.
