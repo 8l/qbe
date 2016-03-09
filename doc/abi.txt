@@ -114,8 +114,10 @@ Legend:
 
   * A struct can be returned in registers in one of three
     ways.  Either `%rax`, `%rdx` are used, or `%xmm0`,
-    `%xmm1`, or finally `%rax`, `%xmm0`.  This should be
-    clear from the <@Returning> section above.
+    `%xmm1`, or finally `%rax`, `%xmm0`.  The last case
+    happens when a struct is returned with one half
+    classified as INTEGER and the other as SSE. This
+    is a consequence of the <@Returning> section above.
 
   * The size of the arguments area of the stack needs to
     be computed first, then arguments are packed starting
