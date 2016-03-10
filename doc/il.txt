@@ -274,6 +274,28 @@ the compiled file.  They define a global symbol that
 contains a pointer to the function code.  This pointer
 can be used in call instructions or stored in memory.
 
+The type given right before the function name is the
+return type of the function.  All return values of this
+function must have the return type.  If the return
+type is missing, the function cannot return any value.
+
+The parameter list is a comma separated list of
+temporary names prefixed by types.  The types are used
+to correctly implement C compatibility.  When an argument
+has an aggregate type, is is set on entry of the
+function to a pointer to the aggregate passed by the
+caller.  In the example below, we have to use a load
+instruction to get the value of the first (and only)
+member of the struct.
+
+    type :one = { w }
+
+    function w $getone(:one %p) {
+    @start
+            %val =w loadw %p
+            ret %val
+    }
+
 Since global symbols are defined mutually recursive,
 there is no need for function declarations: A function
 can be referenced before its definition.
@@ -304,9 +326,95 @@ can start with a sequence of <@ Phi > instructions.
         INST*     # Regular instructions
         JUMP      # Jump or return
 
+All blocks have a name that is specified by a label at
+their commencement.  Then follows a sequence of
+instructions that have "fall-through" flow.  Finally
+one jump terminates the block.  The jump can either
+transfer control to another block of the same function
+or return, they are described further below.
+
+The first block in a function must not be the target of
+any jump in the program.  If this need is encountered,
+the frontend can always insert an empty prelude block
+at the beginning of the function.
+
+When one block jumps to the next block in the IL file,
+it is not necessary to give the jump instruction, it
+will be automatically added by the parser.  For example
+the start block in the example below jumps directly
+to the loop block.
+
+    function $loop() {
+    @start
+    @loop
+            %x =w phi @start 100, @loop %x1
+            %x1 =w sub %x, 1
+            jnz %x1, @loop, @end
+    @end
+            ret
+    }
 
 ~ Instructions
 ~~~~~~~~~~~~~~
 
+Regular instructions are described in details in sections
+below.  The IL uses a three-address code, which means that
+one instruction computes an operation between two operands
+and assigns the result to a third one.
+
+An instruction has both a name and a return type, this
+return type is a base type that defines the size of the
+instruction's result.  The type of the arguments can be
+unambiguously inferred using the instruction name and the
+return type.  For example, for all arithmetic instructions,
+the type of the arguments is the same as the return type.
+The two additions below are valid if `%y` is a word or a long
+(because of <@ Subtyping >).
+
+    %x =w add 0, %y
+    %z =w add %x, %x
+
+Some instructions, like comparisons and memory loads
+have operand types that differ from their return types.
+For instance, two floating points can be compared to give a
+word result (0 if the comparison succeeds, 1 if it fails).
+
+    %c =w cgts %a, %b
+
+In the example above, both operands have to have single type.
+This is made explicit by the instruction suffix.
+
 ~ Jumps
 ~~~~~~~
+
+    `bnf
+    JUMP :=
+        'jmp' @IDENT               # Unconditional
+      | 'jnz' VAL, @IDENT, @IDENT  # Conditional
+      | 'ret' [ VAL ]              # Return
+
+A jump instruction ends every block and transfers the
+control to another program location.  The target of
+a jump must never be the first block in a function.
+The three kinds of jumps available are described in
+the following list.
+
+ 1. Unconditional jump.
+
+    Simply jumps to another block of the same function.
+
+ 2. Conditional jump.
+
+    When its word argument is non-zero, it jumps to its
+    first label argument; otherwise it jumps to the other
+    label.  The argument must be of word type, because of
+    subtyping a long argument can be passed, but only its
+    first 32 bits will be compared to 0.
+
+ 3. Function return.
+
+    Terminates the execution of the current function,
+    optionally returning a value to the caller.  The value
+    returned must have the type given in the function
+    prototype.  If the function prototype does not specify
+    a return type, no return value can be used.
