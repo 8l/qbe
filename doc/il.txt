@@ -14,17 +14,17 @@
   2. <@ Types >
       * <@ Simple Types >
       * <@ Subtyping >
-  3. <@ Definitions >
+  3. Immediate Constants
+      * Semantics
+      * Floating Sugar
+  4. <@ Definitions >
       * <@ Aggregate Types >
       * <@ Data >
       * <@ Functions >
-  4. <@ Control >
+  5. <@ Control >
       * <@ Blocks >
       * <@ Instructions >
       * <@ Jumps >
-  5. Immediate Constants
-      * Semantics
-      * Floating Sugar
   6. Integer Instructions
       * Arithmetic
       * Memory
@@ -150,7 +150,7 @@ value could very well be zeroes or the result of a sign
 extension of the word.
 
 
-- 3. Definitions
+- 4. Definitions
 ----------------
 
 Definitions are the essential components of an IL file.
@@ -306,7 +306,7 @@ is provided in the call instructions.
 The syntax and semantics for the body of functions
 is described in the <@ Control > section.
 
-- 4. Control
+- 5. Control
 ------------
 
 The IL represents programs as textual transcriptions of
