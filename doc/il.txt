@@ -409,7 +409,7 @@ the following list.
     first label argument; otherwise it jumps to the other
     label.  The argument must be of word type, because of
     subtyping a long argument can be passed, but only its
-    first 32 bits will be compared to 0.
+    least significant 32 bits will be compared to 0.
 
  3. Function return.
 
