@@ -82,7 +82,7 @@ much lighter use of types and the syntax is terser.
 
 The language syntax is vaporously described in the sections
 below using BNF syntax.  The different BNF constructs used
-are described in the following list.
+are listed below.
 
   * Keywords are enclosed between quotes;
   * `... | ...` expresses disjunctions;
