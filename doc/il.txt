@@ -9,7 +9,7 @@
 
   1. <@ Basic Concepts >
       * <@ Input Files >
-      * <@ BNF Syntax >
+      * <@ BNF Notation >
       * <@ Sigils >
   2. <@ Types >
       * <@ Simple Types >
@@ -75,8 +75,8 @@ If you have read the LLVM language reference, you might
 recognize the above example.  In comparison, QBE makes a
 much lighter use of types and the syntax is terser.
 
-~ BNF Syntax
-~~~~~~~~~~~~
+~ BNF Notation
+~~~~~~~~~~~~~~
 
 The language syntax is vaporously described in the sections
 below using BNF syntax.  The different BNF constructs used
