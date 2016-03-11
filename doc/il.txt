@@ -14,9 +14,7 @@
   2. <@ Types >
       * <@ Simple Types >
       * <@ Subtyping >
-  3. Immediate Constants
-      * Semantics
-      * Floating Sugar
+  3. <@ Immediate Constants >
   4. <@ Definitions >
       * <@ Aggregate Types >
       * <@ Data >
@@ -149,6 +147,49 @@ The rationale is that the 32 high bits of the extended long
 value could very well be zeroes or the result of a sign
 extension of the word.
 
+- 3. Immediate Constants
+------------------------
+
+    `bnf
+    CONST :=
+        ['-'] NUMBER  # Decimal integer
+      | 's_' FP       # Single-precision float
+      | 'd_' FP       # Double-precision float
+      | $IDENT        # Global symbol
+
+Throughout the IL, constants are specified with a unified
+syntax and semantics.  Constants are immediates, meaning
+that they can be used directly in instructions; there is
+no need for a "load constant" instruction.
+
+The representation of integers is two's complement.
+Floating point numbers are represented using the
+single-precision and double-precision formats of the
+EEE 754 standard.
+
+Consants specify a sequence of bits and are untyped.
+They are always parsed as 64 bits blobs.  Depending on
+the context surrounding one constant, only some of its
+bits are used.  For example, in the program below, the
+two variables defined have the same value since they
+are defined in a word (32 bits) context.
+
+    %x =w sub -1, 0
+    %y =w sub 4294967295, 0
+
+Because specifying floating point constants by their bits
+makes the code less readable, syntactic sugar is provided
+to express them.  Standard scientific notation is used with
+a prefix of `s_` for single and `d_` for double-precision
+numbers.  Once again, the following example defines twice
+the same double-precision constant.
+
+    %x =d add d_0, d_-1
+    %y =d add d_0, -4616189618054758400
+
+Global symbols can also be used directly as constants,
+they will be resolved and turned to actual numeric
+constants by the linker.
 
 - 4. Definitions
 ----------------
