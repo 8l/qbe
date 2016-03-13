@@ -101,7 +101,7 @@ scope and kind of an identifier.
  * `:` is for user-defined <@ Aggregate Types>
  * `$` is for globals (represented by a pointer)
  * `%` is for function-scope temporaries
- * `@` is for function labels
+ * `@` is for block labels
 
 In BNF syntax, we use `?IDENT` to designate an identifier
 starting with the sigil `?`.
@@ -171,8 +171,8 @@ Consants specify a sequence of bits and are untyped.
 They are always parsed as 64 bits blobs.  Depending on
 the context surrounding one constant, only some of its
 bits are used.  For example, in the program below, the
-two variables defined have the same value since they
-are defined in a word (32 bits) context.
+two variables defined have the same value since the fist
+operand of the substraction is a word (32 bits) context.
 
     %x =w sub -1, 0
     %y =w sub 4294967295, 0
@@ -255,7 +255,7 @@ their size between curly braces.
     DATAITEM :=
         $IDENT [ '+' NUMBER ]  # Symbol and offset
       |  '"' ... '"'           # String
-      |  IMMEDIATE             # Immediate
+      |  CONST                 # Constant
 
 Data definitions define objects that will be emitted in the
 compiled file.  They can be local to the file or exported
@@ -345,17 +345,15 @@ without previous declarations.  All the type information
 is provided in the call instructions.
 
 The syntax and semantics for the body of functions
-is described in the <@ Control > section.
+are described in the <@ Control > section.
 
 - 5. Control
 ------------
 
 The IL represents programs as textual transcriptions of
-control flow graphs.  A program is given as a sequence
-of blocks of straight-line instructions ending with a
-jump to other blocks or returning from the function.
-Because QBE uses static single assignment, blocks
-can start with a sequence of <@ Phi > instructions.
+control flow graphs.  The control flow is serialized as
+a sequence of blocks of straight-line code and connected
+using jump instructions.
 
 ~ Blocks
 ~~~~~~~~
@@ -368,11 +366,11 @@ can start with a sequence of <@ Phi > instructions.
         JUMP      # Jump or return
 
 All blocks have a name that is specified by a label at
-their commencement.  Then follows a sequence of
-instructions that have "fall-through" flow.  Finally
-one jump terminates the block.  The jump can either
-transfer control to another block of the same function
-or return, they are described further below.
+their beginning.  Then follows a sequence of instructions
+that have "fall-through" flow.  Finally one jump terminates
+the block.  The jump can either transfer control to another
+block of the same function or return, they are described
+further below.
 
 The first block in a function must not be the target of
 any jump in the program.  If this need is encountered,
