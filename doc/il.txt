@@ -116,23 +116,28 @@ starting with the sigil `?`.
     BASETY := 'w' | 'l' | 's' | 'd'  # Base types
     EXTTY  := BASETY    | 'h' | 'b'  # Extended types
 
-We makes very minimal use of types.  The types used are only
-what is necessary for unambiguous compilation to machine
-code and C interfacing.
+The IL makes very minimal use of types.  By design, the types
+used are restricted to what is necessary for unambiguous
+compilation to machine code and C interfacing.  Unlike LLVM,
+QBE is not using types as a mean to safety,  they are only
+here for semantics purposes.
 
 The four base types are `w` (word), `l` (long), `s` (single),
 and `d` (double), they stand respectively for 32 bits and
 64 bits integers, and 32 bits and 64 bits floating points.
-Temporaries in the IL can only have a basic type.
+There are no pointer types available, pointers are typed
+by an integer type sufficiently wide to represent all memory
+addresses (e.g. `l` on x64).  Temporaries in the IL can only
+have a basic type.
 
 Extended types contain base types and add `h` (half word)
 and `b` (byte), respectively for 16 bits and 8 bits integers.
 They are used in <@ Aggregate Types> and <@ Data> definitions.
 
-The IL also provides user-defined aggregate types, these are
-used for C interfacing.  The syntax used to designate them is
-`:foo`.  Details about their definition are given in the
-<@ Aggregate Types > section.
+For C interfacing, the IL also provides user-defined aggregate
+types.  The syntax used to designate them is `:foo`.  Details
+about their definition are given in the <@ Aggregate Types >
+section.
 
 ~ Subtyping
 ~~~~~~~~~~~
@@ -142,10 +147,12 @@ Any value of type `l` can be used in a `w` context.  When that
 happens only the 32 least significant bits of the word value
 are used.
 
-Note that a long value must not be used in word context.
-The rationale is that the 32 high bits of the extended long
-value could very well be zeroes or the result of a sign
-extension of the word.
+Make note that it is the inverse of the usual subtyping on
+integers (in C, we can safely use an `int` where a `long`
+is expected).  A long value cannot be used in word context.
+The rationale is that a word can be signed or unsigned, so
+extending it to a long can be done in two ways, either
+by zero-extension, or by sign-extension.
 
 - 3. Immediate Constants
 ------------------------
