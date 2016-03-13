@@ -103,17 +103,19 @@ let isolist l = endnum l <> 0
 let isulist l = endbul l <> 0
 
 let getverb lines idnt =
+  let rec skip = function
+    | s :: l when String.trim s = "" -> skip l
+    | l -> l in
   let rec f ls =
     match top lines with
     | Some (n, i, l)
       when i >= idnt
-        || dedent l (i+1) = "" ->
+        || String.trim l = "" ->
       pop lines;
       f (dedent l idnt :: ls)
     | _ ->
-      List.rev ls |>
-      String.concat "\n" |>
-      String.trim in
+      skip ls |> List.rev |>
+      String.concat "\n" in
   f []
 
 let getpar lines idnt =
