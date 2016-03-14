@@ -496,7 +496,7 @@ return type used is long, the argument must be of type double.
 ~ Arithmetic
 ~~~~~~~~~~~~
 
-  * `add sub div mul` -- `T(T,T)`
+  * `add`, `sub`, `div`, `mul` -- `T(T,T)`
 
     The base arithmetic instructions are available for all
     types, integers and floating points.  When the division
@@ -509,7 +509,7 @@ return type used is long, the argument must be of type double.
     An unsigned division, to use on integer types only when
     the integers represented are unsigned.
 
-  * `rem urem` -- `I(I,I)`
+  * `rem`, `urem` -- `I(I,I)`
 
     The remainder operator in signed and unsigned variants.
     When the result is not an integer, it is truncated towards
@@ -525,8 +525,7 @@ return type used is long, the argument must be of type double.
       * `stores` -- `(s,m)`
       * `storel` -- `(l,m)`
       * `storew` -- `(w,m)`
-      * `storeh` -- `(w,m)`
-      * `storeb` -- `(w,m)`
+      * `storeh`, `storeb` -- `(w,m)`
 
     Store instructions exist to store a value of any base type
     and any extended type.  Since halfwords and bytes are not
@@ -540,9 +539,6 @@ return type used is long, the argument must be of type double.
       * `loadd` -- `d(m)`
       * `loads` -- `s(m)`
       * `loadl` -- `l(m)`
-      * `loadsw` -- `I(mm)`
-      * `loadzw` -- `I(mm)`
-      * `loadsh` -- `I(mm)`
-      * `loadzh` -- `I(mm)`
-      * `loadsb` -- `I(mm)`
-      * `loadzb` -- `I(mm)`
+      * `loadsw`, `loadzw` -- `I(mm)`
+      * `loadsh`, `loadzh` -- `I(mm)`
+      * `loadsb`, `loadzb` -- `I(mm)`
