@@ -23,16 +23,12 @@
       * <@ Blocks >
       * <@ Instructions >
       * <@ Jumps >
-  6. Integer Instructions
-      * Arithmetic
+  6. <@ Regular Instructions >
+      * <@ Arithmetic >
       * Memory
       * Comparisons
-  7. Floating Point Instructions
-      * Arithmetic
-      * Memory
-      * Comparisons
-  8. Special Instructions
-      * Conversions and Extensions
+  7. Special Instructions
+      * Conversions
       * Casts
       * Phi
 
@@ -464,3 +460,51 @@ the following list.
     returned must have the type given in the function
     prototype.  If the function prototype does not specify
     a return type, no return value can be used.
+
+- 6. Regular Instructions
+-------------------------
+
+Instructions are the smallest piece of code in the IL, they
+form the body of <@ Blocks >.
+
+The types of instructions is described below using a short
+type string.  A type string specifies all the valid return
+types an instruction can have, its arity, and the type of
+its arguments in function of its return type.
+
+Type strings begin with acceptable return types, then
+follows, in parentheses, the possible types for the arguments.
+If the n-th return type of the type string is used for an
+instruction, the arguments must use the n-th type listed for
+them in the type string.  When an instruction does not have a
+return type, the type string only contains the types of the
+arguments.
+
+The following abbreviations are used.
+
+  * `T` stands for `wlsd`
+  * `I` stands for `wl`
+  * `F` stands for `sd`
+  * `m` stands for the type of pointers on the target, on
+    x64 it is the same as `l`
+
+For example, consider the type string `wl(F)`, it mentions
+that the instruction has only one argument and that if the
+return type used is long, the argument must be of type double.
+
+
+~ Arithmetic
+~~~~~~~~~~~~
+
+  * `add sub div mul` -- `T(T,T)`
+
+    The base arithmetic instructions are available for all
+    types, integers and floating points.  When the division
+    is used with word or long return type, the arguments are
+    treated as signed.  The other instructions are sign
+    agnositc.
+
+  * `udiv` -- `I(I,I)`
+
+    An unsigned division, to use on integer types only when
+    the integers represented are unsigned.
