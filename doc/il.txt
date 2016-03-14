@@ -25,7 +25,7 @@
       * <@ Jumps >
   6. <@ Regular Instructions >
       * <@ Arithmetic >
-      * Memory
+      * <@ Memory >
       * Comparisons
   7. Special Instructions
       * Conversions
@@ -508,3 +508,41 @@ return type used is long, the argument must be of type double.
 
     An unsigned division, to use on integer types only when
     the integers represented are unsigned.
+
+  * `rem urem` -- `I(I,I)`
+
+    The remainder operator in signed and unsigned variants.
+    When the result is not an integer, it is truncated towards
+    zero.  For `rem`, the sign of the remainder is the same
+    as the one of the dividend.
+
+~ Memory
+~~~~~~~~
+
+  * Store instructions.
+
+      * `stored` -- `(d,m)`
+      * `stores` -- `(s,m)`
+      * `storel` -- `(l,m)`
+      * `storew` -- `(w,m)`
+      * `storeh` -- `(w,m)`
+      * `storeb` -- `(w,m)`
+
+    Store instructions exist to store a value of any base type
+    and any extended type.  Since halfwords and bytes are not
+    first class in the IL, `storeh` and `storeb` take a word
+    as argument.  Only the first 16 or 8 bits of this word will
+    be stored in memory at the address specified in the second
+    argument.
+
+  * Load instructions.
+
+      * `loadd` -- `d(m)`
+      * `loads` -- `s(m)`
+      * `loadl` -- `l(m)`
+      * `loadsw` -- `I(mm)`
+      * `loadzw` -- `I(mm)`
+      * `loadsh` -- `I(mm)`
+      * `loadzh` -- `I(mm)`
+      * `loadsb` -- `I(mm)`
+      * `loadzb` -- `I(mm)`
