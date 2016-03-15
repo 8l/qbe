@@ -6,7 +6,7 @@ and item =
   | Par of (string * bool)
   | Ulist of doc list
   | Olist of doc list
-  | Title of int * int * string
+  | Title of int * string * string
 
 let (|>) x f = f x
 
@@ -34,6 +34,14 @@ module String = struct
       do decr j done;
     if !j = -1 then s else sub s !i (!j- !i+1)
 end
+
+let idify s =
+  let rec f i cs =
+    if i >= String.length s then cs else
+    match s.[i] with
+    | ' ' -> f (i+1) ("-" :: cs)
+    | c   -> f (i+1) (String.make 1 c :: cs) in
+  f 0 [] |> List.rev |> String.concat ""
 
 let warn = Printf.eprintf
 
@@ -80,7 +88,7 @@ let gettitles lines =
     let t = String.trim (skipnum (String.suff t 2)) in
     if Hashtbl.mem titles t then
       warn "line %d: title has multiple definitions\n" n;
-    Hashtbl.add titles t (lvl, n) in
+    Hashtbl.add titles t (lvl, idify t) in
   lines |> List.iter begin fun (n, lvl, t) ->
     if lvl <> 0 then () else
     if String.haspref "- " t then insert 0 n t else
@@ -189,7 +197,8 @@ let rec getdoc lines si acc =
       pop lines;
       let lvl = if l.[0] = '-' then 0 else 1 in
       let tit = String.suff l 2 in
-      getdoc lines si (Title (lvl, n, tit) :: acc);
+      let id = idify (String.trim (skipnum tit)) in
+      getdoc lines si (Title (lvl, id, tit) :: acc);
     end else
     if String.haspref "---" l
     || String.haspref "~~~" l
@@ -255,8 +264,8 @@ let rec dochtml titles d =
   let escape = String.iter pchar in
   let plink l =
     try
-      let (_, n) = Hashtbl.find titles l in
-      printf "<a href=\"#%d\">%s</a>" n l
+      let (_, id) = Hashtbl.find titles l in
+      printf "<a href=\"#%s\">%s</a>" id l
     with Not_found ->
       warn "warning: unresolved link '%s'\n" l;
       printf "<a href=\"#\">%s</a>" l in
@@ -279,12 +288,12 @@ let rec dochtml titles d =
         dochtml titles d;
     end in
   let itemhtml = function
-    | Title (0, n, t) ->
-      printf "<h3><a id='%d'>" n;
+    | Title (0, id, t) ->
+      printf "<h3><a id='%s'>" id;
       escape t;
       printf "</a></h3>\n";
-    | Title (_, n, t) ->
-      printf "<h4><a id='%d'>" n;
+    | Title (_, id, t) ->
+      printf "<h4><a id='%s'>" id;
       escape t;
       printf "</a></h4>\n";
     | Olist l ->
