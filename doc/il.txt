@@ -642,6 +642,8 @@ or convert a floating point into an integer and vice versa.
   * `extsw`, `extzw` -- `l(w)`
   * `extsh`, `extzh` -- `I(ww)`
   * `extsb`, `extzb` -- `I(ww)`
+  * `exts` -- `d(s)`
+  * `truncd` -- `s(d)`
   * `ftosi` -- `I(F)`
   * `sitof` -- `F(I)`
 
@@ -653,6 +655,12 @@ exist to sign-extend and zero-extend a value.  For example,
 least-significant bits to a full word or long, depending on
 the return type.
 
+The instructions `exts` and `truncd` are provided to change
+the precision of a floating point value.  When the double
+argument of `truncd` cannot be represented as a
+single-precision floating point, it is truncated towards
+zero.
+
 Converting between signed integers and floating points is
 done using `ftosi` (float to signed integer) and `sitof`
 (signed integer to float).  Note that the bit width of the
@@ -661,7 +669,7 @@ point number can only be converted directly to a long
 integer.
 
 Because of <@ Subtyping >, there is no need to have an
-instruction to lower the precision of a temporary.
+instruction to lower the precision of an integer temporary.
 
 ~ Cast
 ~~~~~~
