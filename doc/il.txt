@@ -26,10 +26,10 @@
       * <@ Arithmetic and Bits >
       * <@ Memory >
       * <@ Comparisons >
-      * Conversions
-      * Casts
-      * Calls
-      * Phi
+      * <@ Conversions >
+      * <@ Cast >
+      * <@ Call >
+      * <@ Phi >
 
 - 1. Basic Concepts
 -------------------
@@ -583,3 +583,193 @@ instructions.  Pointers are stored in long temporaries.
 
 ~ Comparisons
 ~~~~~~~~~~~~~
+
+Comparison instructions return an integer value (either a word
+or a long), and compare values of arbitrary types.  The value
+returned is 1 if the two operands satisfy the comparison
+relation, and 0 otherwise.  The names of comparisons respect
+a standard naming scheme in three parts.
+
+ 1. All comparisons start with the letter `c`.
+
+ 2. Then comes a comparison type.  The following
+    types are available for integer comparisons:
+
+      * `eq` for equality
+      * `ne` for inequality
+      * `sle` for signed lower or equal
+      * `slt` for signed lower
+      * `sge` for signed greater or equal
+      * `sgt` for signed greater
+      * `ule` for unsigned lower or equal
+      * `ult` for unsigned lower
+      * `uge` for unsigned greater or equal
+      * `ugt` for unsigned greater
+
+    Floating point comparisons use one of these types:
+
+      * `eq` for equality
+      * `ne` for inequality
+      * `le` for lower or equal
+      * `lt` for lower
+      * `ge` for greater or equal
+      * `gt` for greater
+      * `o` for ordered (no operand is a NaN)
+      * `uo` for unordered (at least one operand is a NaN)
+
+    Because floating point types always have a sign bit,
+    all the comparisons available are signed.
+
+ 3. Finally, the instruction name is terminated with a
+    basic type suffix precising the type of the operands
+    to be compared.
+
+For example, `cod` (`I(dd,dd)`) compares two double-precision
+floating point numbers and returns 1 if the two floating points
+are not NaNs, and 0 otherwise.  The `csltw` (`I(ww,ww)`)
+instruction compares two words representing signed numbers and
+returns 1 when the first argument is smaller than the second one.
+
+~ Conversions
+~~~~~~~~~~~~~
+
+Conversion operations allow to change the representation of
+a value, possibly modifying it if the target type cannot hold
+the value of the source type.  Conversions can extend the
+precision of a temporary (e.g. from signed 8 bits to 32 bits),
+or convert a floating point into an integer and vice versa.
+
+  * `extsw`, `extzw` -- `l(w)`
+  * `extsh`, `extzh` -- `I(ww)`
+  * `extsb`, `extzb` -- `I(ww)`
+  * `ftosi` -- `I(F)`
+  * `sitof` -- `F(I)`
+
+Extending the precision of a temporary is done using the
+`ext` family of instructions.  Because QBE types do not
+precise the signedness (like in LLVM), extension instructions
+exist to sign-extend and zero-extend a value.  For example,
+`extsb` takes a word argument and sign-extend the 8
+least-significant bits to a full word or long, depending on
+the return type.
+
+Converting between signed integers and floating points is
+done using `ftosi` (float to signed integer) and `sitof`
+(signed integer to float).  Note that the bit width of the
+argument depends on the return type.  A double floatint
+point number can only be converted directly to a long
+integer.
+
+Because of <@ Subtyping >, there is no need to have an
+instruction to lower the precision of a temporary.
+
+~ Cast
+~~~~~~
+
+The `cast` instruction reinterprets the bits of a value of
+a given type into another type of the same width.
+
+  * `cast` -- `wlsd(sdwl)`
+
+It can be used to make bitwise operations on the
+representation of floating point numbers.  For example
+the following program will compute the opposite of the
+single-precision floating point number `%f` into `%rs`.
+
+    %b0 =w cast %f
+    %b1 =w xor 2147483648, %b0  # flip the msb
+    %rs =s cast %b1
+
+~ Call
+~~~~~~
+
+    `bnf
+    CALL := %IDENT '=' ( BASETY | :IDENT ) 'call' VAL PARAMS
+
+    PARAMS := '(' ( (BASETY | :IDENT) %IDENT ), ')'
+
+The call instruction is special in many ways.  It is not
+a three-address instruction and requires the type of all
+its arguments to be given.  Also, the return type can be
+either a base type or an aggregate type.  These specificities
+are required to compile calls with C compatibility (i.e.
+to respect the ABI).
+
+When an aggregate type is used as argument type or return
+type, the value repectively passed or returned needs to be
+a pointer to a memory location holding the value.  This is
+because aggregate types are not first-class citizens of
+the IL.
+
+Call instructions are currently required to define a return
+temporary, even for functions returning no values.  The
+temporary can very well be ignored (not used) when necessary.
+
+~ Phi
+~~~~~
+
+    `bnf
+    PHI := %IDENT '=' BASETY 'phi' ( @IDENT VAL ),
+
+First and foremost, phi instructions are NOT necessary when
+writing a frontend to QBE.  One solution to avoid having to
+deal with SSA form is to use stack allocated variables for
+all source program variables and perform assignments and
+lookups using <@ Memory > operations.  This is what LLVM
+users typically do.
+
+Another solution is to simply emit code that is not in SSA
+form!  Contrary to LLVM, QBE is able to fixup programs not
+in SSA form without requiring the boilerplate of loading
+and storing in memory.  For example, the following program
+will be correctly compiled by QBE.
+
+    @start
+            %x =w copy 100
+            %s =w copy 0
+    @loop
+            %s =w add %s, %x
+            %x =w sub %x, 1
+            jnz %x, @loop, @end
+    @end
+            ret %s
+
+Now, if you want to know what a phi instruction is and how
+to use them in QBE, you can read the following.
+
+Phi instructions are specific to SSA form.  In SSA form
+values can only be assigned once, without phi instructions,
+this requirement is too strong to represent many programs.
+For example consider the following C program.
+
+    int f(int x) {
+            int y;
+            if (x)
+                    y = 1;
+            else
+                    y = 2;
+            return y;
+    }
+
+The variable `y` is assigned twice, the solution to
+translate it in SSA form is to insert a phi instruction.
+
+    @ifstmt
+            jnz %x, @ift, @iff
+    @ift
+            jmp @retstmt
+    @iff
+            jmp @retstmt
+    @retstmt
+            %y =w phi @ift 1, @iff 2
+            ret %y
+
+The phi in the example expresses a choice depending on
+which block the control came from.  When the `@ift` block
+is taken, the phi instruction defining `%y` selects 1;
+if `@iff` is taken, 2 is selected.
+
+An important remark about phi instructions is that QBE
+assumes that if a variable is defined by a phi it respects
+all the SSA invariants.  So it is critical to not use phi
+instructions unless you know exactly what you are doing.
