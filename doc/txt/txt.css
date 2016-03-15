@@ -7,16 +7,3 @@ h3 {
 	background-color: white;
 	padding-left: 0.7em;
 }
-
-/* Those two are hacks, they were added
-   for the Memory section of il.html
- */
-
-ul {
-	margin-bottom: 1em;
-	margin-top: 1em;
-}
-
-ul:last-child {
-	margin: 0;
-}

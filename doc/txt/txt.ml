@@ -3,7 +3,7 @@ let dent = 4
 type doc = item list
 and item =
   | Verb of string * string
-  | Par of string
+  | Par of (string * bool)
   | Ulist of doc list
   | Olist of doc list
   | Title of int * int * string
@@ -119,6 +119,9 @@ let getverb lines idnt =
   f []
 
 let getpar lines idnt =
+  let empty = function
+    | Some (_, _, l) -> String.trim l = ""
+    | _ -> false in
   let rec f ls =
     match top lines with
     | Some (n, i, l)
@@ -128,9 +131,9 @@ let getpar lines idnt =
         && not (isulist l) ->
       pop lines;
       f (l :: ls)
-    | _ ->
-      List.rev ls |>
-      String.concat "\n" in
+    | t ->
+      String.concat "\n" (List.rev ls),
+      empty t in
   f []
 
 let mergedoc =
@@ -265,7 +268,8 @@ let rec dochtml titles d =
   let rec plist =
     List.iter begin fun d ->
       match d with
-      | Par p :: d ->
+      | Par (p, nl) :: d when
+        not nl || d = [] ->
         printf "<li>";
         print pp p;
         printf "\n";
@@ -297,7 +301,7 @@ let rec dochtml titles d =
       else printf "<pre>\n";
       escape v;
       printf "\n</pre>\n";
-    | Par p ->
+    | Par (p, _) ->
       printf "<p>\n";
       print pp p;
       printf "\n</p>\n"; in
