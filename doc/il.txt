@@ -14,22 +14,21 @@
   2. <@ Types >
       * <@ Simple Types >
       * <@ Subtyping >
-  3. <@ Immediate Constants >
+  3. <@ Constants >
   4. <@ Definitions >
       * <@ Aggregate Types >
       * <@ Data >
       * <@ Functions >
   5. <@ Control >
       * <@ Blocks >
-      * <@ Instructions >
       * <@ Jumps >
-  6. <@ Regular Instructions >
-      * <@ Arithmetic >
+  6. <@ Instructions >
+      * <@ Arithmetic and Bits >
       * <@ Memory >
       * <@ Comparisons >
-  7. Special Instructions
       * Conversions
       * Casts
+      * Calls
       * Phi
 
 - 1. Basic Concepts
@@ -150,8 +149,8 @@ The rationale is that a word can be signed or unsigned, so
 extending it to a long can be done in two ways, either
 by zero-extension, or by sign-extension.
 
-- 3. Immediate Constants
-------------------------
+- 3. Constants
+--------------
 
     `bnf
     CONST :=
@@ -396,36 +395,6 @@ to the loop block.
             ret
     }
 
-~ Instructions
-~~~~~~~~~~~~~~
-
-Regular instructions are described in details in sections
-below.  The IL uses a three-address code, which means that
-one instruction computes an operation between two operands
-and assigns the result to a third one.
-
-An instruction has both a name and a return type, this
-return type is a base type that defines the size of the
-instruction's result.  The type of the arguments can be
-unambiguously inferred using the instruction name and the
-return type.  For example, for all arithmetic instructions,
-the type of the arguments is the same as the return type.
-The two additions below are valid if `%y` is a word or a long
-(because of <@ Subtyping >).
-
-    %x =w add 0, %y
-    %z =w add %x, %x
-
-Some instructions, like comparisons and memory loads
-have operand types that differ from their return types.
-For instance, two floating points can be compared to give a
-word result (0 if the comparison succeeds, 1 if it fails).
-
-    %c =w cgts %a, %b
-
-In the example above, both operands have to have single type.
-This is made explicit by the instruction suffix.
-
 ~ Jumps
 ~~~~~~~
 
@@ -461,13 +430,37 @@ the following list.
     prototype.  If the function prototype does not specify
     a return type, no return value can be used.
 
-- 6. Regular Instructions
+- 6. Instructions
 -------------------------
 
 Instructions are the smallest piece of code in the IL, they
-form the body of <@ Blocks >.
+form the body of <@ Blocks >.  The IL uses a three-address
+code, which means that one instruction computes an operation
+between two operands and assigns the result to a third one.
 
-The types of instructions is described below using a short
+An instruction has both a name and a return type, this
+return type is a base type that defines the size of the
+instruction's result.  The type of the arguments can be
+unambiguously inferred using the instruction name and the
+return type.  For example, for all arithmetic instructions,
+the type of the arguments is the same as the return type.
+The two additions below are valid if `%y` is a word or a long
+(because of <@ Subtyping >).
+
+    %x =w add 0, %y
+    %z =w add %x, %x
+
+Some instructions, like comparisons and memory loads
+have operand types that differ from their return types.
+For instance, two floating points can be compared to give a
+word result (0 if the comparison succeeds, 1 if it fails).
+
+    %c =w cgts %a, %b
+
+In the example above, both operands have to have single type.
+This is made explicit by the instruction suffix.
+
+The types of instructions are described below using a short
 type string.  A type string specifies all the valid return
 types an instruction can have, its arity, and the type of
 its arguments in function of its return type.
@@ -492,28 +485,32 @@ For example, consider the type string `wl(F)`, it mentions
 that the instruction has only one argument and that if the
 return type used is long, the argument must be of type double.
 
-~ Arithmetic
-~~~~~~~~~~~~
+~ Arithmetic and Bits
+~~~~~~~~~~~~~~~~~~~~~
 
   * `add`, `sub`, `div`, `mul` -- `T(T,T)`
+  * `udiv`, `rem`, `urem` -- `I(I,I)`
+  * `or`, `xor`, `and` -- `I(I,I)`
 
-    The base arithmetic instructions are available for all
-    types, integers and floating points.  When the division
-    is used with word or long return type, the arguments are
-    treated as signed.  The other instructions are sign
-    agnositc.
+The base arithmetic instructions in the first bullet are
+available for all types, integers and floating points.
 
-  * `udiv` -- `I(I,I)`
+When `div` is used with word or long return type, the
+arguments are treated as signed.  The unsigned integral
+division is available as `udiv` instruction.  When the
+result of a division is not an integer, it is truncated
+towards zero.
 
-    An unsigned division, to use on integer types only when
-    the integers represented are unsigned.
+The signed and unsigned remainder operations are available
+as `rem` and `urem`.  The sign of the remainder is the same
+as the one of the dividend.  Its magnitude is smaller than
+the divisor's.  These two instructions and `udiv` are only
+available with integer arguments and result.
 
-  * `rem`, `urem` -- `I(I,I)`
-
-    The remainder operator in signed and unsigned variants.
-    When the result is not an integer, it is truncated towards
-    zero.  For `rem`, the sign of the remainder is the same
-    as the one of the dividend.
+Bitwise OR, AND, and XOR operations are available for both
+integer types.  Logical operations of typical programming
+languages can be implemented using <@ Comparisons > and
+<@ Jumps >.
 
 ~ Memory
 ~~~~~~~~
