@@ -26,7 +26,7 @@
   6. <@ Regular Instructions >
       * <@ Arithmetic >
       * <@ Memory >
-      * Comparisons
+      * <@ Comparisons >
   7. Special Instructions
       * Conversions
       * Casts
@@ -492,7 +492,6 @@ For example, consider the type string `wl(F)`, it mentions
 that the instruction has only one argument and that if the
 return type used is long, the argument must be of type double.
 
-
 ~ Arithmetic
 ~~~~~~~~~~~~
 
@@ -525,7 +524,8 @@ return type used is long, the argument must be of type double.
       * `stores` -- `(s,m)`
       * `storel` -- `(l,m)`
       * `storew` -- `(w,m)`
-      * `storeh`, `storeb` -- `(w,m)`
+      * `storeh` -- `(w,m)`
+      * `storeb` -- `(w,m)`
 
     Store instructions exist to store a value of any base type
     and any extended type.  Since halfwords and bytes are not
@@ -542,3 +542,47 @@ return type used is long, the argument must be of type double.
       * `loadsw`, `loadzw` -- `I(mm)`
       * `loadsh`, `loadzh` -- `I(mm)`
       * `loadsb`, `loadzb` -- `I(mm)`
+
+    For types smaller than long, two variants of the load
+    instruction is available: one will sign extend the value
+    loaded, while the other will zero extend it.  Remark that
+    all loads smaller than long can load to either a long or
+    a word.
+
+    The two instructions `loadsw` and `loadzw` have the same
+    effect when they are used to define a word temporary.
+    A `loadw` instruction is provided as syntactic sugar for
+    `loadsw` to make explicit that the extension mechanism
+    used is irrelevant.
+
+  * Stack allocation.
+
+      * `alloc4` -- `m(l)`
+      * `alloc8` -- `m(l)`
+      * `alloc16` -- `m(l)`
+
+    These instructions allocate a chunk of memory on the
+    stack.  The number ending the instruction name is the
+    alignment required for the allocated slot.  QBE will
+    make sure that the returned address is a multiple of
+    that alignment value.
+
+    Stack allocation instructions are used, for example,
+    when compiling the C local variables, because their
+    address can be taken.  When compiling Fortran,
+    temporaries can be used directly instead, because
+    it is illegal to take the address of a variable.
+
+The following example makes use some of the memory
+instructions.  Pointers are stored in long temporaries.
+
+    %A0 =l alloc4 8      # stack allocate an array A of 2 words
+    %A1 =l add %A0, 4
+    storew 43,  %A0      # A[0] <- 43
+    storew 255, %A1      # A[1] <- 255
+    %v1 =w loadw  %A0    # %v1 <- A[0] as word
+    %v2 =w loadsb %A1    # %v2 <- A[1] as signed byte
+    %v3 =w add %v1, %v2  # %v3 is 42 here
+
+~ Comparisons
+~~~~~~~~~~~~~
