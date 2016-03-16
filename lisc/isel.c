@@ -221,7 +221,9 @@ sel(Ins i, ANum *an, Fn *fn)
 	switch (i.op) {
 	case ODiv:
 	case ORem:
-		if (i.op == ODiv)
+	case OUDiv:
+	case OURem:
+		if (i.op == ODiv || i.op == OUDiv)
 			r0 = TMP(RAX), r1 = TMP(RDX);
 		else
 			r0 = TMP(RDX), r1 = TMP(RAX);
@@ -234,8 +236,13 @@ sel(Ins i, ANum *an, Fn *fn)
 			r0 = newtmp("isel", fn);
 		} else
 			r0 = i.arg[1];
-		emit(OXDiv, k, R, r0, R);
-		emit(OSign, k, TMP(RDX), TMP(RAX), R);
+		if (i.op == ODiv || i.op == ORem) {
+			emit(OXIDiv, k, R, r0, R);
+			emit(OSign, k, TMP(RDX), TMP(RAX), R);
+		} else {
+			emit(OXDiv, k, R, r0, R);
+			emit(OCopy, k, TMP(RDX), CON_Z, R);
+		}
 		emit(OCopy, k, TMP(RAX), i.arg[0], R);
 		if (rtype(i.arg[1]) == RCon)
 			emit(OCopy, k, r0, i.arg[1], R);

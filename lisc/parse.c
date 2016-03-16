@@ -15,6 +15,8 @@ OpDesc opdesc[NOp] = {
 	[OSub]    = { "sub",      2, {A(w,l,s,d), A(w,l,s,d)}, 1, 0 },
 	[ODiv]    = { "div",      2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0 },
 	[ORem]    = { "rem",      2, {A(w,l,x,x), A(w,l,x,x)}, 0, 0 },
+	[OUDiv]   = { "udiv",     2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0 },
+	[OURem]   = { "urem",     2, {A(w,l,x,x), A(w,l,x,x)}, 0, 0 },
 	[OMul]    = { "mul",      2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0 },
 	[OAnd]    = { "and",      2, {A(w,l,s,d), A(w,l,s,d)}, 1, 0 },
 	[OOr]     = { "or",       2, {A(w,l,s,d), A(w,l,s,d)}, 1, 0 },
@@ -995,6 +997,7 @@ printfn(Fn *fn, FILE *f)
 		[OXCmp] = 1,
 		[OXTest] = 1,
 		[OXDiv] = 1,
+		[OXIDiv] = 1,
 	};
 	static char ktoc[] = "wlsd";
 	Blk *b;

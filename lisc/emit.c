@@ -87,7 +87,8 @@ static struct {
 	{ OSwap,   Ki, "xchg%k %0, %1" },
 	{ OSign,   Kl, "cqto" },
 	{ OSign,   Kw, "cltd" },
-	{ OXDiv,   Ki, "idiv%k %0" },
+	{ OXDiv,   Ki, "div%k %0" },
+	{ OXIDiv,  Ki, "idiv%k %0" },
 	{ OXCmp,   Ks, "comiss %S0, %S1" },  /* fixme, Kf */
 	{ OXCmp,   Kd, "comisd %D0, %D1" },
 	{ OXCmp,   Ki, "cmp%k %0, %1" },
