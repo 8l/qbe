@@ -397,10 +397,14 @@ seljmp(Blk *b, Fn *fn)
 			}
 			return;
 		}
-		if (fn->tmp[r.val].nuse > 1) {
-			b->jmp.type = JXJc + ICne;
-			return;
-		}
+		/* since flags are not tracked in liveness,
+		 * the result of the flag-setting instruction
+		 * has to be marked as live
+		 */
+		if (fn->tmp[r.val].nuse == 1)
+			emit(OCopy, Kw, R, r, R);
+		b->jmp.type = JXJc + ICne;
+		return;
 	}
 	selcmp((Ref[2]){r, CON_Z}, Kw, fn); /* todo, add long branch if non-zero */
 	b->jmp.type = JXJc + ICne;
