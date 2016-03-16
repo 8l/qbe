@@ -240,6 +240,17 @@ sel(Ins i, ANum *an, Fn *fn)
 		if (rtype(i.arg[1]) == RCon)
 			emit(OCopy, k, r0, i.arg[1], R);
 		break;
+	case OSar:
+	case OShr:
+	case OShl:
+		if (rtype(i.arg[1]) == RCon)
+			goto Emit;
+		r0 = i.arg[1];
+		i.arg[1] = TMP(RCX);
+		emit(OCopy, Kw, R, TMP(RCX), R);
+		emiti(i);
+		emit(OCopy, Kw, TMP(RCX), r0, R);
+		break;
 	case ONop:
 		break;
 	case OStored:

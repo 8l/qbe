@@ -46,6 +46,9 @@ static struct {
 	{ OAnd,    Ki, "+and%k %1, %=" },
 	{ OOr,     Ki, "+or%k %1, %=" },
 	{ OXor,    Ki, "+xor%k %1, %=" },
+	{ OSar,    Ki, "-sar%k %B1, %=" },
+	{ OShr,    Ki, "-shr%k %B1, %=" },
+	{ OShl,    Ki, "-shl%k %B1, %=" },
 	{ OMul,    Ki, "+imul%k %1, %=" },
 	{ OMul,    Ks, "+mulss %1, %=" }, /* fixme */
 	{ OMul,    Kd, "+mulsd %1, %=" },
