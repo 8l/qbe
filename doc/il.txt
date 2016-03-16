@@ -491,6 +491,7 @@ return type used is long, the argument must be of type double.
   * `add`, `sub`, `div`, `mul` -- `T(T,T)`
   * `udiv`, `rem`, `urem` -- `I(I,I)`
   * `or`, `xor`, `and` -- `I(I,I)`
+  * `sar`, `shr`, `shl` -- `I(I,ww)`
 
 The base arithmetic instructions in the first bullet are
 available for all types, integers and floating points.
@@ -511,6 +512,20 @@ Bitwise OR, AND, and XOR operations are available for both
 integer types.  Logical operations of typical programming
 languages can be implemented using <@ Comparisons > and
 <@ Jumps >.
+
+Shift instructions `sar`, `shr`, and `shl` shift right or
+left their first operand by the amount in the second
+operand.  The shifting amount is taken modulo the size of
+the result type.  Shifting right can either preserve the
+sign of the value (using `sar`), or fill the newly freed
+bits with zeroes (using `shr`).  Shifting left always
+fills the freed bits with zeroes.
+
+Remark that an arithmetic shift right (`sar`) is only
+equivalent to a division by a power of two for non-negative
+numbers.  This is because the shift right "truncates"
+towards minus infinity, while the division truncates
+towards zero.
 
 ~ Memory
 ~~~~~~~~
