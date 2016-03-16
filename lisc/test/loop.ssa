@@ -7,8 +7,8 @@ function $test() {
 @loop
 	%s  =w phi @start   0, @loop %s1
 	%n  =w phi @start 100, @loop %n1
-	%n1 =w sub %n, 1
 	%s1 =w add %s, %n
+	%n1 =w sub %n, 1
 	jnz %n1, @loop, @end
 
 @end
