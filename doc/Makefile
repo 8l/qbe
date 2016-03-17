@@ -1,4 +1,4 @@
-.PHONY: all clean
+.PHONY: all clean sync
 
 DOCS = abi il
 
@@ -21,3 +21,6 @@ html/%.html: %.txt
 	  sed -e '1,3d' $< | ocaml txt/txt.ml; \
 	  echo '</div>'; \
 	) > $@
+
+sync:
+	scp html/* h:/srv/data/w/compile/doc/
