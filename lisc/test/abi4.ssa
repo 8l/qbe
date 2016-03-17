@@ -1,0 +1,38 @@
+# return a large struct to C
+
+type :mem = { b 17 }
+
+function $alpha(l %p, w %l, l %n) {
+@ini
+	%pe =l add %p, %n
+@lop
+	%p1 =l phi @ini %p, @lop %p2
+	%l1 =w phi @ini %l, @lop %l2
+	storeb %l1, %p1
+	%p2 =l add %p1, 1
+	%l2 =w add %l1, 1
+	%c1 =w ceql %p1, %pe
+	jnz %c1, @end, @lop
+@end
+	storeb 0, %pe
+	ret
+}
+
+function :mem $test() {
+@start
+	%p =l alloc4 17
+	%r0 =w call $alpha(l %p, w 65, l 16)
+	ret %p
+}
+
+
+# >>> driver
+# #include <stdio.h>
+# typedef struct { char t[17]; } mem;
+# extern mem test(void);
+# int main() { mem m = test(); printf("%s\n", m.t); return 0; }
+# <<<
+
+# >>> output
+# ABCDEFGHIJKLMNOP
+# <<<

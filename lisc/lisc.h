@@ -297,6 +297,7 @@ enum Jmp {
 	JRets,
 	JRetd,
 	JRetc,
+#define isret(j) (JRet0 <= j && j <= JRetc)
 	JJmp,
 	JJnz,
 	JXJc,
@@ -419,7 +420,8 @@ struct Fn {
 	int ncon;
 	int nmem;
 	int nblk;
-	int retty;
+	int retty; /* index in typ[], -1 if no aggregate return */
+	Ref retr;
 	Blk **rpo;
 	bits reg;
 	int slot;
@@ -483,7 +485,7 @@ Ins *icpy(Ins *, Ins *, ulong);
 void *vnew(ulong, size_t);
 void vgrow(void *, ulong);
 int phicls(int, Tmp *);
-Ref newtmp(char *, Fn *);
+Ref newtmp(char *, int, Fn *);
 Ref getcon(int64_t, Fn *);
 void addcon(Con *, Con *);
 void dumpts(BSet *, Tmp *, FILE *);

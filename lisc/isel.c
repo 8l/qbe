@@ -140,7 +140,7 @@ fixarg(Ref *r, int k, int phi, Fn *fn)
 		 * a 32bit signed integer into a
 		 * long temporary
 		 */
-		r1 = newtmp("isel", fn);
+		r1 = newtmp("isel", Kl, fn);
 		emit(OCopy, Kl, r1, r0, R);
 	}
 	else if (s != -1) {
@@ -148,7 +148,7 @@ fixarg(Ref *r, int k, int phi, Fn *fn)
 		 * temporaries right before the
 		 * instruction
 		 */
-		r1 = newtmp("isel", fn);
+		r1 = newtmp("isel", Kl, fn);
 		emit(OAddr, Kl, r1, SLOT(s), R);
 	}
 	*r = r1;
@@ -233,7 +233,7 @@ sel(Ins i, ANum *an, Fn *fn)
 			/* immediates not allowed for
 			 * divisions in x86
 			 */
-			r0 = newtmp("isel", fn);
+			r0 = newtmp("isel", k, fn);
 		} else
 			r0 = i.arg[1];
 		if (i.op == ODiv || i.op == ORem) {
@@ -310,11 +310,11 @@ Emit:
 			emit(OAlloc, Kl, i.to, getcon(val, fn), R);
 		} else {
 			/* r0 = (i.arg[0] + 15) & -16 */
-			r0 = newtmp("isel", fn);
-			r1 = newtmp("isel", fn);
+			r0 = newtmp("isel", Kl, fn);
+			r1 = newtmp("isel", Kl, fn);
 			emit(OSAlloc, Kl, i.to, r0, R);
-			emit(OAnd, 1, r0, r1, getcon(-16, fn));
-			emit(OAdd, 1, r1, i.arg[0], getcon(15, fn));
+			emit(OAnd, Kl, r0, r1, getcon(-16, fn));
+			emit(OAdd, Kl, r1, i.arg[0], getcon(15, fn));
 		}
 		break;
 	default:
@@ -350,82 +350,6 @@ flagi(Ins *i0, Ins *i)
 		return 0;
 	}
 	return 0;
-}
-
-static void
-seljmp(Blk *b, Fn *fn)
-{
-	Ref r;
-	int c, k;
-	Ins *fi;
-
-	switch (b->jmp.type) {
-	default:
-		return;
-	case JRetc:
-		assert(!"retc todo");
-	case JRetw:
-	case JRetl:
-	case JRets:
-	case JRetd:
-		k = b->jmp.type - JRetw;
-		b->jmp.type = JRet0;
-		r = b->jmp.arg;
-		b->jmp.arg = R;
-		if (KBASE(k) == 0)
-			emit(OCopy, k, TMP(RAX), r, R);
-		else
-			emit(OCopy, k, TMP(XMM0), r, R);
-		return;
-	case JJnz:;
-	}
-	r = b->jmp.arg;
-	b->jmp.arg = R;
-	assert(!req(r, R));
-	if (rtype(r) == RCon) {
-		b->jmp.type = JJmp;
-		if (req(r, CON_Z))
-			b->s1 = b->s2;
-		b->s2 = 0;
-		return;
-	}
-	fi = flagi(b->ins, &b->ins[b->nins]);
-	if (fi && req(fi->to, r)) {
-		if (iscmp(fi->op, &k, &c)) {
-			if (rtype(fi->arg[0]) == RCon)
-				c = icmpop(c);
-			b->jmp.type = JXJc + c;
-			if (fn->tmp[r.val].nuse == 1) {
-				assert(fn->tmp[r.val].ndef == 1);
-				selcmp(fi->arg, k, fn);
-				*fi = (Ins){.op = ONop};
-			}
-			return;
-		}
-		if (fi->op == OAnd && fn->tmp[r.val].nuse == 1
-		&& (rtype(fi->arg[0]) == RTmp ||
-		    rtype(fi->arg[1]) == RTmp)) {
-			fi->op = OXTest;
-			fi->to = R;
-			b->jmp.type = JXJc + ICne;
-			if (rtype(fi->arg[1]) == RCon) {
-				r = fi->arg[1];
-				fi->arg[1] = fi->arg[0];
-				fi->arg[0] = r;
-			}
-			return;
-		}
-		/* since flags are not tracked in liveness,
-		 * the result of the flag-setting instruction
-		 * has to be marked as live
-		 */
-		if (fn->tmp[r.val].nuse == 1)
-			emit(OCopy, Kw, R, r, R);
-		b->jmp.type = JXJc + ICne;
-		return;
-	}
-	selcmp((Ref[2]){r, CON_Z}, Kw, fn); /* todo, add long branch if non-zero */
-	b->jmp.type = JXJc + ICne;
 }
 
 struct AClass {
@@ -477,6 +401,132 @@ aclass(AClass *a, Typ *t)
 		assert(n <= 8);
 		a->cls[e] = cls;
 	}
+}
+
+static void
+blit(Ref rstk, uint soff, Ref rsrc, uint sz, Fn *fn)
+{
+	Ref r, r1;
+	uint boff;
+
+	/* it's an impolite blit, we might go across the end
+	 * of the source object a little bit... */
+	for (boff=0; sz>0; sz-=8, soff+=8, boff+=8) {
+		r = newtmp("abi", Kl, fn);
+		r1 = newtmp("abi", Kl, fn);
+		emit(OStorel, 0, R, r, r1);
+		emit(OAdd, Kl, r1, rstk, getcon(soff, fn));
+		r1 = newtmp("abi", Kl, fn);
+		emit(OLoad, Kl, r, r1, R);
+		emit(OAdd, Kl, r1, rsrc, getcon(boff, fn));
+		chuse(rsrc, +1, fn);
+		chuse(rstk, +1, fn);
+	}
+}
+
+static void
+selret(Blk *b, Fn *fn)
+{
+	static int retreg[2][2] = {{RAX, RDX}, {XMM0, XMM0+1}};
+	int j, n, k, nr[2];
+	Ref r, r0, reg[2];
+	AClass a;
+
+	j = b->jmp.type;
+
+	if (!isret(j) || j == JRet0)
+		return;
+
+	r0 = b->jmp.arg;
+	b->jmp.arg = R;
+	b->jmp.type = JRet0;
+
+	if (j == JRetc) {
+		aclass(&a, &typ[fn->retty]);
+		b->jmp.type = JRet0;
+		if (a.inmem) {
+			assert(rtype(fn->retr) == RTmp);
+			emit(OCopy, Kl, TMP(RAX), fn->retr, R);
+			blit(fn->retr, 0, r0, a.size, fn);
+		} else {
+			nr[0] = nr[1] = 0;
+			for (n=0; n<2; n++) {
+				k = KBASE(a.cls[n]);
+				reg[n] = TMP(retreg[k][nr[k]++]);
+			}
+			if (a.size > 8) {
+				r = newtmp("abi", Kl, fn);
+				emit(OLoad, Kl, reg[1], r, R);
+				emit(OAdd, Kl, r, r0, getcon(8, fn));
+			}
+			emit(OLoad, Kl, reg[0], r0, R);
+		}
+	} else {
+		k = j - JRetw;
+		if (KBASE(k) == 0)
+			emit(OCopy, k, TMP(RAX), r0, R);
+		else
+			emit(OCopy, k, TMP(XMM0), r0, R);
+	}
+}
+
+static void
+seljmp(Blk *b, Fn *fn)
+{
+	Ref r;
+	int c, k;
+	Ins *fi;
+
+	if (b->jmp.type == JRet0 || b->jmp.type == JJmp)
+		return;
+	assert(b->jmp.type == JJnz);
+	r = b->jmp.arg;
+	b->jmp.arg = R;
+	assert(!req(r, R));
+	if (rtype(r) == RCon) {
+		b->jmp.type = JJmp;
+		if (req(r, CON_Z))
+			b->s1 = b->s2;
+		b->s2 = 0;
+		return;
+	}
+	fi = flagi(b->ins, &b->ins[b->nins]);
+	if (fi && req(fi->to, r)) {
+		if (iscmp(fi->op, &k, &c)) {
+			if (rtype(fi->arg[0]) == RCon)
+				c = icmpop(c);
+			b->jmp.type = JXJc + c;
+			if (fn->tmp[r.val].nuse == 1) {
+				assert(fn->tmp[r.val].ndef == 1);
+				selcmp(fi->arg, k, fn);
+				*fi = (Ins){.op = ONop};
+			}
+			return;
+		}
+		if (fi->op == OAnd && fn->tmp[r.val].nuse == 1
+		&& (rtype(fi->arg[0]) == RTmp ||
+		    rtype(fi->arg[1]) == RTmp)) {
+			fi->op = OXTest;
+			fi->to = R;
+			b->jmp.type = JXJc + ICne;
+			if (rtype(fi->arg[1]) == RCon) {
+				r = fi->arg[1];
+				fi->arg[1] = fi->arg[0];
+				fi->arg[0] = r;
+			}
+			return;
+		}
+		/* since flags are not tracked in liveness,
+		 * the result of the flag-setting instruction
+		 * has to be marked as live
+		 */
+		if (fn->tmp[r.val].nuse == 1)
+			emit(OCopy, Kw, R, r, R);
+		b->jmp.type = JXJc + ICne;
+		return;
+	}
+	selcmp((Ref[2]){r, CON_Z}, Kw, fn); /* todo, add long branch if non-zero */
+	b->jmp.type = JXJc + ICne;
 }
 
 static int
@@ -578,25 +628,6 @@ calluse(Ins i, int p[2])
 	return b;
 }
 
-static void
-blit(Ref rstk, uint soff, Ref rsrc, uint sz, Fn *fn)
-{
-	Ref r, r1;
-	uint boff;
-
-	/* it's an impolite blit, we might go across the end
-	 * of the source object a little bit... */
-	for (boff=0; sz>0; sz-=8, soff+=8, boff+=8) {
-		r = newtmp("abi", fn);
-		r1 = newtmp("abi", fn);
-		emit(OStorel, 0, R, r, r1);
-		emit(OAdd, Kl, r1, rstk, getcon(soff, fn));
-		r1 = newtmp("abi", fn);
-		emit(OLoad, Kl, r, r1, R);
-		emit(OAdd, Kl, r1, rsrc, getcon(boff, fn));
-	}
-}
-
 static Ref
 rarg(int ty, int *ni, int *ns)
 {
@@ -643,7 +674,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 		if (i->op == OArgc) {
 			if (a->size > 8) {
 				r2 = rarg(a->cls[1], &ni, &ns);
-				r = newtmp("abi", fn);
+				r = newtmp("abi", Kl, fn);
 				emit(OLoad, a->cls[1], r2, r, R);
 				emit(OAdd, Kl, r, i->arg[1], getcon(8, fn));
 			}
@@ -652,7 +683,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 			emit(OCopy, i->cls, r1, i->arg[0], R);
 	}
 
-	r = newtmp("abi", fn);
+	r = newtmp("abi", Kl, fn);
 	for (i=i0, a=ac, off=0; i<i1; i++, a++) {
 		if (!a->inmem)
 			continue;
@@ -661,19 +692,20 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 				off += off & 15;
 			blit(r, off, i->arg[1], a->size, fn);
 		} else {
-			r1 = newtmp("abi", fn);
+			r1 = newtmp("abi", Kl, fn);
 			emit(OStorel, 0, R, i->arg[0], r1);
 			emit(OAdd, Kl, r1, r, getcon(off, fn));
 		}
 		off += a->size;
 	}
-	emit(OSAlloc, Kl, r, getcon(stk, fn), R);
+	if (stk)
+		emit(OSAlloc, Kl, r, getcon(stk, fn), R);
 }
 
 static void
 selpar(Fn *fn, Ins *i0, Ins *i1)
 {
-	AClass *ac, *a;
+	AClass *ac, *a, aret;
 	Ins *i;
 	int ni, ns, s, al;
 	Ref r, r1;
@@ -684,6 +716,16 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	curi = insb;
 	ni = ns = 0;
 	assert(NAlign == 3);
+
+	if (fn->retty >= 0) {
+		aclass(&aret, &typ[fn->retty]);
+		if (aret.inmem) {
+			r = newtmp("abi", Kl, fn);
+			*curi++ = (Ins){OCopy, r, {rarg(Kl, &ni, &ns)}, Kl};
+			fn->retr = r;
+		}
+	}
+
 	s = 4;
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		switch (a->inmem) {
@@ -701,12 +743,12 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 		}
 		r1 = rarg(a->cls[0], &ni, &ns);
 		if (i->op == OParc) {
-			r = newtmp("abi", fn);
+			r = newtmp("abi", Kl, fn);
 			*curi++ = (Ins){OCopy, r, {r1}, Kl};
 			a->cls[0] = r.val;
 			if (a->size > 8) {
 				r1 = rarg(a->cls[1], &ni, &ns);
-				r = newtmp("abi", fn);
+				r = newtmp("abi", Kl, fn);
 				*curi++ = (Ins){OCopy, r, {r1}, Kl};
 				a->cls[1] = r.val;
 			}
@@ -724,7 +766,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 		*curi++ = (Ins){OAlloc+al, r1, {getcon(a->size, fn)}, Kl};
 		*curi++ = (Ins){OStorel, R, {r, r1}, 0};
 		if (a->size > 8) {
-			r = newtmp("abi", fn);
+			r = newtmp("abi", Kl, fn);
 			*curi++ = (Ins){OAdd, r, {r1, getcon(8, fn)}, Kl};
 			r1 = TMP(a->cls[1]);
 			*curi++ = (Ins){OStorel, R, {r1, r}, 0};
@@ -916,9 +958,10 @@ isel(Fn *fn)
 	b->nins = n;
 	b->ins = i0;
 
-	/* lower function calls */
+	/* lower function calls and returns */
 	for (b=fn->start; b; b=b->link) {
 		curi = &insb[NIns];
+		selret(b, fn);
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			if ((--i)->op == OCall) {
 				for (i0=i; i0>b->ins; i0--)

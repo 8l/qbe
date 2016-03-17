@@ -174,7 +174,7 @@ phicls(int t, Tmp *tmp /*, int c*/)
 }
 
 Ref
-newtmp(char *prfx, Fn *fn)
+newtmp(char *prfx, int k,  Fn *fn)
 {
 	static int n;
 	int t;
@@ -182,6 +182,7 @@ newtmp(char *prfx, Fn *fn)
 	t = fn->ntmp++;
 	vgrow(&fn->tmp, fn->ntmp);
 	sprintf(fn->tmp[t].name, "%s%d", prfx, ++n);
+	fn->tmp[t].cls = k;
 	fn->tmp[t].slot = -1;
 	fn->tmp[t].nuse = +1;
 	fn->tmp[t].ndef = +1;

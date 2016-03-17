@@ -282,7 +282,7 @@ fillfron(Fn *fn)
 static Ref
 refindex(int t, Fn *fn)
 {
-	return newtmp(fn->tmp[t].name, fn);
+	return newtmp(fn->tmp[t].name, fn->tmp[t].cls, fn);
 }
 
 static void
