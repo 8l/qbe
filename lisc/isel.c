@@ -447,6 +447,7 @@ selret(Blk *b, Fn *fn)
 		if (a.inmem) {
 			assert(rtype(fn->retr) == RTmp);
 			emit(OCopy, Kl, TMP(RAX), fn->retr, R);
+			chuse(fn->retr, +1, fn);
 			blit(fn->retr, 0, r0, a.size, fn);
 		} else {
 			nr[0] = nr[1] = 0;
@@ -458,6 +459,7 @@ selret(Blk *b, Fn *fn)
 				r = newtmp("abi", Kl, fn);
 				emit(OLoad, Kl, reg[1], r, R);
 				emit(OAdd, Kl, r, r0, getcon(8, fn));
+				chuse(r0, +1, fn);
 			}
 			emit(OLoad, Kl, reg[0], r0, R);
 		}
