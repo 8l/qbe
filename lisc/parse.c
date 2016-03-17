@@ -662,6 +662,7 @@ parsefn()
 	con[0].type = CBits;
 	fn = alloc(sizeof *fn);
 	blink = &fn->start;
+	fn->retty = -1;
 	if (peek() != TGlo)
 		rcls = parsecls(&fn->retty);
 	else
@@ -1047,14 +1048,16 @@ printfn(Fn *fn, FILE *f)
 		case JRet0:
 		case JRetw:
 		case JRetl:
-		case JRetc:
 		case JRets:
 		case JRetd:
+		case JRetc:
 			fprintf(f, "\t%s", jtoa[b->jmp.type]);
 			if (b->jmp.type != JRet0) {
 				fprintf(f, " ");
 				printref(b->jmp.arg, fn, f);
 			}
+			if (b->jmp.type == JRetc)
+				fprintf(f, ", :%s", typ[fn->retty].name);
 			fprintf(f, "\n");
 			break;
 		case JJmp:
