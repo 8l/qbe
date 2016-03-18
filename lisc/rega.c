@@ -371,7 +371,6 @@ doblk(Blk *b, RMap *cur)
 			for (r=0; r<NRSave; r++)
 				if (!(BIT(rsave[r]) & rs))
 					rfree(cur, rsave[r]);
-			r = 0;
 			break;
 		case OCopy:
 			if (isreg(i->arg[0])) {
@@ -392,8 +391,7 @@ doblk(Blk *b, RMap *cur)
 				}
 				if (i->to.val >= Tmp0)
 					i->to = TMP(r);
-			} else
-				r = 0;
+			}
 			break;
 		}
 		for (x=0, nr=0; x<2; x++)
