@@ -590,7 +590,7 @@ DoOp:
 		expect(TNL);
 		op = OCall;
 		if (k == 4) {
-			k = 0;
+			k = Kl;
 			arg[1] = TYPE(ty);
 		} else
 			arg[1] = R;

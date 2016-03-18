@@ -1,0 +1,24 @@
+# call a C function return a
+# large struct in memory
+
+type :mem = { b 17 }
+
+function $test() {
+@start
+	%r =:mem call $lower()
+	%x =w call $puts(l %r)
+	ret
+}
+
+
+# >>> driver
+# #include <stdio.h>
+# typedef struct { char t[17]; } mem;
+# extern mem test(void);
+# mem lower() { return (mem){"abcdefghijklmnop"}; }
+# int main() { test(); return 0; }
+# <<<
+
+# >>> output
+# abcdefghijklmnop
+# <<<

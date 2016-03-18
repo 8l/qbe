@@ -21,6 +21,7 @@
 
 typedef struct ANum ANum;
 typedef struct AClass AClass;
+typedef struct RAlloc RAlloc;
 
 struct ANum {
 	char n, l, r;
@@ -287,6 +288,8 @@ sel(Ins i, ANum *an, Fn *fn)
 	case OXTest:
 	case OFtosi:
 	case OSitof:
+	case OExts:
+	case OTruncd:
 	case OCast:
 	case_OExt:
 Emit:
@@ -388,6 +391,7 @@ aclass(AClass *a, Typ *t)
 		return;
 	}
 
+	a->inmem = 0;
 	for (e=0, s=0; e<2; e++) {
 		cls = -1;
 		for (n=0; n<8 && t->seg[s].len; s++) {
@@ -431,7 +435,7 @@ retr(Ref reg[2], AClass *aret)
 	int n, k, nr[2];
 
 	nr[0] = nr[1] = 0;
-	for (n=0; n<2; n++) {
+	for (n=0; aret->cls[n]>=0 && n<2; n++) {
 		k = KBASE(aret->cls[n]);
 		reg[n] = TMP(retreg[k][nr[k]++]);
 	}
@@ -539,13 +543,16 @@ seljmp(Blk *b, Fn *fn)
 }
 
 static int
-classify(Ins *i0, Ins *i1, AClass *ac, int op)
+classify(Ins *i0, Ins *i1, AClass *ac, int op, AClass *aret)
 {
 	int nint, ni, nsse, ns, n, *pn;
 	AClass *a;
 	Ins *i;
 
-	nint = 6;
+	if (aret && aret->inmem)
+		nint = 5; /* hidden argument */
+	else
+		nint = 6;
 	nsse = 8;
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		if (i->op == op) {
@@ -646,17 +653,28 @@ rarg(int ty, int *ni, int *ns)
 		return TMP(XMM0 + (*ns)++);
 }
 
+struct RAlloc {
+	Ins i;
+	RAlloc *link;
+};
+
 static void
-selcall(Fn *fn, Ins *i0, Ins *i1)
+selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 {
 	Ins *i;
-	AClass *ac, *a;
+	AClass *ac, *a, aret;
 	int ca, ni, ns;
 	uint stk, off;
-	Ref r, r1, r2;
+	Ref r, r1, r2, reg[2], regcp[2];
+	RAlloc *ra;
 
 	ac = alloc((i1-i0) * sizeof ac[0]);
-	ca = classify(i0, i1, ac, OArg);
+	if (!req(i1->arg[1], R)) {
+		assert(rtype(i1->arg[1]) == RAType);
+		aclass(&aret, &typ[i1->arg[1].val & AMask]);
+		ca = classify(i0, i1, ac, OArg, &aret);
+	} else
+		ca = classify(i0, i1, ac, OArg, 0);
 
 	for (stk=0, a=&ac[i1-i0]; a>ac;)
 		if ((--a)->inmem) {
@@ -672,8 +690,44 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 	}
 
 	if (!req(i1->arg[1], R)) {
-		diag("struct-returning function not implemented");
+		if (aret.inmem) {
+			/* get the return location from eax
+			 * it saves one callee-save reg */
+			r1 = newtmp("abi", Kl, fn);
+			emit(OCopy, Kl, i1->to, TMP(RAX), R);
+			ca += 1;
+		} else {
+			if (aret.size > 8) {
+				r = newtmp("abi", Kl, fn);
+				regcp[1] = newtmp("abi", aret.cls[1], fn);
+				emit(OStorel, 0, R, regcp[1], r);
+				emit(OAdd, Kl, r, i1->to, getcon(8, fn));
+				chuse(i1->to, +1, fn);
+				ca += 1 << (2 * KBASE(aret.cls[1]));
+			}
+			regcp[0] = newtmp("abi", aret.cls[0], fn);
+			emit(OStorel, 0, R, regcp[0], i1->to);
+			ca += 1 << (2 * KBASE(aret.cls[0]));
+			retr(reg, &aret);
+			if (aret.size > 8)
+				emit(OCopy, aret.cls[1], regcp[1], reg[1], R);
+			emit(OCopy, aret.cls[0], regcp[0], reg[0], R);
+			r1 = i1->to;
+		}
+		/* allocate return pad */
+		ra = alloc(sizeof *ra);
+		assert(NAlign == 3);
+		aret.align -= 2;
+		if (aret.align < 0)
+			aret.align = 0;
+		ra->i.op = OAlloc + aret.align;
+		ra->i.cls = Kl;
+		ra->i.to = r1;
+		ra->i.arg[0] = getcon(aret.size, fn);
+		ra->link = (*rap);
+		*rap = ra;
 	} else {
+		ra = 0;
 		if (KBASE(i1->cls) == 0) {
 			emit(OCopy, i1->cls, i1->to, TMP(RAX), R);
 			ca += 1;
@@ -685,6 +739,8 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 	emit(OCall, i1->cls, R, i1->arg[0], CALL(ca));
 
 	ni = ns = 0;
+	if (ra && aret.inmem)
+		emit(OCopy, Kl, rarg(Kl, &ni, &ns), ra->i.to, R); /* pass hidden argument */
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		if (a->inmem)
 			continue;
@@ -734,11 +790,8 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	Ref r, r1;
 
 	ac = alloc((i1-i0) * sizeof ac[0]);
-	classify(i0, i1, ac, OPar);
-
 	curi = insb;
 	ni = ns = 0;
-	assert(NAlign == 3);
 
 	if (fn->retty >= 0) {
 		aclass(&aret, &typ[fn->retty]);
@@ -747,7 +800,11 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 			*curi++ = (Ins){OCopy, r, {rarg(Kl, &ni, &ns)}, Kl};
 			fn->retr = r;
 		}
-	}
+		classify(i0, i1, ac, OPar, &aret);
+	} else
+		classify(i0, i1, ac, OPar, 0);
+
+	assert(NAlign == 3);
 
 	s = 4;
 	for (i=i0, a=ac; i<i1; i++, a++) {
@@ -964,6 +1021,7 @@ isel(Fn *fn)
 	int n, al;
 	int64_t sz;
 	ANum *ainfo;
+	RAlloc *ral;
 
 	for (n=0; n<fn->ntmp; n++)
 		fn->tmp[n].slot = -1;
@@ -982,7 +1040,11 @@ isel(Fn *fn)
 	b->ins = i0;
 
 	/* lower function calls and returns */
-	for (b=fn->start; b; b=b->link) {
+	ral = 0;
+	b = fn->start;
+	do {
+		if (!(b = b->link))
+			b = fn->start; /* do it last */
 		curi = &insb[NIns];
 		selret(b, fn);
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
@@ -991,16 +1053,19 @@ isel(Fn *fn)
 					if ((i0-1)->op != OArg)
 					if ((i0-1)->op != OArgc)
 						break;
-				selcall(fn, i0, i);
+				selcall(fn, i0, i, &ral);
 				i = i0;
 				continue;
 			}
 			assert(i->op != OArg && i->op != OArgc);
 			emiti(*i);
 		}
+		if (b == fn->start)
+			for (; ral; ral=ral->link)
+				emiti(ral->i);
 		b->nins = &insb[NIns] - curi;
 		idup(&b->ins, curi, b->nins);
-	}
+	} while (b != fn->start);
 
 	if (debug['A']) {
 		fprintf(stderr, "\n> After call lowering:\n");
