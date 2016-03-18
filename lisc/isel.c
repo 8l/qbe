@@ -737,6 +737,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 		}
 	}
 	emit(OCall, i1->cls, R, i1->arg[0], CALL(ca));
+	emit(OCopy, Kw, TMP(RAX), getcon((ca >> 8) & 15, fn), R);
 
 	ni = ns = 0;
 	if (ra && aret.inmem)
