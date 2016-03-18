@@ -659,17 +659,26 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 				stk += stk & 15;
 		}
 	stk += stk & 15;
-
-	if (!req(i1->arg[1], R))
-		diag("struct-returning function not implemented");
 	if (stk) {
 		r = getcon(-(int64_t)stk, fn);
 		emit(OSAlloc, Kl, R, r, R);
 	}
-	emit(OCopy, i1->cls, i1->to, TMP(RAX), R);
-	emit(OCall, i1->cls, R, i1->arg[0], CALL(1 | ca));
 
-	for (i=i0, a=ac, ni=ns=0; i<i1; i++, a++) {
+	if (!req(i1->arg[1], R)) {
+		diag("struct-returning function not implemented");
+	} else {
+		if (KBASE(i1->cls) == 0) {
+			emit(OCopy, i1->cls, i1->to, TMP(RAX), R);
+			ca += 1;
+		} else {
+			emit(OCopy, i1->cls, i1->to, TMP(XMM0), R);
+			ca += 1 << 2;
+		}
+	}
+	emit(OCall, i1->cls, R, i1->arg[0], CALL(ca));
+
+	ni = ns = 0;
+	for (i=i0, a=ac; i<i1; i++, a++) {
 		if (a->inmem)
 			continue;
 		r1 = rarg(a->cls[0], &ni, &ns);
@@ -679,13 +688,18 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 				r = newtmp("abi", Kl, fn);
 				emit(OLoad, a->cls[1], r2, r, R);
 				emit(OAdd, Kl, r, i->arg[1], getcon(8, fn));
+				chuse(i->arg[1], +1, fn);
 			}
 			emit(OLoad, a->cls[0], r1, i->arg[1], R);
 		} else
 			emit(OCopy, i->cls, r1, i->arg[0], R);
 	}
 
+	if (!stk)
+		return;
+
 	r = newtmp("abi", Kl, fn);
+	chuse(r, -1, fn);
 	for (i=i0, a=ac, off=0; i<i1; i++, a++) {
 		if (!a->inmem)
 			continue;
@@ -697,11 +711,11 @@ selcall(Fn *fn, Ins *i0, Ins *i1)
 			r1 = newtmp("abi", Kl, fn);
 			emit(OStorel, 0, R, i->arg[0], r1);
 			emit(OAdd, Kl, r1, r, getcon(off, fn));
+			chuse(r, +1, fn);
 		}
 		off += a->size;
 	}
-	if (stk)
-		emit(OSAlloc, Kl, r, getcon(stk, fn), R);
+	emit(OSAlloc, Kl, r, getcon(stk, fn), R);
 }
 
 static void
