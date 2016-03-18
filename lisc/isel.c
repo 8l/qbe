@@ -425,12 +425,24 @@ blit(Ref rstk, uint soff, Ref rsrc, uint sz, Fn *fn)
 }
 
 static void
-selret(Blk *b, Fn *fn)
+retr(Ref reg[2], AClass *aret)
 {
 	static int retreg[2][2] = {{RAX, RDX}, {XMM0, XMM0+1}};
-	int j, n, k, nr[2];
+	int n, k, nr[2];
+
+	nr[0] = nr[1] = 0;
+	for (n=0; n<2; n++) {
+		k = KBASE(aret->cls[n]);
+		reg[n] = TMP(retreg[k][nr[k]++]);
+	}
+}
+
+static void
+selret(Blk *b, Fn *fn)
+{
+	int j, k;
 	Ref r, r0, reg[2];
-	AClass a;
+	AClass aret;
 
 	j = b->jmp.type;
 
@@ -442,20 +454,15 @@ selret(Blk *b, Fn *fn)
 	b->jmp.type = JRet0;
 
 	if (j == JRetc) {
-		aclass(&a, &typ[fn->retty]);
-		b->jmp.type = JRet0;
-		if (a.inmem) {
+		aclass(&aret, &typ[fn->retty]);
+		if (aret.inmem) {
 			assert(rtype(fn->retr) == RTmp);
 			emit(OCopy, Kl, TMP(RAX), fn->retr, R);
 			chuse(fn->retr, +1, fn);
-			blit(fn->retr, 0, r0, a.size, fn);
+			blit(fn->retr, 0, r0, aret.size, fn);
 		} else {
-			nr[0] = nr[1] = 0;
-			for (n=0; n<2; n++) {
-				k = KBASE(a.cls[n]);
-				reg[n] = TMP(retreg[k][nr[k]++]);
-			}
-			if (a.size > 8) {
+			retr(reg, &aret);
+			if (aret.size > 8) {
 				r = newtmp("abi", Kl, fn);
 				emit(OLoad, Kl, reg[1], r, R);
 				emit(OAdd, Kl, r, r0, getcon(8, fn));
