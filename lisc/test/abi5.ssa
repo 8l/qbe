@@ -1,24 +1,105 @@
-# call a C function return a
-# large struct in memory
+# returning structs from C
 
-type :mem = { b 17 }
+type :st1 = { b 17 }
+type :st2 = { w }
+type :st3 = { s, w }
+type :st4 = { w, d }
+type :st5 = { s, l }
+type :st6 = { b 16 }
+type :st7 = { s, d }
+type :st8 = { w 4 }
+
+data $fmt1 = { b "t1: %s\n", b 0 }
+data $fmt2 = { b "t2: %d\n", b 0 }
+data $fmt3 = { b "t3: %f %d\n", b 0 }
+data $fmt4 = { b "t4: %d %f\n", b 0 }
+data $fmt5 = { b "t5: %f %lld\n", b 0 }
+data $fmt6 = { b "t6: %s\n", b 0 }
+data $fmt7 = { b "t7: %f %f\n", b 0 }
+data $fmt8 = { b "t8: %d %d %d %d\n", b 0 }
 
 function $test() {
 @start
-	%r =:mem call $lower()
-	%x =w call $puts(l %r)
+	%r1 =:st1 call $t1()
+	%i1 =w call $printf(l $fmt1, l %r1)
+
+	%r2 =:st2 call $t2()
+	%w2 =w loadw %r2
+	%i2 =w call $printf(l $fmt2, w %w2)
+
+	%r3 =:st3 call $t3()
+	%s3 =s loads %r3
+	%r34 =l add %r3, 4
+	%w3 =w loadw %r34
+	%p3 =d exts %s3
+	%i3 =w call $printf(l $fmt3, d %p3, w %w3)
+
+	%r4 =:st4 call $t4()
+	%w4 =w loadw %r4
+	%r48 =l add 8, %r4
+	%d4 =d loadd %r48
+	%i4 =w call $printf(l $fmt4, w %w4, d %d4)
+
+	%r5 =:st5 call $t5()
+	%s5 =s loads %r5
+	%d5 =d exts %s5
+	%r58 =l add %r5, 8
+	%l5 =l loadl %r58
+	%i5 =w call $printf(l $fmt5, d %d5, l %l5)
+
+	%r6 =:st6 call $t6()
+	%i6 =w call $printf(l $fmt6, l %r6)
+
+	%r7 =:st7 call $t7()
+	%s7 =s loads %r7
+	%d71 =d exts %s7
+	%r78 =l add %r7, 8
+	%d72 =d loadd %r78
+	%i7 =w call $printf(l $fmt7, d %d71, d %d72)
+
+	%r8 =:st8 call $t8()
+	%r84 =l add 4, %r8
+	%r88 =l add 4, %r84
+	%r812 =l add 4, %r88
+	%w81 =w loadw %r8
+	%w82 =w loadw %r84
+	%w83 =w loadw %r88
+	%w84 =w loadw %r812
+	%i8 =w call $printf(l $fmt8, w %w81, w %w82, w %w83, w %w84)
+
 	ret
 }
 
 
 # >>> driver
 # #include <stdio.h>
-# typedef struct { char t[17]; } mem;
-# extern mem test(void);
-# mem lower() { return (mem){"abcdefghijklmnop"}; }
+# typedef struct { char t[17]; } st1;
+# typedef struct { int i; } st2;
+# typedef struct { float f; int i; } st3;
+# typedef struct { int i; double d; } st4;
+# typedef struct { float f; long l; } st5;
+# typedef struct { char t[16]; } st6;
+# typedef struct { float f; double d; } st7;
+# typedef struct { int i[4]; } st8;
+# extern void test(void);
+# st1 t1() { return (st1){"abcdefghijklmnop"}; }
+# st2 t2() { return (st2){2}; }
+# st3 t3() { return (st3){3.0,30}; }
+# st4 t4() { return (st4){4,-40}; }
+# st5 t5() { return (st5){5.5,-55}; }
+# st6 t6() { return (st6){"abcdefghijklmno"}; }
+# st7 t7() { return (st7){7.77,77.7}; }
+# st8 t8() { return (st8){-8,88,-888,8888}; }
 # int main() { test(); return 0; }
 # <<<
 
 # >>> output
-# abcdefghijklmnop
+# t1: abcdefghijklmnop
+# t2: 2
+# t3: 3.000000 30
+# t4: 4 -40.000000
+# t5: 5.500000 -55
+# t6: abcdefghijklmno
+# t7: 7.770000 77.700000
+# t8: -8 88 -888 8888
 # <<<
