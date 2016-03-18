@@ -424,6 +424,16 @@ emitins(Ins i, Fn *fn, FILE *f)
 		if (!req(i.to, R))
 			emitcopy(i.to, TMP(RSP), Kl, fn, f);
 		break;
+	case OSwap:
+		if (KBASE(i.cls) == 0)
+			goto Table;
+		/* for floats, there is no swap instruction
+		 * so we use xmm15 as a temporary
+		 */
+		emitcopy(TMP(XMM0+15), i.arg[0], i.cls, fn, f);
+		emitcopy(i.arg[0], i.arg[1], i.cls, fn, f);
+		emitcopy(i.arg[1], TMP(XMM0+15), i.cls, fn, f);
+		break;
 	}
 }
 
