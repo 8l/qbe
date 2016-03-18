@@ -642,10 +642,10 @@ calluse(Ins i, int p[2])
 	for (j=0; j<nf; j++)
 		b |= BIT(XMM0+j);
 	if (p) {
-		p[0] = ni;
+		p[0] = ni + 1;
 		p[1] = nf;
 	}
-	return b;
+	return b | BIT(RAX);
 }
 
 static Ref
