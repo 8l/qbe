@@ -745,7 +745,7 @@ parsetyp()
 				a = s - a;
 				if (++n < NSeg) {
 					/* padding segment */
-					ty->seg[n].flt = 0;
+					ty->seg[n].ispad = 1;
 					ty->seg[n].len = a;
 				}
 			}
@@ -757,7 +757,8 @@ parsetyp()
 				c = 1;
 			while (c-- > 0) {
 				if (++n < NSeg) {
-					ty->seg[n].flt = flt;
+					ty->seg[n].isflt = flt;
+					ty->seg[n].ispad = 0;
 					ty->seg[n].len = s;
 				}
 				sz += a + s;

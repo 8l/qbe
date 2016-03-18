@@ -395,10 +395,14 @@ aclass(AClass *a, Typ *t)
 	for (e=0, s=0; e<2; e++) {
 		cls = -1;
 		for (n=0; n<8 && t->seg[s].len; s++) {
-			if (t->seg[s].flt) {
+			if (t->seg[s].ispad) {
+				/* don't change anything */
+			}
+			else if (t->seg[s].isflt) {
 				if (cls == -1)
 					cls = Kd;
-			} else
+			}
+			else
 				cls = Kl;
 			n += t->seg[s].len;
 		}

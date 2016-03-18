@@ -435,8 +435,9 @@ struct Typ {
 	int align;
 
 	struct {
-		uint flt:1;
-		uint len:31;
+		uint isflt:1;
+		uint ispad:1;
+		uint len:30;
 	} seg[NSeg+1];
 };
 
