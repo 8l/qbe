@@ -266,10 +266,12 @@ lex()
 		tokval.str = vnew(0, 1);
 		for (i=0;; i++) {
 			c = fgetc(inf);
-			if (c == '"')
-			if (!i || tokval.str[i-1] != '\\')
-				return TStr;
 			vgrow(&tokval.str, i+1);
+			if (c == '"')
+			if (!i || tokval.str[i-1] != '\\') {
+				tokval.str[i] = 0;
+				return TStr;
+			}
 			tokval.str[i] = c;
 		}
 	}
