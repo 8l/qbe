@@ -1,7 +1,7 @@
 (* fuzzer *)
 
 type _ bty =
-  | Char: char bty
+  | Char: int bty
   | Short: int bty
   | Int: int bty
   | Long: int bty
@@ -67,7 +67,7 @@ module Gen = struct
     let tb: type a. a bty -> a = function (* eh, dry... *)
       | Float  -> float ()
       | Double -> float ()
-      | Char   -> Char.chr (R.int 255)
+      | Char   -> int (btysize Char)
       | Short  -> int (btysize Short)
       | Int    -> int (btysize Int)
       | Long   -> int (btysize Long) in
@@ -145,7 +145,7 @@ module OutC = struct
 
   let init oc name (T (ty, t)) =
     let initb: type a. a bty * a -> unit = function
-      | Char, c   -> fprintf oc "%C" c
+      | Char, i   -> fprintf oc "%d" i
       | Short, i  -> fprintf oc "%d" i
       | Int, i    -> fprintf oc "%d" i
       | Long, i   -> fprintf oc "%d" i
