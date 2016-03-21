@@ -19,7 +19,8 @@ type _ aty =
 type anyb = AB: _ bty -> anyb (* kinda boring... *)
 type anys = AS: _ sty -> anys
 type anya = AA: _ aty -> anya
-type test = T: 'a aty * 'a -> test
+type testb = TB: 'a bty * 'a -> testb
+type testa = TA: 'a aty * 'a -> testa
 
 
 let btysize: type a. a bty -> int = function
@@ -35,6 +36,14 @@ let btyalign = btysize
 let styempty: type a. a sty -> bool = function
   | Field _ -> false
   | Empty -> true
+
+let rec stysize: type a. a sty -> int = function
+  | Field (b, s) -> (btyalign b) + (stysize s)
+  | Empty -> 0
+
+let rec styalign: type a. a sty -> int = function
+  | Field (b, s) -> max (btyalign b) (styalign s)
+  | Empty -> 1
 
 
 (* Generate types and test vectors. *)
@@ -111,7 +120,7 @@ module Gen = struct
   let test () =
     let AA ty = a () in
     let t = testv ty in
-    T (ty, t)
+    TA (ty, t)
 
   let tests () =
     let rec f n =
@@ -124,8 +133,8 @@ end
 module type OUT = sig
   val extension: string
   val comment: out_channel -> string -> unit
-  val caller: out_channel -> test -> test list -> unit
-  val callee: out_channel -> test -> test list -> unit
+  val caller: out_channel -> testa -> testa list -> unit
+  val callee: out_channel -> testa -> testa list -> unit
 end
 
 (* Code generation for C *)
@@ -170,7 +179,7 @@ module OutC = struct
     | Float, f  -> fprintf oc "%ff" f
     | Double, f -> fprintf oc "%f" f
 
-  let init oc name (T (ty, t)) =
+  let init oc name (TA (ty, t)) =
     let inits s =
       let rec f: type a. a sty * a -> unit = function
         | Field (b, s), (tb, ts) ->
@@ -208,7 +217,7 @@ module OutC = struct
     ]
 
   let typedef oc name = function
-    | T (Struct ts, _) ->
+    | TA (Struct ts, _) ->
       ctypelong oc name (Struct ts);
       fprintf oc ";\n";
     | _ -> ()
@@ -220,8 +229,8 @@ module OutC = struct
         base oc t;
         fprintf oc ")\n\t\tfail(%S);\n" name; in
     function
-    | T (Base b, tb) -> chkbase name (b, tb)
-    | T (Struct s, ts) ->
+    | TA (Base b, tb) -> chkbase name (b, tb)
+    | TA (Struct s, ts) ->
       let rec f: type a. int -> a sty * a -> unit =
         fun i -> function
         | Field (b, s), (tb, ts) ->
@@ -232,11 +241,11 @@ module OutC = struct
 
   let argname i = "arg" ^ string_of_int (i+1)
 
-  let proto oc (T (tret, _)) args =
+  let proto oc (TA (tret, _)) args =
     ctype oc "ret" tret;
     fprintf oc " f(";
     let narg = List.length args in
-    List.iteri (fun i (T (targ, _)) ->
+    List.iteri (fun i (TA (targ, _)) ->
       ctype oc (argname i) targ;
       fprintf oc " %s" (argname i);
       if i <> narg-1 then
@@ -259,7 +268,7 @@ module OutC = struct
       init oc (argname i) arg;
     ) args;
     fprintf oc "\t";
-    let T (tret, _) = ret in
+    let TA (tret, _) = ret in
     ctype oc "ret" tret;
     fprintf oc " ret;\n\n";
     fprintf oc "\tret = f(";
@@ -296,96 +305,21 @@ end
 module OutIL = struct
   open Printf
 
-  let ctypelong oc name =
-    let cb: type a. a bty -> unit = function
-      | Char   -> fprintf oc "char"
-      | Short  -> fprintf oc "short"
-      | Int    -> fprintf oc "int"
-      | Long   -> fprintf oc "long"
-      | Float  -> fprintf oc "float"
-      | Double -> fprintf oc "double" in
-    let rec cs: type a. int -> a sty -> unit =
-      fun i -> function
-      | Field (b, s) ->
-        cb b;
-        fprintf oc " f%d; " i;
-        cs (i+1) s;
-      | Empty -> () in
-    function
-    | Base b ->
-      cb b;
-    | Struct s ->
-      fprintf oc "struct %s { " name;
-      cs 1 s;
-      fprintf oc "}";
-      ()
-
-  let ctype: type a. out_channel -> string -> a aty -> unit =
-    fun oc name -> function
-    | Struct _ -> fprintf oc "struct %s" name
-    | t -> ctypelong oc "" t
-
-  let init oc name (T (ty, t)) =
-    let inits s =
-      let rec f: type a. a sty * a -> unit = function
-        | Field (b, s), (tb, ts) ->
-          base oc (b, tb);
-          fprintf oc ", ";
-          f (s, ts)
-        | Empty, () -> () in
-      fprintf oc "{ ";
-      f s;
-      fprintf oc "}"; in
-    ctype oc name ty;
-    fprintf oc " %s = " name;
-    begin match (ty, t) with
-    | Base b, tb -> base oc (b, tb)
-    | Struct s, ts -> inits (s, ts)
-    end;
-    fprintf oc ";\n";
-    ()
-
-
   let comment oc s =
     fprintf oc "# %s\n" s
 
-  let check oc name =
-    let chkbase: type a. string -> a bty * a -> unit =
-      fun name t ->
-        fprintf oc "\tif (%s != " name;
-        base oc t;
-        fprintf oc ")\n\t\tfail(%S);\n" name; in
-    function
-    | T (Base b, tb) -> chkbase name (b, tb)
-    | T (Struct s, ts) ->
-      let rec f: type a. int -> a sty * a -> unit =
-        fun i -> function
-        | Field (b, s), (tb, ts) ->
-          chkbase (Printf.sprintf "%s.f%d" name i) (b, tb);
-          f (i+1) (s, ts);
-        | Empty, () -> () in
-      f 1 (s, ts)
-
-  let tmp =
+  let tmp, lbl =
     let next = ref 0 in
-    fun () ->
-      incr next;
-      "%t" ^ (string_of_int !next)
+    (fun () -> incr next; "%t" ^ (string_of_int !next)),
+    (fun () -> incr next; "@l" ^ (string_of_int !next))
 
-  (* NEW NEW NEW *)
-
-  let base: type a. out_channel -> a bty * a -> unit =
-    fun oc -> function
-    | Char, i   -> fprintf oc "%d" i
-    | Short, i  -> fprintf oc "%d" i
-    | Int, i    -> fprintf oc "%d" i
-    | Long, i   -> fprintf oc "%d" i
-    | Float, f  -> fprintf oc "s_%f" f
-    | Double, f -> fprintf oc "d_%f" f
-
-  let extension = ".ssa"
-
-  let argname i = "arg" ^ string_of_int (i+1)
+  let bvalue: type a. a bty * a -> string = function
+    | Char, i   -> sprintf "%d" i
+    | Short, i  -> sprintf "%d" i
+    | Int, i    -> sprintf "%d" i
+    | Long, i   -> sprintf "%d" i
+    | Float, f  -> sprintf "s_%f" f
+    | Double, f -> sprintf "d_%f" f
 
   let btype: type a. a bty -> string = function
     | Char   -> "w"
@@ -395,9 +329,71 @@ module OutIL = struct
     | Float  -> "s"
     | Double -> "d"
 
+  let extension = ".ssa"
+
+  let argname i = "arg" ^ string_of_int (i+1)
+
+  let siter oc base s g =
+    let rec f: type a. int -> int -> a sty * a -> unit =
+      fun id off -> function
+      | Field (b, s), (tb, ts) ->
+        let al = btyalign b in
+        let off =
+          let x = off mod al in
+          if x <> 0 then off + al - x else off in
+        let addr = tmp () in
+        fprintf oc "\t%s =l add %d, %s\n" addr off base;
+        g id addr (TB (b, tb));
+        f (id + 1) (off + btysize b) (s, ts);
+     | Empty, () -> () in
+   f 0 0 s
+
+  let init oc = function
+    | TA (Base b, tb) -> bvalue (b, tb)
+    | TA (Struct s, ts) ->
+      let base = tmp () in
+      fprintf oc "\t%s =l alloc%d %d\n"
+        base (styalign s) (stysize s);
+      siter oc base (s, ts)
+      begin fun _ addr (TB (b, tb)) ->
+        fprintf oc "\tstore%s %s, %s\n"
+          (btype b) (bvalue (b, tb)) addr;
+      end;
+      base
+
+  let check oc id name =
+    let bcheck = fun id name (b, tb) ->
+      let tcmp = tmp () in
+      let nxtl = lbl () in
+      fprintf oc "\t%s =w ceq%s %s, %s\n"
+        tcmp (btype b) name (bvalue (b, tb));
+      fprintf oc "\tstorew %d, %%failcode\n" id;
+      fprintf oc "\tjnz %s, %s, @fail\n" tcmp nxtl;
+      fprintf oc "%s\n" nxtl; in
+    function
+    | TA (Base Char, i) ->
+      let tval = tmp () in
+      fprintf oc "\t%s =w extsb %s\n" tval name;
+      bcheck id tval (Int, i)
+    | TA (Base Short, i) ->
+      let tval = tmp () in
+      fprintf oc "\t%s =w extsh %s\n" tval name;
+      bcheck id tval (Int, i)
+    | TA (Base b, tb) ->
+      bcheck id name (b, tb)
+    | TA (Struct s, ts) ->
+      siter oc name (s, ts)
+      begin fun id' addr (TB (b, tb)) ->
+        let tval = tmp () in
+        fprintf oc "\t%s =%s load %s\n"
+          tval (btype b) addr;
+        bcheck (100*id + id'+1) tval (b, tb);
+      end;
+      ()
+
   let ttype name = function
-    | T (Base b, _)   -> btype b
-    | T (Struct _, _) -> ":" ^ name
+    | TA (Base b, _)   -> btype b
+    | TA (Struct _, _) -> ":" ^ name
 
   let typedef oc name =
     let rec f: type a. a sty -> unit = function
@@ -408,11 +404,50 @@ module OutIL = struct
         f s;
       | Empty -> () in
     function
-    | T (Struct ts, _) ->
+    | TA (Struct ts, _) ->
       fprintf oc "type :%s = { " name;
       f ts;
       fprintf oc " }\n";
     | _ -> ()
+
+  let postlude oc = List.iter (fprintf oc "%s\n")
+    [ "@fail"
+    ;  "# failure code"
+    ; "\t%fcode =w loadw %failcode"
+    ; "\t%f0 =w call $printf(l $failstr, w %fcode)"
+    ; "\t%f1 =w call $abort()"
+    ; "\tret 0"
+    ; "}"
+    ; ""
+    ; "data $failstr = { b \"fail on check %d\\n\", b 0 }"
+    ]
+
+  let caller oc ret args =
+    let narg = List.length args in
+    List.iteri (fun i arg ->
+      typedef oc (argname i) arg;
+    ) args;
+    typedef oc "ret" ret;
+    fprintf oc "\nfunction w $main() {\n";
+    fprintf oc "@start\n";
+    fprintf oc "\t%%failcode =l alloc4 4\n";
+    let targs = List.mapi (fun i arg ->
+      comment oc ("define argument " ^ (string_of_int (i+1)));
+      (ttype (argname i) arg, init oc arg)
+    ) args in
+    comment oc "call test function";
+    fprintf oc "\t%%ret =%s call $f(" (ttype "ret" ret);
+    List.iteri (fun i (ty, tmp) ->
+      fprintf oc "%s %s" ty tmp;
+      if i <> narg-1 then
+        fprintf oc ", ";
+    ) targs;
+    fprintf oc ")\n";
+    comment oc "check the return value";
+    check oc 0 "%ret" ret;
+    fprintf oc "\tret 0\n";
+    postlude oc;
+    ()
 
   let callee oc ret args =
     let narg = List.length args in
@@ -428,8 +463,16 @@ module OutIL = struct
         fprintf oc ", ";
     ) args;
     fprintf oc ") {\n";
-
-    fprintf oc "}\n";
+    fprintf oc "@start\n";
+    fprintf oc "\t%%failcode =l alloc4 4\n";
+    List.iteri (fun i arg ->
+      comment oc ("checking argument " ^ (string_of_int (i+1)));
+      check oc (i+1) ("%" ^ argname i) arg;
+    ) args;
+    comment oc "define the return value";
+    let rettmp = init oc ret in
+    fprintf oc "\tret %s\n" rettmp;
+    postlude oc;
     ()
 
 end
@@ -441,6 +484,6 @@ let _ =
   let targs = Gen.tests () in
   let oc = stdout in
   O.comment oc (Printf.sprintf "seed %d" seed);
-  (* O.caller oc tret targs; *)
+  O.caller oc tret targs;
   O.callee oc tret targs;
   ()
