@@ -16,8 +16,14 @@ then
 fi
 
 	$OCAML tools/abi.ml $TMP c ssa
-	./$QBE -o $TMP/callee.s $TMP/callee.ssa         || failure "qbe"
-	c99 -o $TMP/abitest $TMP/caller.c $TMP/callee.s || failure "cc + linking"
-	$TMP/abitest                                    || failure "runtime"
+
+	./$QBE -o $TMP/callee.s $TMP/callee.ssa
+		|| failure "qbe"
+
+	c99 -g -o $TMP/abitest $TMP/caller.c $TMP/callee.s
+		|| failure "cc + linking"
+
+	$TMP/abitest
+		|| failure "runtime"
 
 rm -fr $TMP
