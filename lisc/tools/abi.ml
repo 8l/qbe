@@ -87,7 +87,7 @@ module Gen = struct
     | 4 -> AB Float
     | _ -> AB Double
 
-  let smax = 4      (* max elements in structs *)
+  let smax = 5      (* max elements in structs *)
   let structp = 0.3 (* odds of having a struct type *)
   let amax = 8      (* max function arguments *)
 
@@ -199,8 +199,7 @@ module OutC = struct
     [ "#include <stdio.h>"
     ; "#include <stdlib.h>"
     ; ""
-    ; "static void"
-    ; "fail(char *chk)"
+    ; "static void fail(char *chk)"
     ; "{"
     ; "\tfprintf(stderr, \"fail: checking %s\\n\", chk);"
     ; "\tabort();"
@@ -293,13 +292,155 @@ module OutC = struct
 
 end
 
+(* Code generation for QBE *)
+module OutIL = struct
+  open Printf
+
+  let ctypelong oc name =
+    let cb: type a. a bty -> unit = function
+      | Char   -> fprintf oc "char"
+      | Short  -> fprintf oc "short"
+      | Int    -> fprintf oc "int"
+      | Long   -> fprintf oc "long"
+      | Float  -> fprintf oc "float"
+      | Double -> fprintf oc "double" in
+    let rec cs: type a. int -> a sty -> unit =
+      fun i -> function
+      | Field (b, s) ->
+        cb b;
+        fprintf oc " f%d; " i;
+        cs (i+1) s;
+      | Empty -> () in
+    function
+    | Base b ->
+      cb b;
+    | Struct s ->
+      fprintf oc "struct %s { " name;
+      cs 1 s;
+      fprintf oc "}";
+      ()
+
+  let ctype: type a. out_channel -> string -> a aty -> unit =
+    fun oc name -> function
+    | Struct _ -> fprintf oc "struct %s" name
+    | t -> ctypelong oc "" t
+
+  let init oc name (T (ty, t)) =
+    let inits s =
+      let rec f: type a. a sty * a -> unit = function
+        | Field (b, s), (tb, ts) ->
+          base oc (b, tb);
+          fprintf oc ", ";
+          f (s, ts)
+        | Empty, () -> () in
+      fprintf oc "{ ";
+      f s;
+      fprintf oc "}"; in
+    ctype oc name ty;
+    fprintf oc " %s = " name;
+    begin match (ty, t) with
+    | Base b, tb -> base oc (b, tb)
+    | Struct s, ts -> inits (s, ts)
+    end;
+    fprintf oc ";\n";
+    ()
+
+
+  let comment oc s =
+    fprintf oc "# %s\n" s
+
+  let check oc name =
+    let chkbase: type a. string -> a bty * a -> unit =
+      fun name t ->
+        fprintf oc "\tif (%s != " name;
+        base oc t;
+        fprintf oc ")\n\t\tfail(%S);\n" name; in
+    function
+    | T (Base b, tb) -> chkbase name (b, tb)
+    | T (Struct s, ts) ->
+      let rec f: type a. int -> a sty * a -> unit =
+        fun i -> function
+        | Field (b, s), (tb, ts) ->
+          chkbase (Printf.sprintf "%s.f%d" name i) (b, tb);
+          f (i+1) (s, ts);
+        | Empty, () -> () in
+      f 1 (s, ts)
+
+  let tmp =
+    let next = ref 0 in
+    fun () ->
+      incr next;
+      "%t" ^ (string_of_int !next)
+
+  (* NEW NEW NEW *)
+
+  let base: type a. out_channel -> a bty * a -> unit =
+    fun oc -> function
+    | Char, i   -> fprintf oc "%d" i
+    | Short, i  -> fprintf oc "%d" i
+    | Int, i    -> fprintf oc "%d" i
+    | Long, i   -> fprintf oc "%d" i
+    | Float, f  -> fprintf oc "s_%f" f
+    | Double, f -> fprintf oc "d_%f" f
+
+  let extension = ".ssa"
+
+  let argname i = "arg" ^ string_of_int (i+1)
+
+  let btype: type a. a bty -> string = function
+    | Char   -> "w"
+    | Short  -> "w"
+    | Int    -> "w"
+    | Long   -> "l"
+    | Float  -> "s"
+    | Double -> "d"
+
+  let ttype name = function
+    | T (Base b, _)   -> btype b
+    | T (Struct _, _) -> ":" ^ name
+
+  let typedef oc name =
+    let rec f: type a. a sty -> unit = function
+      | Field (b, s) ->
+        fprintf oc "%s" (btype b);
+        if not (styempty s) then
+          fprintf oc ", ";
+        f s;
+      | Empty -> () in
+    function
+    | T (Struct ts, _) ->
+      fprintf oc "type :%s = { " name;
+      f ts;
+      fprintf oc " }\n";
+    | _ -> ()
+
+  let callee oc ret args =
+    let narg = List.length args in
+    List.iteri (fun i arg ->
+      typedef oc (argname i) arg;
+    ) args;
+    typedef oc "ret" ret;
+    fprintf oc "\nfunction %s $f(" (ttype "ret" ret);
+    List.iteri (fun i arg ->
+      let a = argname i in
+      fprintf oc "%s %%%s" (ttype a arg) a;
+      if i <> narg-1 then
+        fprintf oc ", ";
+    ) args;
+    fprintf oc ") {\n";
+
+    fprintf oc "}\n";
+    ()
+
+end
 
 let _ =
+  let module O = OutIL in
   let seed = Gen.init None in
   let tret = Gen.test () in
   let targs = Gen.tests () in
   let oc = stdout in
-  OutC.comment oc (Printf.sprintf "seed %d" seed);
-  (* OutC.caller oc tret targs; *)
-  OutC.callee oc tret targs;
+  O.comment oc (Printf.sprintf "seed %d" seed);
+  (* O.caller oc tret targs; *)
+  O.callee oc tret targs;
   ()
