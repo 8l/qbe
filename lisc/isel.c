@@ -819,7 +819,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 			if (a->align == 4)
 				s = (s+3) & -4;
 			fn->tmp[i->to.val].slot = -s; /* HACK! */
-			s += a->size;
+			s += a->size / 4;
 			continue;
 		case 2:
 			*curi++ = (Ins){OLoad, i->to, {SLOT(-s)}, i->cls};
