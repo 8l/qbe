@@ -379,8 +379,12 @@ module OutIL = struct
       siter oc name (s, ts)
       begin fun id' addr (TB (b, tb)) ->
         let tval = tmp () in
-        fprintf oc "\t%s =%s load %s\n"
-          tval (btype b) addr;
+        let lsuffix =
+          if AB b = AB Char  then "sb" else
+          if AB b = AB Short then "sh" else
+          "" in
+        fprintf oc "\t%s =%s load%s %s\n"
+          tval (btype b) lsuffix addr;
         bcheck (100*id + id'+1) tval (b, tb);
       end;
       ()
