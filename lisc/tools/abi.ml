@@ -130,12 +130,6 @@ module Gen = struct
 
 end
 
-module type OUT = sig
-  val extension: string
-  val comment: out_channel -> string -> unit
-  val caller: out_channel -> testa -> testa list -> unit
-  val callee: out_channel -> testa -> testa list -> unit
-end
 
 (* Code generation for C *)
 module OutC = struct
@@ -477,13 +471,47 @@ module OutIL = struct
 
 end
 
+
+module type OUT = sig
+  val extension: string
+  val comment: out_channel -> string -> unit
+  val caller: out_channel -> testa -> testa list -> unit
+  val callee: out_channel -> testa -> testa list -> unit
+end
+
 let _ =
-  let module O = OutIL in
-  let seed = Gen.init None in
+  let usage code =
+    Printf.eprintf "usage: abi.ml [-s SEED] DIR {c,ssa} {c,ssa}\n";
+    exit code in
+
+  let outmod = function
+    | "c"   -> (module OutC : OUT)
+    | "ssa" -> (module OutIL: OUT)
+    | _ -> usage 1 in
+
+  let seed, dir, mcaller, mcallee =
+    match Sys.argv with
+    | [| _; "-s"; seed; dir; caller; callee |] ->
+      let seed =
+        try Some (int_of_string seed) with
+        Failure _ -> usage 1 in
+      seed, dir, outmod caller, outmod callee
+    | [| _; dir; caller; callee |] ->
+      None, dir, outmod caller, outmod callee
+    | [| _; "-h" |] ->
+      usage 0
+    | _ ->
+      usage 1 in
+
+  let seed = Gen.init seed in
   let tret = Gen.test () in
   let targs = Gen.tests () in
-  let oc = stdout in
-  O.comment oc (Printf.sprintf "seed %d" seed);
-  O.caller oc tret targs;
-  O.callee oc tret targs;
+  let module OCaller = (val mcaller : OUT) in
+  let module OCallee = (val mcallee : OUT) in
+  let ocaller = open_out (dir ^ "/caller" ^ OCaller.extension) in
+  let ocallee = open_out (dir ^ "/callee" ^ OCallee.extension) in
+  OCaller.comment ocaller (Printf.sprintf "seed %d" seed);
+  OCallee.comment ocallee (Printf.sprintf "seed %d" seed);
+  OCaller.caller ocaller tret targs;
+  OCallee.callee ocallee tret targs;
   ()
