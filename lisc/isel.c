@@ -262,15 +262,17 @@ sel(Ins i, ANum *an, Fn *fn)
 	case ONop:
 		break;
 	case OStored:
-		if (rtype(i.arg[0]) == RCon)
-			i.op = OStorel;
 	case OStores:
-		if (rtype(i.arg[0]) == RCon)
-			i.op = OStorew;
 	case OStorel:
 	case OStorew:
 	case OStoreh:
 	case OStoreb:
+		if (rtype(i.arg[0]) == RCon) {
+			if (i.op == OStored)
+				i.op = OStorel;
+			if (i.op == OStores)
+				i.op = OStorew;
+		}
 		seladdr(&i.arg[1], an, fn);
 		goto Emit;
 	case_OLoad:
