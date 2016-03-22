@@ -1,20 +1,35 @@
 #!/bin/sh
 
-OCAML=/usr/bin/ocaml
+OCAMLC=/usr/bin/ocamlc
 QBE=lisc
-TMP=`mktemp -d abifuzz.XXXXXX`
 
 failure() {
 	echo "Failure at stage:" $1 >&2
 	exit 1
 }
 
+cleanup() {
+	rm -fr $TMP
+}
+
+compile() {
+	cp tools/abi.ml $TMP
+	pushd $TMP > /dev/null
+	if ! $OCAMLC abi.ml -o gentest
+	then
+		popd > /dev/null
+		cleanup
+		failure "abifuzz compilation"
+	fi
+	popd > /dev/null
+}
+
 once() {
 	if test -z "$1"
 	then
-		$OCAML tools/abi.ml $TMP c ssa
+		$TMP/gentest $TMP c ssa
 	else
-		$OCAML tools/abi.ml -s $1 $TMP c ssa
+		$TMP/gentest -s $1 $TMP c ssa
 	fi
 
 	./$QBE -o $TMP/callee.s $TMP/callee.ssa ||
@@ -27,11 +42,46 @@ once() {
 		failure "runtime"
 }
 
-if ! test -x $QBE
-then
-	echo "error: I must run in the directory containing $QBE." >&2
+usage() {
+	echo "usage: abitest.sh [-s SEED] [-n ITERATIONS]" >&2
 	exit 1
+}
+
+N=1
+
+while test -n "$1"
+do
+	test -n "$2" || usage
+	case "$1" in
+	"-s")
+		S="$2"
+		N=1
+		;;
+	"-n")
+		N="$2"
+		;;
+	*)
+		usage
+		;;
+	esac
+	shift 2
+done
+
+TMP=`mktemp -d abifuzz.XXXXXX`
+
+compile
+
+if test -n "$S"
+then
+	once $S
+else
+	for n in `seq $N`
+	do
+		once
+		echo "$n" | grep "00$"
+	done
 fi
 
-once "$1"
-rm -fr $TMP
+echo "All done."
+
+cleanup
