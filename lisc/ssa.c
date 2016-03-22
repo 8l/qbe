@@ -464,6 +464,8 @@ renblk(Blk *b, Name **stk, Fn *fn)
 			t = p->to.val;
 			if ((t=fn->tmp[t].visit)) {
 				m = p->narg++;
+				if (m == NPred)
+					diag("ssa: too many phi arguments");
 				p->arg[m] = getstk(t, b, stk);
 				p->blk[m] = b;
 			}
