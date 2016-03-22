@@ -1,7 +1,7 @@
 #!/bin/sh
 
 OCAMLC=/usr/bin/ocamlc
-QBE=lisc
+QBE=`pwd`/lisc
 
 failure() {
 	echo "Failure at stage:" $1 >&2
@@ -12,9 +12,23 @@ cleanup() {
 	rm -fr $TMP
 }
 
-compile() {
+init() {
 	cp tools/abi.ml $TMP
 	pushd $TMP > /dev/null
+
+	cat > Makefile << EOM
+
+.PHONY: test
+test: caller.o callee.o
+	c99 -o \$@ caller.o callee.o
+%.o: %.c
+	c99 -c -o \$@ \$<
+%.o: %.ssa
+	$QBE -o \$*.s \$<
+	c99 -c -o \$@ \$*.s
+
+EOM
+
 	if ! $OCAMLC abi.ml -o gentest
 	then
 		popd > /dev/null
@@ -25,59 +39,62 @@ compile() {
 }
 
 once() {
-	if test -z "$1"
+	if test -z "$3"
 	then
-		$TMP/gentest $TMP c ssa
+		$TMP/gentest $TMP $1 $2
 	else
-		$TMP/gentest -s $1 $TMP c ssa
+		$TMP/gentest -s $3 $TMP $1 $2
 	fi
-
-	./$QBE -o $TMP/callee.s $TMP/callee.ssa ||
-		failure "qbe"
-
-	c99 -g -o $TMP/abitest $TMP/caller.c $TMP/callee.s ||
-		failure "cc + linking"
-
-	$TMP/abitest ||
-		failure "runtime"
+	make -C $TMP test > /dev/null || failure "building"
+	$TMP/test || failure "runtime"
 }
 
 usage() {
-	echo "usage: abitest.sh [-s SEED] [-n ITERATIONS]" >&2
+	echo "usage: abitest.sh [-callssa] [-callc] [-s SEED] [-n ITERATIONS]" >&2
 	exit 1
 }
 
 N=1
+CALLER=c
+CALLEE=ssa
 
 while test -n "$1"
 do
-	test -n "$2" || usage
 	case "$1" in
+	"-callssa")
+		;;
+	"-callc")
+		CALLER=ssa
+		CALLEE=c
+		;;
 	"-s")
-		S="$2"
-		N=1
+		test -n "$2" || usage
+		shift
+		SEED="$1"
 		;;
 	"-n")
-		N="$2"
+		test -n "$2" || usage
+		shift
+		N="$1"
 		;;
 	*)
 		usage
 		;;
 	esac
-	shift 2
+	shift
 done
 
 TMP=`mktemp -d abifuzz.XXXXXX`
 
-compile
+init
 
 if test -n "$S"
 then
-	once $S
+	once $CALLER $CALLEE $SEED
 else
 	for n in `seq $N`
 	do
-		once
+		once $CALLER $CALLEE
 		echo "$n" | grep "00$"
 	done
 fi
