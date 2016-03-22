@@ -34,4 +34,4 @@ then
 fi
 
 once "$1"
-#rm -fr $TMP
+rm -fr $TMP
