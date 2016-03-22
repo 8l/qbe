@@ -396,7 +396,11 @@ module OutIL = struct
   let typedef oc name =
     let rec f: type a. a sty -> unit = function
       | Field (b, s) ->
-        fprintf oc "%s" (btype b);
+        fprintf oc "%s" begin
+          if AB b = AB Char  then "b" else
+          if AB b = AB Short then "h" else
+          btype b
+        end;
         if not (styempty s) then
           fprintf oc ", ";
         f s;
