@@ -190,7 +190,7 @@ lex()
 		{ "align", TAlign },
 		{ "l", TL },
 		{ "w", TW },
-		{ "h", TS },
+		{ "h", TH },
 		{ "b", TB },
 		{ "d", TD },
 		{ "s", TS },
