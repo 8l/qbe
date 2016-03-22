@@ -312,7 +312,7 @@ Emit:
 			val = (val + 15)  & ~INT64_C(15);
 			if (val < 0 || val > INT32_MAX)
 				diag("isel: alloc too large");
-			emit(OAlloc, Kl, i.to, getcon(val, fn), R);
+			emit(OSAlloc, Kl, i.to, getcon(val, fn), R);
 		} else {
 			/* r0 = (i.arg[0] + 15) & -16 */
 			r0 = newtmp("isel", Kl, fn);
