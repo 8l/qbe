@@ -23,6 +23,10 @@ type testb = TB: 'a bty * 'a -> testb
 type testa = TA: 'a aty * 'a -> testa
 
 
+let align a x =
+  let m = x mod a in
+  if m <> 0 then x + (a-m) else x
+
 let btysize: type a. a bty -> int = function
   | Char -> 1
   | Short -> 2
@@ -37,9 +41,14 @@ let styempty: type a. a sty -> bool = function
   | Field _ -> false
   | Empty -> true
 
-let rec stysize: type a. a sty -> int = function
-  | Field (b, s) -> (btyalign b) + (stysize s)
-  | Empty -> 0
+let stysize s =
+  let rec f: type a. int -> a sty -> int =
+    fun sz -> function
+    | Field (b, s) ->
+      let a = btyalign b in
+      f (align a sz + btysize b) s
+    | Empty -> sz in
+  f 0 s
 
 let rec styalign: type a. a sty -> int = function
   | Field (b, s) -> max (btyalign b) (styalign s)
@@ -331,10 +340,7 @@ module OutIL = struct
     let rec f: type a. int -> int -> a sty * a -> unit =
       fun id off -> function
       | Field (b, s), (tb, ts) ->
-        let al = btyalign b in
-        let off =
-          let x = off mod al in
-          if x <> 0 then off + al - x else off in
+        let off = align (btyalign b) off in
         let addr = tmp () in
         fprintf oc "\t%s =l add %d, %s\n" addr off base;
         g id addr (TB (b, tb));
