@@ -1055,7 +1055,7 @@ printfn(Fn *fn, FILE *f)
 		case JRetd:
 		case JRetc:
 			fprintf(f, "\t%s", jtoa[b->jmp.type]);
-			if (b->jmp.type != JRet0) {
+			if (b->jmp.type != JRet0 || !req(b->jmp.arg, R)) {
 				fprintf(f, " ");
 				printref(b->jmp.arg, fn, f);
 			}

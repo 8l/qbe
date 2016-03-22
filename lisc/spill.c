@@ -290,11 +290,11 @@ dopm(Blk *b, Ins *i, BSet *v)
 	} while (i != b->ins && regcpy(i-1));
 	bscopy(u, v);
 	if (i != b->ins && (i-1)->op == OCall) {
-		v->t[0] &= ~calldef(*(i-1), 0);
+		v->t[0] &= ~retregs((i-1)->arg[1], 0);
 		limit2(v, NISave, NFSave, 0);
 		for (r=0, n=0; n<NRSave; n++)
 			r |= BIT(rsave[n]);
-		v->t[0] |= calluse(*(i-1), 0);
+		v->t[0] |= argregs((i-1)->arg[1], 0);
 	} else {
 		limit2(v, 0, 0, 0);
 		r = v->t[0];
@@ -365,6 +365,7 @@ spill(Fn *fn)
 		if (s2 && s2->id <= n)
 		if (!hd || s2->id >= hd->id)
 			hd = s2;
+		r = 0;
 		bszero(v);
 		if (hd) {
 			/* back-edge */
@@ -393,12 +394,15 @@ spill(Fn *fn)
 				bsunion(v, u);
 			}
 			limit2(v, 0, 0, w);
+		} else if (rtype(b->jmp.arg) == RACall) {
+			/* return */
+			r = retregs(b->jmp.arg, 0);
+			v->t[0] |= r;
 		}
 		bscopy(b->out, v);
 
 		/* 2. process the block instructions */
 		curi = &insb[NIns];
-		r = 0;
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			i--;
 			if (regcpy(i)) {

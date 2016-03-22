@@ -294,7 +294,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 	} while (i != b->ins && regcpy(i-1));
 	assert(m0.n <= m->n);
 	if (i != b->ins && (i-1)->op == OCall) {
-		def = calldef(*(i-1), 0);
+		def = retregs((i-1)->arg[1], 0);
 		for (r=0; r<NRSave; r++)
 			if (!(BIT(rsave[r]) & def))
 				move(rsave[r], R, m);
@@ -364,10 +364,17 @@ doblk(Blk *b, RMap *cur)
 
 	if (rtype(b->jmp.arg) == RTmp)
 		b->jmp.arg = ralloc(cur, b->jmp.arg.val);
+	else if (rtype(b->jmp.arg) == RACall) {
+		/* add return registers */
+		rs = retregs(b->jmp.arg, 0);
+		for (r=0; rs; rs/=2, r++)
+			if (rs & 1)
+				radd(cur, r, r);
+	}
 	for (i=&b->ins[b->nins]; i!=b->ins;) {
 		switch ((--i)->op) {
 		case OCall:
-			rs = calluse(*i, 0);
+			rs = argregs(i->arg[1], 0);
 			for (r=0; r<NRSave; r++)
 				if (!(BIT(rsave[r]) & rs))
 					rfree(cur, rsave[r]);

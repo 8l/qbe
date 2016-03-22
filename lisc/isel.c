@@ -434,23 +434,26 @@ blit(Ref rstk, uint soff, Ref rsrc, uint sz, Fn *fn)
 	}
 }
 
-static void
+static int
 retr(Ref reg[2], AClass *aret)
 {
 	static int retreg[2][2] = {{RAX, RDX}, {XMM0, XMM0+1}};
-	int n, k, nr[2];
+	int n, k, ca, nr[2];
 
 	nr[0] = nr[1] = 0;
+	ca = 0;
 	for (n=0; aret->cls[n]>=0 && n<2; n++) {
 		k = KBASE(aret->cls[n]);
 		reg[n] = TMP(retreg[k][nr[k]++]);
+		ca += 1 << (2 * k);
 	}
+	return ca;
 }
 
 static void
 selret(Blk *b, Fn *fn)
 {
-	int j, k;
+	int j, k, ca;
 	Ref r, r0, reg[2];
 	AClass aret;
 
@@ -460,7 +463,6 @@ selret(Blk *b, Fn *fn)
 		return;
 
 	r0 = b->jmp.arg;
-	b->jmp.arg = R;
 	b->jmp.type = JRet0;
 
 	if (j == JRetc) {
@@ -470,8 +472,9 @@ selret(Blk *b, Fn *fn)
 			emit(OCopy, Kl, TMP(RAX), fn->retr, R);
 			chuse(fn->retr, +1, fn);
 			blit(fn->retr, 0, r0, aret.size, fn);
+			ca = 1;
 		} else {
-			retr(reg, &aret);
+			ca = retr(reg, &aret);
 			if (aret.size > 8) {
 				r = newtmp("abi", Kl, fn);
 				emit(OLoad, Kl, reg[1], r, R);
@@ -482,11 +485,16 @@ selret(Blk *b, Fn *fn)
 		}
 	} else {
 		k = j - JRetw;
-		if (KBASE(k) == 0)
+		if (KBASE(k) == 0) {
 			emit(OCopy, k, TMP(RAX), r0, R);
-		else
+			ca = 1;
+		} else {
 			emit(OCopy, k, TMP(XMM0), r0, R);
+			ca = 1 << 2;
+		}
 	}
+
+	b->jmp.arg = CALL(ca);
 }
 
 static void
@@ -607,14 +615,15 @@ MAKESURE(rsave_has_correct_size, sizeof rsave == NRSave * sizeof(int));
 MAKESURE(rclob_has_correct_size, sizeof rclob == NRClob * sizeof(int));
 
 bits
-calldef(Ins i, int p[2])
+retregs(Ref r, int p[2])
 {
 	bits b;
 	int ni, nf;
 
+	assert(rtype(r) == RACall);
 	b = 0;
-	ni = i.arg[1].val & 3;
-	nf = (i.arg[1].val >> 2) & 3;
+	ni = r.val & 3;
+	nf = (r.val >> 2) & 3;
 	if (ni >= 1)
 		b |= BIT(RAX);
 	if (ni >= 2)
@@ -631,14 +640,15 @@ calldef(Ins i, int p[2])
 }
 
 bits
-calluse(Ins i, int p[2])
+argregs(Ref r, int p[2])
 {
 	bits b;
 	int j, ni, nf;
 
+	assert(rtype(r) == RACall);
 	b = 0;
-	ni = (i.arg[1].val >> 4) & 15;
-	nf = (i.arg[1].val >> 8) & 15;
+	ni = (r.val >> 4) & 15;
+	nf = (r.val >> 8) & 15;
 	for (j=0; j<ni; j++)
 		b |= BIT(rsave[j]);
 	for (j=0; j<nf; j++)

@@ -536,8 +536,8 @@ void filllive(Fn *);
 /* isel.c */
 extern int rsave[/* NRSave */];
 extern int rclob[/* NRClob */];
-bits calldef(Ins, int[2]);
-bits calluse(Ins, int[2]);
+bits retregs(Ref, int[2]);
+bits argregs(Ref, int[2]);
 void isel(Fn *);
 
 /* spill.c */

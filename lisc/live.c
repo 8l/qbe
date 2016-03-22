@@ -107,19 +107,23 @@ Again:
 				phifix(t, phi, f->tmp);
 				nlv[KBASE(f->tmp[t].cls)]++;
 			}
-		bset(b->jmp.arg, b, nlv, phi, f->tmp);
+		if (rtype(b->jmp.arg) == RACall) {
+			assert(bscount(b->in) == 0 && nlv[0] == 0 && nlv[1] == 0);
+			b->in->t[0] |= retregs(b->jmp.arg, nlv);
+		} else
+			bset(b->jmp.arg, b, nlv, phi, f->tmp);
 		for (k=0; k<2; k++)
 			b->nlive[k] = nlv[k];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			if ((--i)->op == OCall && rtype(i->arg[1]) == RACall) {
-				b->in->t[0] &= ~calldef(*i, m);
+				b->in->t[0] &= ~retregs(i->arg[1], m);
 				for (k=0; k<2; k++)
 					nlv[k] -= m[k];
 				if (nlv[0] + NISave > b->nlive[0])
 					b->nlive[0] = nlv[0] + NISave;
 				if (nlv[1] + NFSave > b->nlive[1])
 					b->nlive[1] = nlv[1] + NFSave;
-				b->in->t[0] |= calluse(*i, m);
+				b->in->t[0] |= argregs(i->arg[1], m);
 				for (k=0; k<2; k++)
 					nlv[k] += m[k];
 			}
