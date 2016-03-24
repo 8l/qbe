@@ -66,7 +66,7 @@ are a few things provided in QBE to consider.
     Moreover the ABI implementation in QBE has been
     thoroughly tested by fuzzing and manual tests.
 
-  * LLVM IR is more cluttered with memory operations.
+  * LLVM IL is more cluttered with memory operations.
 
     Implementing SSA construction is hard.  To save its
     users from having to implement it, LLVM provides
@@ -82,7 +82,7 @@ are a few things provided in QBE to consider.
     the IL by three makes it easier for the frontend
     writers to spot bugs in the generated code.
 
-  * LLVM IR is more cluttered with type annotations and
+  * LLVM IL is more cluttered with type annotations and
     casts.
 
     For the sake of advanced optimizations and
