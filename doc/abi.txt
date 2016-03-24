@@ -7,8 +7,8 @@ This document describes concisely the subset of the x64
 ABI as it is implemented in QBE.  The subset can handle
 correctly arbitrary standard C-like structs containing
 float and integer types.  Structs that have unaligned
-members are also supported through "dark" types, see
-the IR description document for more information about
+members are also supported through opaque types, see
+the IL description document for more information about
 them.
 
 
@@ -33,7 +33,7 @@ Data classes of interest as defined by the ABI:
  4. If the size of an object is larger than two eightbytes
     or if contains unaligned fields, it has class MEMORY.
     In the context of QBE, those are big aggregate types
-    and "dark" types.
+    and opaque types.
  5. Otherwise, recursively classify fields and determine
     the class of the two eightbytes using the classes of
     their components.  If any is INTEGER the result is
