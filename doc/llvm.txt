@@ -1,0 +1,99 @@
+                      ===========
+                      QBE vs LLVM
+                      ===========
+
+
+Both QBE and LLVM are compiler backends using an SSA
+representation.  This document will explain why the
+advanced stage in which LLVM is does not make QBE a
+redundant project.  Obviously, everything following is
+probably biased, because written by me.
+
+- Scope
+-------
+
+QBE is a much smaller scale projects with different
+goals than LLVM.
+
+  * QBE is for amateur language designers.
+
+    It does not address all the problems faced when
+    conceiving an industry-grade language.  If you are
+    toying with some language ideas, using LLVM will
+    feel like throwing your backpack in a truck, but
+    using QBE will feel more like biking.
+
+  * QBE is about the first 70%, not the last 30%.
+
+    It attempts to pinpoint, in the extremely vast
+    compilation literature, the optimizations that get
+    you 70% of the performance in 10% of the code needed
+    to scrape the last bits of performance.
+
+    For example, copy propagation on SSA form is
+    implemented in 160 lines of code in QBE!
+
+  * QBE is extremely hackable.
+
+    First, it is, and will remain, a small project
+    (less than 8 kloc).  Second, it is programmed in
+    non-fancy C99 without any dependencies.  Third,
+    it is able to dump the IL and debug information in
+    a uniform format after each pass.
+
+    On my Core 2 Duo machine, QBE compiles in half a
+    second.
+
+- Features
+----------
+
+LLVM is definitely more packed with features, but there
+are a few things provided in QBE to consider.
+
+  * LLVM does NOT provide full C compatibility for you.
+
+    In more technical terms, any language that provides
+    good C compatibility and uses LLVM as a backend
+    needs to reimplement large chunks of the ABI in
+    its frontend!  This well known issue in the LLVM
+    community causes a great deal of duplication
+    and bugs.
+
+    Implementing a complete C ABI (with struct arguments
+    and returns) is incredibly tricky, and not really
+    a lot of fun.  QBE provides you with IL operations
+    to call in (and be called by) C with no pain.
+    Moreover the ABI implementation in QBE has been
+    thoroughly tested by fuzzing and manual tests.
+
+  * LLVM IR is more cluttered with memory operations.
+
+    Implementing SSA construction is hard, and to save
+    its frontends from having to do it, LLVM provides
+    stack slots.  This means that one increment of
+    a variable `v` will be composed of three LLVM
+    instructions: one load, one add, and one store.
+
+    QBE provides simple non-SSA temporaries, so
+    incrementing `v` is simply done with one instruction
+    `%v =w add %v, 1`.
+
+    This could seem cosmetic, but dividing the size of
+    the IL by three makes it easier for the frontend
+    writers to spot bugs in the generated code.
+
+  * LLVM IR is more cluttered with type annotations and
+    casts.
+
+    For the sake of advanced optimizations and
+    correctness, LLVM has complex IL types.  However,
+    only a few types are really first class in the IL
+    and many operations of source languages require
+    casts to be compiled.
+
+    Because QBE makes a much lighter use of types, the
+    IL is more readable and shorter.  It can of course be
+    argued back that correctness of QBE is jeoparadized,
+    but remember that, in practice, the large amounts
+    of casts necessary in LLVM IL is compromizing the
+    overall effectiveness of the type system.

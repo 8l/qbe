@@ -1,6 +1,6 @@
 .PHONY: all clean sync
 
-DOCS = abi il
+DOCS = abi il llvm
 
 all: $(DOCS:%=html/%.html) html/txt.css
 
