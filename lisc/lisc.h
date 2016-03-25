@@ -474,7 +474,7 @@ extern char debug['Z'+1];
 /* util.c */
 extern Typ typ[NTyp];
 extern Ins insb[NIns], *curi;
-void diag(char *);
+void diag(char *) __attribute__((noreturn));
 void *emalloc(size_t);
 void *alloc(size_t);
 void freeall(void);
