@@ -1,4 +1,4 @@
-#include "lisc.h"
+#include "all.h"
 #include <stdarg.h>
 
 static void

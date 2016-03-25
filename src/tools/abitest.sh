@@ -1,7 +1,7 @@
 #!/bin/sh
 
 OCAMLC=/usr/bin/ocamlc
-QBE=`pwd`/lisc
+QBE=`pwd`/qbe
 
 failure() {
 	echo "Failure at stage:" $1 >&2

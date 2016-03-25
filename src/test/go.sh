@@ -41,7 +41,7 @@ once() {
 
 	echo "$T... "
 
-	if ! ./lisc $T -o $ASM
+	if ! ./qbe $T -o $ASM
 	then
 		echo "[qbe fail]"
 		return 1

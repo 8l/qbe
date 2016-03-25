@@ -1,4 +1,4 @@
-#include "lisc.h"
+#include "all.h"
 
 enum {
 	SLong = 0,

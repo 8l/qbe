@@ -1,4 +1,5 @@
-#include "lisc.h"
+#include "all.h"
+
 #ifdef TEST_PMOV
 	#undef assert
 	#define assert(x) assert_test(#x, x)

@@ -1,4 +1,4 @@
-#include "lisc.h"
+#include "all.h"
 
 void
 liveon(BSet *v, Blk *b, Blk *s)

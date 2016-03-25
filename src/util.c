@@ -1,4 +1,4 @@
-#include "lisc.h"
+#include "all.h"
 
 typedef struct Bitset Bitset;
 typedef struct Vec Vec;

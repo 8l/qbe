@@ -1,4 +1,4 @@
-#include "lisc.h"
+#include "all.h"
 
 static void
 loopmark(Blk *hd, Blk *b, Phi *p)
