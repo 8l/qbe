@@ -1,11 +1,11 @@
-/*% cc -O3 -std=c99 -Wall -DTEST_PMOV -o # %
+/*% rm -f rega.o main.o && cc -g -std=c99 -Wall -DTEST_PMOV -o # % *.o
  *
  * This is a test framwork for the dopm() function
  * in rega.c, use it when you want to modify it or
  * all the parallel move functions.
  *
- * You might need to decrease NReg to see it
- * terminate, I used NReg == 7 at most.
+ * You might need to decrease NIReg to see it
+ * terminate, I used NIReg == 7 at most.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,7 +16,7 @@ static void assert_test(char *, int), fail(void), iexec(int *);
 #include "../rega.c"
 
 static RMap mbeg;
-static Ins ins[NReg], *ip;
+static Ins ins[NIReg], *ip;
 static Blk dummyb = { .ins = ins };
 
 int
@@ -25,29 +25,31 @@ main()
 	Ins *i1;
 	unsigned long long tm, rm, cnt;
 	RMap mend;
-	int reg[NReg], val[NReg+1];
+	int reg[NIReg], val[NIReg+1];
 	int t, i, r, nr;
 
-	tmp = (Tmp[Tmp0+NReg]){{0}};
-	for (t=0; t<Tmp0+NReg; t++)
-		if (t < Tmp0)
-			tmp[t] = (Tmp){.type = TReg};
-		else {
-			tmp[t].type = TLong;
-			tmp[t].hint = -1;
+	tmp = (Tmp[Tmp0+NIReg]){{{0}}};
+	for (t=0; t<Tmp0+NIReg; t++)
+		if (t >= Tmp0) {
+			tmp[t].cls = Kw;
+			tmp[t].hint.r = -1;
+			tmp[t].hint.m = 0;
+			tmp[t].slot = -1;
 			sprintf(tmp[t].name, "tmp%d", t-Tmp0+1);
 		}
 
+	bsinit(mbeg.b, Tmp0+NIReg);
+	bsinit(mend.b, Tmp0+NIReg);
 	cnt = 0;
-	for (tm = 0; tm < 1ull << (2*NReg); tm++) {
+	for (tm = 0; tm < 1ull << (2*NIReg); tm++) {
 		mbeg.n = 0;
-		mbeg.b = (Bits){{0}};
+		bszero(mbeg.b);
 		ip = ins;
 
 		/* find what temporaries are in copy and
 		 * wether or not they are in register
 		 */
-		for (t=0; t<NReg; t++)
+		for (t=0; t<NIReg; t++)
 			switch ((tm >> (2*t)) & 3) {
 			case 0:
 				/* not in copy, not in reg */
@@ -58,11 +60,11 @@ main()
 				break;
 			case 2:
 				/* in copy, not in reg */
-				*ip++ = (Ins){OCopy, TMP(Tmp0+t), {R, R}};
+				*ip++ = (Ins){OCopy, TMP(Tmp0+t), {R, R}, Kw};
 				break;
 			case 3:
 				/* in copy, in reg */
-				*ip++ = (Ins){OCopy, TMP(Tmp0+t), {R, R}};
+				*ip++ = (Ins){OCopy, TMP(Tmp0+t), {R, R}, Kw};
 				radd(&mbeg, Tmp0+t, t+1);
 				break;
 			}
@@ -89,7 +91,7 @@ main()
 
 			/* compile the parallel move
 			 */
-			mend = mbeg;
+			rcopy(&mend, &mbeg);
 			dopm(&dummyb, ip-1, &mend);
 			cnt++;
 
@@ -103,11 +105,11 @@ main()
 				r = i1->arg[0].val;
 				assert(rfree(&mend, r) == r);
 				t = i1->to.val;
-				assert(!BGET(mend.b, t));
+				assert(!bshas(mend.b, t));
 			}
 			for (i=0; i<mend.n; i++) {
 				t = mend.t[i];
-				assert(BGET(mbeg.b, t));
+				assert(bshas(mbeg.b, t));
 				t -= Tmp0;
 				assert(((tm >> (2*t)) & 3) == 1);
 			}
@@ -117,7 +119,7 @@ main()
 			 * value, and that all live variables's
 			 * content got preserved
 			 */
-			 for (i=1; i<=NReg; i++)
+			 for (i=1; i<=NIReg; i++)
 			 	val[i] = i;
 			 iexec(val);
 			 for (i1=ins; i1<ip; i1++) {
@@ -139,8 +141,8 @@ main()
 				rm &= ~(1ull<<r);
 				do
 					r++;
-				while (r <= NReg && (rm & (1ull<<r)));
-				if (r == NReg+1) {
+				while (r <= NIReg && (rm & (1ull<<r)));
+				if (r == NIReg+1) {
 					if (i == 0)
 						goto Nxt;
 					i--;
@@ -151,7 +153,7 @@ main()
 				}
 			}
 			for (; i<nr; i++)
-				for (r=1; r<=NReg; r++)
+				for (r=1; r<=NIReg; r++)
 					if (!(rm & (1ull<<r))) {
 						rm |= (1ull<<r);
 						reg[i] = r;
@@ -170,7 +172,7 @@ main()
 #define validr(r)           \
 	rtype(r) == RTmp && \
 	r.val > 0 &&        \
-	r.val <= NReg
+	r.val <= NIReg
 
 static void
 iexec(int val[])
@@ -209,7 +211,8 @@ replay()
 	RMap mend;
 
 	re = 1;
-	mend = mbeg;
+	bsinit(mend.b, Tmp0+NIReg);
+	rcopy(&mend, &mbeg);
 	dopm(&dummyb, ip-1, &mend);
 }
 
@@ -231,7 +234,7 @@ fail()
 			tmp[i1->to.val].name,
 			i1->arg[0].val);
 	replay();
-	exit(1);
+	abort();
 }
 
 static void
@@ -240,25 +243,10 @@ assert_test(char *s, int x)
 	if (x)
 		return;
 	if (re)
-		exit(1);
+		abort();
 	printf("!assertion failure: %s\n", s);
 	fail();
 }
 
-void diag(char *s)
-{
-	if (re)
-		exit(1);
-	printf("!diag failure: %s\n", s);
-	fail();
-}
-
-
 /* symbols required by the linker */
 char debug['Z'+1];
-Ins insb[NIns], *curi;
-
-void *alloc(size_t n)
-{ return calloc(n, 1); }
-Blk *blocka()
-{ printf("!blocka\n"); exit(1); }
