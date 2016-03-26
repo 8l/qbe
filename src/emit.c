@@ -1,5 +1,7 @@
 #include "all.h"
 
+char *locprefix, *symprefix;
+
 enum {
 	SLong = 0,
 	SWord = 1,
@@ -147,7 +149,7 @@ emitcon(Con *con, FILE *f)
 	default:
 		diag("emit: invalid constant");
 	case CAddr:
-		fputs(con->label, f);
+		fprintf(f, "%s%s", con->local ? locprefix : symprefix, con->label);
 		if (con->bits.i)
 			fprintf(f, "%+"PRId64, con->bits.i);
 		break;
@@ -273,10 +275,10 @@ Next:
 			}
 			if (m->offset.type != CUndef)
 				emitcon(&m->offset, f);
-			if (req(m->base, R) && req(m->index, R))
-				break;
 			fputc('(', f);
-			if (!req(m->base, R))
+			if (req(m->base, R))
+				fprintf(f, "%%rip");
+			else
 				fprintf(f, "%%%s", regtoa(m->base.val, SLong));
 			if (!req(m->index, R))
 				fprintf(f, ", %%%s, %d",
@@ -396,6 +398,10 @@ emitins(Ins i, Fn *fn, FILE *f)
 		&& (val = fn->con[i.arg[0].val].bits.i) >= 0
 		&& val <= UINT32_MAX) {
 			emitf("movl %W0, %W=", &i, fn, f);
+		} else if (isreg(i.to)
+		&& rtype(i.arg[0]) == RCon
+		&& fn->con[i.arg[0].val].type == CAddr) {
+			emitf("lea%k %M0, %=", &i, fn, f);
 		} else if (!req(i.arg[0], i.to))
 			emitf("mov%k %0, %=", &i, fn, f);
 		break;
@@ -493,12 +499,11 @@ emitfn(Fn *fn, FILE *f)
 
 	fprintf(f,
 		".text\n"
-		".globl %s\n"
-		".type %s, @function\n"
-		"%s:\n"
+		".globl %s%s\n"
+		"%s%s:\n"
 		"\tpush %%rbp\n"
 		"\tmov %%rsp, %%rbp\n",
-		fn->name, fn->name, fn->name
+		symprefix, fn->name, symprefix, fn->name
 	);
 	fs = framesz(fn);
 	if (fs)
@@ -510,7 +515,7 @@ emitfn(Fn *fn, FILE *f)
 		}
 
 	for (b=fn->start; b; b=b->link) {
-		fprintf(f, ".L%s:\n", b->name);
+		fprintf(f, "%s%s:\n", locprefix, b->name);
 		for (i=b->ins; i!=&b->ins[b->nins]; i++)
 			emitins(*i, fn, f);
 		switch (b->jmp.type) {
@@ -527,7 +532,7 @@ emitfn(Fn *fn, FILE *f)
 			break;
 		case JJmp:
 			if (b->s1 != b->link)
-				fprintf(f, "\tjmp .L%s\n", b->s1->name);
+				fprintf(f, "\tjmp %s%s\n", locprefix, b->s1->name);
 			break;
 		default:
 			c = b->jmp.type - JXJc;
@@ -539,7 +544,7 @@ emitfn(Fn *fn, FILE *f)
 					s = b->s2;
 				} else
 					diag("emit: unhandled jump (1)");
-				fprintf(f, "\tj%s .L%s\n", ctoa[c], s->name);
+				fprintf(f, "\tj%s %s%s\n", ctoa[c], locprefix, s->name);
 				break;
 			}
 			diag("emit: unhandled jump (2)");
@@ -571,10 +576,9 @@ emitdat(Dat *d, FILE *f)
 		if (!align)
 			fprintf(f, ".align 8\n");
 		fprintf(f,
-			".globl %s\n"
-			".type %s, @object\n"
-			"%s:\n",
-			d->u.str, d->u.str, d->u.str
+			".globl %s%s\n"
+			"%s%s:\n",
+			symprefix, d->u.str, symprefix, d->u.str
 		);
 		break;
 	case DZ:
@@ -644,19 +648,19 @@ emitfin(FILE *f)
 	for (b=stash, i=0; b; b=b->link, i++)
 		if (b->wide)
 			fprintf(f,
-				".Lfp%d:\n"
+				"%sfp%d:\n"
 				"\t.quad %"PRId64
 				" /* %f */\n",
-				i, b->bits,
+				locprefix, i, b->bits,
 				*(double *)&b->bits
 			);
 	for (b=stash, i=0; b; b=b->link, i++)
 		if (!b->wide)
 			fprintf(f,
-				".Lfp%d:\n"
+				"%sfp%d:\n"
 				"\t.long %"PRId64
 				" /* %lf */\n",
-				i, b->bits & 0xffffffff,
+				locprefix, i, b->bits & 0xffffffff,
 				*(float *)&b->bits
 			);
 	while ((b=stash)) {

@@ -400,6 +400,7 @@ struct Con {
 		float s;
 	} bits;
 	char flt; /* for printing, see parse.c */
+	char local;
 };
 
 typedef struct Addr Addr;
@@ -469,6 +470,10 @@ struct Dat {
 
 
 /* main.c */
+enum Asm {
+	Gasmacho,
+	Gaself,
+};
 extern char debug['Z'+1];
 
 /* util.c */
@@ -548,6 +553,8 @@ void spill(Fn *);
 void rega(Fn *);
 
 /* emit.c */
+extern char *locprefix;
+extern char *symprefix;
 void emitfn(Fn *, FILE *);
 void emitdat(Dat *, FILE *);
 int stashfp(int64_t, int);

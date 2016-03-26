@@ -1,4 +1,5 @@
 #include "all.h"
+#include "config.h"
 #include <ctype.h>
 #include <getopt.h>
 
@@ -74,10 +75,11 @@ main(int ac, char *av[])
 {
 	FILE *inf;
 	char *f;
-	int c;
+	int c, asm;
 
+	asm = Defaultasm;
 	outf = stdout;
-	while ((c = getopt(ac, av, "d:o:")) != -1)
+	while ((c = getopt(ac, av, "d:o:G:")) != -1)
 		switch (c) {
 		case 'd':
 			for (; *optarg; optarg++)
@@ -90,10 +92,31 @@ main(int ac, char *av[])
 			if (strcmp(optarg, "-") != 0)
 				outf = fopen(optarg, "w");
 			break;
+		case 'G':
+			if (strcmp(optarg, "e") == 0)
+				asm = Gaself;
+			else if (strcmp(optarg, "m") == 0)
+				asm = Gasmacho;
+			else {
+				fprintf(stderr, "unknown gas flavor '%s'\n", optarg);
+				exit(1);
+			}
+			break;
 		default:
 			fprintf(stderr, "usage: %s [-d <flags>] [-o out] {file.ssa, -}\n", av[0]);
 			exit(1);
 		}
+
+	switch (asm) {
+	case Gaself:
+		locprefix = ".L";
+		symprefix = "";
+		break;
+	case Gasmacho:
+		locprefix = "L";
+		symprefix = "_";
+		break;
+	}
 
 	do {
 		f = av[optind];
