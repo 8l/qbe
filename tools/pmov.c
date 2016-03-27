@@ -1,4 +1,4 @@
-/*% rm -f rega.o main.o && cc -g -std=c99 -Wall -DTEST_PMOV -o # % *.o
+/*% rm -f rega.o main.o && cc -g -std=c99 -Wall -DTEST_PMOV -o pmov % *.o
  *
  * This is a test framwork for the dopm() function
  * in rega.c, use it when you want to modify it or
