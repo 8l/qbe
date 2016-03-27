@@ -13,7 +13,7 @@
 
 static void assert_test(char *, int), fail(void), iexec(int *);
 
-#include "../rega.c"
+#include "../src/rega.c"
 
 static RMap mbeg;
 static Ins ins[NIReg], *ip;
