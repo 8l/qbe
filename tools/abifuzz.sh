@@ -1,7 +1,8 @@
 #!/bin/sh
 
-OCAMLC=/usr/bin/ocamlc
-QBE=`pwd`/qbe
+OCAMLC=${OCAMLC:-/usr/bin/ocamlc}
+DIR=`readlink -f $0 | xargs dirname`
+QBE=$DIR/../src/qbe
 
 failure() {
 	echo "Failure at stage:" $1 >&2
@@ -13,7 +14,7 @@ cleanup() {
 }
 
 init() {
-	cp tools/abi.ml $TMP
+	cp $DIR/callgen.ml $TMP
 	pushd $TMP > /dev/null
 
 	cat > Makefile << EOM
@@ -29,7 +30,7 @@ test: caller.o callee.o
 
 EOM
 
-	if ! $OCAMLC abi.ml -o gentest
+	if ! $OCAMLC callgen.ml -o callgen
 	then
 		popd > /dev/null
 		cleanup
@@ -41,9 +42,9 @@ EOM
 once() {
 	if test -z "$3"
 	then
-		$TMP/gentest $TMP $1 $2
+		$TMP/callgen $TMP $1 $2
 	else
-		$TMP/gentest -s $3 $TMP $1 $2
+		$TMP/callgen -s $3 $TMP $1 $2
 	fi
 	make -C $TMP test > /dev/null || failure "building"
 	$TMP/test || failure "runtime"

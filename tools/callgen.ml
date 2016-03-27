@@ -1,4 +1,6 @@
-(* fuzzer *)
+(* abi fuzzer, generates two modules one calling
+ * the other in two possibly different languages
+ *)
 
 type _ bty =
   | Char: int bty
