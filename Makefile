@@ -1,8 +1,7 @@
-all clean:
+all clean check:
 	@make -C src $@
 	@make -C minic $@
-check: all
-	test/go.sh all
+
 sync-papers:
 	unison -auto papers ssh://qcar@h/data/d/ssa-doc
 

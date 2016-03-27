@@ -1,6 +1,7 @@
 #!/bin/sh
 
-QBE=`readlink -f $0 | xargs dirname`/../src/qbe
+DIR=`readlink -f $0 | xargs dirname`
+QBE=$DIR/../src/qbe
 
 TMP=/tmp/qbe.zzzz
 
@@ -41,7 +42,7 @@ once() {
 		exit 1
 	fi
 
-	echo "$T... "
+	echo "$(basename $T)..."
 
 	if ! $QBE -o $ASM $T
 	then
@@ -97,7 +98,7 @@ fi
 case $1 in
 	"all")
 		F=0
-		for T in test/[!_]*.ssa
+		for T in $DIR/[!_]*.ssa
 		do
 			once $T
 			F=`expr $F + $?`

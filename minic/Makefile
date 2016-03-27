@@ -7,7 +7,8 @@ $(BIN): yacc minic.y
 	$(CC) $(CFLAGS) -o $@ y.tab.c
 
 all: $(BIN)
+check:
 clean:
 	rm -f yacc minic y.*
 
-.PHONY: all clean
+.PHONY: all check clean

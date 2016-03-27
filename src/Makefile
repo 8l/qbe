@@ -18,7 +18,7 @@ config.h:
 all: $(BIN)
 clean:
 	rm -f $(BIN) $(OBJ)
-check:
-	make -C .. check
+check: $(BIN)
+	../test/go.sh all
 
 .PHONY: all clean check syndoc
