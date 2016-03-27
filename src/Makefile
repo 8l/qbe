@@ -20,7 +20,5 @@ clean:
 	rm -f $(BIN) $(OBJ)
 check:
 	make -C .. check
-syndoc:
-	unison -auto doc ssh://qcar@h/data/d/ssa-doc
 
 .PHONY: all clean check syndoc
