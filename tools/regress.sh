@@ -1,6 +1,6 @@
 #!/bin/sh
 
-for t in test/*
+for t in ../test/*
 do
 	printf "Test $t ... "
 
