@@ -1,8 +1,13 @@
-CFLAGS=-g -Wall
+BIN = minic
 
-minic: yacc minic.y
+CFLAGS += -g -Wall
+
+$(BIN): yacc minic.y
 	./yacc minic.y
 	$(CC) $(CFLAGS) -o $@ y.tab.c
+
+all: $(BIN)
 clean:
 	rm -f yacc minic y.*
-.PHONY: clean
+
+.PHONY: all clean
