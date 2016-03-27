@@ -15,6 +15,8 @@ static void assert_test(char *, int), fail(void), iexec(int *);
 
 #include "../src/rega.c"
 
+static void bsinit_(BSet *, uint);
+
 static RMap mbeg;
 static Ins ins[NIReg], *ip;
 static Blk dummyb = { .ins = ins };
@@ -38,8 +40,8 @@ main()
 			sprintf(tmp[t].name, "tmp%d", t-Tmp0+1);
 		}
 
-	bsinit(mbeg.b, Tmp0+NIReg);
-	bsinit(mend.b, Tmp0+NIReg);
+	bsinit_(mbeg.b, Tmp0+NIReg);
+	bsinit_(mend.b, Tmp0+NIReg);
 	cnt = 0;
 	for (tm = 0; tm < 1ull << (2*NIReg); tm++) {
 		mbeg.n = 0;
@@ -160,7 +162,7 @@ main()
 						break;
 					}
 		}
-	Nxt:	;
+	Nxt:	freeall();
 	}
 	printf("%llu tests successful!\n", cnt);
 	exit(0);
@@ -211,7 +213,7 @@ replay()
 	RMap mend;
 
 	re = 1;
-	bsinit(mend.b, Tmp0+NIReg);
+	bsinit_(mend.b, Tmp0+NIReg);
 	rcopy(&mend, &mbeg);
 	dopm(&dummyb, ip-1, &mend);
 }
@@ -246,6 +248,14 @@ assert_test(char *s, int x)
 		abort();
 	printf("!assertion failure: %s\n", s);
 	fail();
+}
+
+static void
+bsinit_(BSet *bs, uint n)
+{
+	n = (n + NBit-1) / NBit;
+	bs->nt = n;
+	bs->t = emalloc(n * sizeof bs->t[0]);
 }
 
 /* symbols required by the linker */
