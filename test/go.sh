@@ -1,5 +1,7 @@
 #!/bin/sh
 
+QBE=`readlink -f $0 | xargs dirname`/../src/qbe
+
 TMP=/tmp/qbe.zzzz
 
 DRV=$TMP.c
@@ -41,7 +43,7 @@ once() {
 
 	echo "$T... "
 
-	if ! ./qbe -o $ASM $T
+	if ! $QBE -o $ASM $T
 	then
 		echo "[qbe fail]"
 		return 1

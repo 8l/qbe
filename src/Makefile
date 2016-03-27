@@ -18,7 +18,7 @@ config.h:
 .PHONY: clean check syndoc
 clean:
 	rm -f $(BIN) $(OBJ)
-check: $(BIN)
-	test/go.sh all
+check:
+	make -C .. check
 syndoc:
 	unison -auto doc ssh://qcar@h/data/d/ssa-doc
