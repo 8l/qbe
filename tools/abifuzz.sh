@@ -1,7 +1,7 @@
 #!/bin/sh
 
 OCAMLC=${OCAMLC:-/usr/bin/ocamlc}
-DIR=`readlink -f $0 | xargs dirname`
+DIR=`cd $(dirname "$0"); pwd`
 QBE=$DIR/../src/qbe
 
 failure() {

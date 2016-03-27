@@ -1,6 +1,6 @@
 #!/bin/sh
 
-DIR=`readlink -f $0 | xargs dirname`
+DIR=`cd $(dirname "$0"); pwd`
 QBE=$DIR/../src/qbe
 
 TMP=/tmp/qbe.zzzz
