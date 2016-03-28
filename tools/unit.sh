@@ -1,7 +1,7 @@
 #!/bin/sh
 
 DIR=`cd $(dirname "$0"); pwd`
-QBE=$DIR/../src/qbe
+QBE=$DIR/../obj/qbe
 
 TMP=/tmp/qbe.zzzz
 
@@ -98,7 +98,7 @@ fi
 case $1 in
 	"all")
 		F=0
-		for T in $DIR/[!_]*.ssa
+		for T in $DIR/../test/[!_]*.ssa
 		do
 			once $T
 			F=`expr $F + $?`

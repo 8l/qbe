@@ -1,1 +1,4 @@
-papers
+obj
+config.h
+.comfile
+*.out

@@ -29,7 +29,7 @@ fi
 
 
 ../minic/minic < $file        > /tmp/minic.ssa &&
-../src/qbe < /tmp/minic.ssa   > /tmp/minic.s   &&
+../obj/qbe < /tmp/minic.ssa   > /tmp/minic.s   &&
 cc $flags /tmp/minic.s
 
 if test $? -ne 0

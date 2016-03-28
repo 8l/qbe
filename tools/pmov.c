@@ -13,7 +13,7 @@
 
 static void assert_test(char *, int), fail(void), iexec(int *);
 
-#include "../src/rega.c"
+#include "../../rega.c"
 
 static void bsinit_(BSet *, uint);
 

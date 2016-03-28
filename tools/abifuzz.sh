@@ -2,7 +2,7 @@
 
 OCAMLC=${OCAMLC:-/usr/bin/ocamlc}
 DIR=`cd $(dirname "$0"); pwd`
-QBE=$DIR/../src/qbe
+QBE=$DIR/../obj/qbe
 
 failure() {
 	echo "Failure at stage:" $1 >&2
