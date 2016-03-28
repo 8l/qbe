@@ -3,6 +3,7 @@
 # ssa program because of the
 # swap of b and a
 
+export
 function $test() {
 @start
 

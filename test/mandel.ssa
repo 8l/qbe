@@ -29,6 +29,7 @@ function w $mandel(d %x, d %y) {
 	ret 0
 }
 
+export
 function w $main() {
 @main
 @loopy

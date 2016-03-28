@@ -1,5 +1,6 @@
 # Simple test for addressing modes.
 
+export
 function w $sum(l %arr, w %num) {
 @start
 @loop

@@ -1,5 +1,6 @@
 type :fps = { s, b, s }
 
+export
 function s $sum(:fps %p) {
 @start
 	%f1 =s load %p

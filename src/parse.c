@@ -97,6 +97,7 @@ enum {
 	TJmp,
 	TJnz,
 	TRet,
+	TExport,
 	TFunc,
 	TType,
 	TData,
@@ -184,6 +185,7 @@ lex()
 		{ "jmp", TJmp },
 		{ "jnz", TJnz },
 		{ "ret", TRet },
+		{ "export", TExport },
 		{ "function", TFunc },
 		{ "type", TType },
 		{ "data", TData },
@@ -648,7 +650,7 @@ DoOp:
 }
 
 static Fn *
-parsefn()
+parsefn(int export)
 {
 	PState ps;
 	Fn *fn;
@@ -663,6 +665,7 @@ parsefn()
 	bmap = vnew(nblk, sizeof bmap[0]);
 	con[0].type = CBits;
 	fn = alloc(sizeof *fn);
+	fn->export = export;
 	blink = &fn->start;
 	fn->retty = -1;
 	if (peek() != TGlo)
@@ -809,7 +812,7 @@ parsedatstr(Dat *d)
 }
 
 static void
-parsedat(void cb(Dat *))
+parsedat(void cb(Dat *), int export)
 {
 	char s[NString];
 	int t;
@@ -818,6 +821,7 @@ parsedat(void cb(Dat *))
 	d.type = DStart;
 	d.isstr = 0;
 	d.isref = 0;
+	d.export = export;
 	cb(&d);
 	if (nextnl() != TGlo || nextnl() != TEq)
 		err("data name, then = expected");
@@ -882,28 +886,40 @@ Done:
 void
 parse(FILE *f, char *path, void data(Dat *), void func(Fn *))
 {
+	int t, export;
+
 	inf = f;
 	inpath = path;
 	lnum = 1;
 	thead = TXXX;
 	ntyp = 0;
-	for (;;)
+	for (;;) {
+		export = 0;
 		switch (nextnl()) {
+		default:
+			err("top-level definition expected");
+		case TExport:
+			export = 1;
+			t = nextnl();
+			if (t == TFunc) {
 		case TFunc:
-			func(parsefn());
-			break;
+				func(parsefn(export));
+				break;
+			}
+			else if (t == TData) {
+		case TData:
+				parsedat(data, export);
+				break;
+			}
+			else
+				err("export can only qualify data and function");
 		case TType:
 			parsetyp();
 			break;
-		case TData:
-			parsedat(data);
-			break;
 		case TEOF:
 			return;
-		default:
-			err("top-level definition expected");
-			break;
 		}
+	}
 }
 
 static void
@@ -1009,6 +1025,8 @@ printfn(Fn *fn, FILE *f)
 	Ins *i;
 	uint n;
 
+	if (fn->export)
+		fprintf(f, "export ");
 	fprintf(f, "function $%s() {\n", fn->name);
 	for (b=fn->start; b; b=b->link) {
 		fprintf(f, "@%s\n", b->name);

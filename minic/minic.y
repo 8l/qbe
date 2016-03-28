@@ -707,7 +707,7 @@ prot: IDENT '(' par0 ')'
 	int t, m;
 
 	varadd($1->u.v, 1, FUNC(INT));
-	fprintf(of, "function w $%s(", $1->u.v);
+	fprintf(of, "export function w $%s(", $1->u.v);
 	n = $3;
 	if (n)
 		for (;;) {

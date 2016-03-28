@@ -1,3 +1,4 @@
+export
 function w $test() {
 @l0
 	%a =l alloc4 4

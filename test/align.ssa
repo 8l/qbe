@@ -1,3 +1,4 @@
+export
 function $test() {
 @start
 	%x =l alloc16 16

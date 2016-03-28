@@ -1,5 +1,6 @@
 # floating point casts and conversions
 
+export
 function s $fneg(s %f) {
 @fneg
 	%b0 =w cast %f
@@ -8,6 +9,7 @@ function s $fneg(s %f) {
 	ret %rs
 }
 
+export
 function d $ftrunc(d %f) {
 @ftrunc
 	%l0 =l ftosi %f

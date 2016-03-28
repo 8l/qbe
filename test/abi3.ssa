@@ -2,6 +2,7 @@ type :four = {l, b, w}
 
 data $z = { w 0 }
 
+export
 function $test() {
  @start
 	%a  =w loadw $z

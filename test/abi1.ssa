@@ -20,6 +20,7 @@ function $alpha(l %p, w %l, l %n) {
 	ret
 }
 
+export
 function $test() {
 @start
 	%p =l alloc4 17

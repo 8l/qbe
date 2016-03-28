@@ -1,3 +1,4 @@
+export
 function w $main(w %argc, l %argv) {
 @start
 	%fmt =l alloc8 8

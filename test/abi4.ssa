@@ -18,6 +18,7 @@ function $alpha(l %p, w %l, l %n) {
 	ret
 }
 
+export
 function :mem $test() {
 @start
 	%p =l alloc4 17

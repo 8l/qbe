@@ -2,6 +2,7 @@
 # compiler from the C program
 # following in comments
 
+export
 function w $main() {
 @start
 	%v0 =l alloc8 4

@@ -18,6 +18,7 @@ data $fmt6 = { b "t6: %s\n", b 0 }
 data $fmt7 = { b "t7: %f %f\n", b 0 }
 data $fmt8 = { b "t8: %d %d %d %d\n", b 0 }
 
+export
 function $test() {
 @start
 	%r1 =:st1 call $t1()

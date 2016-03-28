@@ -6,6 +6,7 @@ type :magic = align 1 { 0 }
 
 data $ret = { l 0 }
 
+export
 function $test(:magic %p) {
 @start
 	%av =w loadw $a

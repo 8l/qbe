@@ -63,6 +63,8 @@ while test -n "$1"
 do
 	case "$1" in
 	"-callssa")
+		CALLER=c
+		CALLEE=ssa
 		;;
 	"-callc")
 		CALLER=ssa

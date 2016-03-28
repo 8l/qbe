@@ -426,6 +426,7 @@ struct Fn {
 	Blk **rpo;
 	bits reg;
 	int slot;
+	char export;
 	char name[NString];
 };
 
@@ -466,6 +467,7 @@ struct Dat {
 	} u;
 	char isref;
 	char isstr;
+	char export;
 };
 
 

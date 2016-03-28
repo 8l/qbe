@@ -497,13 +497,14 @@ emitfn(Fn *fn, FILE *f)
 	Ins *i, itmp;
 	int *r, c, fs;
 
+	fprintf(f, ".text\n");
+	if (fn->export)
+		fprintf(f, ".globl %s%s\n", symprefix, fn->name);
 	fprintf(f,
-		".text\n"
-		".globl %s%s\n"
 		"%s%s:\n"
 		"\tpush %%rbp\n"
 		"\tmov %%rsp, %%rbp\n",
-		symprefix, fn->name, symprefix, fn->name
+		symprefix, fn->name
 	);
 	fs = framesz(fn);
 	if (fs)
@@ -575,11 +576,9 @@ emitdat(Dat *d, FILE *f)
 	case DName:
 		if (!align)
 			fprintf(f, ".align 8\n");
-		fprintf(f,
-			".globl %s%s\n"
-			"%s%s:\n",
-			symprefix, d->u.str, symprefix, d->u.str
-		);
+		if (d->export)
+			fprintf(f, ".globl %s%s\n", symprefix, d->u.str);
+		fprintf(f, "%s%s:\n", symprefix, d->u.str);
 		break;
 	case DZ:
 		fprintf(f, "\t.fill %"PRId64",1,0\n", d->u.num);

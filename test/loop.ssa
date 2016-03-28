@@ -1,6 +1,7 @@
 # simple looping program
 # sums all integers from 100 to 0
 
+export
 function $test() {
 @start
 

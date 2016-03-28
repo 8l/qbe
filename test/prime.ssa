@@ -1,6 +1,7 @@
 # find the 10,001st prime
 # store it in a
 
+export
 function $test() {
 @start
 @loop

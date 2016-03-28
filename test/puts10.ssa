@@ -1,3 +1,4 @@
+export
 function $main() {
 @start
 	%y  =l alloc4 4

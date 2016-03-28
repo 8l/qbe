@@ -439,7 +439,7 @@ module OutIL = struct
       typedef oc (argname i) arg;
     ) args;
     typedef oc "ret" ret;
-    fprintf oc "\nfunction w $main() {\n";
+    fprintf oc "\nexport function w $main() {\n";
     fprintf oc "@start\n";
     fprintf oc "\t%%failcode =l alloc4 4\n";
     let targs = List.mapi (fun i arg ->
@@ -466,7 +466,7 @@ module OutIL = struct
       typedef oc (argname i) arg;
     ) args;
     typedef oc "ret" ret;
-    fprintf oc "\nfunction %s $f(" (ttype "ret" ret);
+    fprintf oc "\nexport function %s $f(" (ttype "ret" ret);
     List.iteri (fun i arg ->
       let a = argname i in
       fprintf oc "%s %%%s" (ttype a arg) a;
