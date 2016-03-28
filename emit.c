@@ -149,7 +149,10 @@ emitcon(Con *con, FILE *f)
 	default:
 		diag("emit: invalid constant");
 	case CAddr:
-		fprintf(f, "%s%s", con->local ? locprefix : symprefix, con->label);
+		if (con->local)
+			fprintf(f, "%s%s", locprefix, con->label);
+		else
+			fprintf(f, "%s%s", symprefix, con->label);
 		if (con->bits.i)
 			fprintf(f, "%+"PRId64, con->bits.i);
 		break;
@@ -493,6 +496,7 @@ emitfn(Fn *fn, FILE *f)
 		[ICXnp] = "np",
 		[ICXp]  = "p"
 	};
+	static int id0;
 	Blk *b, *s;
 	Ins *i, itmp;
 	int *r, c, fs;
@@ -516,7 +520,7 @@ emitfn(Fn *fn, FILE *f)
 		}
 
 	for (b=fn->start; b; b=b->link) {
-		fprintf(f, "%s%s:\n", locprefix, b->name);
+		fprintf(f, "%sbb%d: /* %s */\n", locprefix, id0+b->id, b->name);
 		for (i=b->ins; i!=&b->ins[b->nins]; i++)
 			emitins(*i, fn, f);
 		switch (b->jmp.type) {
@@ -533,7 +537,8 @@ emitfn(Fn *fn, FILE *f)
 			break;
 		case JJmp:
 			if (b->s1 != b->link)
-				fprintf(f, "\tjmp %s%s\n", locprefix, b->s1->name);
+				fprintf(f, "\tjmp %sbb%d /* %s */\n",
+					locprefix, id0+b->s1->id, b->s1->name);
 			break;
 		default:
 			c = b->jmp.type - JXJc;
@@ -545,13 +550,14 @@ emitfn(Fn *fn, FILE *f)
 					s = b->s2;
 				} else
 					diag("emit: unhandled jump (1)");
-				fprintf(f, "\tj%s %s%s\n", ctoa[c], locprefix, s->name);
+				fprintf(f, "\tj%s %sbb%d /* %s */\n",
+					ctoa[c], locprefix, id0+s->id, s->name);
 				break;
 			}
 			diag("emit: unhandled jump (2)");
 		}
 	}
-
+	id0 += fn->nblk;
 }
 
 void

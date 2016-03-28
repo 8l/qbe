@@ -20,7 +20,7 @@ function $alpha(l %p, w %l, l %n) {
 
 export
 function :mem $test() {
-@start
+@ini
 	%p =l alloc4 17
 	%r0 =w call $alpha(l %p, w 65, l 16)
 	ret %p
