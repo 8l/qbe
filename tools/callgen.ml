@@ -65,6 +65,7 @@ module Gen = struct
     | None ->
       let f = open_in "/dev/urandom" in
       let seed =
+        Char.code (input_char f) lsl 16 +
         Char.code (input_char f) lsl 8 +
         Char.code (input_char f) in
       close_in f;
