@@ -82,7 +82,7 @@ are listed below.
   * `[ ... ]` marks some syntax as optional;
   * `( ... ),` designates a comma-separated list of the
     enclosed syntax;
-  * `...*` and `...+` as used for arbitrary and
+  * `...*` and `...+` are used for arbitrary and
     at-least-once repetition.
 
 ~ Sigils
@@ -114,13 +114,13 @@ starting with the sigil `?`.
 The IL makes very minimal use of types.  By design, the types
 used are restricted to what is necessary for unambiguous
 compilation to machine code and C interfacing.  Unlike LLVM,
-QBE is not using types as a mean to safety,  they are only
-here for semantics purposes.
+QBE is not using types as a means to safety; they are only
+here for semantic purposes.
 
 The four base types are `w` (word), `l` (long), `s` (single),
-and `d` (double), they stand respectively for 32 bits and
-64 bits integers, and 32 bits and 64 bits floating points.
-There are no pointer types available, pointers are typed
+and `d` (double), they stand respectively for 32-bit and
+64-bit integers, and 32-bit and 64-bit floating-point numbers.
+There are no pointer types available; pointers are typed
 by an integer type sufficiently wide to represent all memory
 addresses (e.g. `l` on x64).  Temporaries in the IL can only
 have a basic type.
@@ -138,8 +138,8 @@ section.
 ~~~~~~~~~~~
 
 The IL has a minimal subtyping feature for integer types.
-Any value of type `l` can be used in a `w` context.  When that
-happens only the 32 least significant bits of the word value
+Any value of type `l` can be used in a `w` context.  In that
+case, only the 32 least significant bits of the word value
 are used.
 
 Make note that it is the inverse of the usual subtyping on
@@ -165,21 +165,21 @@ that they can be used directly in instructions; there is
 no need for a "load constant" instruction.
 
 The representation of integers is two's complement.
-Floating point numbers are represented using the
+Floating-point numbers are represented using the
 single-precision and double-precision formats of the
-EEE 754 standard.
+IEEE 754 standard.
 
-Consants specify a sequence of bits and are untyped.
-They are always parsed as 64 bits blobs.  Depending on
-the context surrounding one constant, only some of its
+Constants specify a sequence of bits and are untyped.
+They are always parsed as 64-bit blobs.  Depending on
+the context surrounding a constant, only some of its
 bits are used.  For example, in the program below, the
-two variables defined have the same value since the fist
+two variables defined have the same value since the first
 operand of the substraction is a word (32 bits) context.
 
     %x =w sub -1, 0
     %y =w sub 4294967295, 0
 
-Because specifying floating point constants by their bits
+Because specifying floating-point constants by their bits
 makes the code less readable, syntactic sugar is provided
 to express them.  Standard scientific notation is used with
 a prefix of `s_` for single and `d_` for double-precision
@@ -189,8 +189,8 @@ the same double-precision constant.
     %x =d add d_0, d_-1
     %y =d add d_0, -4616189618054758400
 
-Global symbols can also be used directly as constants,
-they will be resolved and turned to actual numeric
+Global symbols can also be used directly as constants;
+they will be resolved and turned into actual numeric
 constants by the linker.
 
 - 4. Definitions
@@ -218,26 +218,28 @@ using the `export` keyword.
         'type' :IDENT '=' 'align' NUMBER '{' NUMBER '}'
 
 Aggregate type definitions start with the `type` keyword.
-They have file scope but types must be defined before their
+They have file scope, but types must be defined before their
 first use.  The inner structure of a type is expressed by a
-comma separated list of <@ Simple Types> enclosed in curly
+comma-separated list of <@ Simple Types> enclosed in curly
 braces.
 
     type :fourfloats = { s, s, d, d }
 
 For ease of generation, a trailing comma is tolerated by
 the parser.  In case many items of the same type are
-sequenced (like in a C array), the sorter array syntax
+sequenced (like in a C array), the shorter array syntax
 can be used.
 
     type :abyteandmanywords = { b, w 100 }
 
 By default, the alignment of an aggregate type is the
 maximum alignment of its members.  The alignment can be
-explicitely specified by the programmer
+explicitly specified by the programmer.
+
+    type :cryptovector = align 16 { w 4 }
 
 Opaque types are used when the inner structure of an
-aggregate cannot be specified, the alignment for opaque
+aggregate cannot be specified; the alignment for opaque
 types is mandatory.  They are defined by simply enclosing
 their size between curly braces.
 
