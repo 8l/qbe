@@ -125,7 +125,7 @@ ralloc(RMap *m, int t)
 		for (r=r0; r<r1; r++)
 			if (!bshas(m->b, r))
 				goto Found;
-		diag("rega: no more regs");
+		die("no more regs");
 	}
 Found:
 	radd(m, t, r);
@@ -170,7 +170,7 @@ pmadd(Ref src, Ref dst, int k)
 		cpm = cpm * 2 + 16;
 		pm = realloc(pm, cpm * sizeof pm[0]);
 		if (!pm)
-			diag("pmadd: out of memory");
+			die("pmadd, out of memory");
 	}
 	pm[npm].src = src;
 	pm[npm].dst = dst;

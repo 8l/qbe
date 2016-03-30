@@ -47,7 +47,6 @@ visitphi(Phi *p, Ref *cp, RList **w)
 			break;
 		}
 	}
-	assert(!req(r, R));
 	update(p->to, r, cp, w);
 }
 
@@ -63,6 +62,15 @@ visitins(Ins *i, Ref *cp, RList **w)
 		assert(rtype(i->to) == RTmp);
 		update(i->to, i->to, cp, w);
 	}
+}
+
+static void
+subst(Ref *r, Ref *cp, Fn *fn)
+{
+	if (rtype(*r) == RTmp && req(copyof(*r, cp), R))
+		err("temporary %%%s is used undefined",
+			fn->tmp[r->val].name);
+	*r = copyof(*r, cp);
 }
 
 void
@@ -93,8 +101,6 @@ copy(Fn *fn)
 		u1 = u + fn->tmp[t].nuse;
 		for (; u<u1; u++)
 			switch (u->type) {
-			default:
-				diag("copy: invalid use");
 			case UPhi:
 				visitphi(u->u.phi, cp, &w);
 				break;
@@ -103,6 +109,8 @@ copy(Fn *fn)
 				break;
 			case UJmp:
 				break;
+			default:
+				die("invalid use %d", u->type);
 			}
 	}
 	for (b=fn->start; b; b=b->link) {
@@ -113,31 +121,19 @@ copy(Fn *fn)
 				continue;
 			}
 			for (a=0; a<p->narg; a++)
-				if (rtype(p->arg[a]) == RTmp) {
-					r = cp[p->arg[a].val];
-					assert(!req(r, R));
-					p->arg[a] = r;
-				}
+				subst(&p->arg[a], cp, fn);
 			pp=&p->link;
 		}
 		for (i=b->ins; i-b->ins < b->nins; i++) {
-			r = cp[i->to.val];
+			r = copyof(i->to, cp);
 			if (!req(r, i->to)) {
 				*i = (Ins){.op = ONop};
 				continue;
 			}
 			for (a=0; a<2; a++)
-				if (rtype(i->arg[a]) == RTmp) {
-					r = cp[i->arg[a].val];
-					assert(!req(r, R));
-					i->arg[a] = r;
-				}
+				subst(&i->arg[a], cp, fn);
 		}
-		if (rtype(b->jmp.arg) == RTmp) {
-			r = cp[b->jmp.arg.val];
-			assert(!req(r, R));
-			b->jmp.arg = r;
-		}
+		subst(&b->jmp.arg, cp, fn);
 	}
 	if (debug['C']) {
 		fprintf(stderr, "\n> Copy information:");

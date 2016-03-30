@@ -15,8 +15,6 @@ adduse(Tmp *tmp, int ty, Blk *b, ...)
 	u->type = ty;
 	u->bid = b->id;
 	switch (ty) {
-	default:
-		diag("ssa: adduse defaulted");
 	case UPhi:
 		u->u.phi = va_arg(ap, Phi *);
 		break;
@@ -25,6 +23,8 @@ adduse(Tmp *tmp, int ty, Blk *b, ...)
 		break;
 	case UJmp:
 		break;
+	default:
+		die("unreachable");
 	}
 	va_end(ap);
 }
@@ -465,7 +465,7 @@ renblk(Blk *b, Name **stk, Fn *fn)
 			if ((t=fn->tmp[t].visit)) {
 				m = p->narg++;
 				if (m == NPred)
-					diag("ssa: too many phi arguments");
+					die("renblk, too many phi args");
 				p->arg[m] = getstk(t, b, stk);
 				p->blk[m] = b;
 			}

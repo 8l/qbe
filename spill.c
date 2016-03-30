@@ -94,8 +94,7 @@ fillcost(Fn *fn)
 			tmpuse(p->to, 0, 0, fn);
 			for (a=0; a<p->narg; a++) {
 				n = p->blk[a]->loop;
-				assert(b->npred==p->narg &&
-					"wrong cfg");
+				assert(b->npred==p->narg && "wrong cfg");
 				n /= b->npred;
 				tmpuse(p->arg[a], 1, n, fn);
 			}
@@ -146,11 +145,10 @@ slot(int t)
 {
 	int s;
 
-	if (t < Tmp0)
-		diag("spill: cannot spill register");
+	assert(t >= Tmp0 && "cannot spill register");
 	s = tmp[t].slot;
 	if (s == -1) {
-		assert(NAlign == 3);
+		/* specific to NAlign == 3 */
 		/* nice logic to pack stack slots
 		 * on demand, there can be only
 		 * one hole and slot4 points to it
@@ -491,7 +489,7 @@ spill(Fn *fn)
 	}
 
 	/* align the locals to a 16 byte boundary */
-	assert(NAlign == 3);
+	/* specific to NAlign == 3 */
 	slot8 += slot8 & 3;
 	fn->slot += slot8;
 

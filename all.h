@@ -6,6 +6,7 @@
 #include <string.h>
 
 #define MAKESURE(what, x) typedef char make_sure_##what[(x)?1:-1]
+#define die(...) die_(__FILE__, __VA_ARGS__)
 
 typedef unsigned int uint;
 typedef unsigned short ushort;
@@ -481,7 +482,7 @@ extern char debug['Z'+1];
 /* util.c */
 extern Typ typ[NTyp];
 extern Ins insb[NIns], *curi;
-void diag(char *) __attribute__((noreturn));
+void die_(char *, char *, ...) __attribute__((noreturn));
 void *emalloc(size_t);
 void *alloc(size_t);
 void freeall(void);
@@ -522,7 +523,7 @@ extern OpDesc opdesc[NOp];
 void parse(FILE *, char *, void (Dat *), void (Fn *));
 void printfn(Fn *, FILE *);
 void printref(Ref, Fn *, FILE *);
-void err(char *, ...);
+void err(char *, ...) __attribute__((noreturn));
 
 /* mem.c */
 void memopt(Fn *);

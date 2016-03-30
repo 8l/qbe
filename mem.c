@@ -22,7 +22,7 @@ memopt(Fn *fn)
 	for (i=b->ins; i-b->ins < b->nins; i++) {
 		if (OAlloc > i->op || i->op > OAlloc1)
 			continue;
-		assert(NAlign == 3);
+		/* specific to NAlign == 3 */
 		assert(rtype(i->to) == RTmp);
 		t = &fn->tmp[i->to.val];
 		for (u=t->use; u != &t->use[t->nuse]; u++) {

@@ -35,7 +35,7 @@ static int
 fcmptoi(int fc)
 {
 	switch (fc) {
-	default:   diag("isel: fcmptoi defaulted");
+	default:   die("invalid fp comparison %d", fc);
 	case FCle: return ICule;
 	case FClt: return ICult;
 	case FCgt: return ICugt;
@@ -85,8 +85,6 @@ noimm(Ref r, Fn *fn)
 	if (rtype(r) != RCon)
 		return 0;
 	switch (fn->con[r.val].type) {
-	default:
-		diag("isel: invalid constant");
 	case CAddr:
 		/* we only support the 'small'
 		 * code model of the ABI, this
@@ -97,6 +95,8 @@ noimm(Ref r, Fn *fn)
 	case CBits:
 		val = fn->con[r.val].bits.i;
 		return (val < INT32_MIN || val > INT32_MAX);
+	default:
+		die("invalid constant");
 	}
 }
 
@@ -208,7 +208,7 @@ sel(Ins i, ANum *an, Fn *fn)
 {
 	Ref r0, r1;
 	int x, k, kc;
-	int64_t val;
+	int64_t sz;
 	Ins *i0;
 
 	if (rtype(i.to) == RTmp)
@@ -308,12 +308,11 @@ Emit:
 		 * (rsp = 0) mod 16
 		 */
 		if (rtype(i.arg[0]) == RCon) {
-			assert(fn->con[i.arg[0].val].type == CBits);
-			val = fn->con[i.arg[0].val].bits.i;
-			val = (val + 15)  & ~INT64_C(15);
-			if (val < 0 || val > INT32_MAX)
-				diag("isel: alloc too large");
-			emit(OSAlloc, Kl, i.to, getcon(val, fn), R);
+			sz = fn->con[i.arg[0].val].bits.i;
+			if (sz < 0 || sz >= INT_MAX-15)
+				err("invalid alloc size %"PRId64, sz);
+			sz = (sz + 15)  & -16;
+			emit(OSAlloc, Kl, i.to, getcon(sz, fn), R);
 		} else {
 			/* r0 = (i.arg[0] + 15) & -16 */
 			r0 = newtmp("isel", Kl, fn);
@@ -335,13 +334,13 @@ Emit:
 			selcmp(i.arg, kc, fn);
 			break;
 		}
-		diag("isel: non-exhaustive implementation");
+		die("unknown instruction");
 	}
 
-	while (i0 > curi && --i0)
-		if (rslot(i0->arg[0], fn) != -1
-		||  rslot(i0->arg[1], fn) != -1)
-			diag("isel: usupported address argument");
+	while (i0 > curi && --i0) {
+		assert(rslot(i0->arg[0], fn) == -1);
+		assert(rslot(i0->arg[1], fn) == -1);
+	}
 }
 
 static Ins *
@@ -733,7 +732,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 		}
 		/* allocate return pad */
 		ra = alloc(sizeof *ra);
-		assert(NAlign == 3);
+		/* specific to NAlign == 3 */
 		aret.align -= 2;
 		if (aret.align < 0)
 			aret.align = 0;
@@ -822,7 +821,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	} else
 		classify(i0, i1, ac, OPar, 0);
 
-	assert(NAlign == 3);
+	/* specific to NAlign == 3 */
 
 	s = 4;
 	for (i=i0, a=ac; i<i1; i++, a++) {
@@ -856,7 +855,6 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		if (i->op != OParc || a->inmem)
 			continue;
-		assert(NAlign == 3);
 		for (al=0; a->align >> (al+2); al++)
 			;
 		r = TMP(a->cls[0]);
@@ -876,12 +874,12 @@ static int
 aref(Ref r, ANum *ai)
 {
 	switch (rtype(r)) {
-	default:
-		diag("isel: aref defaulted");
 	case RCon:
 		return 2;
 	case RTmp:
 		return ai[r.val].n;
+	default:
+		die("constant or temporary expected");
 	}
 }
 
@@ -986,8 +984,6 @@ amatch(Addr *a, Ref r, ANum *ai, Fn *fn, int top)
 		}
 	}
 	switch (ai[r.val].n) {
-	default:
-		diag("isel: amatch defaulted");
 	case 3: /* s * i */
 		if (!top) {
 			a->index = al;
@@ -1023,6 +1019,8 @@ amatch(Addr *a, Ref r, ANum *ai, Fn *fn, int top)
 		amatch(a, ar, ai, fn, 0);
 		amatch(a, al, ai, fn, 0);
 		break;
+	default:
+		die("unreachable");
 	}
 }
 
@@ -1092,15 +1090,15 @@ isel(Fn *fn)
 
 	/* assign slots to fast allocs */
 	b = fn->start;
-	assert(NAlign == 3 && "change n=4 and sz /= 4 below");
+	/* specific to NAlign == 3 */ /* or change n=4 and sz /= 4 below */
 	for (al=OAlloc, n=4; al<=OAlloc1; al++, n*=2)
 		for (i=b->ins; i-b->ins < b->nins; i++)
 			if (i->op == al) {
 				if (rtype(i->arg[0]) != RCon)
 					break;
 				sz = fn->con[i->arg[0].val].bits.i;
-				if (sz < 0 || sz >= INT_MAX-3)
-					diag("isel: invalid alloc size");
+				if (sz < 0 || sz >= INT_MAX-15)
+					err("invalid alloc size %"PRId64, sz);
 				sz = (sz + n-1) & -n;
 				sz /= 4;
 				fn->tmp[i->to.val].slot = fn->slot;

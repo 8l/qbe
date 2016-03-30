@@ -1,4 +1,5 @@
 #include "all.h"
+#include <stdarg.h>
 
 typedef struct Bitset Bitset;
 typedef struct Vec Vec;
@@ -28,9 +29,14 @@ static void **pool = ptr;
 static int nptr = 1;
 
 void
-diag(char *s)
+die_(char *file, char *s, ...)
 {
-	fputs(s, stderr);
+	va_list ap;
+
+	fprintf(stderr, "%s: dying: ", file);
+	va_start(ap, s);
+	vfprintf(stderr, s, ap);
+	va_end(ap);
 	fputc('\n', stderr);
 	abort();
 }
@@ -42,7 +48,7 @@ emalloc(size_t n)
 
 	p = calloc(1, n);
 	if (!p)
-		diag("emalloc: out of memory");
+		die("emalloc, out of memory");
 	return p;
 }
 
@@ -95,7 +101,7 @@ void
 emit(int op, int k, Ref to, Ref arg0, Ref arg1)
 {
 	if (curi == insb)
-		diag("emit: too many instructions");
+		die("emit, too many instructions");
 	*--curi = (Ins){
 		.op = op, .cls = k,
 		.to = to, .arg = {arg0, arg1}
@@ -210,8 +216,7 @@ addcon(Con *c0, Con *c1)
 		*c0 = *c1;
 	else {
 		if (c1->type == CAddr) {
-			if (c0->type == CAddr)
-				diag("addcon: adding two addresses");
+			assert(c0->type != CAddr && "adding two addresses");
 			c0->type = CAddr;
 			strcpy(c0->label, c1->label);
 		}

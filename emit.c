@@ -133,7 +133,7 @@ slot(int s, Fn *fn)
 
 	/* sign extend s using a bitfield */
 	x.i = s;
-	assert(NAlign == 3);
+	/* specific to NAlign == 3 */
 	if (x.i < 0)
 		return -4 * x.i;
 	else {
@@ -146,8 +146,6 @@ static void
 emitcon(Con *con, FILE *f)
 {
 	switch (con->type) {
-	default:
-		diag("emit: invalid constant");
 	case CAddr:
 		if (con->local)
 			fprintf(f, "%s%s", locprefix, con->label);
@@ -159,6 +157,8 @@ emitcon(Con *con, FILE *f)
 	case CBits:
 		fprintf(f, "%"PRId64, con->bits.i);
 		break;
+	default:
+		die("unreachable");
 	}
 }
 
@@ -178,14 +178,14 @@ static Ref
 getarg(char c, Ins *i)
 {
 	switch (c) {
-	default:
-		diag("emit: 0, 1, = expected in format");
 	case '0':
 		return i->arg[0];
 	case '1':
 		return i->arg[1];
 	case '=':
 		return i->to;
+	default:
+		die("invalid arg letter %c", c);
 	}
 }
 
@@ -222,8 +222,8 @@ emitf(char *s, Ins *i, Fn *fn, FILE *f)
 		}
 		/* fall through */
 	case '-':
-		if (req(i->arg[1], i->to) && !req(i->arg[0], i->to))
-			diag("emit: cannot convert to 2-address");
+		assert((!req(i->arg[1], i->to) || req(i->arg[0], i->to)) &&
+			"cannot convert to 2-address");
 		emitcopy(i->to, i->arg[0], i->cls, fn, f);
 		s++;
 		break;
@@ -238,8 +238,6 @@ Next:
 		} else
 			fputc(c, f);
 	switch ((c = *s++)) {
-	default:
-		diag("emit: invalid escape");
 	case '%':
 		fputc('%', f);
 		break;
@@ -258,8 +256,6 @@ Next:
 		c = *s++;
 		ref = getarg(c, i);
 		switch (rtype(ref)) {
-		default:
-			diag("emit: invalid reference");
 		case RTmp:
 			assert(isreg(ref));
 			fprintf(f, "%%%s", regtoa(ref.val, sz));
@@ -294,6 +290,8 @@ Next:
 			fputc('$', f);
 			emitcon(&fn->con[ref.val], f);
 			break;
+		default:
+			die("unreachable");
 		}
 		break;
 	case 'L':
@@ -312,8 +310,6 @@ Next:
 		c = *s++;
 		ref = getarg(c, i);
 		switch (rtype(ref)) {
-		default:
-			diag("emit: invalid memory reference");
 		case RAMem:
 			goto Mem;
 		case RSlot:
@@ -327,8 +323,12 @@ Next:
 			assert(isreg(ref));
 			fprintf(f, "(%%%s)", regtoa(ref.val, SLong));
 			break;
+		default:
+			die("unreachable");
 		}
 		break;
+	default:
+		die("invalid format specifier %%%c", c);
 	}
 	goto Next;
 }
@@ -350,7 +350,7 @@ emitins(Ins i, Fn *fn, FILE *f)
 			/* this linear search should really be a binary
 			 * search */
 			if (omap[o].op == NOp)
-				diag("emit: no entry found for instruction");
+				die("not match for %d(%d)", i.op, i.cls);
 			if (omap[o].op == i.op)
 			if (omap[o].cls == i.cls
 			|| (omap[o].cls == Ki && KBASE(i.cls) == 0)
@@ -412,8 +412,6 @@ emitins(Ins i, Fn *fn, FILE *f)
 		/* calls simply have a weird syntax in AT&T
 		 * assembly... */
 		switch (rtype(i.arg[0])) {
-		default:
-			diag("emit: invalid call instruction");
 		case RCon:
 			fprintf(f, "\tcallq ");
 			emitcon(&fn->con[i.arg[0].val], f);
@@ -422,6 +420,8 @@ emitins(Ins i, Fn *fn, FILE *f)
 		case RTmp:
 			emitf("callq *%L0", &i, fn, f);
 			break;
+		default:
+			die("invalid call argument");
 		}
 		break;
 	case OSAlloc:
@@ -450,7 +450,7 @@ static int
 cneg(int cmp)
 {
 	switch (cmp) {
-	default:   diag("emit: cneg() unhandled comparison");
+	default:    die("invalid int comparison %d", cmp);
 	case ICule: return ICugt;
 	case ICult: return ICuge;
 	case ICsle: return ICsgt;
@@ -471,7 +471,7 @@ framesz(Fn *fn)
 {
 	int i, o, f;
 
-	assert(NAlign == 3);
+	/* specific to NAlign == 3 */
 	for (i=0, o=0; i<NRClob; i++)
 		o ^= 1 & (fn->reg >> rclob[i]);
 	f = fn->slot;
@@ -549,12 +549,12 @@ emitfn(Fn *fn, FILE *f)
 					c = cneg(c);
 					s = b->s2;
 				} else
-					diag("emit: unhandled jump (1)");
+					die("unhandled jump");
 				fprintf(f, "\tj%s %sbb%d /* %s */\n",
 					ctoa[c], locprefix, id0+s->id, s->name);
 				break;
 			}
-			diag("emit: unhandled jump (2)");
+			die("unhandled jump %d", b->jmp.type);
 		}
 	}
 	id0 += fn->nblk;

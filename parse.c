@@ -159,18 +159,14 @@ static int ntyp;
 void
 err(char *s, ...)
 {
-	char buf[100], *p, *end;
 	va_list ap;
 
-	p = buf;
-	end = buf + sizeof(buf);
-
 	va_start(ap, s);
-	p += snprintf(p, end - p, "%s:%d: ", inpath, lnum);
-	p += vsnprintf(p, end - p, s, ap);
+	fprintf(stderr, "%s:%d: ", inpath, lnum);
+	vfprintf(stderr, s, ap);
+	fprintf(stderr, "\n");
 	va_end(ap);
-
-	diag(buf);
+	exit(1);
 }
 
 static int
