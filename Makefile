@@ -9,11 +9,11 @@ OBJ = $(SRC:%.c=$(OBJDIR)/%.o)
 CFLAGS += -Wall -Wextra -std=c99 -g -pedantic
 
 $(OBJDIR)/$(BIN): $(OBJ) $(OBJDIR)/timestamp
-	@echo "ld $@"
+	@test -z "$(V)" || echo "ld $@"
 	$(V)$(CC) $(LDFLAGS) $(OBJ) -o $@
 
 $(OBJDIR)/%.o: %.c $(OBJDIR)/timestamp
-	@echo "cc $<"
+	@test -z "$(V)" || echo "cc $<"
 	$(V)$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)/timestamp:
