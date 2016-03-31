@@ -143,10 +143,7 @@ static struct {
 } tokval;
 static int lnum;
 
-static Tmp *tmp;
-static Con *con;
-static int ntmp;
-static int ncon;
+static Fn *curf;
 static Phi **plink;
 static Blk **bmap;
 static Blk *curb;
@@ -360,11 +357,11 @@ tmpref(char *v)
 {
 	int t;
 
-	for (t=Tmp0; t<ntmp; t++)
-		if (strcmp(v, tmp[t].name) == 0)
+	for (t=Tmp0; t<curf->ntmp; t++)
+		if (strcmp(v, curf->tmp[t].name) == 0)
 			return TMP(t);
-	vgrow(&tmp, ++ntmp);
-	strcpy(tmp[t].name, v);
+	newtmp(0, Kw, curf);
+	strcpy(curf->tmp[t].name, v);
 	return TMP(t);
 }
 
@@ -396,13 +393,13 @@ parseref()
 		c.type = CAddr;
 		strcpy(c.label, tokval.str);
 	Look:
-		for (i=0; i<ncon; i++)
-			if (con[i].type == c.type
-			&& con[i].bits.i == c.bits.i
-			&& strcmp(con[i].label, c.label) == 0)
+		for (i=0; i<curf->ncon; i++)
+			if (curf->con[i].type == c.type
+			&& curf->con[i].bits.i == c.bits.i
+			&& strcmp(curf->con[i].label, c.label) == 0)
 				return CON(i);
-		vgrow(&con, ++ncon);
-		con[i] = c;
+		vgrow(&curf->con, ++curf->ncon);
+		curf->con[i] = c;
 		return CON(i);
 	default:
 		return R;
@@ -648,29 +645,31 @@ DoOp:
 static Fn *
 parsefn(int export)
 {
+	int r;
 	PState ps;
-	Fn *fn;
 
-	ntmp = Tmp0;
-	ncon = 1; /* first constant must be 0 */
 	curb = 0;
 	nblk = 0;
 	curi = insb;
-	tmp = vnew(ntmp, sizeof tmp[0]);
-	con = vnew(ncon, sizeof con[0]);
+	curf = alloc(sizeof *curf);
+	curf->ntmp = 0;
+	curf->ncon = 1; /* first constant must be 0 */
+	curf->tmp = vnew(curf->ntmp, sizeof curf->tmp[0]);
+	curf->con = vnew(curf->ncon, sizeof curf->con[0]);
+	for (r=0; r<Tmp0; r++)
+		newtmp(0, r < XMM0 ? Kl : Kd, curf);
 	bmap = vnew(nblk, sizeof bmap[0]);
-	con[0].type = CBits;
-	fn = alloc(sizeof *fn);
-	fn->export = export;
-	blink = &fn->start;
-	fn->retty = -1;
+	curf->con[0].type = CBits;
+	curf->export = export;
+	blink = &curf->start;
+	curf->retty = -1;
 	if (peek() != TGlo)
-		rcls = parsecls(&fn->retty);
+		rcls = parsecls(&curf->retty);
 	else
 		rcls = 5;
 	if (next() != TGlo)
 		err("function name expected");
-	strcpy(fn->name, tokval.str);
+	strcpy(curf->name, tokval.str);
 	parserefl(0);
 	if (nextnl() != TLBrace)
 		err("function body must start with {");
@@ -682,15 +681,11 @@ parsefn(int export)
 		err("empty file");
 	if (curb->jmp.type == JXXX)
 		err("last block misses jump");
-	fn->tmp = tmp;
-	fn->con = con;
-	fn->mem = vnew(0, sizeof fn->mem[0]);
-	fn->ntmp = ntmp;
-	fn->ncon = ncon;
-	fn->nmem = 0;
-	fn->nblk = nblk;
-	fn->rpo = 0;
-	return fn;
+	curf->mem = vnew(0, sizeof curf->mem[0]);
+	curf->nmem = 0;
+	curf->nblk = nblk;
+	curf->rpo = 0;
+	return curf;
 }
 
 static void

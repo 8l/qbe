@@ -495,6 +495,7 @@ void *vnew(ulong, size_t);
 void vgrow(void *, ulong);
 int phicls(int, Tmp *);
 Ref newtmp(char *, int, Fn *);
+void chuse(Ref, int, Fn *);
 Ref getcon(int64_t, Fn *);
 void addcon(Con *, Con *);
 void dumpts(BSet *, Tmp *, FILE *);
@@ -541,11 +542,14 @@ void copy(Fn *);
 void liveon(BSet *, Blk *, Blk *);
 void filllive(Fn *);
 
-/* isel.c */
+/* abi: sysv.c */
 extern int rsave[/* NRSave */];
 extern int rclob[/* NRClob */];
 bits retregs(Ref, int[2]);
 bits argregs(Ref, int[2]);
+void abi(Fn *);
+
+/* isel.c */
 void isel(Fn *);
 
 /* spill.c */

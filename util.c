@@ -187,12 +187,20 @@ newtmp(char *prfx, int k,  Fn *fn)
 
 	t = fn->ntmp++;
 	vgrow(&fn->tmp, fn->ntmp);
-	sprintf(fn->tmp[t].name, "%s%d", prfx, ++n);
+	if (prfx)
+		sprintf(fn->tmp[t].name, "%s%d", prfx, ++n);
 	fn->tmp[t].cls = k;
 	fn->tmp[t].slot = -1;
 	fn->tmp[t].nuse = +1;
 	fn->tmp[t].ndef = +1;
 	return TMP(t);
+}
+
+void
+chuse(Ref r, int du, Fn *fn)
+{
+	if (rtype(r) == RTmp)
+		fn->tmp[r.val].nuse += du;
 }
 
 Ref
@@ -203,8 +211,7 @@ getcon(int64_t val, Fn *fn)
 	for (c=0; c<fn->ncon; c++)
 		if (fn->con[c].type == CBits && fn->con[c].bits.i == val)
 			return CON(c);
-	fn->ncon++;
-	vgrow(&fn->con, fn->ncon);
+	vgrow(&fn->con, ++fn->ncon);
 	fn->con[c] = (Con){.type = CBits, .bits.i = val};
 	return CON(c);
 }

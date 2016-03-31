@@ -49,6 +49,7 @@ func(Fn *fn)
 	filluse(fn);
 	copy(fn);
 	filluse(fn);
+	abi(fn);
 	isel(fn);
 	filllive(fn);
 	fillcost(fn);
