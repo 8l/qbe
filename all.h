@@ -510,7 +510,7 @@ void bsunion(BSet *, BSet *);
 void bsinter(BSet *, BSet *);
 void bsdiff(BSet *, BSet *);
 int bsequal(BSet *, BSet *);
-int bsiter(BSet *, uint *);
+int bsiter(BSet *, int *);
 
 static inline int
 bshas(BSet *bs, uint elt)

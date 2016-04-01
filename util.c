@@ -313,7 +313,7 @@ bszero(BSet *bs)
  *
  */
 int
-bsiter(BSet *bs, uint *elt)
+bsiter(BSet *bs, int *elt)
 {
 	uint i;
 
@@ -332,7 +332,7 @@ bsiter(BSet *bs, uint *elt)
 void
 dumpts(BSet *bs, Tmp *tmp, FILE *f)
 {
-	uint t;
+	int t;
 
 	fprintf(f, "[");
 	for (t=Tmp0; bsiter(bs, &t); t++)

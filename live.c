@@ -70,8 +70,7 @@ filllive(Fn *f)
 {
 	Blk *b;
 	Ins *i;
-	int k, m[2], n, chg, nlv[2];
-	uint t;
+	int k, t, m[2], n, chg, nlv[2];
 	short *phi;
 	BSet u[1], v[1];
 	Mem *ma;

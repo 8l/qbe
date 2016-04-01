@@ -178,8 +178,7 @@ static void
 limit(BSet *b, int k, BSet *f)
 {
 	static int *tarr, maxt;
-	int i, nt;
-	uint t;
+	int i, t, nt;
 
 	nt = bscount(b);
 	if (nt <= k)
@@ -222,7 +221,7 @@ limit2(BSet *b1, int k1, int k2, BSet *fst)
 static void
 sethint(BSet *u, bits r)
 {
-	uint t;
+	int t;
 
 	for (t=Tmp0; bsiter(u, &t); t++)
 		tmp[phicls(t, tmp)].hint.m |= r;
@@ -231,7 +230,7 @@ sethint(BSet *u, bits r)
 static void
 reloads(BSet *u, BSet *v)
 {
-	uint t;
+	int t;
 
 	for (t=Tmp0; bsiter(u, &t); t++)
 		if (!bshas(v, t))
