@@ -70,7 +70,8 @@ filllive(Fn *f)
 {
 	Blk *b;
 	Ins *i;
-	int k, t, m[2], n, chg, nlv[2];
+	int k, m[2], n, chg, nlv[2];
+	uint t;
 	short *phi;
 	BSet u[1], v[1];
 	Mem *ma;
@@ -102,11 +103,10 @@ Again:
 		memset(phi, 0, f->ntmp * sizeof phi[0]);
 		memset(nlv, 0, sizeof nlv);
 		bscopy(b->in, b->out);
-		for (t=0; t<f->ntmp; t++)
-			if (bshas(b->in, t)) {
-				phifix(t, phi, f->tmp);
-				nlv[KBASE(f->tmp[t].cls)]++;
-			}
+		for (t=0; bsiter(b->in, &t); t++) {
+			phifix(t, phi, f->tmp);
+			nlv[KBASE(f->tmp[t].cls)]++;
+		}
 		if (rtype(b->jmp.arg) == RACall) {
 			assert(bscount(b->in) == 0 && nlv[0] == 0 && nlv[1] == 0);
 			b->in->t[0] |= retregs(b->jmp.arg, nlv);
