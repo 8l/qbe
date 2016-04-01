@@ -75,8 +75,6 @@ blit(Ref rstk, uint soff, Ref rsrc, uint sz, Fn *fn)
 		r1 = newtmp("abi", Kl, fn);
 		emit(OLoad, Kl, r, r1, R);
 		emit(OAdd, Kl, r1, rsrc, getcon(boff, fn));
-		chuse(rsrc, +1, fn);
-		chuse(rstk, +1, fn);
 	}
 }
 
@@ -116,7 +114,6 @@ selret(Blk *b, Fn *fn)
 		if (aret.inmem) {
 			assert(rtype(fn->retr) == RTmp);
 			emit(OCopy, Kl, TMP(RAX), fn->retr, R);
-			chuse(fn->retr, +1, fn);
 			blit(fn->retr, 0, r0, aret.size, fn);
 			ca = 1;
 		} else {
@@ -125,7 +122,6 @@ selret(Blk *b, Fn *fn)
 				r = newtmp("abi", Kl, fn);
 				emit(OLoad, Kl, reg[1], r, R);
 				emit(OAdd, Kl, r, r0, getcon(8, fn));
-				chuse(r0, +1, fn);
 			}
 			emit(OLoad, Kl, reg[0], r0, R);
 		}
@@ -305,7 +301,6 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 				regcp[1] = newtmp("abi", aret.cls[1], fn);
 				emit(OStorel, 0, R, regcp[1], r);
 				emit(OAdd, Kl, r, i1->to, getcon(8, fn));
-				chuse(i1->to, +1, fn);
 				ca += 1 << (2 * KBASE(aret.cls[1]));
 			}
 			regcp[0] = newtmp("abi", aret.cls[0], fn);
@@ -355,7 +350,6 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 				r = newtmp("abi", Kl, fn);
 				emit(OLoad, a->cls[1], r2, r, R);
 				emit(OAdd, Kl, r, i->arg[1], getcon(8, fn));
-				chuse(i->arg[1], +1, fn);
 			}
 			emit(OLoad, a->cls[0], r1, i->arg[1], R);
 		} else
@@ -366,7 +360,6 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 		return;
 
 	r = newtmp("abi", Kl, fn);
-	chuse(r, -1, fn);
 	for (i=i0, a=ac, off=0; i<i1; i++, a++) {
 		if (!a->inmem)
 			continue;
@@ -378,7 +371,6 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 			r1 = newtmp("abi", Kl, fn);
 			emit(OStorel, 0, R, i->arg[0], r1);
 			emit(OAdd, Kl, r1, r, getcon(off, fn));
-			chuse(r, +1, fn);
 		}
 		off += a->size;
 	}

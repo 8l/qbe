@@ -48,8 +48,8 @@ func(Fn *fn)
 	ssa(fn);
 	filluse(fn);
 	copy(fn);
-	filluse(fn);
 	abi(fn);
+	filluse(fn);
 	isel(fn);
 	filllive(fn);
 	fillcost(fn);
