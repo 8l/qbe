@@ -2,7 +2,7 @@ QBE - Backend Compiler              http://c9x.me/compile/
 
 doc/    Documentation.
 minic/  An example C frontend for QBE.
-tools/  Miscelaneous tools (testing).
+tools/  Miscellaneous tools (testing).
 test/   Unit tests.
 
 The LICENSE file applies to all files distributed.
