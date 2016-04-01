@@ -426,7 +426,7 @@ doblk(Blk *b, RMap *cur)
 void
 rega(Fn *fn)
 {
-	int j, n, t, r, r1, x, rl[Tmp0];
+	int j, t, n, r, r1, x, rl[Tmp0];
 	Blk *b, *b1, *s, ***ps, *blist;
 	RMap *end, *beg, cur, old;
 	Ins *i;
@@ -463,15 +463,10 @@ rega(Fn *fn)
 		cur.n = 0;
 		bszero(cur.b);
 		for (x=0; x<2; x++)
-			for (t=Tmp0; t<fn->ntmp; t++) {
-				assert(bshas(b->out, t) ||
-					!bshas(cur.b, t));
-				if (bshas(b->out, t))
-				if (!bshas(cur.b, t))
+			for (t=Tmp0; bsiter(b->out, &t); t++)
 				if (x || (r=*hint(t)) != -1)
 				if (x || !bshas(cur.b, r))
 					ralloc(&cur, t);
-			}
 		rcopy(&end[n], &cur);
 		doblk(b, &cur);
 		bscopy(b->in, cur.b);
