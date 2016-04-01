@@ -1,0 +1,2687 @@
+export
+function w $main() {
+ @start
+  %ptr =l alloc16 4096
+  %r =l call $memset(l %ptr, l 0, l 4096)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 7
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+ @.L0
+  %v =l loadl %ptr
+  jnz %v, @.L1, @.L2
+ @.L1
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 5
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L0
+ @.L2
+  %v =l loadl %ptr
+  %v =l add %v, 7
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+ @.L3
+  %v =l loadl %ptr
+  jnz %v, @.L4, @.L5
+ @.L4
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 5
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L3
+ @.L5
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 9
+  storel %v, %ptr
+  %ptr =l add %ptr, 16
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+ @.L6
+  %v =l loadl %ptr
+  jnz %v, @.L7, @.L8
+ @.L7
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 4
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L6
+ @.L8
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 14
+  storel %v, %ptr
+ @.L9
+  %v =l loadl %ptr
+  jnz %v, @.L10, @.L11
+ @.L10
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 7
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L9
+ @.L11
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 11
+  storel %v, %ptr
+ @.L12
+  %v =l loadl %ptr
+  jnz %v, @.L13, @.L14
+ @.L13
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L12
+ @.L14
+  %v =l loadl %ptr
+  %v =l add %v, 2
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 19
+  storel %v, %ptr
+ @.L15
+  %v =l loadl %ptr
+  jnz %v, @.L16, @.L17
+ @.L16
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 6
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L15
+ @.L17
+  %v =l loadl %ptr
+  %v =l add %v, 2
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 19
+  storel %v, %ptr
+ @.L18
+  %v =l loadl %ptr
+  jnz %v, @.L19, @.L20
+ @.L19
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 6
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L18
+ @.L20
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 12
+  storel %v, %ptr
+ @.L21
+  %v =l loadl %ptr
+  jnz %v, @.L22, @.L23
+ @.L22
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 9
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L21
+ @.L23
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+ @.L24
+  %v =l loadl %ptr
+  jnz %v, @.L25, @.L26
+ @.L25
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L24
+ @.L26
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 19
+  storel %v, %ptr
+ @.L27
+  %v =l loadl %ptr
+  jnz %v, @.L28, @.L29
+ @.L28
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 6
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L27
+ @.L29
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+ @.L30
+  %v =l loadl %ptr
+  jnz %v, @.L31, @.L32
+ @.L31
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 4
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L30
+ @.L32
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 11
+  storel %v, %ptr
+ @.L33
+  %v =l loadl %ptr
+  jnz %v, @.L34, @.L35
+ @.L34
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L33
+ @.L35
+  %v =l loadl %ptr
+  %v =l add %v, 2
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+ @.L36
+  %v =l loadl %ptr
+  jnz %v, @.L37, @.L38
+ @.L37
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L36
+ @.L38
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+ @.L39
+  %v =l loadl %ptr
+  jnz %v, @.L40, @.L41
+ @.L40
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 4
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L39
+ @.L41
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 14
+  storel %v, %ptr
+ @.L42
+  %v =l loadl %ptr
+  jnz %v, @.L43, @.L44
+ @.L43
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 7
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L42
+ @.L44
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+ @.L45
+  %v =l loadl %ptr
+  jnz %v, @.L46, @.L47
+ @.L46
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L45
+ @.L47
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+ @.L48
+  %v =l loadl %ptr
+  jnz %v, @.L49, @.L50
+ @.L49
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L48
+ @.L50
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 19
+  storel %v, %ptr
+ @.L51
+  %v =l loadl %ptr
+  jnz %v, @.L52, @.L53
+ @.L52
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 6
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L51
+ @.L53
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+ @.L54
+  %v =l loadl %ptr
+  jnz %v, @.L55, @.L56
+ @.L55
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 4
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L54
+ @.L56
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 11
+  storel %v, %ptr
+ @.L57
+  %v =l loadl %ptr
+  jnz %v, @.L58, @.L59
+ @.L58
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L57
+ @.L59
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 11
+  storel %v, %ptr
+ @.L60
+  %v =l loadl %ptr
+  jnz %v, @.L61, @.L62
+ @.L61
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L60
+ @.L62
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+ @.L63
+  %v =l loadl %ptr
+  jnz %v, @.L64, @.L65
+ @.L64
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 4
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L63
+ @.L65
+  %v =l loadl %ptr
+  %v =l add %v, 2
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 19
+  storel %v, %ptr
+ @.L66
+  %v =l loadl %ptr
+  jnz %v, @.L67, @.L68
+ @.L67
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 6
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L66
+ @.L68
+  %v =l loadl %ptr
+  %v =l add %v, 4
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+ @.L69
+  %v =l loadl %ptr
+  jnz %v, @.L70, @.L71
+ @.L70
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L69
+ @.L71
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+ @.L72
+  %v =l loadl %ptr
+  jnz %v, @.L73, @.L74
+ @.L73
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L72
+ @.L74
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+ @.L75
+  %v =l loadl %ptr
+  jnz %v, @.L76, @.L77
+ @.L76
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 4
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L75
+ @.L77
+  %v =l loadl %ptr
+  %v =l add %v, 2
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 13
+  storel %v, %ptr
+ @.L78
+  %v =l loadl %ptr
+  jnz %v, @.L79, @.L80
+ @.L79
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 9
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L78
+ @.L80
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 12
+  storel %v, %ptr
+ @.L81
+  %v =l loadl %ptr
+  jnz %v, @.L82, @.L83
+ @.L82
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L81
+ @.L83
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 12
+  storel %v, %ptr
+ @.L84
+  %v =l loadl %ptr
+  jnz %v, @.L85, @.L86
+ @.L85
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 9
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L84
+ @.L86
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 12
+  storel %v, %ptr
+ @.L87
+  %v =l loadl %ptr
+  jnz %v, @.L88, @.L89
+ @.L88
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 9
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L87
+ @.L89
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 5
+  storel %v, %ptr
+ @.L90
+  %v =l loadl %ptr
+  jnz %v, @.L91, @.L92
+ @.L91
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 2
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L90
+ @.L92
+  %v =l loadl %ptr
+  %v =l add %v, 2
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 19
+  storel %v, %ptr
+ @.L93
+  %v =l loadl %ptr
+  jnz %v, @.L94, @.L95
+ @.L94
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 6
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L93
+ @.L95
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 12
+  storel %v, %ptr
+ @.L96
+  %v =l loadl %ptr
+  jnz %v, @.L97, @.L98
+ @.L97
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L96
+ @.L98
+  %v =l loadl %ptr
+  %v =l add %v, 3
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 13
+  storel %v, %ptr
+ @.L99
+  %v =l loadl %ptr
+  jnz %v, @.L100, @.L101
+ @.L100
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L99
+ @.L101
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+ @.L102
+  %v =l loadl %ptr
+  jnz %v, @.L103, @.L104
+ @.L103
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L102
+ @.L104
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+ @.L105
+  %v =l loadl %ptr
+  jnz %v, @.L106, @.L107
+ @.L106
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 4
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L105
+ @.L107
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 11
+  storel %v, %ptr
+ @.L108
+  %v =l loadl %ptr
+  jnz %v, @.L109, @.L110
+ @.L109
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L108
+ @.L110
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 11
+  storel %v, %ptr
+ @.L111
+  %v =l loadl %ptr
+  jnz %v, @.L112, @.L113
+ @.L112
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L111
+ @.L113
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+ @.L114
+  %v =l loadl %ptr
+  jnz %v, @.L115, @.L116
+ @.L115
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L114
+ @.L116
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+ @.L117
+  %v =l loadl %ptr
+  jnz %v, @.L118, @.L119
+ @.L118
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 4
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L117
+ @.L119
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+ @.L120
+  %v =l loadl %ptr
+  jnz %v, @.L121, @.L122
+ @.L121
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L120
+ @.L122
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 11
+  storel %v, %ptr
+ @.L123
+  %v =l loadl %ptr
+  jnz %v, @.L124, @.L125
+ @.L124
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L123
+ @.L125
+  %v =l loadl %ptr
+  %v =l add %v, 2
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 13
+  storel %v, %ptr
+ @.L126
+  %v =l loadl %ptr
+  jnz %v, @.L127, @.L128
+ @.L127
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 9
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L126
+ @.L128
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 11
+  storel %v, %ptr
+ @.L129
+  %v =l loadl %ptr
+  jnz %v, @.L130, @.L131
+ @.L130
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L129
+ @.L131
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+ @.L132
+  %v =l loadl %ptr
+  jnz %v, @.L133, @.L134
+ @.L133
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 4
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L132
+ @.L134
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 12
+  storel %v, %ptr
+ @.L135
+  %v =l loadl %ptr
+  jnz %v, @.L136, @.L137
+ @.L136
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L135
+ @.L137
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 11
+  storel %v, %ptr
+ @.L138
+  %v =l loadl %ptr
+  jnz %v, @.L139, @.L140
+ @.L139
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L138
+ @.L140
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+ @.L141
+  %v =l loadl %ptr
+  jnz %v, @.L142, @.L143
+ @.L142
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L141
+ @.L143
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+ @.L144
+  %v =l loadl %ptr
+  jnz %v, @.L145, @.L146
+ @.L145
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 4
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L144
+ @.L146
+  %v =l loadl %ptr
+  %v =l add %v, 2
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 11
+  storel %v, %ptr
+ @.L147
+  %v =l loadl %ptr
+  jnz %v, @.L148, @.L149
+ @.L148
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L147
+ @.L149
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 12
+  storel %v, %ptr
+ @.L150
+  %v =l loadl %ptr
+  jnz %v, @.L151, @.L152
+ @.L151
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L150
+ @.L152
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 19
+  storel %v, %ptr
+ @.L153
+  %v =l loadl %ptr
+  jnz %v, @.L154, @.L155
+ @.L154
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 6
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L153
+ @.L155
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 19
+  storel %v, %ptr
+ @.L156
+  %v =l loadl %ptr
+  jnz %v, @.L157, @.L158
+ @.L157
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 6
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L156
+ @.L158
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+ @.L159
+  %v =l loadl %ptr
+  jnz %v, @.L160, @.L161
+ @.L160
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 4
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L159
+ @.L161
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 13
+  storel %v, %ptr
+ @.L162
+  %v =l loadl %ptr
+  jnz %v, @.L163, @.L164
+ @.L163
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L162
+ @.L164
+  %v =l loadl %ptr
+  %v =l add %v, 2
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 19
+  storel %v, %ptr
+ @.L165
+  %v =l loadl %ptr
+  jnz %v, @.L166, @.L167
+ @.L166
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 6
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L165
+ @.L167
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+ @.L168
+  %v =l loadl %ptr
+  jnz %v, @.L169, @.L170
+ @.L169
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 4
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L168
+ @.L170
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 12
+  storel %v, %ptr
+ @.L171
+  %v =l loadl %ptr
+  jnz %v, @.L172, @.L173
+ @.L172
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 8
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L171
+ @.L173
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 19
+  storel %v, %ptr
+ @.L174
+  %v =l loadl %ptr
+  jnz %v, @.L175, @.L176
+ @.L175
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 6
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L174
+ @.L176
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 11
+  storel %v, %ptr
+ @.L177
+  %v =l loadl %ptr
+  jnz %v, @.L178, @.L179
+ @.L178
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L177
+ @.L179
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 13
+  storel %v, %ptr
+ @.L180
+  %v =l loadl %ptr
+  jnz %v, @.L181, @.L182
+ @.L181
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 9
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L180
+ @.L182
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 11
+  storel %v, %ptr
+ @.L183
+  %v =l loadl %ptr
+  jnz %v, @.L184, @.L185
+ @.L184
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L183
+ @.L185
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+ @.L186
+  %v =l loadl %ptr
+  jnz %v, @.L187, @.L188
+ @.L187
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L186
+ @.L188
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, 5
+  storel %v, %ptr
+ @.L189
+  %v =l loadl %ptr
+  jnz %v, @.L190, @.L191
+ @.L190
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 2
+  storel %v, %ptr
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L189
+ @.L191
+  %v =l loadl %ptr
+  %v =l add %v, 13
+  storel %v, %ptr
+ @.L192
+  %v =l loadl %ptr
+  jnz %v, @.L193, @.L194
+ @.L193
+  %ptr =l add %ptr, -8
+  jmp @.L192
+ @.L194
+  %ptr =l add %ptr, 32
+ @.L195
+  %v =l loadl %ptr
+  jnz %v, @.L196, @.L197
+ @.L196
+  %ptr =l add %ptr, -8
+ @.L198
+  %v =l loadl %ptr
+  jnz %v, @.L199, @.L200
+ @.L199
+ @.L201
+  %v =l loadl %ptr
+  jnz %v, @.L202, @.L203
+ @.L202
+  %ptr =l add %ptr, 8
+  jmp @.L201
+ @.L203
+  %ptr =l add %ptr, -16
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+ @.L204
+  %v =l loadl %ptr
+  jnz %v, @.L205, @.L206
+ @.L205
+  %ptr =l add %ptr, -8
+  jmp @.L204
+ @.L206
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 24
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+ @.L207
+  %v =l loadl %ptr
+  jnz %v, @.L208, @.L209
+ @.L208
+  %ptr =l add %ptr, -8
+  jmp @.L207
+ @.L209
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 24
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 104
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+ @.L210
+  %v =l loadl %ptr
+  jnz %v, @.L211, @.L212
+ @.L211
+  %ptr =l add %ptr, -8
+  jmp @.L210
+ @.L212
+  %ptr =l add %ptr, 16
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 24
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+ @.L213
+  %v =l loadl %ptr
+  jnz %v, @.L214, @.L215
+ @.L214
+  %ptr =l add %ptr, -8
+  jmp @.L213
+ @.L215
+  %ptr =l add %ptr, 24
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L198
+ @.L200
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, 10
+  storel %v, %ptr
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+ @.L216
+  %v =l loadl %ptr
+  jnz %v, @.L217, @.L218
+ @.L217
+  %ptr =l add %ptr, 8
+  jmp @.L216
+ @.L218
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+ @.L219
+  %v =l loadl %ptr
+  jnz %v, @.L220, @.L221
+ @.L220
+  %ptr =l add %ptr, -8
+  jmp @.L219
+ @.L221
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 24
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+ @.L222
+  %v =l loadl %ptr
+  jnz %v, @.L223, @.L224
+ @.L223
+  %ptr =l add %ptr, -8
+  jmp @.L222
+ @.L224
+  %ptr =l add %ptr, 32
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L195
+ @.L197
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %v =l add %v, -2
+  storel %v, %ptr
+ @.L225
+  %v =l loadl %ptr
+  jnz %v, @.L226, @.L227
+ @.L226
+ @.L228
+  %v =l loadl %ptr
+  jnz %v, @.L229, @.L230
+ @.L229
+  %ptr =l add %ptr, 8
+  jmp @.L228
+ @.L230
+  %ptr =l add %ptr, -16
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+ @.L231
+  %v =l loadl %ptr
+  jnz %v, @.L232, @.L233
+ @.L232
+  %ptr =l add %ptr, -8
+  jmp @.L231
+ @.L233
+  %ptr =l add %ptr, 8
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 24
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+ @.L234
+  %v =l loadl %ptr
+  jnz %v, @.L235, @.L236
+ @.L235
+  %ptr =l add %ptr, -8
+  jmp @.L234
+ @.L236
+  %ptr =l add %ptr, 8
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 24
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 104
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+ @.L237
+  %v =l loadl %ptr
+  jnz %v, @.L238, @.L239
+ @.L238
+  %ptr =l add %ptr, -8
+  jmp @.L237
+ @.L239
+  %ptr =l add %ptr, 16
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 24
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+ @.L240
+  %v =l loadl %ptr
+  jnz %v, @.L241, @.L242
+ @.L241
+  %ptr =l add %ptr, -8
+  jmp @.L240
+ @.L242
+  %ptr =l add %ptr, 24
+  %v =l loadl %ptr
+  %v =l add %v, -1
+  storel %v, %ptr
+  jmp @.L225
+ @.L227
+  %v =l loadl %ptr
+  %v =l add %v, 1
+  storel %v, %ptr
+ @.L243
+  %v =l loadl %ptr
+  jnz %v, @.L244, @.L245
+ @.L244
+  %ptr =l add %ptr, 8
+  jmp @.L243
+ @.L245
+  %ptr =l add %ptr, -8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+ @.L246
+  %v =l loadl %ptr
+  jnz %v, @.L247, @.L248
+ @.L247
+  %ptr =l add %ptr, -8
+  jmp @.L246
+ @.L248
+  %ptr =l add %ptr, 8
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 24
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 16
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, -32
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+ @.L249
+  %v =l loadl %ptr
+  jnz %v, @.L250, @.L251
+ @.L250
+  %ptr =l add %ptr, 8
+  jmp @.L249
+ @.L251
+  %ptr =l add %ptr, -16
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+ @.L252
+  %v =l loadl %ptr
+  jnz %v, @.L253, @.L254
+ @.L253
+  %ptr =l add %ptr, -8
+  jmp @.L252
+ @.L254
+  %ptr =l add %ptr, 8
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 24
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 16
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+ @.L255
+  %v =l loadl %ptr
+  jnz %v, @.L256, @.L257
+ @.L256
+  %ptr =l add %ptr, -8
+  jmp @.L255
+ @.L257
+  %ptr =l add %ptr, 8
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 24
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 16
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 104
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+ @.L258
+  %v =l loadl %ptr
+  jnz %v, @.L259, @.L260
+ @.L259
+  %ptr =l add %ptr, 8
+  jmp @.L258
+ @.L260
+  %ptr =l add %ptr, -8
+  %ptr =l add %ptr, -24
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, -16
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, -24
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+ @.L261
+  %v =l loadl %ptr
+  jnz %v, @.L262, @.L263
+ @.L262
+  %ptr =l add %ptr, -8
+  jmp @.L261
+ @.L263
+  %ptr =l add %ptr, 32
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+  %ptr =l add %ptr, 8
+  %v =l loadl %ptr
+  %r =l call $putchar(l %v)
+ @end
+  ret 0
+}
