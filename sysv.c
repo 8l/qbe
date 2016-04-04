@@ -37,7 +37,7 @@ aclass(AClass *a, Typ *t)
 	a->size = sz;
 	a->align = t->align;
 
-	if (t->dark || sz > 16) {
+	if (t->dark || sz > 16 || sz == 0) {
 		/* large or unaligned structures are
 		 * required to be passed in memory
 		 */
@@ -265,7 +265,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 	AClass *ac, *a, aret;
 	int ca, ni, ns, al;
 	uint stk, off;
-	Ref r, r1, r2, reg[2], regcp[2];
+	Ref r, r1, r2, reg[2];
 	RAlloc *ra;
 
 	ac = alloc((i1-i0) * sizeof ac[0]);
@@ -299,18 +299,16 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 		} else {
 			if (aret.size > 8) {
 				r = newtmp("abi", Kl, fn);
-				regcp[1] = newtmp("abi", aret.cls[1], fn);
-				emit(OStorel, 0, R, regcp[1], r);
+				aret.ref[1] = newtmp("abi", aret.cls[1], fn);
+				emit(OStorel, 0, R, aret.ref[1], r);
 				emit(OAdd, Kl, r, i1->to, getcon(8, fn));
-				ca += 1 << (2 * KBASE(aret.cls[1]));
 			}
-			regcp[0] = newtmp("abi", aret.cls[0], fn);
-			emit(OStorel, 0, R, regcp[0], i1->to);
-			ca += 1 << (2 * KBASE(aret.cls[0]));
-			retr(reg, &aret);
+			aret.ref[0] = newtmp("abi", aret.cls[0], fn);
+			emit(OStorel, 0, R, aret.ref[0], i1->to);
+			ca += retr(reg, &aret);
 			if (aret.size > 8)
-				emit(OCopy, aret.cls[1], regcp[1], reg[1], R);
-			emit(OCopy, aret.cls[0], regcp[0], reg[0], R);
+				emit(OCopy, aret.cls[1], aret.ref[1], reg[1], R);
+			emit(OCopy, aret.cls[0], aret.ref[0], reg[0], R);
 			r1 = i1->to;
 		}
 		/* allocate return pad */
