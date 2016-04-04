@@ -209,7 +209,7 @@ retregs(Ref r, int p[2])
 	bits b;
 	int ni, nf;
 
-	assert(rtype(r) == RACall);
+	assert(rtype(r) == RCall);
 	b = 0;
 	ni = r.val & 3;
 	nf = (r.val >> 2) & 3;
@@ -234,7 +234,7 @@ argregs(Ref r, int p[2])
 	bits b;
 	int j, ni, nf;
 
-	assert(rtype(r) == RACall);
+	assert(rtype(r) == RCall);
 	b = 0;
 	ni = (r.val >> 4) & 15;
 	nf = (r.val >> 8) & 15;
@@ -270,8 +270,8 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 
 	ac = alloc((i1-i0) * sizeof ac[0]);
 	if (!req(i1->arg[1], R)) {
-		assert(rtype(i1->arg[1]) == RAType);
-		aclass(&aret, &typ[i1->arg[1].val & AMask]);
+		assert(rtype(i1->arg[1]) == RType);
+		aclass(&aret, &typ[i1->arg[1].val]);
 		ca = classify(i0, i1, ac, OArg, &aret);
 	} else
 		ca = classify(i0, i1, ac, OArg, 0);

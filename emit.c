@@ -129,7 +129,7 @@ static char *rname[][4] = {
 static int
 slot(int s, Fn *fn)
 {
-	struct { int i:14; } x;
+	struct { int i:29; } x;
 
 	/* sign extend s using a bitfield */
 	x.i = s;
@@ -263,9 +263,9 @@ Next:
 		case RSlot:
 			fprintf(f, "%d(%%rbp)", slot(ref.val, fn));
 			break;
-		case RAMem:
+		case RMem:
 		Mem:
-			m = &fn->mem[ref.val & AMask];
+			m = &fn->mem[ref.val];
 			if (rtype(m->base) == RSlot) {
 				off.type = CBits;
 				off.bits.i = slot(m->base.val, fn);
@@ -310,7 +310,7 @@ Next:
 		c = *s++;
 		ref = getarg(c, i);
 		switch (rtype(ref)) {
-		case RAMem:
+		case RMem:
 			goto Mem;
 		case RSlot:
 			fprintf(f, "%d(%%rbp)", slot(ref.val, fn));

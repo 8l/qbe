@@ -26,7 +26,7 @@ phitmp(int t, Tmp *tmp)
 }
 
 static void
-phifix(int t1, short *phi, Tmp *tmp)
+phifix(int t1, int *phi, Tmp *tmp)
 {
 	int t, t2;
 
@@ -49,7 +49,7 @@ phifix(int t1, short *phi, Tmp *tmp)
 }
 
 static void
-bset(Ref r, Blk *b, int *nlv, short *phi, Tmp *tmp)
+bset(Ref r, Blk *b, int *nlv, int *phi, Tmp *tmp)
 {
 
 	if (rtype(r) != RTmp)
@@ -71,7 +71,7 @@ filllive(Fn *f)
 	Blk *b;
 	Ins *i;
 	int k, t, m[2], n, chg, nlv[2];
-	short *phi;
+	int *phi;
 	BSet u[1], v[1];
 	Mem *ma;
 
@@ -106,7 +106,7 @@ Again:
 			phifix(t, phi, f->tmp);
 			nlv[KBASE(f->tmp[t].cls)]++;
 		}
-		if (rtype(b->jmp.arg) == RACall) {
+		if (rtype(b->jmp.arg) == RCall) {
 			assert(bscount(b->in) == 0 && nlv[0] == 0 && nlv[1] == 0);
 			b->in->t[0] |= retregs(b->jmp.arg, nlv);
 		} else
@@ -114,7 +114,7 @@ Again:
 		for (k=0; k<2; k++)
 			b->nlive[k] = nlv[k];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
-			if ((--i)->op == OCall && rtype(i->arg[1]) == RACall) {
+			if ((--i)->op == OCall && rtype(i->arg[1]) == RCall) {
 				b->in->t[0] &= ~retregs(i->arg[1], m);
 				for (k=0; k<2; k++)
 					nlv[k] -= m[k];
@@ -137,8 +137,8 @@ Again:
 			}
 			for (k=0; k<2; k++)
 				switch (rtype(i->arg[k])) {
-				case RAMem:
-					ma = &f->mem[i->arg[k].val & AMask];
+				case RMem:
+					ma = &f->mem[i->arg[k].val];
 					bset(ma->base, b, nlv, phi, f->tmp);
 					bset(ma->index, b, nlv, phi, f->tmp);
 					break;

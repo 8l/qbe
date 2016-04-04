@@ -96,8 +96,8 @@ struct BSet {
 };
 
 struct Ref {
-	uint16_t type:2;
-	uint16_t val:14;
+	uint32_t type:3;
+	uint32_t val:29;
 };
 
 enum Alt {
@@ -105,7 +105,7 @@ enum Alt {
 	ACall,
 	AMem,
 
-	AShift = 12,
+	AShift = 28,
 	AMask = (1<<AShift) - 1
 };
 
@@ -113,13 +113,9 @@ enum {
 	RTmp,
 	RCon,
 	RSlot,
-	RAlt,
-
-	RAType = RAlt + AType,
-	RACall = RAlt + ACall,
-	RAMem  = RAlt + AMem,
-
-	NRef = (1<<14) - 1
+	RType,
+	RCall,
+	RMem,
 };
 
 #define R        (Ref){0, 0}
@@ -127,10 +123,9 @@ enum {
 #define CON(x)   (Ref){RCon, x}
 #define CON_Z    CON(0)          /* reserved zero constant */
 #define SLOT(x)  (Ref){RSlot, x}
-#define TYPE(x)  (Ref){RAlt, (x)|(AType<<AShift)}
-#define CALL(x)  (Ref){RAlt, (x)|(ACall<<AShift)}
-#define MEM(x)   (assert(x<(1<<AShift) && "too many mems"), \
-                 (Ref){RAlt, (x)|(AMem<<AShift)})
+#define TYPE(x)  (Ref){RType, x}
+#define CALL(x)  (Ref){RCall, x}
+#define MEM(x)   (Ref){RMem, x}
 
 static inline int req(Ref a, Ref b)
 {
@@ -141,8 +136,6 @@ static inline int rtype(Ref r)
 {
 	if (req(r, R))
 		return -1;
-	if (r.type == RAlt)
-		return RAlt + (r.val >> AShift);
 	return r.type;
 }
 
@@ -316,10 +309,10 @@ struct OpDesc {
 };
 
 struct Ins {
-	ushort op:14;
+	uint op:30;
 	Ref to;
 	Ref arg[2];
-	ushort cls:2;
+	uint cls:2;
 };
 
 struct Phi {

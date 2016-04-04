@@ -952,17 +952,17 @@ printref(Ref r, Fn *fn, FILE *f)
 		printcon(&fn->con[r.val], f);
 		break;
 	case RSlot:
-		fprintf(f, "S%d", r.val);
+		fprintf(f, "S%d", (r.val&(1<<28)) ? r.val-(1<<29) : r.val);
 		break;
-	case RACall:
-		fprintf(f, "%03x", r.val & AMask);
+	case RCall:
+		fprintf(f, "%03x", r.val);
 		break;
-	case RAType:
-		fprintf(f, ":%s", typ[r.val & AMask].name);
+	case RType:
+		fprintf(f, ":%s", typ[r.val].name);
 		break;
-	case RAMem:
+	case RMem:
 		i = 0;
-		m = &fn->mem[r.val & AMask];
+		m = &fn->mem[r.val];
 		fputc('[', f);
 		if (m->offset.type != CUndef) {
 			printcon(&m->offset, f);

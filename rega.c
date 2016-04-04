@@ -365,7 +365,7 @@ doblk(Blk *b, RMap *cur)
 
 	if (rtype(b->jmp.arg) == RTmp)
 		b->jmp.arg = ralloc(cur, b->jmp.arg.val);
-	else if (rtype(b->jmp.arg) == RACall) {
+	else if (rtype(b->jmp.arg) == RCall) {
 		/* add return registers */
 		rs = retregs(b->jmp.arg, 0);
 		for (r=0; rs; rs/=2, r++)
@@ -404,8 +404,8 @@ doblk(Blk *b, RMap *cur)
 		}
 		for (x=0, nr=0; x<2; x++)
 			switch (rtype(i->arg[x])) {
-			case RAMem:
-				m = &mem[i->arg[x].val & AMask];
+			case RMem:
+				m = &mem[i->arg[x].val];
 				if (rtype(m->base) == RTmp)
 					insert(&m->base, ra, nr++);
 				if (rtype(m->index) == RTmp)

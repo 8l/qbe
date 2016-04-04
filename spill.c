@@ -34,8 +34,8 @@ tmpuse(Ref r, int use, int loop, Fn *fn)
 	Mem *m;
 	Tmp *t;
 
-	if (rtype(r) == RAMem) {
-		m = &fn->mem[r.val & AMask];
+	if (rtype(r) == RMem) {
+		m = &fn->mem[r.val];
 		tmpuse(m->base, 1, loop, fn);
 		tmpuse(m->index, 1, loop, fn);
 	}
@@ -386,7 +386,7 @@ spill(Fn *fn)
 				bsunion(v, u);
 			}
 			limit2(v, 0, 0, w);
-		} else if (rtype(b->jmp.arg) == RACall) {
+		} else if (rtype(b->jmp.arg) == RCall) {
 			/* return */
 			r = retregs(b->jmp.arg, 0);
 			v->t[0] |= r;
@@ -416,13 +416,13 @@ spill(Fn *fn)
 			}
 			j = opdesc[i->op].nmem;
 			for (n=0; n<2; n++)
-				if (rtype(i->arg[n]) == RAMem)
+				if (rtype(i->arg[n]) == RMem)
 					j--;
 			for (n=0; n<2; n++)
 				switch (rtype(i->arg[n])) {
-				case RAMem:
+				case RMem:
 					t = i->arg[n].val;
-					m = &fn->mem[t & AMask];
+					m = &fn->mem[t];
 					if (rtype(m->base) == RTmp) {
 						bsset(v, m->base.val);
 						bsset(w, m->base.val);
