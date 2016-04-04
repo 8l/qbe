@@ -374,7 +374,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 }
 
 static void
-selpar_(Fn *fn, Ins *i0, Ins *i1)
+selpar(Fn *fn, Ins *i0, Ins *i1)
 {
 	AClass *ac, *a, aret;
 	Ins *i;
@@ -439,78 +439,6 @@ selpar_(Fn *fn, Ins *i0, Ins *i1)
 	}
 }
 
-static void
-selpar(Fn *fn, Ins *i0, Ins *i1)
-{
-	AClass *ac, *a, aret;
-	Ins *i;
-	int ni, ns, s, al;
-	Ref r, r1;
-
-	ac = alloc((i1-i0) * sizeof ac[0]);
-	curi = insb;
-	ni = ns = 0;
-
-	if (fn->retty >= 0) {
-		aclass(&aret, &typ[fn->retty]);
-		if (aret.inmem) {
-			r = newtmp("abi", Kl, fn);
-			*curi++ = (Ins){OCopy, r, {rarg(Kl, &ni, &ns)}, Kl};
-			fn->retr = r;
-		}
-		classify(i0, i1, ac, OPar, &aret);
-	} else
-		classify(i0, i1, ac, OPar, 0);
-
-	/* specific to NAlign == 3 */
-
-	s = 4;
-	for (i=i0, a=ac; i<i1; i++, a++) {
-		switch (a->inmem) {
-		case 1:
-			assert(a->align <= 4);
-			if (a->align == 4)
-				s = (s+3) & -4;
-			fn->tmp[i->to.val].slot = -s; /* HACK! */
-			s += a->size / 4;
-			continue;
-		case 2:
-			*curi++ = (Ins){OLoad, i->to, {SLOT(-s)}, i->cls};
-			s += 2;
-			continue;
-		}
-		r1 = rarg(a->cls[0], &ni, &ns);
-		if (i->op == OParc) {
-			r = newtmp("abi", Kl, fn);
-			*curi++ = (Ins){OCopy, r, {r1}, Kl};
-			a->cls[0] = r.val;
-			if (a->size > 8) {
-				r1 = rarg(a->cls[1], &ni, &ns);
-				r = newtmp("abi", Kl, fn);
-				*curi++ = (Ins){OCopy, r, {r1}, Kl};
-				a->cls[1] = r.val;
-			}
-		} else
-			*curi++ = (Ins){OCopy, i->to, {r1}, i->cls};
-	}
-	for (i=i0, a=ac; i<i1; i++, a++) {
-		if (i->op != OParc || a->inmem)
-			continue;
-		for (al=0; a->align >> (al+2); al++)
-			;
-		r = TMP(a->cls[0]);
-		r1 = i->to;
-		*curi++ = (Ins){OAlloc+al, r1, {getcon(a->size, fn)}, Kl};
-		*curi++ = (Ins){OStorel, R, {r, r1}, 0};
-		if (a->size > 8) {
-			r = newtmp("abi", Kl, fn);
-			*curi++ = (Ins){OAdd, r, {r1, getcon(8, fn)}, Kl};
-			r1 = TMP(a->cls[1]);
-			*curi++ = (Ins){OStorel, R, {r1, r}, 0};
-		}
-	}
-}
-
 void
 abi(Fn *fn)
 {
@@ -523,23 +451,13 @@ abi(Fn *fn)
 	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
 		if (i->op != OPar && i->op != OParc)
 			break;
-#if 0
 	selpar(fn, b->ins, i);
-	n = b->nins - (i - b->ins) + (curi - insb);
-	i0 = alloc(n * sizeof(Ins));
-	ip = icpy(ip = i0, insb, curi - insb);
-	ip = icpy(ip, i, &b->ins[b->nins] - i);
-	b->nins = n;
-	b->ins = i0;
-#else
-	selpar_(fn, b->ins, i);
 	n = b->nins - (i - b->ins) + (&insb[NIns] - curi);
 	i0 = alloc(n * sizeof(Ins));
 	ip = icpy(ip = i0, curi, &insb[NIns] - curi);
 	ip = icpy(ip, i, &b->ins[b->nins] - i);
 	b->nins = n;
 	b->ins = i0;
-#endif
 
 	/* lower calls and returns */
 	ral = 0;
