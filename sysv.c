@@ -8,6 +8,12 @@ struct AClass {
 	int align;
 	uint size;
 	int cls[2];
+	Ref ref[2];
+};
+
+struct RAlloc {
+	Ins i;
+	RAlloc *link;
 };
 
 static void
@@ -252,11 +258,6 @@ rarg(int ty, int *ni, int *ns)
 		return TMP(XMM0 + (*ns)++);
 }
 
-struct RAlloc {
-	Ins i;
-	RAlloc *link;
-};
-
 static void
 selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 {
@@ -378,6 +379,72 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 }
 
 static void
+selpar_(Fn *fn, Ins *i0, Ins *i1)
+{
+	AClass *ac, *a, aret;
+	Ins *i;
+	int ni, ns, s, al;
+	Ref r;
+
+	ac = alloc((i1-i0) * sizeof ac[0]);
+	curi = &insb[NIns];
+	ni = ns = 0;
+
+	if (fn->retty >= 0) {
+		aclass(&aret, &typ[fn->retty]);
+		classify(i0, i1, ac, OPar, &aret);
+	} else
+		classify(i0, i1, ac, OPar, 0);
+
+	for (i=i0, a=ac; i<i1; i++, a++) {
+		if (i->op != OParc || a->inmem)
+			continue;
+		for (al=0; a->align >> (al+2); al++)                    /* CHECK IF NOT STUPID */
+			;
+		if (a->size > 8) {
+			r = newtmp("abi", Kl, fn);
+			a->ref[1] = newtmp("abi", Kl, fn);
+			emit(OStorel, 0, R, a->ref[1], r);
+			emit(OAdd, Kl, r, i->to, getcon(8, fn));
+		}
+		a->ref[0] = newtmp("abi", Kl, fn);
+		emit(OStorel, 0, R, a->ref[0], i->to);
+		emit(OAlloc+al, Kl, i->to, getcon(a->size, fn), R);
+	}
+
+	if (fn->retty >= 0 && aret.inmem) {
+		r = newtmp("abi", Kl, fn);
+		emit(OCopy, Kl, r, rarg(Kl, &ni, &ns), R);
+		fn->retr = r;
+	}
+
+	for (i=i0, a=ac, s=4; i<i1; i++, a++) {
+		switch (a->inmem) {
+		case 1:
+			assert(a->align <= 4);
+			if (a->align == 4)
+				s = (s+3) & -4;
+			fn->tmp[i->to.val].slot = -s;
+			s += a->size / 4;
+			continue;
+		case 2:
+			emit(OLoad, i->cls, i->to, SLOT(-s), R);
+			s += 2;
+			continue;
+		}
+		r = rarg(a->cls[0], &ni, &ns);
+		if (i->op == OParc) {
+			emit(OCopy, Kl, a->ref[0], r, R);
+			if (a->size > 8) {
+				r = rarg(a->cls[1], &ni, &ns);
+				emit(OCopy, Kl, a->ref[1], r, R);
+			}
+		} else
+			emit(OCopy, i->cls, i->to, r, R);
+	}
+}
+
+static void
 selpar(Fn *fn, Ins *i0, Ins *i1)
 {
 	AClass *ac, *a, aret;
@@ -461,6 +528,7 @@ abi(Fn *fn)
 	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
 		if (i->op != OPar && i->op != OParc)
 			break;
+#if 0
 	selpar(fn, b->ins, i);
 	n = b->nins - (i - b->ins) + (curi - insb);
 	i0 = alloc(n * sizeof(Ins));
@@ -468,6 +536,15 @@ abi(Fn *fn)
 	ip = icpy(ip, i, &b->ins[b->nins] - i);
 	b->nins = n;
 	b->ins = i0;
+#else
+	selpar_(fn, b->ins, i);
+	n = b->nins - (i - b->ins) + (&insb[NIns] - curi);
+	i0 = alloc(n * sizeof(Ins));
+	ip = icpy(ip = i0, curi, &insb[NIns] - curi);
+	ip = icpy(ip, i, &b->ins[b->nins] - i);
+	b->nins = n;
+	b->ins = i0;
+#endif
 
 	/* lower calls and returns */
 	ral = 0;
