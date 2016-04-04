@@ -67,8 +67,8 @@ memopt(Fn *fn)
 					break;
 				default:
 					/* keep l->cls */
-					a = l->op - OLoadsw;
-					l->op = OExtsw + a;
+					a = l->op - OLoadsb;
+					l->op = OExtsb + a;
 					break;
 				}
 		}

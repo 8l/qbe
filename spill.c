@@ -240,13 +240,8 @@ reloads(BSet *u, BSet *v)
 static void
 store(Ref r, int s)
 {
-	static int kstore[] = {
-		[Kw] = OStorew, [Kl] = OStorel,
-		[Ks] = OStores, [Kd] = OStored,
-	};
-
 	if (s != -1)
-		emit(kstore[tmp[r.val].cls], 0, R, r, SLOT(s));
+		emit(OStorew + tmp[r.val].cls, 0, R, r, SLOT(s));
 }
 
 static int

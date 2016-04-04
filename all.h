@@ -232,28 +232,28 @@ enum Op {
 	OCmpd,
 	OCmpd1 = OCmpd + NFCmp-1,
 
-	OStored,
-	OStores,
-	OStorel,
-	OStorew,
-	OStoreh,
 	OStoreb,
-#define isstore(o) (OStored <= o && o <= OStoreb)
-	OLoadsw,  /* needs to match OExt (mem.c) */
-	OLoaduw,
+	OStoreh,
+	OStorew,
+	OStorel,
+	OStores,
+	OStored,
+#define isstore(o) (OStoreb <= o && o <= OStored)
+	OLoadsb,  /* needs to match OExt (mem.c) */
+	OLoadub,
 	OLoadsh,
 	OLoaduh,
-	OLoadsb,
-	OLoadub,
+	OLoadsw,
+	OLoaduw,
 	OLoad,
-#define isload(o) (OLoadsw <= o && o <= OLoad)
-	OExtsw,
-	OExtuw,
-	OExtsh,
-	OExtuh,
+#define isload(o) (OLoadsb <= o && o <= OLoad)
 	OExtsb,
 	OExtub,
-#define isext(o) (OExtsw <= o && o <= OExtub)
+	OExtsh,
+	OExtuh,
+	OExtsw,
+	OExtuw,
+#define isext(o) (OExtsw <= o && o <= OExtuw)
 
 	OExts,
 	OTruncd,
