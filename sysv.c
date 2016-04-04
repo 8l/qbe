@@ -263,7 +263,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 {
 	Ins *i;
 	AClass *ac, *a, aret;
-	int ca, ni, ns;
+	int ca, ni, ns, al;
 	uint stk, off;
 	Ref r, r1, r2, reg[2], regcp[2];
 	RAlloc *ra;
@@ -316,13 +316,8 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 		/* allocate return pad */
 		ra = alloc(sizeof *ra);
 		/* specific to NAlign == 3 */
-		aret.align -= 2;
-		if (aret.align < 0)
-			aret.align = 0;
-		ra->i.op = OAlloc + aret.align;
-		ra->i.cls = Kl;
-		ra->i.to = r1;
-		ra->i.arg[0] = getcon(aret.size, fn);
+		al = aret.align >= 2 ? aret.align - 2 : 0;
+		ra->i = (Ins){OAlloc+al, r1, {getcon(aret.size, fn)}, Kl};
 		ra->link = (*rap);
 		*rap = ra;
 	} else {
@@ -399,8 +394,6 @@ selpar_(Fn *fn, Ins *i0, Ins *i1)
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		if (i->op != OParc || a->inmem)
 			continue;
-		for (al=0; a->align >> (al+2); al++)                    /* CHECK IF NOT STUPID */
-			;
 		if (a->size > 8) {
 			r = newtmp("abi", Kl, fn);
 			a->ref[1] = newtmp("abi", Kl, fn);
@@ -409,6 +402,8 @@ selpar_(Fn *fn, Ins *i0, Ins *i1)
 		}
 		a->ref[0] = newtmp("abi", Kl, fn);
 		emit(OStorel, 0, R, a->ref[0], i->to);
+		/* specific to NAlign == 3 */
+		al = a->align >= 2 ? a->align - 2 : 0;
 		emit(OAlloc+al, Kl, i->to, getcon(a->size, fn), R);
 	}
 
