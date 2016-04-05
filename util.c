@@ -239,16 +239,27 @@ bsinit(BSet *bs, uint n)
 	bs->t = alloc(n * sizeof bs->t[0]);
 }
 
+MAKESURE(NBit_is_64, NBit == 64);
+inline static uint
+popcnt(bits b)
+{
+	b = (b & 0x5555555555555555) + ((b>>1) & 0x5555555555555555);
+	b = (b & 0x3333333333333333) + ((b>>2) & 0x3333333333333333);
+	b = (b & 0x0f0f0f0f0f0f0f0f) + ((b>>4) & 0x0f0f0f0f0f0f0f0f);
+	b += (b>>8);
+	b += (b>>16);
+	b += (b>>32);
+	return b & 0xff;
+}
+
 uint
 bscount(BSet *bs)
 {
-	uint i, j, n;
+	uint i, n;
 
 	n = 0;
 	for (i=0; i<bs->nt; i++)
-		for (j=0; j<NBit; j++)
-			if (bs->t[i] & BIT(j))
-				n++;
+		n += popcnt(bs->t[i]);
 	return n;
 }
 
