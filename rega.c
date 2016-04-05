@@ -556,12 +556,11 @@ rega(Fn *fn)
 					src = rref(&end[b->id], src.val);
 				pmadd(src, dst, p->cls);
 			}
-			for (t=Tmp0; t<fn->ntmp; t++)
-				if (bshas(s->in, t)) {
-					src = rref(&end[b->id], t);
-					dst = rref(&beg[s->id], t);
-					pmadd(src, dst, tmp[t].cls);
-				}
+			for (t=Tmp0; bsiter(s->in, &t); t++) {
+				src = rref(&end[b->id], t);
+				dst = rref(&beg[s->id], t);
+				pmadd(src, dst, tmp[t].cls);
+			}
 			pmgen();
 			if (curi == insb)
 				continue;
