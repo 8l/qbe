@@ -25,9 +25,10 @@ $(OBJ): all.h
 obj/main.o: config.h
 
 config.h:
-	@case `uname` in                                \
-	*Darwin*) echo "#define Defaultasm Gasmacho" ;; \
-	*Linux*)  echo "#define Defaultasm Gaself" ;;   \
+	@case `uname` in                                 \
+	*Darwin*)  echo "#define Defaultasm Gasmacho" ;; \
+	*Linux*)   echo "#define Defaultasm Gaself" ;;   \
+	*FreeBSD*) echo "#define Defaultasm Gaself" ;;   \
 	esac > $@
 
 clean:
