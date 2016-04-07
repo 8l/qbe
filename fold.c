@@ -46,20 +46,6 @@ latval(Ref r)
 	}
 }
 
-static int
-latmerge(int l, int r)
-{
-	if (l == Bot || r == Bot)
-		return Bot;
-	if (l == Top)
-		return r;
-	if (r == Top)
-		return l;
-	if (l == r)
-		return l;
-	return Bot;
-}
-
 static void
 update(int t, int v, Fn *fn)
 {
@@ -91,8 +77,14 @@ visitphi(Phi *p, int n, Fn *fn)
 			dead = edge[m][1].dead;
 		else
 			die("invalid phi argument");
-		if (!dead)
-			v = latmerge(v, latval(p->arg[a]));
+		if (!dead) {
+			m = latval(p->arg[a]);
+			assert(m != Top);
+			if (v != Top && (v == Bot || m == Bot || v != m))
+				v = Bot;
+			else
+				v = m;
+		}
 	}
 	assert(v != Top);
 	update(p->to.val, v, fn);
