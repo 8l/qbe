@@ -306,6 +306,7 @@ struct OpDesc {
 	char argcls[2][4];
 	uint sflag:1; /* sets the zero flag */
 	uint lflag:1; /* leaves flags */
+	uint cfold:1; /* can fold */
 };
 
 struct Ins {
