@@ -109,15 +109,12 @@ ralloc(RMap *m, int t)
 	if (r == -1 || bshas(m->b, r)) {
 		regs = tmp[phicls(t, tmp)].hint.m;
 		regs |= m->b->t[0];
-		switch (KBASE(tmp[t].cls)) {
-		case 0:
+		if (KBASE(tmp[t].cls) == 0) {
 			r0 = RAX;
 			r1 = RAX + NIReg;
-			break;
-		case 1:
+		} else {
 			r0 = XMM0;
 			r1 = XMM0 + NFReg;
-			break;
 		}
 		for (r=r0; r<r1; r++)
 			if (!(regs & BIT(r)))
