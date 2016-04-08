@@ -352,9 +352,9 @@ spill(Fn *fn)
 		s1 = b->s1;
 		s2 = b->s2;
 		hd = 0;
-		if (s1 && s1->id <= n)
+		if (s1 && s1->id <= b->id)
 			hd = s1;
-		if (s2 && s2->id <= n)
+		if (s2 && s2->id <= b->id)
 		if (!hd || s2->id >= hd->id)
 			hd = s2;
 		r = 0;
