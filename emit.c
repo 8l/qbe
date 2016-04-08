@@ -249,9 +249,10 @@ Next:
 	case '=':
 		sz = KWIDE(i->cls) ? SLong : SWord;
 		s--;
-		/* fall through */
+		goto Ref;
 	case 'D':
 	case 'S':
+		sz = SLong; /* does not matter for floats */
 	Ref:
 		c = *s++;
 		ref = getarg(c, i);
