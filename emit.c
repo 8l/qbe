@@ -614,7 +614,11 @@ emitdat(Dat *d, FILE *f)
 typedef struct FBits FBits;
 
 struct FBits {
-	int64_t bits;
+	union {
+		int64_t n;
+		float f;
+		double d;
+	} bits;
 	int wide;
 	FBits *link;
 };
@@ -630,10 +634,10 @@ stashfp(int64_t n, int w)
 	/* does a dumb de-dup of fp constants
 	 * this should be the linker's job */
 	for (pb=&stash, i=0; (b=*pb); pb=&b->link, i++)
-		if (n == b->bits && w == b->wide)
+		if (n == b->bits.n && w == b->wide)
 			return i;
 	b = emalloc(sizeof *b);
-	b->bits = n;
+	b->bits.n = n;
 	b->wide = w;
 	b->link = 0;
 	*pb = b;
@@ -656,8 +660,8 @@ emitfin(FILE *f)
 				"%sfp%d:\n"
 				"\t.quad %"PRId64
 				" /* %f */\n",
-				locprefix, i, b->bits,
-				*(double *)&b->bits
+				locprefix, i, b->bits.n,
+				b->bits.d
 			);
 	for (b=stash, i=0; b; b=b->link, i++)
 		if (!b->wide)
@@ -665,8 +669,8 @@ emitfin(FILE *f)
 				"%sfp%d:\n"
 				"\t.long %"PRId64
 				" /* %lf */\n",
-				locprefix, i, b->bits & 0xffffffff,
-				*(float *)&b->bits
+				locprefix, i, b->bits.n & 0xffffffff,
+				b->bits.f
 			);
 	while ((b=stash)) {
 		stash = b->link;
