@@ -26,7 +26,7 @@ czero(Con *c, int w)
 	if (w)
 		return !c->bits.i;
 	else
-		return !(c->bits.i & 0xffffffff);
+		return !(uint32_t)c->bits.i;
 }
 
 static int
