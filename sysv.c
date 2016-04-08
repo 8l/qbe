@@ -92,7 +92,7 @@ retr(Ref reg[2], AClass *aret)
 
 	nr[0] = nr[1] = 0;
 	ca = 0;
-	for (n=0; aret->cls[n]>=0 && n<2; n++) {
+	for (n=0; (uint)n*8<aret->size; n++) {
 		k = KBASE(aret->cls[n]);
 		reg[n] = TMP(retreg[k][nr[k]++]);
 		ca += 1 << (2 * k);
