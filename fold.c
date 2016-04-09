@@ -206,7 +206,7 @@ fold(Fn *fn)
 			}
 			b->visit++;
 			assert(b->jmp.type != JJmp
-				|| edge[n][0].dead != 0
+				|| !edge[n][0].dead
 				|| flowrk == &edge[n][0]);
 		}
 		else if (nuse) {
