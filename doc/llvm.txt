@@ -6,8 +6,7 @@
 Both QBE and LLVM are compiler backends using an SSA
 representation.  This document will explain why LLVM
 does not make QBE a redundant project.  Obviously,
-everything following is probably biased, because
-written by me.
+everything following is biased, because written by me.
 
 - Scope
 -------
@@ -20,8 +19,8 @@ than LLVM.
     It does not address all the problems faced when
     conceiving an industry-grade language.  If you are
     toying with some language ideas, using LLVM will
-    be like hauling your backpack in a truck, but using
-    QBE will feel more like biking.
+    be like hauling your backpack with a truck, but
+    using QBE will feel more like riding a bicycle.
 
   * QBE is about the first 70%, not the last 30%.
 
@@ -42,7 +41,7 @@ than LLVM.
     a uniform format after each pass.
 
     On my Core 2 Duo machine, QBE compiles in half a
-    second.
+    second (without optimizations).
 
 - Features
 ----------
@@ -93,7 +92,7 @@ are a few things provided in QBE to consider.
 
     Because QBE makes a much lighter use of types, the
     IL is more readable and shorter.  It can of course be
-    argued back that correctness of QBE is jeoparadized,
+    argued back that the correctness of QBE is jeoparadized,
     but remember that, in practice, the large amount
-    of casts necessary in LLVM IL is compromizing the
+    of casts necessary in LLVM IL is undermining the
     overall effectiveness of the type system.
