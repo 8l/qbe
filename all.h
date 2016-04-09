@@ -533,6 +533,9 @@ void ssa(Fn *);
 /* copy.c */
 void copy(Fn *);
 
+/* fold.c */
+void fold(Fn *);
+
 /* live.c */
 void liveon(BSet *, Blk *, Blk *);
 void filllive(Fn *);

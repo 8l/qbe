@@ -11,6 +11,7 @@ char debug['Z'+1] = {
 	['M'] = 0, /* memory optimization */
 	['N'] = 0, /* ssa construction */
 	['C'] = 0, /* copy elimination */
+	['F'] = 0, /* constant folding */
 	['S'] = 0, /* spilling */
 	['R'] = 0, /* reg. allocation */
 };
@@ -48,6 +49,8 @@ func(Fn *fn)
 	ssa(fn);
 	filluse(fn);
 	copy(fn);
+	filluse(fn);
+	fold(fn);
 	abi(fn);
 	filluse(fn);
 	isel(fn);
