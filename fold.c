@@ -236,15 +236,15 @@ fold(Fn *fn)
 	if (debug['F']) {
 		fprintf(stderr, "\n> SCCP findings:");
 		for (n=Tmp0; n<fn->ntmp; n++) {
+			if (val[n] == Bot)
+				continue;
 			fprintf(stderr, "\n%10s: ", fn->tmp[n].name);
 			if (val[n] == Top)
 				fprintf(stderr, "Top");
-			else if (val[n] == Bot)
-				fprintf(stderr, "Bot");
 			else
 				printref(CON(val[n]), fn, stderr);
 		}
-		fprintf(stderr, "\n%10s: ", "dead!");
+		fprintf(stderr, "\n dead code: ");
 	}
 
 	/* 2. trim dead code, replace constants */
@@ -293,7 +293,7 @@ fold(Fn *fn)
 	if (debug['F']) {
 		if (!d)
 			fprintf(stderr, "(none)");
-		fprintf(stderr, "\n\n> After folding:\n");
+		fprintf(stderr, "\n\n> After constant folding:\n");
 		printfn(fn, stderr);
 	}
 
