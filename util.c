@@ -98,6 +98,30 @@ blknew()
 }
 
 void
+blkdel(Blk *b)
+{
+	Blk *s, **ps;
+	Phi *p;
+	uint a;
+
+	for (ps=(Blk*[]){b->s1, b->s2, 0}; (s=*ps); ps++) {
+		for (p=s->phi; p; p=p->link) {
+			for (a=0; p->blk[a]!=b; a++)
+				assert(a+1<p->narg);
+			p->narg--;
+			memcpy(&p->blk[a], &p->blk[a+1], p->narg-a);
+			memcpy(&p->arg[a], &p->arg[a+1], p->narg-a);
+		}
+		if (s->npred != 0) {
+			for (a=0; s->pred[a]!=b; a++)
+				assert(a+1<s->npred);
+			s->npred--;
+			memcpy(&s->pred[a], &s->pred[a+1], s->npred-a);
+		}
+	}
+}
+
+void
 emit(int op, int k, Ref to, Ref arg0, Ref arg1)
 {
 	if (curi == insb)

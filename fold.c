@@ -254,7 +254,7 @@ fold(Fn *fn)
 			d = 1;
 			if (debug['F'])
 				fprintf(stderr, "%s ", b->name);
-			// blkdel(pb);
+			blkdel(b);
 			*pb = b->link;
 			continue;
 		}

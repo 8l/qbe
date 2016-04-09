@@ -481,6 +481,7 @@ void *emalloc(size_t);
 void *alloc(size_t);
 void freeall(void);
 Blk *blknew(void);
+void blkdel(Blk *);
 void emit(int, int, Ref, Ref, Ref);
 void emiti(Ins);
 void idup(Ins **, Ins *, ulong);

@@ -161,8 +161,8 @@ fillrpo(Fn *f)
 	for (p=&f->start; *p;) {
 		b = *p;
 		if (b->id == -1) {
+			blkdel(b);
 			*p = b->link;
-			/* todo, free block */
 		} else {
 			b->id -= n;
 			f->rpo[b->id] = b;
