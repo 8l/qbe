@@ -54,6 +54,7 @@ func(Fn *fn)
 	abi(fn);
 	filluse(fn);
 	isel(fn);
+	fillrpo(fn);
 	filllive(fn);
 	fillcost(fn);
 	spill(fn);
