@@ -167,7 +167,7 @@ fold(Fn *fn)
 	Blk *b, **pb;
 	Phi *p, **pp;
 	Ins *i;
-	int n, l;
+	int n, l, d;
 
 	val = emalloc(fn->ntmp * sizeof val[0]);
 	edge = emalloc(fn->nblk * sizeof edge[0]);
@@ -244,12 +244,14 @@ fold(Fn *fn)
 			else
 				printref(CON(val[n]), fn, stderr);
 		}
-		fprintf(stderr, "\n\n> Dead blocks:\n\t");
+		fprintf(stderr, "\n%10s: ", "dead!");
 	}
 
 	/* 2. trim dead code, replace constants */
+	d = 0;
 	for (pb=&fn->start; (b=*pb);) {
 		if (b->visit == 0) {
+			d = 1;
 			if (debug['F'])
 				fprintf(stderr, "%s ", b->name);
 			// blkdel(pb);
@@ -289,6 +291,8 @@ fold(Fn *fn)
 	}
 
 	if (debug['F']) {
+		if (!d)
+			fprintf(stderr, "(none)");
 		fprintf(stderr, "\n\n> After folding:\n");
 		printfn(fn, stderr);
 	}
