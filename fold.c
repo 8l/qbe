@@ -37,10 +37,6 @@ latval(Ref r)
 		return val[r.val];
 	case RCon:
 		return r.val;
-	case RType:
-		return Bot;
-	case -1:
-		return CON_Z.val;
 	default:
 		die("unreachable");
 	}
@@ -101,11 +97,13 @@ visitins(Ins *i, Fn *fn)
 		return;
 	if (opdesc[i->op].cfold) {
 		l = latval(i->arg[0]);
-		r = latval(i->arg[1]);
+		if (!req(i->arg[1], R))
+			r = latval(i->arg[1]);
+		else
+			r = CON_Z.val;
+		assert(l != Top && r != Top);
 		if (l == Bot || r == Bot)
 			v = Bot;
-		else if (l == Top || r == Top)
-			v = Top;
 		else
 			v = opfold(i->op, i->cls, &fn->con[l], &fn->con[r], fn);
 	} else
@@ -166,10 +164,10 @@ fold(Fn *fn)
 {
 	Edge *e, start;
 	Use *u;
-	Blk *b;
-	Phi *p;
+	Blk *b, **pb;
+	Phi *p, **pp;
 	Ins *i;
-	int n;
+	int n, l;
 
 	val = emalloc(fn->ntmp * sizeof val[0]);
 	edge = emalloc(fn->nblk * sizeof edge[0]);
@@ -236,20 +234,64 @@ fold(Fn *fn)
 	}
 
 	if (debug['F']) {
-		fprintf(stderr, "\n> SCCP findings:\n");
+		fprintf(stderr, "\n> SCCP findings:");
 		for (n=Tmp0; n<fn->ntmp; n++) {
-			fprintf(stderr, "%10s: ", fn->tmp[n].name);
+			fprintf(stderr, "\n%10s: ", fn->tmp[n].name);
 			if (val[n] == Top)
 				fprintf(stderr, "Top");
 			else if (val[n] == Bot)
 				fprintf(stderr, "Bot");
 			else
 				printref(CON(val[n]), fn, stderr);
-			fprintf(stderr, "\n");
 		}
+		fprintf(stderr, "\n\n> Dead blocks:\n\t");
 	}
 
 	/* 2. trim dead code, replace constants */
+	for (pb=&fn->start; (b=*pb);) {
+		if (b->visit == 0) {
+			if (debug['F'])
+				fprintf(stderr, "%s ", b->name);
+			// blkdel(pb);
+			*pb = b->link;
+			continue;
+		}
+		for (pp=&b->phi; (p=*pp);)
+			if (val[p->to.val] != Bot)
+				*pp = p->link;
+			else
+				pp = &p->link;
+		for (i=b->ins; i-b->ins < b->nins; i++) {
+			if (rtype(i->to) == RTmp)
+			if (val[i->to.val] != Bot) {
+				*i = (Ins){.op = ONop};
+				continue;
+			}
+			for (n=0; n<2; n++)
+				if (rtype(i->arg[n]) == RTmp)
+				if ((l=val[i->arg[n].val]) != Bot)
+					i->arg[n] = CON(l);
+		}
+		if (b->jmp.type == JJnz) {
+			if ((l=latval(b->jmp.arg)) != Bot) {
+				b->jmp.type = JJmp;
+				b->jmp.arg = R;
+				if (czero(&fn->con[l], 0))
+					b->s1 = b->s2;
+				b->s2 = 0;
+			}
+		} else {
+			if (rtype(b->jmp.arg) == RTmp)
+			if ((l=val[b->jmp.arg.val]) != Bot)
+				b->jmp.arg = CON(l);
+		}
+		pb = &b->link;
+	}
+
+	if (debug['F']) {
+		fprintf(stderr, "\n\n> After folding:\n");
+		printfn(fn, stderr);
+	}
 
 	free(val);
 	free(edge);
