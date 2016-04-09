@@ -109,14 +109,17 @@ blkdel(Blk *b)
 			for (a=0; p->blk[a]!=b; a++)
 				assert(a+1<p->narg);
 			p->narg--;
-			memcpy(&p->blk[a], &p->blk[a+1], p->narg-a);
-			memcpy(&p->arg[a], &p->arg[a+1], p->narg-a);
+			memcpy(&p->blk[a], &p->blk[a+1],
+				sizeof p->blk[0] * (p->narg-a));
+			memcpy(&p->arg[a], &p->arg[a+1],
+				sizeof p->arg[0] * (p->narg-a));
 		}
 		if (s->npred != 0) {
 			for (a=0; s->pred[a]!=b; a++)
 				assert(a+1<s->npred);
 			s->npred--;
-			memcpy(&s->pred[a], &s->pred[a+1], s->npred-a);
+			memcpy(&s->pred[a], &s->pred[a+1],
+				sizeof s->pred[0] * (s->npred-a));
 		}
 	}
 }
