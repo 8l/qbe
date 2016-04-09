@@ -168,6 +168,7 @@ fold(Fn *fn)
 	Phi *p, **pp;
 	Ins *i;
 	int n, l, d;
+	uint a;
 
 	val = emalloc(fn->ntmp * sizeof val[0]);
 	edge = emalloc(fn->nblk * sizeof edge[0]);
@@ -261,8 +262,13 @@ fold(Fn *fn)
 		for (pp=&b->phi; (p=*pp);)
 			if (val[p->to.val] != Bot)
 				*pp = p->link;
-			else
+			else {
+				for (a=0; a<p->narg; a++)
+					if (rtype(p->arg[a]) == RTmp)
+					if ((l=val[p->arg[a].val]) != Bot)
+						p->arg[a] = CON(l);
 				pp = &p->link;
+			}
 		for (i=b->ins; i-b->ins < b->nins; i++) {
 			if (rtype(i->to) == RTmp)
 			if (val[i->to.val] != Bot) {
