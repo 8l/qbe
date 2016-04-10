@@ -82,7 +82,6 @@ visitphi(Phi *p, int n, Fn *fn)
 				v = m;
 		}
 	}
-	assert(v != Top);
 	update(p->to.val, v, fn);
 }
 
