@@ -84,7 +84,7 @@ main(int ac, char *av[])
 
 	asm = Defaultasm;
 	outf = stdout;
-	while ((c = getopt(ac, av, "d:o:G:")) != -1)
+	while ((c = getopt(ac, av, "hd:o:G:")) != -1)
 		switch (c) {
 		case 'd':
 			for (; *optarg; optarg++)
@@ -107,9 +107,14 @@ main(int ac, char *av[])
 				exit(1);
 			}
 			break;
+		case 'h':
 		default:
-			fprintf(stderr, "usage: %s [-d <flags>] [-o out] {file.ssa, -}\n", av[0]);
-			exit(1);
+			fprintf(stderr, "%s [OPTIONS] {file.ssa, -}\n", av[0]);
+			fprintf(stderr, "\t%-10s prints this help\n", "-h");
+			fprintf(stderr, "\t%-10s output to file\n", "-o file");
+			fprintf(stderr, "\t%-10s generate gas (e) or osx (m) asm\n", "-G {e,m}");
+			fprintf(stderr, "\t%-10s dump debug information\n", "-d <flags>");
+			exit(c != 'h');
 		}
 
 	switch (asm) {
