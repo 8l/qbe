@@ -54,6 +54,7 @@ OpDesc opdesc[NOp] = {
 	[OSwap]   = { "swap",     2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0, 0 },
 	[OSign]   = { "sign",     0, {A(w,l,e,e), A(x,x,e,e)}, 0, 0, 0 },
 	[OSAlloc] = { "salloc",   0, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
+	[OXIDiv]  = { "xidiv",    1, {A(w,l,e,e), A(x,x,e,e)}, 0, 0, 0 },
 	[OXDiv]   = { "xdiv",     1, {A(w,l,e,e), A(x,x,e,e)}, 0, 0, 0 },
 	[OXCmp]   = { "xcmp",     1, {A(w,l,s,d), A(w,l,s,d)}, 1, 0, 0 },
 	[OXTest]  = { "xtest",    1, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 0 },
