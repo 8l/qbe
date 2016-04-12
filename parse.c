@@ -530,13 +530,13 @@ parseline(PState ps)
 		break;
 	case TLbl:
 		b = findblk(tokval.str);
-		if (b->jmp.type != JXXX)
-			err("multiple definitions of block");
 		if (curb && curb->jmp.type == JXXX) {
 			closeblk();
 			curb->jmp.type = JJmp;
 			curb->s1 = b;
 		}
+		if (b->jmp.type != JXXX)
+			err("multiple definitions of block @%s", b->name);
 		*blink = b;
 		curb = b;
 		plink = &curb->phi;
