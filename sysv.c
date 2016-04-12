@@ -177,7 +177,7 @@ classify(Ins *i0, Ins *i1, AClass *ac, int op, AClass *aret)
 			if (a->inmem)
 				continue;
 			ni = ns = 0;
-			for (n=0; n<2; n++)
+			for (n=0; (uint)n*8<a->size; n++)
 				if (KBASE(a->cls[n]) == 0)
 					ni++;
 				else
