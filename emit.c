@@ -351,7 +351,7 @@ emitins(Ins i, Fn *fn, FILE *f)
 			/* this linear search should really be a binary
 			 * search */
 			if (omap[o].op == NOp)
-				die("not match for %d(%d)", i.op, i.cls);
+				die("no match for %d(%d)", i.op, i.cls);
 			if (omap[o].op == i.op)
 			if (omap[o].cls == i.cls
 			|| (omap[o].cls == Ki && KBASE(i.cls) == 0)
