@@ -192,6 +192,7 @@ selcmp(Ref arg[2], int k, Fn *fn)
 	assert(rtype(arg[0]) != RCon);
 	emit(OXCmp, k, R, arg[1], arg[0]);
 	fixarg(&curi->arg[0], k, 0, fn);
+	fixarg(&curi->arg[1], k, 0, fn);
 }
 
 static void
