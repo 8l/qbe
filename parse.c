@@ -246,7 +246,7 @@ lex()
 		t = TTyp;
 		goto Alpha;
 	case '#':
-		while (fgetc(inf) != '\n')
+		while ((c=fgetc(inf)) != '\n' && c != EOF)
 			;
 	case '\n':
 		lnum++;
@@ -262,6 +262,8 @@ lex()
 		tokval.str = vnew(0, 1);
 		for (i=0;; i++) {
 			c = fgetc(inf);
+			if (c == EOF)
+				err("unterminated string");
 			vgrow(&tokval.str, i+1);
 			if (c == '"')
 			if (!i || tokval.str[i-1] != '\\') {
