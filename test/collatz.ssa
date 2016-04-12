@@ -29,7 +29,7 @@ function $test() {
 	%n2 =w add %n1, 1
 	jmp @cloop
 @even
-	%n3 =w div %n0, 2
+	%n3 =w shr %n0, 1
 	jmp @cloop
 @getmemo                     # get the count for n0 in mem
 	%n0l =l extsw %n0
