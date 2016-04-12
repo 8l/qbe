@@ -68,7 +68,7 @@ static void
 subst(Ref *r, Ref *cp, Fn *fn)
 {
 	if (rtype(*r) == RTmp && req(copyof(*r, cp), R))
-		err("temporary %%%s is used undefined",
+		err("temporary %%%s is ill-defined",
 			fn->tmp[r->val].name);
 	*r = copyof(*r, cp);
 }

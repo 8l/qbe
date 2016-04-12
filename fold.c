@@ -73,9 +73,8 @@ visitphi(Phi *p, int n, Fn *fn)
 			dead = edge[m][1].dead;
 		else
 			die("invalid phi argument");
-		if (!dead) {
-			m = latval(p->arg[a]);
-			assert(m != Top);
+		m = latval(p->arg[a]);
+		if (!dead && m != Top) {
 			if (v != Top && (v == Bot || m == Bot || v != m))
 				v = Bot;
 			else
@@ -100,9 +99,10 @@ visitins(Ins *i, Fn *fn)
 			r = latval(i->arg[1]);
 		else
 			r = CON_Z.val;
-		assert(l != Top && r != Top);
 		if (l == Bot || r == Bot)
 			v = Bot;
+		else if (l == Top || r == Top)
+			v = Top;
 		else
 			v = opfold(i->op, i->cls, &fn->con[l], &fn->con[r], fn);
 	} else
@@ -157,6 +157,23 @@ initedge(Edge *e, Blk *s)
 	e->work = 0;
 }
 
+static int
+renref(Ref *r, Fn *fn)
+{
+	if (rtype(*r) == RTmp)
+		switch (val[r->val]) {
+		case Top:
+			err("temporary %%%s is ill-defined",
+				fn->tmp[r->val].name);
+		case Bot:
+			break;
+		default:
+			*r = CON(val[r->val]);
+			return 1;
+		}
+	return 0;
+}
+
 /* require rpo, use, pred */
 void
 fold(Fn *fn)
@@ -166,7 +183,7 @@ fold(Fn *fn)
 	Blk *b, **pb;
 	Phi *p, **pp;
 	Ins *i;
-	int n, l, d;
+	int n, d;
 	uint a;
 
 	val = emalloc(fn->ntmp * sizeof val[0]);
@@ -210,15 +227,14 @@ fold(Fn *fn)
 		}
 		else if (nuse) {
 			u = usewrk[--nuse];
-			if (u->type == UPhi) {
-				visitphi(u->u.phi, u->bid, fn);
-				continue;
-			}
 			n = u->bid;
 			b = fn->rpo[n];
 			if (b->visit == 0)
 				continue;
 			switch (u->type) {
+			case UPhi:
+				visitphi(u->u.phi, u->bid, fn);
+				break;
 			case UIns:
 				visitins(u->u.ins, fn);
 				break;
@@ -263,34 +279,22 @@ fold(Fn *fn)
 				*pp = p->link;
 			else {
 				for (a=0; a<p->narg; a++)
-					if (rtype(p->arg[a]) == RTmp)
-					if ((l=val[p->arg[a].val]) != Bot)
-						p->arg[a] = CON(l);
+					renref(&p->arg[a], fn);
 				pp = &p->link;
 			}
-		for (i=b->ins; i-b->ins < b->nins; i++) {
-			if (rtype(i->to) == RTmp)
-			if (val[i->to.val] != Bot) {
+		for (i=b->ins; i-b->ins < b->nins; i++)
+			if (renref(&i->to, fn))
 				*i = (Ins){.op = ONop};
-				continue;
-			}
-			for (n=0; n<2; n++)
-				if (rtype(i->arg[n]) == RTmp)
-				if ((l=val[i->arg[n].val]) != Bot)
-					i->arg[n] = CON(l);
-		}
-		if (b->jmp.type == JJnz) {
-			if ((l=latval(b->jmp.arg)) != Bot) {
+			else
+				for (n=0; n<2; n++)
+					renref(&i->arg[n], fn);
+		renref(&b->jmp.arg, fn);
+		if (b->jmp.type == JJnz && rtype(b->jmp.arg) == RCon) {
 				b->jmp.type = JJmp;
 				b->jmp.arg = R;
-				if (czero(&fn->con[l], 0))
+				if (czero(&fn->con[b->jmp.arg.val], 0))
 					b->s1 = b->s2;
 				b->s2 = 0;
-			}
-		} else {
-			if (rtype(b->jmp.arg) == RTmp)
-			if ((l=val[b->jmp.arg.val]) != Bot)
-				b->jmp.arg = CON(l);
 		}
 		pb = &b->link;
 	}
