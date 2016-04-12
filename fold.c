@@ -42,19 +42,26 @@ latval(Ref r)
 	}
 }
 
+static int
+latmerge(int v, int m)
+{
+	return m == Top ? v : (v == Top || (v != Bot && m != Bot && v == m)) ? m : Bot;
+}
+
 static void
-update(int t, int v, Fn *fn)
+update(int t, int m, Fn *fn)
 {
 	Tmp *tmp;
 	uint u;
 
-	if (val[t] != v) {
+	m = latmerge(val[t], m);
+	if (m != val[t]) {
 		tmp = &fn->tmp[t];
 		for (u=0; u<tmp->nuse; u++) {
 			vgrow(&usewrk, ++nuse);
 			usewrk[nuse-1] = &tmp->use[u];
 		}
-		val[t] = v;
+		val[t] = m;
 	}
 }
 
@@ -74,12 +81,8 @@ visitphi(Phi *p, int n, Fn *fn)
 		else
 			die("invalid phi argument");
 		m = latval(p->arg[a]);
-		if (!dead && m != Top) {
-			if (v != Top && (v == Bot || m == Bot || v != m))
-				v = Bot;
-			else
-				v = m;
-		}
+		if (!dead)
+			v = latmerge(v, m);
 	}
 	update(p->to.val, v, fn);
 }
@@ -119,6 +122,7 @@ visitjmp(Blk *b, int n, Fn *fn)
 	switch (b->jmp.type) {
 	case JJnz:
 		l = latval(b->jmp.arg);
+		assert(l != Top);
 		if (l == Bot) {
 			edge[n][1].work = flowrk;
 			edge[n][0].work = &edge[n][1];
