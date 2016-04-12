@@ -333,7 +333,7 @@ Emit:
 			selcmp(i.arg, kc, fn);
 			break;
 		}
-		die("unknown instruction");
+		die("unknown instruction %s", opdesc[i.op].name);
 	}
 
 	while (i0 > curi && --i0) {
