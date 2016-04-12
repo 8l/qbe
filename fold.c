@@ -45,7 +45,7 @@ latval(Ref r)
 static int
 latmerge(int v, int m)
 {
-	return m == Top ? v : (v == Top || (v != Bot && m != Bot && v == m)) ? m : Bot;
+	return m == Top ? v : (v == Top || v == m) ? m : Bot;
 }
 
 static void
@@ -122,8 +122,7 @@ visitjmp(Blk *b, int n, Fn *fn)
 	switch (b->jmp.type) {
 	case JJnz:
 		l = latval(b->jmp.arg);
-		assert(l != Top);
-		if (l == Bot) {
+		if (l == Top || l == Bot) {
 			edge[n][1].work = flowrk;
 			edge[n][0].work = &edge[n][1];
 			flowrk = &edge[n][0];
