@@ -246,7 +246,7 @@ enum Op {
 	OExtuh,
 	OExtsw,
 	OExtuw,
-#define isext(o) (OExtsw <= o && o <= OExtuw)
+#define isext(o) (OExtsb <= o && o <= OExtuw)
 
 	OExts,
 	OTruncd,
