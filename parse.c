@@ -18,9 +18,9 @@ OpDesc opdesc[NOp] = {
 	[OUDiv]   = { "udiv",     2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0, 1 },
 	[OURem]   = { "urem",     2, {A(w,l,x,x), A(w,l,x,x)}, 0, 0, 1 },
 	[OMul]    = { "mul",      2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0, 1 },
-	[OAnd]    = { "and",      2, {A(w,l,s,d), A(w,l,s,d)}, 1, 0, 1 },
-	[OOr]     = { "or",       2, {A(w,l,s,d), A(w,l,s,d)}, 1, 0, 1 },
-	[OXor]    = { "xor",      2, {A(w,l,s,d), A(w,l,s,d)}, 1, 0, 1 },
+	[OAnd]    = { "and",      2, {A(w,l,x,x), A(w,l,x,x)}, 1, 0, 1 },
+	[OOr]     = { "or",       2, {A(w,l,x,x), A(w,l,x,x)}, 1, 0, 1 },
+	[OXor]    = { "xor",      2, {A(w,l,x,x), A(w,l,x,x)}, 1, 0, 1 },
 	[OSar]    = { "sar",      1, {A(w,l,x,x), A(w,w,x,x)}, 1, 0, 1 },
 	[OShr]    = { "shr",      1, {A(w,l,x,x), A(w,w,x,x)}, 1, 0, 1 },
 	[OShl]    = { "shl",      1, {A(w,l,x,x), A(w,w,x,x)}, 1, 0, 1 },
@@ -37,13 +37,13 @@ OpDesc opdesc[NOp] = {
 	[OLoaduh] = { "loaduh",   0, {A(m,m,x,x), A(x,x,x,x)}, 0, 1, 0 },
 	[OLoadsb] = { "loadsb",   0, {A(m,m,x,x), A(x,x,x,x)}, 0, 1, 0 },
 	[OLoadub] = { "loadub",   0, {A(m,m,x,x), A(x,x,x,x)}, 0, 1, 0 },
-	[OExtsw]  = { "extsw",    0, {A(w,w,w,w), A(x,x,x,x)}, 0, 1, 1 },
-	[OExtuw]  = { "extuw",    0, {A(w,w,w,w), A(x,x,x,x)}, 0, 1, 1 },
-	[OExtsh]  = { "extsh",    0, {A(w,w,w,w), A(x,x,x,x)}, 0, 1, 1 },
-	[OExtuh]  = { "extuh",    0, {A(w,w,w,w), A(x,x,x,x)}, 0, 1, 1 },
-	[OExtsb]  = { "extsb",    0, {A(w,w,w,w), A(x,x,x,x)}, 0, 1, 1 },
-	[OExtub]  = { "extub",    0, {A(w,w,w,w), A(x,x,x,x)}, 0, 1, 1 },
-	[OExts]   = { "exts",     0, {A(w,w,w,w), A(x,x,x,x)}, 0, 1, 1 },
+	[OExtsw]  = { "extsw",    0, {A(w,w,x,x), A(x,x,x,x)}, 0, 1, 1 },
+	[OExtuw]  = { "extuw",    0, {A(w,w,x,x), A(x,x,x,x)}, 0, 1, 1 },
+	[OExtsh]  = { "extsh",    0, {A(w,w,x,x), A(x,x,x,x)}, 0, 1, 1 },
+	[OExtuh]  = { "extuh",    0, {A(w,w,x,x), A(x,x,x,x)}, 0, 1, 1 },
+	[OExtsb]  = { "extsb",    0, {A(w,w,x,x), A(x,x,x,x)}, 0, 1, 1 },
+	[OExtub]  = { "extub",    0, {A(w,w,x,x), A(x,x,x,x)}, 0, 1, 1 },
+	[OExts]   = { "exts",     0, {A(x,x,x,s), A(x,x,x,x)}, 0, 1, 1 },
 	[OTruncd] = { "truncd",   0, {A(d,d,d,d), A(x,x,x,x)}, 0, 1, 1 },
 	[OFtosi]  = { "ftosi",    0, {A(s,d,x,x), A(x,x,x,x)}, 0, 1, 1 },
 	[OSitof]  = { "sitof",    0, {A(x,x,w,l), A(x,x,x,x)}, 0, 1, 1 },
@@ -59,8 +59,8 @@ OpDesc opdesc[NOp] = {
 	[OAddr]   = { "addr",     0, {A(m,m,x,x), A(x,x,x,x)}, 0, 1, 0 },
 	[OPar]    = { "parn",     0, {A(x,x,x,x), A(x,x,x,x)}, 0, 0, 0 },
 	[OParc]   = { "parc",     0, {A(x,x,x,x), A(x,x,x,x)}, 0, 0, 0 },
-	[OArg]    = { "arg",      0, {A(x,x,x,x), A(x,x,x,x)}, 0, 0, 0 },
-	[OArgc]   = { "argc",     0, {A(x,x,x,x), A(x,x,x,x)}, 0, 0, 0 },
+	[OArg]    = { "arg",      0, {A(w,l,s,d), A(x,x,x,x)}, 0, 0, 0 },
+	[OArgc]   = { "argc",     0, {A(x,x,x,x), A(x,l,x,x)}, 0, 0, 0 },
 	[OCall]   = { "call",     0, {A(m,m,m,m), A(x,x,x,x)}, 0, 0, 0 },
 	[OXSetnp] = { "xsetnp",   0, {A(x,x,x,x), A(x,x,x,x)}, 0, 0, 0 },
 	[OXSetp]  = { "xsetp",    0, {A(x,x,x,x), A(x,x,x,x)}, 0, 0, 0 },
@@ -462,6 +462,8 @@ parserefl(int arg)
 				*curi = (Ins){OArg, R, {r}, k};
 			else
 				*curi = (Ins){OPar, r, {R}, k};
+		if (!arg)
+			curf->tmp[r.val].cls = curi->cls;
 		curi++;
 		t = next();
 		if (t == TRParen)
@@ -481,6 +483,7 @@ findblk(char *name)
 			return bmap[i];
 	vgrow(&bmap, ++nblk);
 	bmap[i] = blknew();
+	bmap[i]->id = i;
 	strcpy(bmap[i]->name, name);
 	return bmap[i];
 }
@@ -566,6 +569,8 @@ parseline(PState ps)
 			expect(TLbl);
 			curb->s2 = findblk(tokval.str);
 		}
+		if (curb->s1 == curf->start || curb->s2 == curf->start)
+			err("invalid jump to the start node");
 	Close:
 		expect(TNL);
 		closeblk();
@@ -618,8 +623,10 @@ DoOp:
 			next();
 		}
 	next();
+Ins:
+	if (!req(r, R))
+		curf->tmp[r.val].cls = k;
 	if (op != -1) {
-	Ins:
 		if (curi - insb >= NIns)
 			err("too many instructions (2)");
 		curi->op = op;
@@ -639,6 +646,85 @@ DoOp:
 		*plink = phi;
 		plink = &phi->link;
 		return PPhi;
+	}
+}
+
+static int
+oktype(Ref r, int k, Fn *fn)
+{
+	return rtype(r) != RTmp || fn->tmp[r.val].cls == k
+		|| (fn->tmp[r.val].cls == Kl && k == Kw);
+}
+
+static void
+validate(Fn *fn)
+{
+	Blk *b;
+	Phi *p;
+	Ins *i;
+	uint n;
+	int k;
+	BSet pb[1], ppb[1];
+
+	fillpreds(fn);
+	bsinit(pb, fn->nblk);
+	bsinit(ppb, fn->nblk);
+	for (b=fn->start; b; b=b->link) {
+		bszero(pb);
+		for (n=0; n<b->npred; n++)
+			bsset(pb, b->pred[n]->id);
+		for (p=b->phi; p; p=p->link) {
+			bszero(ppb);
+			for (n=0; n<p->narg; n++) {
+				k = fn->tmp[p->to.val].cls;
+				if (bshas(ppb, p->blk[n]->id))
+					err("multiple entries for @%s in phi %%%s",
+						p->blk[n]->name,
+						fn->tmp[p->to.val].name);
+				if (!oktype(p->arg[n], k, fn))
+					err("invalid type for operand %%%s in phi %%%s",
+						fn->tmp[p->arg[n].val].name,
+						fn->tmp[p->to.val].name);
+				bsset(ppb, p->blk[n]->id);
+			}
+			if (!bsequal(pb, ppb))
+				err("predecessors not matched in phi %%%s",
+					fn->tmp[p->to.val].name);
+		}
+		for (i=b->ins; i-b->ins < b->nins; i++)
+			for (n=0; n<2; n++) {
+				k = opdesc[i->op].argcls[n][i->cls];
+				if (rtype(i->arg[n]) == RType)
+					continue;
+				if (rtype(i->arg[n]) != -1 && k == Kx)
+					err("no %s operand expected in %s",
+						n == 1 ? "second" : "first",
+						opdesc[i->op].name);
+				if (rtype(i->arg[n]) == -1 && k != Kx)
+					err("missing %s operand in %s",
+						n == 1 ? "second" : "first",
+						opdesc[i->op].name);
+				if (!oktype(i->arg[n], k, fn))
+					err("invalid type for %s operand %%%s in %s",
+						n == 1 ? "second" : "first",
+						fn->tmp[i->arg[n].val].name,
+						opdesc[i->op].name);
+			}
+		if (isret(b->jmp.type)) {
+			if (b->jmp.type == JRetc) {
+				if (!oktype(b->jmp.arg, Kl, fn))
+					goto JErr;
+			} else if (!oktype(b->jmp.arg, b->jmp.type-JRetw, fn))
+				goto JErr;
+		}
+		if (b->jmp.type == JJnz && !oktype(b->jmp.arg, Kw, fn))
+		JErr:
+			err("invalid type for jump argument %%%s in block @%s",
+				fn->tmp[b->jmp.arg.val].name, b->name);
+		if (b->s1 && b->s1->jmp.type == JXXX)
+			err("block @%s is used undefined", b->s1->name);
+		if (b->s2 && b->s2->jmp.type == JXXX)
+			err("block @%s is used undefined", b->s2->name);
 	}
 }
 
@@ -685,6 +771,7 @@ parsefn(int export)
 	curf->nmem = 0;
 	curf->nblk = nblk;
 	curf->rpo = 0;
+	validate(curf);
 	return curf;
 }
 
