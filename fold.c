@@ -24,9 +24,9 @@ czero(Con *c, int w)
 	if (c->type != CBits)
 		return 0;
 	if (w)
-		return !c->bits.i;
+		return c->bits.i == 0;
 	else
-		return !(uint32_t)c->bits.i;
+		return (uint32_t)c->bits.i == 0;
 }
 
 static int
@@ -291,9 +291,9 @@ fold(Fn *fn)
 		renref(&b->jmp.arg, fn);
 		if (b->jmp.type == JJnz && rtype(b->jmp.arg) == RCon) {
 				b->jmp.type = JJmp;
-				b->jmp.arg = R;
 				if (czero(&fn->con[b->jmp.arg.val], 0))
 					b->s1 = b->s2;
+				b->jmp.arg = R;
 				b->s2 = 0;
 		}
 		pb = &b->link;
