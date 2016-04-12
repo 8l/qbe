@@ -80,9 +80,8 @@ visitphi(Phi *p, int n, Fn *fn)
 			dead = edge[m][1].dead;
 		else
 			die("invalid phi argument");
-		m = latval(p->arg[a]);
 		if (!dead)
-			v = latmerge(v, m);
+			v = latmerge(v, latval(p->arg[a]));
 	}
 	update(p->to.val, v, fn);
 }
