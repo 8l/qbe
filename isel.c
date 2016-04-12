@@ -360,11 +360,9 @@ seljmp(Blk *b, Fn *fn)
 	assert(b->jmp.type == JJnz);
 	r = b->jmp.arg;
 	b->jmp.arg = R;
-	assert(!req(r, R));
-	if (rtype(r) == RCon) {
+	assert(!req(r, R) && rtype(r) != RCon);
+	if (b->s1 == b->s2) {
 		b->jmp.type = JJmp;
-		if (req(r, CON_Z))
-			b->s1 = b->s2;
 		b->s2 = 0;
 		return;
 	}
