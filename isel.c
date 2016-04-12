@@ -230,6 +230,9 @@ sel(Ins i, ANum *an, Fn *fn)
 			r0 = newtmp("isel", k, fn);
 		} else
 			r0 = i.arg[1];
+		if (fn->tmp[r0.val].slot != -1)
+			err("unlikely argument %%%s in %s",
+				fn->tmp[r0.val].name, opdesc[i.op].name);
 		if (i.op == ODiv || i.op == ORem) {
 			emit(OXIDiv, k, R, r0, R);
 			emit(OSign, k, TMP(RDX), TMP(RAX), R);
@@ -238,6 +241,7 @@ sel(Ins i, ANum *an, Fn *fn)
 			emit(OCopy, k, TMP(RDX), CON_Z, R);
 		}
 		emit(OCopy, k, TMP(RAX), i.arg[0], R);
+		fixarg(&curi->arg[0], k, 0, fn);
 		if (rtype(i.arg[1]) == RCon)
 			emit(OCopy, k, r0, i.arg[1], R);
 		break;
@@ -312,6 +316,9 @@ Emit:
 			emit(OSAlloc, Kl, i.to, r0, R);
 			emit(OAnd, Kl, r0, r1, getcon(-16, fn));
 			emit(OAdd, Kl, r1, i.arg[0], getcon(15, fn));
+			if (fn->tmp[i.arg[0].val].slot != -1)
+				err("unlikely argument %%%s in %s",
+					fn->tmp[i.arg[0].val].name, opdesc[i.op].name);
 		}
 		break;
 	default:
