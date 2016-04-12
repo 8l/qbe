@@ -108,13 +108,13 @@ fillpreds(Fn *f)
 	for (b=f->start; b; b=b->link) {
 		if (b->s1)
 			b->s1->npred++;
-		if (b->s2)
+		if (b->s2 && b->s2 != b->s1)
 			b->s2->npred++;
 	}
 	for (b=f->start; b; b=b->link) {
 		if (b->s1)
 			addpred(b, b->s1);
-		if (b->s2)
+		if (b->s2 && b->s2 != b->s1)
 			addpred(b, b->s2);
 	}
 }
