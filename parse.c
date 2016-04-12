@@ -3,6 +3,7 @@
 #include <stdarg.h>
 
 enum {
+	Ke = -2, /* Erroneous mode */
 	Kx = -1, /* Invalid operand */
 	Km = Kl, /* Memory pointer (for x64) */
 };
@@ -14,16 +15,16 @@ OpDesc opdesc[NOp] = {
 	[OAdd]    = { "add",      2, {A(w,l,s,d), A(w,l,s,d)}, 1, 0, 1 },
 	[OSub]    = { "sub",      2, {A(w,l,s,d), A(w,l,s,d)}, 1, 0, 1 },
 	[ODiv]    = { "div",      2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0, 1 },
-	[ORem]    = { "rem",      2, {A(w,l,x,x), A(w,l,x,x)}, 0, 0, 1 },
-	[OUDiv]   = { "udiv",     2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0, 1 },
-	[OURem]   = { "urem",     2, {A(w,l,x,x), A(w,l,x,x)}, 0, 0, 1 },
+	[ORem]    = { "rem",      2, {A(w,l,e,e), A(w,l,e,e)}, 0, 0, 1 },
+	[OUDiv]   = { "udiv",     2, {A(w,l,e,e), A(w,l,e,e)}, 0, 0, 1 },
+	[OURem]   = { "urem",     2, {A(w,l,e,e), A(w,l,e,e)}, 0, 0, 1 },
 	[OMul]    = { "mul",      2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0, 1 },
-	[OAnd]    = { "and",      2, {A(w,l,x,x), A(w,l,x,x)}, 1, 0, 1 },
-	[OOr]     = { "or",       2, {A(w,l,x,x), A(w,l,x,x)}, 1, 0, 1 },
-	[OXor]    = { "xor",      2, {A(w,l,x,x), A(w,l,x,x)}, 1, 0, 1 },
-	[OSar]    = { "sar",      1, {A(w,l,x,x), A(w,w,x,x)}, 1, 0, 1 },
-	[OShr]    = { "shr",      1, {A(w,l,x,x), A(w,w,x,x)}, 1, 0, 1 },
-	[OShl]    = { "shl",      1, {A(w,l,x,x), A(w,w,x,x)}, 1, 0, 1 },
+	[OAnd]    = { "and",      2, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 1 },
+	[OOr]     = { "or",       2, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 1 },
+	[OXor]    = { "xor",      2, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 1 },
+	[OSar]    = { "sar",      1, {A(w,l,e,e), A(w,w,e,e)}, 1, 0, 1 },
+	[OShr]    = { "shr",      1, {A(w,l,e,e), A(w,w,e,e)}, 1, 0, 1 },
+	[OShl]    = { "shl",      1, {A(w,l,e,e), A(w,w,e,e)}, 1, 0, 1 },
 	[OStored] = { "stored",   0, {A(d,d,d,d), A(m,m,m,m)}, 0, 1, 0 },
 	[OStores] = { "stores",   0, {A(s,s,s,s), A(m,m,m,m)}, 0, 1, 0 },
 	[OStorel] = { "storel",   0, {A(l,l,l,l), A(m,m,m,m)}, 0, 1, 0 },
@@ -31,51 +32,51 @@ OpDesc opdesc[NOp] = {
 	[OStoreh] = { "storeh",   0, {A(w,w,w,w), A(m,m,m,m)}, 0, 1, 0 },
 	[OStoreb] = { "storeb",   0, {A(w,w,w,w), A(m,m,m,m)}, 0, 1, 0 },
 	[OLoad]   = { "load",     0, {A(m,m,m,m), A(x,x,x,x)}, 0, 1, 0 },
-	[OLoadsw] = { "loadsw",   0, {A(m,m,x,x), A(x,x,x,x)}, 0, 1, 0 },
-	[OLoaduw] = { "loaduw",   0, {A(m,m,x,x), A(x,x,x,x)}, 0, 1, 0 },
-	[OLoadsh] = { "loadsh",   0, {A(m,m,x,x), A(x,x,x,x)}, 0, 1, 0 },
-	[OLoaduh] = { "loaduh",   0, {A(m,m,x,x), A(x,x,x,x)}, 0, 1, 0 },
-	[OLoadsb] = { "loadsb",   0, {A(m,m,x,x), A(x,x,x,x)}, 0, 1, 0 },
-	[OLoadub] = { "loadub",   0, {A(m,m,x,x), A(x,x,x,x)}, 0, 1, 0 },
-	[OExtsw]  = { "extsw",    0, {A(w,w,x,x), A(x,x,x,x)}, 0, 1, 1 },
-	[OExtuw]  = { "extuw",    0, {A(w,w,x,x), A(x,x,x,x)}, 0, 1, 1 },
-	[OExtsh]  = { "extsh",    0, {A(w,w,x,x), A(x,x,x,x)}, 0, 1, 1 },
-	[OExtuh]  = { "extuh",    0, {A(w,w,x,x), A(x,x,x,x)}, 0, 1, 1 },
-	[OExtsb]  = { "extsb",    0, {A(w,w,x,x), A(x,x,x,x)}, 0, 1, 1 },
-	[OExtub]  = { "extub",    0, {A(w,w,x,x), A(x,x,x,x)}, 0, 1, 1 },
-	[OExts]   = { "exts",     0, {A(x,x,x,s), A(x,x,x,x)}, 0, 1, 1 },
-	[OTruncd] = { "truncd",   0, {A(d,d,d,d), A(x,x,x,x)}, 0, 1, 1 },
-	[OFtosi]  = { "ftosi",    0, {A(s,d,x,x), A(x,x,x,x)}, 0, 1, 1 },
-	[OSitof]  = { "sitof",    0, {A(x,x,w,l), A(x,x,x,x)}, 0, 1, 1 },
+	[OLoadsw] = { "loadsw",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
+	[OLoaduw] = { "loaduw",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
+	[OLoadsh] = { "loadsh",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
+	[OLoaduh] = { "loaduh",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
+	[OLoadsb] = { "loadsb",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
+	[OLoadub] = { "loadub",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
+	[OExtsw]  = { "extsw",    0, {A(e,w,e,e), A(e,x,e,e)}, 0, 1, 1 },
+	[OExtuw]  = { "extuw",    0, {A(e,w,e,e), A(e,x,e,e)}, 0, 1, 1 },
+	[OExtsh]  = { "extsh",    0, {A(w,w,e,e), A(x,x,e,e)}, 0, 1, 1 },
+	[OExtuh]  = { "extuh",    0, {A(w,w,e,e), A(x,x,e,e)}, 0, 1, 1 },
+	[OExtsb]  = { "extsb",    0, {A(w,w,e,e), A(x,x,e,e)}, 0, 1, 1 },
+	[OExtub]  = { "extub",    0, {A(w,w,e,e), A(x,x,e,e)}, 0, 1, 1 },
+	[OExts]   = { "exts",     0, {A(e,e,e,s), A(e,e,e,x)}, 0, 1, 1 },
+	[OTruncd] = { "truncd",   0, {A(e,e,d,e), A(e,e,x,e)}, 0, 1, 1 },
+	[OFtosi]  = { "ftosi",    0, {A(s,d,e,e), A(x,x,e,e)}, 0, 1, 1 },
+	[OSitof]  = { "sitof",    0, {A(e,e,w,l), A(e,e,x,x)}, 0, 1, 1 },
 	[OCast]   = { "cast",     0, {A(s,d,w,l), A(x,x,x,x)}, 0, 1, 1 },
 	[OCopy]   = { "copy",     1, {A(w,l,s,d), A(x,x,x,x)}, 0, 1, 0 },
 	[ONop]    = { "nop",      0, {A(x,x,x,x), A(x,x,x,x)}, 0, 1, 0 },
 	[OSwap]   = { "swap",     2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0, 0 },
-	[OSign]   = { "sign",     0, {A(w,l,x,x), A(x,x,x,x)}, 0, 0, 0 },
-	[OSAlloc] = { "salloc",   0, {A(x,l,x,x), A(x,x,x,x)}, 0, 0, 0 },
-	[OXDiv]   = { "xdiv",     1, {A(w,l,x,x), A(x,x,x,x)}, 0, 0, 0 },
+	[OSign]   = { "sign",     0, {A(w,l,e,e), A(x,x,e,e)}, 0, 0, 0 },
+	[OSAlloc] = { "salloc",   0, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
+	[OXDiv]   = { "xdiv",     1, {A(w,l,e,e), A(x,x,e,e)}, 0, 0, 0 },
 	[OXCmp]   = { "xcmp",     1, {A(w,l,s,d), A(w,l,s,d)}, 1, 0, 0 },
-	[OXTest]  = { "xtest",    1, {A(w,l,x,x), A(w,l,x,x)}, 1, 0, 0 },
-	[OAddr]   = { "addr",     0, {A(m,m,x,x), A(x,x,x,x)}, 0, 1, 0 },
+	[OXTest]  = { "xtest",    1, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 0 },
+	[OAddr]   = { "addr",     0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
 	[OPar]    = { "parn",     0, {A(x,x,x,x), A(x,x,x,x)}, 0, 0, 0 },
-	[OParc]   = { "parc",     0, {A(x,x,x,x), A(x,x,x,x)}, 0, 0, 0 },
+	[OParc]   = { "parc",     0, {A(e,x,e,e), A(e,x,e,e)}, 0, 0, 0 },
 	[OArg]    = { "arg",      0, {A(w,l,s,d), A(x,x,x,x)}, 0, 0, 0 },
-	[OArgc]   = { "argc",     0, {A(x,x,x,x), A(x,l,x,x)}, 0, 0, 0 },
+	[OArgc]   = { "argc",     0, {A(e,x,e,e), A(e,l,e,e)}, 0, 0, 0 },
 	[OCall]   = { "call",     0, {A(m,m,m,m), A(x,x,x,x)}, 0, 0, 0 },
-	[OXSetnp] = { "xsetnp",   0, {A(x,x,x,x), A(x,x,x,x)}, 0, 0, 0 },
-	[OXSetp]  = { "xsetp",    0, {A(x,x,x,x), A(x,x,x,x)}, 0, 0, 0 },
-	[OAlloc]   = { "alloc4",  1, {A(l,l,l,l), A(x,x,x,x)}, 0, 0, 0 },
-	[OAlloc+1] = { "alloc8",  1, {A(l,l,l,l), A(x,x,x,x)}, 0, 0, 0 },
-	[OAlloc+2] = { "alloc16", 1, {A(l,l,l,l), A(x,x,x,x)}, 0, 0, 0 },
+	[OXSetnp] = { "xsetnp",   0, {A(x,x,e,e), A(x,x,e,e)}, 0, 0, 0 },
+	[OXSetp]  = { "xsetp",    0, {A(x,x,e,e), A(x,x,e,e)}, 0, 0, 0 },
+	[OAlloc]   = { "alloc4",  1, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
+	[OAlloc+1] = { "alloc8",  1, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
+	[OAlloc+2] = { "alloc16", 1, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
 #define X(c) \
-	[OCmpw+IC##c] = { "c"    #c "w", 0, {A(w,w,x,x), A(w,w,x,x)}, 1, 0, 1 }, \
-	[OCmpl+IC##c] = { "c"    #c "l", 0, {A(l,l,x,x), A(l,l,x,x)}, 1, 0, 1 }, \
-	[OXSet+IC##c] = { "xset" #c,     0, {A(x,x,x,x), A(x,x,x,x)}, 0, 1, 0 },
+	[OCmpw+IC##c] = { "c"    #c "w", 0, {A(w,w,e,e), A(w,w,e,e)}, 1, 0, 1 }, \
+	[OCmpl+IC##c] = { "c"    #c "l", 0, {A(l,l,e,e), A(l,l,e,e)}, 1, 0, 1 }, \
+	[OXSet+IC##c] = { "xset" #c,     0, {A(x,x,e,e), A(x,x,e,e)}, 0, 1, 0 },
 	ICMPS(X)
 #undef X
 #define X(c) \
-	[OCmps+FC##c] = { "c"    #c "s", 0, {A(s,s,x,x), A(s,s,x,x)}, 1, 0, 1 }, \
-	[OCmpd+FC##c] = { "c"    #c "d", 0, {A(d,d,x,x), A(d,d,x,x)}, 1, 0, 1 },
+	[OCmps+FC##c] = { "c"    #c "s", 0, {A(s,s,e,e), A(s,s,e,e)}, 1, 0, 1 }, \
+	[OCmpd+FC##c] = { "c"    #c "d", 0, {A(d,d,e,e), A(d,d,e,e)}, 1, 0, 1 },
 	FCMPS(X)
 #undef X
 
@@ -694,6 +695,9 @@ validate(Fn *fn)
 		for (i=b->ins; i-b->ins < b->nins; i++)
 			for (n=0; n<2; n++) {
 				k = opdesc[i->op].argcls[n][i->cls];
+				if (k == Ke)
+					err("invalid instruction type in %s",
+						opdesc[i->op].name);
 				if (rtype(i->arg[n]) == RType)
 					continue;
 				if (rtype(i->arg[n]) != -1 && k == Kx)
