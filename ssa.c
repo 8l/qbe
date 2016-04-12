@@ -87,16 +87,11 @@ filluse(Fn *fn)
 static void
 addpred(Blk *bp, Blk *bc)
 {
-	uint i;
-
 	if (!bc->pred) {
 		bc->pred = alloc(bc->npred * sizeof bc->pred[0]);
-		for (i=0; i<bc->npred; i++)
-			bc->pred[i] = 0;
+		bc->visit = 0;
 	}
-	for (i=0; bc->pred[i]; i++)
-		;
-	bc->pred[i] = bp;
+	bc->pred[bc->visit++] = bp;
 }
 
 /* fill predecessors information in blocks
