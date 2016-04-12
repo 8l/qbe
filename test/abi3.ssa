@@ -7,6 +7,7 @@ function $test() {
  @start
 	%a  =w loadw $z
 	%y  =w add %a, %a
+	%yl =l extsw %y
 
 	%s  =l alloc8 16   # allocate a :four struct
 	%s1 =l add %s, 12  # get address of the w
@@ -14,7 +15,7 @@ function $test() {
 	storew 5, %s1      # set the w
 
 	# only the last argument should be on the stack
-	%f  =l add $F, %y
+	%f  =l add $F, %yl
 	%x  =w call %f(w %y, w 1, w 2, w 3, :four %s, w 6)
 
 	# store the result in the
