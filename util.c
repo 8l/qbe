@@ -104,6 +104,8 @@ blkdel(Blk *b)
 	Phi *p;
 	uint a;
 
+	if (b->s1 == b->s2) /* do not delete twice */
+		b->s2 = 0;
 	for (ps=(Blk*[]){b->s1, b->s2, 0}; (s=*ps); ps++) {
 		for (p=s->phi; p; p=p->link) {
 			for (a=0; p->blk[a]!=b; a++)

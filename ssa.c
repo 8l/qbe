@@ -154,15 +154,14 @@ fillrpo(Fn *f)
 	n = 1 + rporec(f->start, f->nblk-1);
 	f->nblk -= n;
 	f->rpo = alloc(f->nblk * sizeof f->rpo[0]);
-	for (p=&f->start; *p;) {
-		b = *p;
+	for (p=&f->start; (b=*p);) {
 		if (b->id == -1) {
 			blkdel(b);
 			*p = b->link;
 		} else {
 			b->id -= n;
 			f->rpo[b->id] = b;
-			p=&(*p)->link;
+			p = &b->link;
 		}
 	}
 }
@@ -453,7 +452,7 @@ renblk(Blk *b, Name **stk, Fn *fn)
 	if (fn->tmp[t].visit)
 		b->jmp.arg = getstk(t, b, stk);
 	succ[0] = b->s1;
-	succ[1] = b->s2;
+	succ[1] = b->s2 == b->s1 ? 0 : b->s2;
 	succ[2] = 0;
 	for (ps=succ; (s=*ps); ps++)
 		for (p=s->phi; p; p=p->link) {
