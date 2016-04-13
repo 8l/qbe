@@ -364,7 +364,7 @@ tmpref(char *v)
 	for (t=Tmp0; t<curf->ntmp; t++)
 		if (strcmp(v, curf->tmp[t].name) == 0)
 			return TMP(t);
-	newtmp(0, Kw, curf);
+	newtmp(0, -1, curf);
 	strcpy(curf->tmp[t].name, v);
 	return TMP(t);
 }
@@ -466,8 +466,6 @@ parserefl(int arg)
 				*curi = (Ins){OArg, R, {r}, k};
 			else
 				*curi = (Ins){OPar, r, {R}, k};
-		if (!arg)
-			curf->tmp[r.val].cls = curi->cls;
 		curi++;
 		t = next();
 		if (t == TRParen)
@@ -628,8 +626,6 @@ DoOp:
 		}
 	next();
 Ins:
-	if (!req(r, R))
-		curf->tmp[r.val].cls = k;
 	if (op != -1) {
 		if (curi - insb >= NIns)
 			err("too many instructions (2)");
@@ -661,73 +657,90 @@ oktype(Ref r, int k, Fn *fn)
 }
 
 static void
-validate(Fn *fn)
+typecheck(Fn *fn)
 {
 	Blk *b;
 	Phi *p;
 	Ins *i;
 	uint n;
 	int k;
+	Tmp *t;
+	Ref r;
 	BSet pb[1], ppb[1];
 
 	fillpreds(fn);
 	bsinit(pb, fn->nblk);
 	bsinit(ppb, fn->nblk);
 	for (b=fn->start; b; b=b->link) {
+		for (p=b->phi; p; p=p->link)
+			fn->tmp[p->to.val].cls = p->cls;
+		for (i=b->ins; i-b->ins < b->nins; i++)
+			if (rtype(i->to) == RTmp) {
+				t = &fn->tmp[i->to.val];
+				k = t->cls;
+				if (k == -1 || (k == Kl && i->cls == Kw))
+					k = i->cls;
+				if (k != i->cls)
+					err("temporary %%%s is assigned with"
+						" multiple types", t->name);
+				t->cls = k;
+			}
+	}
+	for (b=fn->start; b; b=b->link) {
 		bszero(pb);
 		for (n=0; n<b->npred; n++)
 			bsset(pb, b->pred[n]->id);
 		for (p=b->phi; p; p=p->link) {
 			bszero(ppb);
+			t = &fn->tmp[p->to.val];
 			for (n=0; n<p->narg; n++) {
-				k = fn->tmp[p->to.val].cls;
+				k = t->cls;
 				if (bshas(ppb, p->blk[n]->id))
 					err("multiple entries for @%s in phi %%%s",
-						p->blk[n]->name,
-						fn->tmp[p->to.val].name);
+						p->blk[n]->name, t->name);
 				if (!oktype(p->arg[n], k, fn))
 					err("invalid type for operand %%%s in phi %%%s",
-						fn->tmp[p->arg[n].val].name,
-						fn->tmp[p->to.val].name);
+						fn->tmp[p->arg[n].val].name, t->name);
 				bsset(ppb, p->blk[n]->id);
 			}
 			if (!bsequal(pb, ppb))
-				err("predecessors not matched in phi %%%s",
-					fn->tmp[p->to.val].name);
+				err("predecessors not matched in phi %%%s", t->name);
 		}
 		for (i=b->ins; i-b->ins < b->nins; i++)
 			for (n=0; n<2; n++) {
 				k = opdesc[i->op].argcls[n][i->cls];
+				r = i->arg[n];
+				t = &fn->tmp[r.val];
 				if (k == Ke)
 					err("invalid instruction type in %s",
 						opdesc[i->op].name);
-				if (rtype(i->arg[n]) == RType)
+				if (rtype(r) == RType)
 					continue;
-				if (rtype(i->arg[n]) != -1 && k == Kx)
+				if (rtype(r) != -1 && k == Kx)
 					err("no %s operand expected in %s",
 						n == 1 ? "second" : "first",
 						opdesc[i->op].name);
-				if (rtype(i->arg[n]) == -1 && k != Kx)
+				if (rtype(r) == -1 && k != Kx)
 					err("missing %s operand in %s",
 						n == 1 ? "second" : "first",
 						opdesc[i->op].name);
-				if (!oktype(i->arg[n], k, fn))
+				if (!oktype(r, k, fn))
 					err("invalid type for %s operand %%%s in %s",
 						n == 1 ? "second" : "first",
-						fn->tmp[i->arg[n].val].name,
-						opdesc[i->op].name);
+						t->name, opdesc[i->op].name);
 			}
+		r = b->jmp.arg;
 		if (isret(b->jmp.type)) {
 			if (b->jmp.type == JRetc) {
-				if (!oktype(b->jmp.arg, Kl, fn))
+				if (!oktype(r, Kl, fn))
 					goto JErr;
-			} else if (!oktype(b->jmp.arg, b->jmp.type-JRetw, fn))
+			} else if (!oktype(r, b->jmp.type-JRetw, fn))
 				goto JErr;
 		}
-		if (b->jmp.type == JJnz && !oktype(b->jmp.arg, Kw, fn))
+		if (b->jmp.type == JJnz && !oktype(r, Kw, fn))
 		JErr:
 			err("invalid type for jump argument %%%s in block @%s",
-				fn->tmp[b->jmp.arg.val].name, b->name);
+				fn->tmp[r.val].name, b->name);
 		if (b->s1 && b->s1->jmp.type == JXXX)
 			err("block @%s is used undefined", b->s1->name);
 		if (b->s2 && b->s2->jmp.type == JXXX)
@@ -778,7 +791,7 @@ parsefn(int export)
 	curf->nmem = 0;
 	curf->nblk = nblk;
 	curf->rpo = 0;
-	validate(curf);
+	typecheck(curf);
 	return curf;
 }
 
