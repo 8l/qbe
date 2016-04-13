@@ -39,4 +39,14 @@ clean-gen: clean
 check: $(OBJDIR)/$(BIN)
 	tools/unit.sh all
 
-.PHONY: clean clean-gen check syndoc
+80:
+	@for F in $(SRC);                          \
+	do                                         \
+		awk "{                             \
+			gsub(/\\t/, \"        \"); \
+			if (length(\$$0) > $@)     \
+				printf(\"$$F:%d: %s\\n\", NR, \$$0); \
+		}" < $$F;                          \
+	done
+
+.PHONY: clean clean-gen check 80 syndoc
