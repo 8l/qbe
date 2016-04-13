@@ -8,6 +8,8 @@ adduse(Tmp *tmp, int ty, Blk *b, ...)
 	int n;
 	va_list ap;
 
+	if (!tmp->use)
+		return;
 	va_start(ap, b);
 	n = tmp->nuse;
 	vgrow(&tmp->use, ++tmp->nuse);
@@ -44,7 +46,7 @@ filluse(Fn *fn)
 
 	/* todo, is this the correct file? */
 	tmp = fn->tmp;
-	for (t=0; t<fn->ntmp; t++) {
+	for (t=Tmp0; t<fn->ntmp; t++) {
 		tmp[t].ndef = 0;
 		tmp[t].nuse = 0;
 		tmp[t].phi = 0;
