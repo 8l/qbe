@@ -278,7 +278,8 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 
 	for (stk=0, a=&ac[i1-i0]; a>ac;)
 		if ((--a)->inmem) {
-			assert(a->align <= 4);
+			if (a->align > 4)
+				err("sysv abi requires alignments of 16 or less");
 			stk += a->size;
 			if (a->align == 4)
 				stk += stk & 15;
@@ -414,7 +415,8 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	for (i=i0, a=ac, s=4; i<i1; i++, a++) {
 		switch (a->inmem) {
 		case 1:
-			assert(a->align <= 4);
+			if (a->align > 4)
+				err("sysv abi requires alignments of 16 or less");
 			if (a->align == 4)
 				s = (s+3) & -4;
 			fn->tmp[i->to.val].slot = -s;
