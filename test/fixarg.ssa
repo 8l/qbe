@@ -1,0 +1,15 @@
+# regression test for 3bec2c60
+
+export
+function w $test() {
+@start
+	%x1 =l alloc8 8
+	%x2 =l alloc8 8
+	%r =w cnel %x1, %x2  # both operands need fixing
+	ret %r
+}
+
+# >>> driver
+# extern int test();
+# int main() { return !(test() == 1); }
+# <<<
