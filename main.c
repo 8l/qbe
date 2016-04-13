@@ -48,6 +48,7 @@ func(Fn *fn)
 	memopt(fn);
 	ssa(fn);
 	filluse(fn);
+	ssacheck(fn);
 	copy(fn);
 	filluse(fn);
 	fold(fn);

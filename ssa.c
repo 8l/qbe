@@ -30,6 +30,7 @@ adduse(Tmp *tmp, int ty, Blk *b, ...)
 }
 
 /* fill usage, phi, and class information
+ * must not change .visit fields
  */
 void
 filluse(Fn *fn)
@@ -94,8 +95,7 @@ addpred(Blk *bp, Blk *bc)
 	bc->pred[bc->visit++] = bp;
 }
 
-/* fill predecessors information in blocks
- */
+/* fill predecessors information in blocks */
 void
 fillpreds(Fn *f)
 {
@@ -140,8 +140,7 @@ rporec(Blk *b, int x)
 	return x - 1;
 }
 
-/* fill the rpo information in blocks
- */
+/* fill the rpo information */
 void
 fillrpo(Fn *f)
 {
@@ -469,7 +468,7 @@ renblk(Blk *b, Name **stk, Fn *fn)
 		renblk(s, stk, fn);
 }
 
-/* require ndef */
+/* require rpo and ndef */
 void
 ssa(Fn *fn)
 {
@@ -508,4 +507,79 @@ ssa(Fn *fn)
 		fprintf(stderr, "\n> After SSA construction:\n");
 		printfn(fn, stderr);
 	}
+}
+
+static int
+phicheck(Phi *p, Blk *b, Ref t)
+{
+	Blk *b1;
+	uint n;
+
+	for (n=0; n<p->narg; n++)
+		if (req(p->arg[n], t)) {
+			b1 = p->blk[n];
+			if (b1 != b && !sdom(b, b1))
+				return 1;
+		}
+	return 0;
+}
+
+/* require use and ssa */
+void
+ssacheck(Fn *fn)
+{
+	Tmp *t;
+	Ins *i;
+	Phi *p;
+	Use *u;
+	Blk *b, *bu;
+	Ref r;
+
+	for (t=&fn->tmp[Tmp0]; t-fn->tmp < fn->ntmp; t++)
+		if (t->ndef > 1)
+			err("ssa temporary %%%s defined more than once",
+				t->name);
+	for (b=fn->start; b; b=b->link) {
+		for (p=b->phi; p; p=p->link) {
+			r = p->to;
+			t = &fn->tmp[r.val];
+			for (u=t->use; u-t->use < t->nuse; u++) {
+				bu = fn->rpo[u->bid];
+				if (u->type == UPhi) {
+					if (phicheck(u->u.phi, b, r))
+						goto Err;
+				} else
+					if (bu != b && !sdom(b, bu))
+						goto Err;
+			}
+		}
+		for (i=b->ins; i-b->ins < b->nins; i++) {
+			if (rtype(i->to) != RTmp)
+				continue;
+			r = i->to;
+			t = &fn->tmp[r.val];
+			for (u=t->use; u-t->use < t->nuse; u++) {
+				bu = fn->rpo[u->bid];
+				if (u->type == UPhi) {
+					if (phicheck(u->u.phi, b, r))
+						goto Err;
+				} else {
+					if (bu == b) {
+						if (u->type == UIns)
+							if (u->u.ins <= i)
+								goto Err;
+					} else
+						if (!sdom(b, bu))
+							goto Err;
+				}
+			}
+		}
+	}
+	return;
+Err:
+	if (t->visit)
+		die("%%%s violates ssa invariant", t->name);
+	else
+		err("ssa temporary %%%s is used undefined in @%s",
+			t->name, bu->name);
 }

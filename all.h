@@ -529,6 +529,7 @@ void filluse(Fn *);
 void fillpreds(Fn *);
 void fillrpo(Fn *);
 void ssa(Fn *);
+void ssacheck(Fn *);
 
 /* copy.c */
 void copy(Fn *);
