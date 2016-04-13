@@ -182,7 +182,7 @@ seladdr(Ref *r, ANum *an, Fn *fn)
 static void
 selcmp(Ref arg[2], int k, Fn *fn)
 {
-	Ref r;
+	Ref r, *iarg;
 
 	if (rtype(arg[0]) == RCon) {
 		r = arg[1];
@@ -191,14 +191,15 @@ selcmp(Ref arg[2], int k, Fn *fn)
 	}
 	assert(rtype(arg[0]) != RCon);
 	emit(OXCmp, k, R, arg[1], arg[0]);
-	fixarg(&curi->arg[0], k, 0, fn);
-	fixarg(&curi->arg[1], k, 0, fn);
+	iarg = curi->arg;
+	fixarg(&iarg[0], k, 0, fn);
+	fixarg(&iarg[1], k, 0, fn);
 }
 
 static void
 sel(Ins i, ANum *an, Fn *fn)
 {
-	Ref r0, r1;
+	Ref r0, r1, *iarg;
 	int x, k, kc;
 	int64_t sz;
 	Ins *i0;
@@ -293,8 +294,9 @@ sel(Ins i, ANum *an, Fn *fn)
 	case_OExt:
 Emit:
 		emiti(i);
-		fixarg(&curi->arg[0], argcls(curi, 0), 0, fn);
-		fixarg(&curi->arg[1], argcls(curi, 1), 0, fn);
+		iarg = curi->arg;
+		fixarg(&iarg[0], argcls(&i, 0), 0, fn);
+		fixarg(&iarg[1], argcls(&i, 1), 0, fn);
 		break;
 	case OAlloc:
 	case OAlloc+1:
