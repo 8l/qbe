@@ -215,7 +215,7 @@ newtmp(char *prfx, int k,  Fn *fn)
 	t = fn->ntmp++;
 	vgrow(&fn->tmp, fn->ntmp);
 	if (prfx)
-		sprintf(fn->tmp[t].name, "%s%d", prfx, ++n);
+		sprintf(fn->tmp[t].name, "%s.%d", prfx, ++n);
 	fn->tmp[t].cls = k;
 	fn->tmp[t].slot = -1;
 	fn->tmp[t].nuse = +1;
