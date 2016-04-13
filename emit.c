@@ -537,6 +537,7 @@ emitfn(Fn *fn, FILE *f)
 			);
 			break;
 		case JJmp:
+		Jmp:
 			if (b->s1 != b->link)
 				fprintf(f, "\tjmp %sbb%d /* %s */\n",
 					locprefix, id0+b->s1->id, b->s1->name);
@@ -546,14 +547,13 @@ emitfn(Fn *fn, FILE *f)
 			if (0 <= c && c <= NXICmp) {
 				if (b->link == b->s2) {
 					s = b->s1;
-				} else if (b->link == b->s1) {
-					c = cneg(c);
-					s = b->s2;
+					b->s1 = b->s2;
+					b->s2 = s;
 				} else
-					die("unhandled jump");
-				fprintf(f, "\tj%s %sbb%d /* %s */\n",
-					ctoa[c], locprefix, id0+s->id, s->name);
-				break;
+					c = cneg(c);
+				fprintf(f, "\tj%s %sbb%d /* %s */\n", ctoa[c],
+					locprefix, id0+b->s2->id, b->s2->name);
+				goto Jmp;
 			}
 			die("unhandled jump %d", b->jmp.type);
 		}
