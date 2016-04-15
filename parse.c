@@ -784,7 +784,7 @@ parsefn(int export)
 		ps = parseline(ps);
 	while (ps != PEnd);
 	if (!curb)
-		err("empty file");
+		err("empty function");
 	if (curb->jmp.type == JXXX)
 		err("last block misses jump");
 	curf->mem = vnew(0, sizeof curf->mem[0]);
