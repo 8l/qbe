@@ -11,7 +11,7 @@
 typedef unsigned int uint;
 typedef unsigned short ushort;
 typedef unsigned long ulong;
-typedef unsigned long bits;
+typedef unsigned long long bits;
 
 typedef struct BSet BSet;
 typedef struct Ref Ref;
