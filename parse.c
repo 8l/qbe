@@ -439,15 +439,11 @@ parsecls(int *tyn)
 static void
 parserefl(int arg)
 {
-	int k, t, ty;
+	int k, ty;
 	Ref r;
 
 	expect(TLParen);
-	if (peek() == TRParen) {
-		next();
-		return;
-	}
-	for (;;) {
+	while (peek() != TRParen) {
 		if (curi - insb >= NIns)
 			err("too many instructions (1)");
 		k = parsecls(&ty);
@@ -467,12 +463,11 @@ parserefl(int arg)
 			else
 				*curi = (Ins){OPar, r, {R}, k};
 		curi++;
-		t = next();
-		if (t == TRParen)
+		if (peek() == TRParen)
 			break;
-		if (t != TComma)
-			err(", or ) expected");
+		expect(TComma);
 	}
+	next();
 }
 
 static Blk *
@@ -831,7 +826,7 @@ parsetyp()
 		n = -1;
 		sz = 0;
 		al = 0;
-		for (;;) {
+		while (t != TRBrace) {
 			flt = 0;
 			switch (t) {
 			default: err("invalid size specifier %c", tokval.chr);
@@ -882,7 +877,7 @@ parsetyp()
 		ty->size = (sz + a) & ~a;
 	}
 	if (t != TRBrace)
-		err("expected closing }");
+		err(", or } expected");
 }
 
 static void
