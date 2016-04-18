@@ -8,7 +8,8 @@ liveon(BSet *v, Blk *b, Blk *s)
 
 	bscopy(v, s->in);
 	for (p=s->phi; p; p=p->link)
-		bsclr(v, p->to.val);
+		if (rtype(p->to) == RTmp)
+			bsclr(v, p->to.val);
 	for (p=s->phi; p; p=p->link)
 		for (a=0; a<p->narg; a++)
 			if (p->blk[a] == b)
