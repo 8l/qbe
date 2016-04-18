@@ -288,7 +288,8 @@ phiins(Fn *fn)
 	Ins *i;
 	Phi *p;
 	Ref r;
-	int t, n, k, nt;
+	int t, n, nt;
+	short k;
 
 	bsinit(u, fn->nblk);
 	bsinit(defs, fn->nblk);
@@ -324,9 +325,8 @@ phiins(Fn *fn)
 							bsset(u, b->id);
 							*--bp = b;
 						}
-						if (k == -1)
-							k = i->cls;
-						assert(k == i->cls);
+						if (clsmerge(&k, i->cls))
+							die("invalid input");
 					}
 				}
 			}

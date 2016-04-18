@@ -190,6 +190,7 @@ enum FCmp {
 };
 
 enum Class {
+	Kx = -1, /* "top" class (see usecheck() and clsmerge()) */
 	Kw,
 	Kl,
 	Ks,
@@ -488,6 +489,7 @@ void idup(Ins **, Ins *, ulong);
 Ins *icpy(Ins *, Ins *, ulong);
 void *vnew(ulong, size_t);
 void vgrow(void *, ulong);
+int clsmerge(short *, short);
 int phicls(int, Tmp *);
 Ref newtmp(char *, int, Fn *);
 void chuse(Ref, int, Fn *);

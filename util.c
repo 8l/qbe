@@ -189,6 +189,23 @@ vgrow(void *vp, ulong len)
 }
 
 int
+clsmerge(short *pk, short k)
+{
+	short k1;
+
+	k1 = *pk;
+	if (k1 == Kx) {
+		*pk = k;
+		return 0;
+	}
+	if ((k1 == Kw && k == Kl) || (k1 == Kl && k == Kw)) {
+		*pk = Kw;
+		return 0;
+	}
+	return k1 != k;
+}
+
+int
 phicls(int t, Tmp *tmp /*, int c*/)
 {
 	if (tmp[t].phi)

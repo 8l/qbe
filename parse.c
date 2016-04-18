@@ -4,7 +4,6 @@
 
 enum {
 	Ke = -2, /* Erroneous mode */
-	Kx = -1, /* Invalid operand */
 	Km = Kl, /* Memory pointer (for x64) */
 };
 
@@ -364,7 +363,7 @@ tmpref(char *v)
 	for (t=Tmp0; t<curf->ntmp; t++)
 		if (strcmp(v, curf->tmp[t].name) == 0)
 			return TMP(t);
-	newtmp(0, -1, curf);
+	newtmp(0, Kx, curf);
 	strcpy(curf->tmp[t].name, v);
 	return TMP(t);
 }
@@ -645,7 +644,7 @@ Ins:
 }
 
 static int
-oktype(Ref r, int k, Fn *fn)
+usecheck(Ref r, int k, Fn *fn)
 {
 	return rtype(r) != RTmp || fn->tmp[r.val].cls == k
 		|| (fn->tmp[r.val].cls == Kl && k == Kw);
@@ -672,13 +671,9 @@ typecheck(Fn *fn)
 		for (i=b->ins; i-b->ins < b->nins; i++)
 			if (rtype(i->to) == RTmp) {
 				t = &fn->tmp[i->to.val];
-				k = t->cls;
-				if (k == -1 || (k == Kl && i->cls == Kw))
-					k = i->cls;
-				if (k != i->cls)
+				if (clsmerge(&t->cls, i->cls))
 					err("temporary %%%s is assigned with"
 						" multiple types", t->name);
-				t->cls = k;
 			}
 	}
 	for (b=fn->start; b; b=b->link) {
@@ -693,7 +688,7 @@ typecheck(Fn *fn)
 				if (bshas(ppb, p->blk[n]->id))
 					err("multiple entries for @%s in phi %%%s",
 						p->blk[n]->name, t->name);
-				if (!oktype(p->arg[n], k, fn))
+				if (!usecheck(p->arg[n], k, fn))
 					err("invalid type for operand %%%s in phi %%%s",
 						fn->tmp[p->arg[n].val].name, t->name);
 				bsset(ppb, p->blk[n]->id);
@@ -719,7 +714,7 @@ typecheck(Fn *fn)
 					err("missing %s operand in %s",
 						n == 1 ? "second" : "first",
 						opdesc[i->op].name);
-				if (!oktype(r, k, fn))
+				if (!usecheck(r, k, fn))
 					err("invalid type for %s operand %%%s in %s",
 						n == 1 ? "second" : "first",
 						t->name, opdesc[i->op].name);
@@ -727,12 +722,12 @@ typecheck(Fn *fn)
 		r = b->jmp.arg;
 		if (isret(b->jmp.type)) {
 			if (b->jmp.type == JRetc) {
-				if (!oktype(r, Kl, fn))
+				if (!usecheck(r, Kl, fn))
 					goto JErr;
-			} else if (!oktype(r, b->jmp.type-JRetw, fn))
+			} else if (!usecheck(r, b->jmp.type-JRetw, fn))
 				goto JErr;
 		}
-		if (b->jmp.type == JJnz && !oktype(r, Kw, fn))
+		if (b->jmp.type == JJnz && !usecheck(r, Kw, fn))
 		JErr:
 			err("invalid type for jump argument %%%s in block @%s",
 				fn->tmp[r.val].name, b->name);
@@ -763,7 +758,7 @@ parsefn(int export)
 	curf->con[0].type = CBits;
 	curf->export = export;
 	blink = &curf->start;
-	curf->retty = -1;
+	curf->retty = Kx;
 	if (peek() != TGlo)
 		rcls = parsecls(&curf->retty);
 	else
