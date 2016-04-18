@@ -74,12 +74,11 @@ visitphi(Phi *p, int n, Fn *fn)
 	v = Top;
 	for (a=0; a<p->narg; a++) {
 		m = p->blk[a]->id;
+		dead = 1;
 		if (edge[m][0].dest == n)
-			dead = edge[m][0].dead;
-		else if (edge[m][1].dest == n)
-			dead = edge[m][1].dead;
-		else
-			die("invalid phi argument");
+			dead &= edge[m][0].dead;
+		if (edge[m][1].dest == n)
+			dead &= edge[m][1].dead;
 		if (!dead)
 			v = latmerge(v, latval(p->arg[a]));
 	}
@@ -121,7 +120,8 @@ visitjmp(Blk *b, int n, Fn *fn)
 	switch (b->jmp.type) {
 	case JJnz:
 		l = latval(b->jmp.arg);
-		if (l == Top || l == Bot) {
+		assert(l != Top);
+		if (l == Bot) {
 			edge[n][1].work = flowrk;
 			edge[n][0].work = &edge[n][1];
 			flowrk = &edge[n][0];
