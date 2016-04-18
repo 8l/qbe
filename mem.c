@@ -43,6 +43,8 @@ memopt(Fn *fn)
 		/* specific to NAlign == 3 */
 		assert(rtype(i->to) == RTmp);
 		t = &fn->tmp[i->to.val];
+		if (t->ndef != 1)
+			goto Skip;
 		k = -1;
 		s = -1;
 		for (u=t->use; u != &t->use[t->nuse]; u++) {
