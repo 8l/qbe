@@ -490,8 +490,8 @@ spill(Fn *fn)
 	if (debug['S']) {
 		fprintf(stderr, "\n> Block information:\n");
 		for (b=fn->start; b; b=b->link) {
-			printf("\t%-10s (% 5d) ", b->name, b->loop);
-			dumpts(b->out, fn->tmp, stdout);
+			fprintf(stderr, "\t%-10s (% 5d) ", b->name, b->loop);
+			dumpts(b->out, fn->tmp, stderr);
 		}
 		fprintf(stderr, "\n> After spilling:\n");
 		printfn(fn, stderr);
