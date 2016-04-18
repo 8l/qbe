@@ -391,6 +391,9 @@ spill(Fn *fn)
 			r = retregs(b->jmp.arg, 0);
 			v->t[0] |= r;
 		}
+		for (t=Tmp0; bsiter(b->out, &t); t++)
+			if (!bshas(v, t))
+				slot(t);
 		bscopy(b->out, v);
 
 		/* 2. process the block instructions */
