@@ -536,10 +536,15 @@ ssacheck(Fn *fn)
 	Blk *b, *bu;
 	Ref r;
 
-	for (t=&fn->tmp[Tmp0]; t-fn->tmp < fn->ntmp; t++)
+	for (t=&fn->tmp[Tmp0]; t-fn->tmp < fn->ntmp; t++) {
 		if (t->ndef > 1)
 			err("ssa temporary %%%s defined more than once",
 				t->name);
+		if (t->nuse > 0 && t->ndef == 0) {
+			bu = fn->rpo[t->use[0].bid];
+			goto Err;
+		}
+	}
 	for (b=fn->start; b; b=b->link) {
 		for (p=b->phi; p; p=p->link) {
 			r = p->to;
