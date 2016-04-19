@@ -65,11 +65,9 @@ visitins(Ins *i, Ref *cp, RList **w)
 }
 
 static void
-subst(Ref *r, Ref *cp, Fn *fn)
+subst(Ref *r, Ref *cp)
 {
-	if (rtype(*r) == RTmp && req(copyof(*r, cp), R))
-		err("temporary %%%s is ill-defined",
-			fn->tmp[r->val].name);
+	assert((rtype(*r) != RTmp || !req(copyof(*r, cp), R)) && "ssa invariant broken");
 	*r = copyof(*r, cp);
 }
 
@@ -121,7 +119,7 @@ copy(Fn *fn)
 				continue;
 			}
 			for (a=0; a<p->narg; a++)
-				subst(&p->arg[a], cp, fn);
+				subst(&p->arg[a], cp);
 			pp=&p->link;
 		}
 		for (i=b->ins; i-b->ins < b->nins; i++) {
@@ -131,9 +129,9 @@ copy(Fn *fn)
 				continue;
 			}
 			for (a=0; a<2; a++)
-				subst(&i->arg[a], cp, fn);
+				subst(&i->arg[a], cp);
 		}
-		subst(&b->jmp.arg, cp, fn);
+		subst(&b->jmp.arg, cp);
 	}
 	if (debug['C']) {
 		fprintf(stderr, "\n> Copy information:");

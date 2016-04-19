@@ -126,7 +126,7 @@ visitjmp(Blk *b, int n, Fn *fn)
 	switch (b->jmp.type) {
 	case JJnz:
 		l = latval(b->jmp.arg);
-		assert(l != Top);
+		assert(l != Top && "ssa invariant broken");
 		if (l == Bot) {
 			edge[n][1].work = flowrk;
 			edge[n][0].work = &edge[n][1];
@@ -172,7 +172,7 @@ renref(Ref *r)
 
 	if (rtype(*r) == RTmp)
 		if ((l=val[r->val]) != Bot) {
-			assert(l != Top);
+			assert(l != Top && "ssa invariant broken");
 			*r = CON(l);
 			return 1;
 		}
