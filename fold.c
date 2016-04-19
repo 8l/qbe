@@ -65,23 +65,29 @@ update(int t, int m, Fn *fn)
 	}
 }
 
+static int
+deadedge(int s, int d)
+{
+	Edge *e;
+
+	e = edge[s];
+	if (e[0].dest == d && !e[0].dead)
+		return 0;
+	if (e[1].dest == d && !e[1].dead)
+		return 0;
+	return 1;
+}
+
 static void
 visitphi(Phi *p, int n, Fn *fn)
 {
-	int v, m, dead;
+	int v;
 	uint a;
 
 	v = Top;
-	for (a=0; a<p->narg; a++) {
-		m = p->blk[a]->id;
-		dead = 1;
-		if (edge[m][0].dest == n)
-			dead &= edge[m][0].dead;
-		if (edge[m][1].dest == n)
-			dead &= edge[m][1].dead;
-		if (!dead)
+	for (a=0; a<p->narg; a++)
+		if (!deadedge(p->blk[a]->id, n))
 			v = latmerge(v, latval(p->arg[a]));
-	}
 	update(p->to.val, v, fn);
 }
 
@@ -160,17 +166,14 @@ initedge(Edge *e, Blk *s)
 }
 
 static int
-renref(Ref *r, Fn *fn)
+renref(Ref *r)
 {
+	int l;
+
 	if (rtype(*r) == RTmp)
-		switch (val[r->val]) {
-		case Top:
-			err("temporary %%%s is ill-defined",
-				fn->tmp[r->val].name);
-		case Bot:
-			break;
-		default:
-			*r = CON(val[r->val]);
+		if ((l=val[r->val]) != Bot) {
+			assert(l != Top);
+			*r = CON(l);
 			return 1;
 		}
 	return 0;
@@ -281,16 +284,17 @@ fold(Fn *fn)
 				*pp = p->link;
 			else {
 				for (a=0; a<p->narg; a++)
-					renref(&p->arg[a], fn);
+					if (!deadedge(p->blk[a]->id, b->id))
+						renref(&p->arg[a]);
 				pp = &p->link;
 			}
 		for (i=b->ins; i-b->ins < b->nins; i++)
-			if (renref(&i->to, fn))
+			if (renref(&i->to))
 				*i = (Ins){.op = ONop};
 			else
 				for (n=0; n<2; n++)
-					renref(&i->arg[n], fn);
-		renref(&b->jmp.arg, fn);
+					renref(&i->arg[n]);
+		renref(&b->jmp.arg);
 		if (b->jmp.type == JJnz && rtype(b->jmp.arg) == RCon) {
 				b->jmp.type = JJmp;
 				if (czero(&fn->con[b->jmp.arg.val], 0))
