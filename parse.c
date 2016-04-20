@@ -92,43 +92,43 @@ typedef enum {
 } PState;
 
 enum {
-	TXXX = NPubOp,
-	TCall,
-	TPhi,
-	TJmp,
-	TJnz,
-	TRet,
-	TExport,
-	TFunc,
-	TType,
-	TData,
-	TAlign,
-	TL,
-	TW,
-	TH,
-	TB,
-	TD,
-	TS,
-	TZ,
+	Txxx = NPubOp,
+	Tcall,
+	Tphi,
+	Tjmp,
+	Tjnz,
+	Tret,
+	Texport,
+	Tfunc,
+	Ttype,
+	Tdata,
+	Talign,
+	Tl,
+	Tw,
+	Th,
+	Tb,
+	Td,
+	Ts,
+	Tz,
 
-	TInt,
-	TFlts,
-	TFltd,
-	TTmp,
-	TLbl,
-	TGlo,
+	Tint,
+	Tflts,
+	Tfltd,
+	Ttmp,
+	Tlbl,
+	Tglo,
 	TTyp,
 	TStr,
 
-	TPlus,
-	TEq,
-	TComma,
-	TLParen,
-	TRParen,
-	TLBrace,
-	TRBrace,
-	TNL,
-	TEOF,
+	Tplus,
+	Teq,
+	Tcomma,
+	Tlparen,
+	Trparen,
+	Tlbrace,
+	Trbrace,
+	Tnl,
+	Teof,
 };
 
 
@@ -174,30 +174,30 @@ lex()
 		char *str;
 		int tok;
 	} tmap[] = {
-		{ "call", TCall },
-		{ "phi", TPhi },
-		{ "jmp", TJmp },
-		{ "jnz", TJnz },
-		{ "ret", TRet },
-		{ "export", TExport },
-		{ "function", TFunc },
-		{ "type", TType },
-		{ "data", TData },
-		{ "align", TAlign },
-		{ "l", TL },
-		{ "w", TW },
-		{ "h", TH },
-		{ "b", TB },
-		{ "d", TD },
-		{ "s", TS },
-		{ "z", TZ },
+		{ "call", Tcall },
+		{ "phi", Tphi },
+		{ "jmp", Tjmp },
+		{ "jnz", Tjnz },
+		{ "ret", Tret },
+		{ "export", Texport },
+		{ "function", Tfunc },
+		{ "type", Ttype },
+		{ "data", Tdata },
+		{ "align", Talign },
+		{ "l", Tl },
+		{ "w", Tw },
+		{ "h", Th },
+		{ "b", Tb },
+		{ "d", Td },
+		{ "s", Ts },
+		{ "z", Tz },
 		{ "loadw", Oload }, /* for convenience */
 		{ "loadl", Oload },
 		{ "loads", Oload },
 		{ "loadd", Oload },
 		{ "alloc1", Oalloc },
 		{ "alloc2", Oalloc },
-		{ 0, TXXX }
+		{ 0, Txxx }
 	};
 	static char tok[NString];
 	int c, i;
@@ -206,41 +206,41 @@ lex()
 	do
 		c = fgetc(inf);
 	while (isblank(c));
-	t = TXXX;
+	t = Txxx;
 	tokval.chr = c;
 	switch (c) {
 	case EOF:
-		return TEOF;
+		return Teof;
 	case ',':
-		return TComma;
+		return Tcomma;
 	case '(':
-		return TLParen;
+		return Tlparen;
 	case ')':
-		return TRParen;
+		return Trparen;
 	case '{':
-		return TLBrace;
+		return Tlbrace;
 	case '}':
-		return TRBrace;
+		return Trbrace;
 	case '=':
-		return TEq;
+		return Teq;
 	case '+':
-		return TPlus;
+		return Tplus;
 	case 's':
 		if (fscanf(inf, "_%f", &tokval.flts) != 1)
 			break;
-		return TFlts;
+		return Tflts;
 	case 'd':
 		if (fscanf(inf, "_%lf", &tokval.fltd) != 1)
 			break;
-		return TFltd;
+		return Tfltd;
 	case '%':
-		t = TTmp;
+		t = Ttmp;
 		goto Alpha;
 	case '@':
-		t = TLbl;
+		t = Tlbl;
 		goto Alpha;
 	case '$':
-		t = TGlo;
+		t = Tglo;
 		goto Alpha;
 	case ':':
 		t = TTyp;
@@ -250,13 +250,13 @@ lex()
 			;
 	case '\n':
 		lnum++;
-		return TNL;
+		return Tnl;
 	}
 	if (isdigit(c) || c == '-' || c == '+') {
 		ungetc(c, inf);
 		if (fscanf(inf, "%"SCNd64, &tokval.num) != 1)
 			err("invalid integer literal");
-		return TInt;
+		return Tint;
 	}
 	if (c == '"') {
 		tokval.str = vnew(0, 1);
@@ -287,7 +287,7 @@ Alpha:		c = fgetc(inf);
 	tok[i] = 0;
 	ungetc(c, inf);
 	tokval.str = tok;
-	if (t != TXXX) {
+	if (t != Txxx) {
 		return t;
 	}
 	for (i=0; i<NPubOp; i++)
@@ -298,13 +298,13 @@ Alpha:		c = fgetc(inf);
 		if (strcmp(tok, tmap[i].str) == 0)
 			return tmap[i].tok;
 	err("unknown keyword %s", tokval.str);
-	return TXXX;
+	return Txxx;
 }
 
 static int
 peek()
 {
-	if (thead == TXXX)
+	if (thead == Txxx)
 		thead = lex();
 	return thead;
 }
@@ -315,7 +315,7 @@ next()
 	int t;
 
 	t = peek();
-	thead = TXXX;
+	thead = Txxx;
 	return t;
 }
 
@@ -324,7 +324,7 @@ nextnl()
 {
 	int t;
 
-	while ((t = next()) == TNL)
+	while ((t = next()) == Tnl)
 		;
 	return t;
 }
@@ -333,15 +333,15 @@ static void
 expect(int t)
 {
 	static char *ttoa[] = {
-		[TLbl] = "label",
-		[TComma] = ",",
-		[TEq] = "=",
-		[TNL] = "newline",
-		[TLParen] = "(",
-		[TRParen] = ")",
-		[TLBrace] = "{",
-		[TRBrace] = "}",
-		[TEOF] = 0,
+		[Tlbl] = "label",
+		[Tcomma] = ",",
+		[Teq] = "=",
+		[Tnl] = "newline",
+		[Tlparen] = "(",
+		[Trparen] = ")",
+		[Tlbrace] = "{",
+		[Trbrace] = "}",
+		[Teof] = 0,
 	};
 	char buf[128], *s1, *s2;
 	int t1;
@@ -376,23 +376,23 @@ parseref()
 
 	memset(&c, 0, sizeof c);
 	switch (next()) {
-	case TTmp:
+	case Ttmp:
 		return tmpref(tokval.str);
-	case TInt:
+	case Tint:
 		c.type = CBits;
 		c.bits.i = tokval.num;
 		goto Look;
-	case TFlts:
+	case Tflts:
 		c.type = CBits;
 		c.bits.s = tokval.flts;
 		c.flt = 1;
 		goto Look;
-	case TFltd:
+	case Tfltd:
 		c.type = CBits;
 		c.bits.d = tokval.fltd;
 		c.flt = 2;
 		goto Look;
-	case TGlo:
+	case Tglo:
 		c.type = CAddr;
 		strcpy(c.label, tokval.str);
 	Look:
@@ -424,13 +424,13 @@ parsecls(int *tyn)
 				return 4;
 			}
 		err("undefined type");
-	case TW:
+	case Tw:
 		return Kw;
-	case TL:
+	case Tl:
 		return Kl;
-	case TS:
+	case Ts:
 		return Ks;
-	case TD:
+	case Td:
 		return Kd;
 	}
 }
@@ -441,8 +441,8 @@ parserefl(int arg)
 	int k, ty;
 	Ref r;
 
-	expect(TLParen);
-	while (peek() != TRParen) {
+	expect(Tlparen);
+	while (peek() != Trparen) {
 		if (curi - insb >= NIns)
 			err("too many instructions (1)");
 		k = parsecls(&ty);
@@ -462,9 +462,9 @@ parserefl(int arg)
 			else
 				*curi = (Ins){Opar, r, {R}, k};
 		curi++;
-		if (peek() == TRParen)
+		if (peek() == Trparen)
 			break;
-		expect(TComma);
+		expect(Tcomma);
 	}
 	next();
 }
@@ -504,23 +504,23 @@ parseline(PState ps)
 	int t, op, i, k, ty;
 
 	t = nextnl();
-	if (ps == PLbl && t != TLbl && t != TRBrace)
+	if (ps == PLbl && t != Tlbl && t != Trbrace)
 		err("label or } expected");
 	switch (t) {
 	default:
 		if (isstore(t)) {
 			/* operations without result */
 			r = R;
-			k = 0;
+			k = Kw;
 			op = t;
 			goto DoOp;
 		}
 		err("label, instruction or jump expected");
-	case TRBrace:
+	case Trbrace:
 		return PEnd;
-	case TTmp:
+	case Ttmp:
 		break;
-	case TLbl:
+	case Tlbl:
 		b = findblk(tokval.str);
 		if (curb && curb->jmp.type == Jxxx) {
 			closeblk();
@@ -532,9 +532,9 @@ parseline(PState ps)
 		*blink = b;
 		curb = b;
 		plink = &curb->phi;
-		expect(TNL);
+		expect(Tnl);
 		return PPhi;
-	case TRet:
+	case Tret:
 		curb->jmp.type = (int[]){
 			Jretw, Jretl,
 			Jrets, Jretd,
@@ -547,45 +547,45 @@ parseline(PState ps)
 			curb->jmp.arg = r;
 		}
 		goto Close;
-	case TJmp:
+	case Tjmp:
 		curb->jmp.type = Jjmp;
 		goto Jump;
-	case TJnz:
+	case Tjnz:
 		curb->jmp.type = Jjnz;
 		r = parseref();
 		if (req(r, R))
 			err("invalid argument for jnz jump");
 		curb->jmp.arg = r;
-		expect(TComma);
+		expect(Tcomma);
 	Jump:
-		expect(TLbl);
+		expect(Tlbl);
 		curb->s1 = findblk(tokval.str);
 		if (curb->jmp.type != Jjmp) {
-			expect(TComma);
-			expect(TLbl);
+			expect(Tcomma);
+			expect(Tlbl);
 			curb->s2 = findblk(tokval.str);
 		}
 		if (curb->s1 == curf->start || curb->s2 == curf->start)
 			err("invalid jump to the start node");
 	Close:
-		expect(TNL);
+		expect(Tnl);
 		closeblk();
 		return PLbl;
 	}
 	r = tmpref(tokval.str);
-	expect(TEq);
+	expect(Teq);
 	k = parsecls(&ty);
 	op = next();
 DoOp:
-	if (op == TPhi) {
+	if (op == Tphi) {
 		if (ps != PPhi)
 			err("unexpected phi instruction");
 		op = -1;
 	}
-	if (op == TCall) {
+	if (op == Tcall) {
 		arg[0] = parseref();
 		parserefl(1);
-		expect(TNL);
+		expect(Tnl);
 		op = Ocall;
 		if (k == 4) {
 			k = Kl;
@@ -599,12 +599,12 @@ DoOp:
 	if (op >= NPubOp)
 		err("invalid instruction");
 	i = 0;
-	if (peek() != TNL)
+	if (peek() != Tnl)
 		for (;;) {
 			if (i == NPred)
 				err("too many arguments");
 			if (op == -1) {
-				expect(TLbl);
+				expect(Tlbl);
 				blk[i] = findblk(tokval.str);
 			}
 			arg[i] = parseref();
@@ -612,9 +612,9 @@ DoOp:
 				err("invalid instruction argument");
 			i++;
 			t = peek();
-			if (t == TNL)
+			if (t == Tnl)
 				break;
-			if (t != TComma)
+			if (t != Tcomma)
 				err(", or end of line expected");
 			next();
 		}
@@ -759,15 +759,15 @@ parsefn(int export)
 	curf->export = export;
 	blink = &curf->start;
 	curf->retty = Kx;
-	if (peek() != TGlo)
+	if (peek() != Tglo)
 		rcls = parsecls(&curf->retty);
 	else
 		rcls = 5;
-	if (next() != TGlo)
+	if (next() != Tglo)
 		err("function name expected");
 	strcpy(curf->name, tokval.str);
 	parserefl(0);
-	if (nextnl() != TLBrace)
+	if (nextnl() != Tlbrace)
 		err("function body must start with {");
 	ps = PLbl;
 	do
@@ -795,22 +795,22 @@ parsetyp()
 		err("too many type definitions");
 	ty = &typ[ntyp++];
 	ty->align = -1;
-	if (nextnl() != TTyp ||  nextnl() != TEq)
+	if (nextnl() != TTyp ||  nextnl() != Teq)
 		err("type name, then = expected");
 	strcpy(ty->name, tokval.str);
 	t = nextnl();
-	if (t == TAlign) {
-		if (nextnl() != TInt)
+	if (t == Talign) {
+		if (nextnl() != Tint)
 			err("alignment expected");
 		for (al=0; tokval.num /= 2; al++)
 			;
 		ty->align = al;
 		t = nextnl();
 	}
-	if (t != TLBrace)
+	if (t != Tlbrace)
 		err("type body must start with {");
 	t = nextnl();
-	if (t == TInt) {
+	if (t == Tint) {
 		ty->dark = 1;
 		ty->size = tokval.num;
 		if (ty->align == -1)
@@ -821,16 +821,16 @@ parsetyp()
 		n = -1;
 		sz = 0;
 		al = 0;
-		while (t != TRBrace) {
+		while (t != Trbrace) {
 			flt = 0;
 			switch (t) {
 			default: err("invalid size specifier %c", tokval.chr);
-			case TD: flt = 1;
-			case TL: s = 8; a = 3; break;
-			case TS: flt = 1;
-			case TW: s = 4; a = 2; break;
-			case TH: s = 2; a = 1; break;
-			case TB: s = 1; a = 0; break;
+			case Td: flt = 1;
+			case Tl: s = 8; a = 3; break;
+			case Ts: flt = 1;
+			case Tw: s = 4; a = 2; break;
+			case Th: s = 2; a = 1; break;
+			case Tb: s = 1; a = 0; break;
 			}
 			if (a > al)
 				al = a;
@@ -843,7 +843,7 @@ parsetyp()
 				}
 			}
 			t = nextnl();
-			if (t == TInt) {
+			if (t == Tint) {
 				c = tokval.num;
 				t = nextnl();
 			} else
@@ -856,7 +856,7 @@ parsetyp()
 				}
 				sz += a + s;
 			}
-			if (t != TComma)
+			if (t != Tcomma)
 				break;
 			t = nextnl();
 		}
@@ -871,7 +871,7 @@ parsetyp()
 		a = (1 << al) - 1;
 		ty->size = (sz + a) & ~a;
 	}
-	if (t != TRBrace)
+	if (t != Trbrace)
 		err(", or } expected");
 }
 
@@ -884,9 +884,9 @@ parsedatref(Dat *d)
 	d->u.ref.nam = tokval.str;
 	d->u.ref.off = 0;
 	t = peek();
-	if (t == TPlus) {
+	if (t == Tplus) {
 		next();
-		if (next() != TInt)
+		if (next() != Tint)
 			err("invalid token after offset in ref");
 		d->u.ref.off = tokval.num;
 	}
@@ -911,12 +911,12 @@ parsedat(void cb(Dat *), int export)
 	d.isref = 0;
 	d.export = export;
 	cb(&d);
-	if (nextnl() != TGlo || nextnl() != TEq)
+	if (nextnl() != Tglo || nextnl() != Teq)
 		err("data name, then = expected");
 	strcpy(s, tokval.str);
 	t = nextnl();
-	if (t == TAlign) {
-		if (nextnl() != TInt)
+	if (t == Talign) {
+		if (nextnl() != Tint)
 			err("alignment expected");
 		d.type = DAlign;
 		d.u.num = tokval.num;
@@ -927,32 +927,32 @@ parsedat(void cb(Dat *), int export)
 	d.u.str = s;
 	cb(&d);
 
-	if (t != TLBrace)
+	if (t != Tlbrace)
 		err("expected data contents in { .. }");
 	for (;;) {
 		switch (nextnl()) {
 		default: err("invalid size specifier %c in data", tokval.chr);
-		case TRBrace: goto Done;
-		case TL: d.type = DL; break;
-		case TW: d.type = DW; break;
-		case TH: d.type = DH; break;
-		case TB: d.type = DB; break;
-		case TS: d.type = DW; break;
-		case TD: d.type = DL; break;
-		case TZ: d.type = DZ; break;
+		case Trbrace: goto Done;
+		case Tl: d.type = DL; break;
+		case Tw: d.type = DW; break;
+		case Th: d.type = DH; break;
+		case Tb: d.type = DB; break;
+		case Ts: d.type = DW; break;
+		case Td: d.type = DL; break;
+		case Tz: d.type = DZ; break;
 		}
 		t = nextnl();
 		do {
 			d.isref = 0;
 			d.isstr = 0;
 			memset(&d.u, 0, sizeof d.u);
-			if (t == TFlts)
+			if (t == Tflts)
 				d.u.flts = tokval.flts;
-			else if (t == TFltd)
+			else if (t == Tfltd)
 				d.u.fltd = tokval.fltd;
-			else if (t == TInt)
+			else if (t == Tint)
 				d.u.num = tokval.num;
-			else if (t == TGlo)
+			else if (t == Tglo)
 				parsedatref(&d);
 			else if (t == TStr)
 				parsedatstr(&d);
@@ -960,10 +960,10 @@ parsedat(void cb(Dat *), int export)
 				err("constant literal expected");
 			cb(&d);
 			t = nextnl();
-		} while (t == TInt || t == TFlts || t == TFltd);
-		if (t == TRBrace)
+		} while (t == Tint || t == Tflts || t == Tfltd);
+		if (t == Trbrace)
 			break;
-		if (t != TComma)
+		if (t != Tcomma)
 			err(", or } expected");
 	}
 Done:
@@ -979,32 +979,32 @@ parse(FILE *f, char *path, void data(Dat *), void func(Fn *))
 	inf = f;
 	inpath = path;
 	lnum = 1;
-	thead = TXXX;
+	thead = Txxx;
 	ntyp = 0;
 	for (;;) {
 		export = 0;
 		switch (nextnl()) {
 		default:
 			err("top-level definition expected");
-		case TExport:
+		case Texport:
 			export = 1;
 			t = nextnl();
-			if (t == TFunc) {
-		case TFunc:
+			if (t == Tfunc) {
+		case Tfunc:
 				func(parsefn(export));
 				break;
 			}
-			else if (t == TData) {
-		case TData:
+			else if (t == Tdata) {
+		case Tdata:
 				parsedat(data, export);
 				break;
 			}
 			else
 				err("export can only qualify data and function");
-		case TType:
+		case Ttype:
 			parsetyp();
 			break;
-		case TEOF:
+		case Teof:
 			return;
 		}
 	}
