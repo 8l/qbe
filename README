@@ -6,3 +6,9 @@ tools/  Miscellaneous tools (testing).
 test/   Unit tests.
 
 The LICENSE file applies to all files distributed.
+
+- Compilation
+
+Invoke GNU make in this directory to create the executable
+file obj/qbe.  On some systems (BSD) you might have to use
+'gmake' instead of 'make'.
