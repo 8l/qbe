@@ -224,10 +224,10 @@ pmrec(enum PMStat *status, int i, int *k)
 	}
 	status[i] = Moved;
 	if (req(swp, R)) {
-		*curi++ = (Ins){OCopy, pm[i].dst, {pm[i].src}, pm[i].cls};
+		*curi++ = (Ins){Ocopy, pm[i].dst, {pm[i].src}, pm[i].cls};
 		return R;
 	} else if (!req(swp, pm[i].src)) {
-		*curi++ = (Ins){OSwap, R, {pm[i].src, pm[i].dst}, *k};
+		*curi++ = (Ins){Oswap, R, {pm[i].src, pm[i].dst}, *k};
 		return swp;
 	} else
 		return R;
@@ -273,7 +273,7 @@ move(int r, Ref to, RMap *m)
 static int
 regcpy(Ins *i)
 {
-	return i->op == OCopy && isreg(i->arg[0]);
+	return i->op == Ocopy && isreg(i->arg[0]);
 }
 
 static Ins *
@@ -291,7 +291,7 @@ dopm(Blk *b, Ins *i, RMap *m)
 		move(i->arg[0].val, i->to, m);
 	} while (i != b->ins && regcpy(i-1));
 	assert(m0.n <= m->n);
-	if (i != b->ins && (i-1)->op == OCall) {
+	if (i != b->ins && (i-1)->op == Ocall) {
 		def = retregs((i-1)->arg[1], 0);
 		for (r=0; r<NRSave; r++)
 			if (!(BIT(rsave[r]) & def))
@@ -371,13 +371,13 @@ doblk(Blk *b, RMap *cur)
 	}
 	for (i=&b->ins[b->nins]; i!=b->ins;) {
 		switch ((--i)->op) {
-		case OCall:
+		case Ocall:
 			rs = argregs(i->arg[1], 0);
 			for (r=0; r<NRSave; r++)
 				if (!(BIT(rsave[r]) & rs))
 					rfree(cur, rsave[r]);
 			break;
-		case OCopy:
+		case Ocopy:
 			if (isreg(i->arg[0])) {
 				i = dopm(b, i, cur);
 				continue;
@@ -391,7 +391,7 @@ doblk(Blk *b, RMap *cur)
 				assert(rtype(i->to) == RTmp);
 				r = rfree(cur, i->to.val);
 				if (r == -1 && !isreg(i->to)) {
-					*i = (Ins){.op = ONop};
+					*i = (Ins){.op = Onop};
 					continue;
 				}
 				if (i->to.val >= Tmp0)
@@ -447,7 +447,7 @@ rega(Fn *fn)
 	for (t=Tmp0; t<fn->ntmp; t++)
 		*hint(t) = -1;
 	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
-		if (i->op != OCopy || !isreg(i->arg[0]))
+		if (i->op != Ocopy || !isreg(i->arg[0]))
 			break;
 		else {
 			assert(rtype(i->to) == RTmp);
@@ -507,7 +507,7 @@ rega(Fn *fn)
 					rfree(&cur, t);
 					radd(&cur, t, r);
 					x = tmp[t].cls;
-					emit(OCopy, x, TMP(r1), TMP(r), R);
+					emit(Ocopy, x, TMP(r1), TMP(r), R);
 				}
 			}
 			if ((j = &insb[NIns] - curi)) {
@@ -569,7 +569,7 @@ rega(Fn *fn)
 			sprintf(b1->name, "%s_%s", b->name, s->name);
 			b1->nins = curi - insb;
 			idup(&b1->ins, insb, b1->nins);
-			b1->jmp.type = JJmp;
+			b1->jmp.type = Jjmp;
 			b1->s1 = s;
 			**ps = b1;
 		}

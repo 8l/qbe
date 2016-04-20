@@ -4,10 +4,10 @@ static int
 loadsz(Ins *l)
 {
 	switch (l->op) {
-	case OLoadsb: case OLoadub: return 1;
-	case OLoadsh: case OLoaduh: return 2;
-	case OLoadsw: case OLoaduw: return 4;
-	case OLoad: return KWIDE(l->cls) ? 8 : 4;
+	case Oloadsb: case Oloadub: return 1;
+	case Oloadsh: case Oloaduh: return 2;
+	case Oloadsw: case Oloaduw: return 4;
+	case Oload: return KWIDE(l->cls) ? 8 : 4;
 	}
 	die("unreachable");
 }
@@ -16,10 +16,10 @@ static int
 storesz(Ins *s)
 {
 	switch (s->op) {
-	case OStoreb: return 1;
-	case OStoreh: return 2;
-	case OStorew: case OStores: return 4;
-	case OStorel: case OStored: return 8;
+	case Ostoreb: return 1;
+	case Ostoreh: return 2;
+	case Ostorew: case Ostores: return 4;
+	case Ostorel: case Ostored: return 8;
 	}
 	die("unreachable");
 }
@@ -38,7 +38,7 @@ memopt(Fn *fn)
 	/* promote uniform stack slots to temporaries */
 	b = fn->start;
 	for (i=b->ins; i-b->ins < b->nins; i++) {
-		if (OAlloc > i->op || i->op > OAlloc1)
+		if (Oalloc > i->op || i->op > Oalloc1)
 			continue;
 		/* specific to NAlign == 3 */
 		assert(rtype(i->to) == RTmp);
@@ -67,14 +67,14 @@ memopt(Fn *fn)
 			goto Skip;
 		}
 		/* get rid of the alloc and replace uses */
-		*i = (Ins){.op = ONop};
+		*i = (Ins){.op = Onop};
 		t->ndef--;
 		ue = &t->use[t->nuse];
 		for (u=t->use; u!=ue; u++) {
 			l = u->u.ins;
 			if (isstore(l->op)) {
 				l->cls = k;
-				l->op = OCopy;
+				l->op = Ocopy;
 				l->to = l->arg[1];
 				l->arg[1] = R;
 				t->nuse--;
@@ -86,16 +86,16 @@ memopt(Fn *fn)
 				/* try to turn loads into copies so we
 				 * can eliminate them later */
 				switch(l->op) {
-				case OLoad:
-				case OLoadsw:
-				case OLoaduw:
+				case Oload:
+				case Oloadsw:
+				case Oloaduw:
 					if (KBASE(k) != KBASE(l->cls))
-						l->op = OCast;
+						l->op = Ocast;
 					else
-						l->op = OCopy;
+						l->op = Ocopy;
 					break;
 				default:
-					l->op = OExtsb + (l->op - OLoadsb);
+					l->op = Oextsb + (l->op - Oloadsb);
 					break;
 				}
 			}

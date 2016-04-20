@@ -76,11 +76,11 @@ blit(Ref rstk, uint soff, Ref rsrc, uint sz, Fn *fn)
 	for (boff=0; sz>0; sz-=8, soff+=8, boff+=8) {
 		r = newtmp("abi", Kl, fn);
 		r1 = newtmp("abi", Kl, fn);
-		emit(OStorel, 0, R, r, r1);
-		emit(OAdd, Kl, r1, rstk, getcon(soff, fn));
+		emit(Ostorel, 0, R, r, r1);
+		emit(Oadd, Kl, r1, rstk, getcon(soff, fn));
 		r1 = newtmp("abi", Kl, fn);
-		emit(OLoad, Kl, r, r1, R);
-		emit(OAdd, Kl, r1, rsrc, getcon(boff, fn));
+		emit(Oload, Kl, r, r1, R);
+		emit(Oadd, Kl, r1, rsrc, getcon(boff, fn));
 	}
 }
 
@@ -109,35 +109,35 @@ selret(Blk *b, Fn *fn)
 
 	j = b->jmp.type;
 
-	if (!isret(j) || j == JRet0)
+	if (!isret(j) || j == Jret0)
 		return;
 
 	r0 = b->jmp.arg;
-	b->jmp.type = JRet0;
+	b->jmp.type = Jret0;
 
-	if (j == JRetc) {
+	if (j == Jretc) {
 		aclass(&aret, &typ[fn->retty]);
 		if (aret.inmem) {
 			assert(rtype(fn->retr) == RTmp);
-			emit(OCopy, Kl, TMP(RAX), fn->retr, R);
+			emit(Ocopy, Kl, TMP(RAX), fn->retr, R);
 			blit(fn->retr, 0, r0, aret.size, fn);
 			ca = 1;
 		} else {
 			ca = retr(reg, &aret);
 			if (aret.size > 8) {
 				r = newtmp("abi", Kl, fn);
-				emit(OLoad, Kl, reg[1], r, R);
-				emit(OAdd, Kl, r, r0, getcon(8, fn));
+				emit(Oload, Kl, reg[1], r, R);
+				emit(Oadd, Kl, r, r0, getcon(8, fn));
 			}
-			emit(OLoad, Kl, reg[0], r0, R);
+			emit(Oload, Kl, reg[0], r0, R);
 		}
 	} else {
-		k = j - JRetw;
+		k = j - Jretw;
 		if (KBASE(k) == 0) {
-			emit(OCopy, k, TMP(RAX), r0, R);
+			emit(Ocopy, k, TMP(RAX), r0, R);
 			ca = 1;
 		} else {
-			emit(OCopy, k, TMP(XMM0), r0, R);
+			emit(Ocopy, k, TMP(XMM0), r0, R);
 			ca = 1 << 2;
 		}
 	}
@@ -272,9 +272,9 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 	if (!req(i1->arg[1], R)) {
 		assert(rtype(i1->arg[1]) == RType);
 		aclass(&aret, &typ[i1->arg[1].val]);
-		ca = classify(i0, i1, ac, OArg, &aret);
+		ca = classify(i0, i1, ac, Oarg, &aret);
 	} else
-		ca = classify(i0, i1, ac, OArg, 0);
+		ca = classify(i0, i1, ac, Oarg, 0);
 
 	for (stk=0, a=&ac[i1-i0]; a>ac;)
 		if ((--a)->inmem) {
@@ -287,7 +287,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 	stk += stk & 15;
 	if (stk) {
 		r = getcon(-(int64_t)stk, fn);
-		emit(OSAlloc, Kl, R, r, R);
+		emit(Osalloc, Kl, R, r, R);
 	}
 
 	if (!req(i1->arg[1], R)) {
@@ -295,60 +295,60 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 			/* get the return location from eax
 			 * it saves one callee-save reg */
 			r1 = newtmp("abi", Kl, fn);
-			emit(OCopy, Kl, i1->to, TMP(RAX), R);
+			emit(Ocopy, Kl, i1->to, TMP(RAX), R);
 			ca += 1;
 		} else {
 			if (aret.size > 8) {
 				r = newtmp("abi", Kl, fn);
 				aret.ref[1] = newtmp("abi", aret.cls[1], fn);
-				emit(OStorel, 0, R, aret.ref[1], r);
-				emit(OAdd, Kl, r, i1->to, getcon(8, fn));
+				emit(Ostorel, 0, R, aret.ref[1], r);
+				emit(Oadd, Kl, r, i1->to, getcon(8, fn));
 			}
 			aret.ref[0] = newtmp("abi", aret.cls[0], fn);
-			emit(OStorel, 0, R, aret.ref[0], i1->to);
+			emit(Ostorel, 0, R, aret.ref[0], i1->to);
 			ca += retr(reg, &aret);
 			if (aret.size > 8)
-				emit(OCopy, aret.cls[1], aret.ref[1], reg[1], R);
-			emit(OCopy, aret.cls[0], aret.ref[0], reg[0], R);
+				emit(Ocopy, aret.cls[1], aret.ref[1], reg[1], R);
+			emit(Ocopy, aret.cls[0], aret.ref[0], reg[0], R);
 			r1 = i1->to;
 		}
 		/* allocate return pad */
 		ra = alloc(sizeof *ra);
 		/* specific to NAlign == 3 */
 		al = aret.align >= 2 ? aret.align - 2 : 0;
-		ra->i = (Ins){OAlloc+al, r1, {getcon(aret.size, fn)}, Kl};
+		ra->i = (Ins){Oalloc+al, r1, {getcon(aret.size, fn)}, Kl};
 		ra->link = (*rap);
 		*rap = ra;
 	} else {
 		ra = 0;
 		if (KBASE(i1->cls) == 0) {
-			emit(OCopy, i1->cls, i1->to, TMP(RAX), R);
+			emit(Ocopy, i1->cls, i1->to, TMP(RAX), R);
 			ca += 1;
 		} else {
-			emit(OCopy, i1->cls, i1->to, TMP(XMM0), R);
+			emit(Ocopy, i1->cls, i1->to, TMP(XMM0), R);
 			ca += 1 << 2;
 		}
 	}
-	emit(OCall, i1->cls, R, i1->arg[0], CALL(ca));
-	emit(OCopy, Kw, TMP(RAX), getcon((ca >> 8) & 15, fn), R);
+	emit(Ocall, i1->cls, R, i1->arg[0], CALL(ca));
+	emit(Ocopy, Kw, TMP(RAX), getcon((ca >> 8) & 15, fn), R);
 
 	ni = ns = 0;
 	if (ra && aret.inmem)
-		emit(OCopy, Kl, rarg(Kl, &ni, &ns), ra->i.to, R); /* pass hidden argument */
+		emit(Ocopy, Kl, rarg(Kl, &ni, &ns), ra->i.to, R); /* pass hidden argument */
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		if (a->inmem)
 			continue;
 		r1 = rarg(a->cls[0], &ni, &ns);
-		if (i->op == OArgc) {
+		if (i->op == Oargc) {
 			if (a->size > 8) {
 				r2 = rarg(a->cls[1], &ni, &ns);
 				r = newtmp("abi", Kl, fn);
-				emit(OLoad, a->cls[1], r2, r, R);
-				emit(OAdd, Kl, r, i->arg[1], getcon(8, fn));
+				emit(Oload, a->cls[1], r2, r, R);
+				emit(Oadd, Kl, r, i->arg[1], getcon(8, fn));
 			}
-			emit(OLoad, a->cls[0], r1, i->arg[1], R);
+			emit(Oload, a->cls[0], r1, i->arg[1], R);
 		} else
-			emit(OCopy, i->cls, r1, i->arg[0], R);
+			emit(Ocopy, i->cls, r1, i->arg[0], R);
 	}
 
 	if (!stk)
@@ -358,18 +358,18 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 	for (i=i0, a=ac, off=0; i<i1; i++, a++) {
 		if (!a->inmem)
 			continue;
-		if (i->op == OArgc) {
+		if (i->op == Oargc) {
 			if (a->align == 4)
 				off += off & 15;
 			blit(r, off, i->arg[1], a->size, fn);
 		} else {
 			r1 = newtmp("abi", Kl, fn);
-			emit(OStorel, 0, R, i->arg[0], r1);
-			emit(OAdd, Kl, r1, r, getcon(off, fn));
+			emit(Ostorel, 0, R, i->arg[0], r1);
+			emit(Oadd, Kl, r1, r, getcon(off, fn));
 		}
 		off += a->size;
 	}
-	emit(OSAlloc, Kl, r, getcon(stk, fn), R);
+	emit(Osalloc, Kl, r, getcon(stk, fn), R);
 }
 
 static void
@@ -386,29 +386,29 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 
 	if (fn->retty >= 0) {
 		aclass(&aret, &typ[fn->retty]);
-		classify(i0, i1, ac, OPar, &aret);
+		classify(i0, i1, ac, Opar, &aret);
 	} else
-		classify(i0, i1, ac, OPar, 0);
+		classify(i0, i1, ac, Opar, 0);
 
 	for (i=i0, a=ac; i<i1; i++, a++) {
-		if (i->op != OParc || a->inmem)
+		if (i->op != Oparc || a->inmem)
 			continue;
 		if (a->size > 8) {
 			r = newtmp("abi", Kl, fn);
 			a->ref[1] = newtmp("abi", Kl, fn);
-			emit(OStorel, 0, R, a->ref[1], r);
-			emit(OAdd, Kl, r, i->to, getcon(8, fn));
+			emit(Ostorel, 0, R, a->ref[1], r);
+			emit(Oadd, Kl, r, i->to, getcon(8, fn));
 		}
 		a->ref[0] = newtmp("abi", Kl, fn);
-		emit(OStorel, 0, R, a->ref[0], i->to);
+		emit(Ostorel, 0, R, a->ref[0], i->to);
 		/* specific to NAlign == 3 */
 		al = a->align >= 2 ? a->align - 2 : 0;
-		emit(OAlloc+al, Kl, i->to, getcon(a->size, fn), R);
+		emit(Oalloc+al, Kl, i->to, getcon(a->size, fn), R);
 	}
 
 	if (fn->retty >= 0 && aret.inmem) {
 		r = newtmp("abi", Kl, fn);
-		emit(OCopy, Kl, r, rarg(Kl, &ni, &ns), R);
+		emit(Ocopy, Kl, r, rarg(Kl, &ni, &ns), R);
 		fn->retr = r;
 	}
 
@@ -423,19 +423,19 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 			s += a->size / 4;
 			continue;
 		case 2:
-			emit(OLoad, i->cls, i->to, SLOT(-s), R);
+			emit(Oload, i->cls, i->to, SLOT(-s), R);
 			s += 2;
 			continue;
 		}
 		r = rarg(a->cls[0], &ni, &ns);
-		if (i->op == OParc) {
-			emit(OCopy, Kl, a->ref[0], r, R);
+		if (i->op == Oparc) {
+			emit(Ocopy, Kl, a->ref[0], r, R);
 			if (a->size > 8) {
 				r = rarg(a->cls[1], &ni, &ns);
-				emit(OCopy, Kl, a->ref[1], r, R);
+				emit(Ocopy, Kl, a->ref[1], r, R);
 			}
 		} else
-			emit(OCopy, i->cls, i->to, r, R);
+			emit(Ocopy, i->cls, i->to, r, R);
 	}
 }
 
@@ -449,7 +449,7 @@ abi(Fn *fn)
 
 	/* lower arguments */
 	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
-		if (i->op != OPar && i->op != OParc)
+		if (i->op != Opar && i->op != Oparc)
 			break;
 	selpar(fn, b->ins, i);
 	n = b->nins - (i - b->ins) + (&insb[NIns] - curi);
@@ -468,16 +468,16 @@ abi(Fn *fn)
 		curi = &insb[NIns];
 		selret(b, fn);
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
-			if ((--i)->op == OCall) {
+			if ((--i)->op == Ocall) {
 				for (i0=i; i0>b->ins; i0--)
-					if ((i0-1)->op != OArg)
-					if ((i0-1)->op != OArgc)
+					if ((i0-1)->op != Oarg)
+					if ((i0-1)->op != Oargc)
 						break;
 				selcall(fn, i0, i, &ral);
 				i = i0;
 				continue;
 			}
-			assert(i->op != OArg && i->op != OArgc);
+			assert(i->op != Oarg && i->op != Oargc);
 			emiti(*i);
 		}
 		if (b == fn->start)

@@ -162,8 +162,8 @@ enum ICmp {
 #undef X
 	NICmp,
 
-	ICXnp = NICmp, /* x64 specific */
-	ICXp,
+	ICxnp = NICmp, /* x64 specific */
+	ICxp,
 	NXICmp
 };
 
@@ -201,103 +201,103 @@ enum Class {
 #define KBASE(k) ((k)>>1)
 
 enum Op {
-	OXXX,
+	Oxxx,
 
 	/* public instructions */
-	OAdd,
-	OSub,
-	ODiv,
-	ORem,
-	OUDiv,
-	OURem,
-	OMul,
-	OAnd,
-	OOr,
-	OXor,
-	OSar,
-	OShr,
-	OShl,
-	OCmpw,
-	OCmpw1 = OCmpw + NICmp-1,
-	OCmpl,
-	OCmpl1 = OCmpl + NICmp-1,
-	OCmps,
-	OCmps1 = OCmps + NFCmp-1,
-	OCmpd,
-	OCmpd1 = OCmpd + NFCmp-1,
+	Oadd,
+	Osub,
+	Odiv,
+	Orem,
+	Oudiv,
+	Ourem,
+	Omul,
+	Oand,
+	Oor,
+	Oxor,
+	Osar,
+	Oshr,
+	Oshl,
+	Ocmpw,
+	Ocmpw1 = Ocmpw + NICmp-1,
+	Ocmpl,
+	Ocmpl1 = Ocmpl + NICmp-1,
+	Ocmps,
+	Ocmps1 = Ocmps + NFCmp-1,
+	Ocmpd,
+	Ocmpd1 = Ocmpd + NFCmp-1,
 
-	OStoreb,
-	OStoreh,
-	OStorew,
-	OStorel,
-	OStores,
-	OStored,
-#define isstore(o) (OStoreb <= o && o <= OStored)
-	OLoadsb,  /* needs to match OExt (mem.c) */
-	OLoadub,
-	OLoadsh,
-	OLoaduh,
-	OLoadsw,
-	OLoaduw,
-	OLoad,
-#define isload(o) (OLoadsb <= o && o <= OLoad)
-	OExtsb,
-	OExtub,
-	OExtsh,
-	OExtuh,
-	OExtsw,
-	OExtuw,
-#define isext(o) (OExtsb <= o && o <= OExtuw)
+	Ostoreb,
+	Ostoreh,
+	Ostorew,
+	Ostorel,
+	Ostores,
+	Ostored,
+#define isstore(o) (Ostoreb <= o && o <= Ostored)
+	Oloadsb,  /* needs to match OExt (mem.c) */
+	Oloadub,
+	Oloadsh,
+	Oloaduh,
+	Oloadsw,
+	Oloaduw,
+	Oload,
+#define isload(o) (Oloadsb <= o && o <= Oload)
+	Oextsb,
+	Oextub,
+	Oextsh,
+	Oextuh,
+	Oextsw,
+	Oextuw,
+#define isext(o) (Oextsb <= o && o <= Oextuw)
 
-	OExts,
-	OTruncd,
-	OFtosi,
-	OSitof,
-	OCast,
+	Oexts,
+	Otruncd,
+	Oftosi,
+	Ositof,
+	Ocast,
 
-	OAlloc,
-	OAlloc1 = OAlloc + NAlign-1,
+	Oalloc,
+	Oalloc1 = Oalloc + NAlign-1,
 
-	OCopy,
+	Ocopy,
 	NPubOp,
 
 	/* function instructions */
-	OPar = NPubOp,
-	OParc,
-	OArg,
-	OArgc,
-	OCall,
+	Opar = NPubOp,
+	Oparc,
+	Oarg,
+	Oargc,
+	Ocall,
 
 	/* reserved instructions */
-	ONop,
-	OAddr,
-	OSwap,
-	OSign,
-	OSAlloc,
-	OXIDiv,
-	OXDiv,
-	OXCmp,
-	OXSet,
-	OXSetnp = OXSet + ICXnp,
-	OXSetp  = OXSet + ICXp,
-	OXTest,
+	Onop,
+	Oaddr,
+	Oswap,
+	Osign,
+	Osalloc,
+	Oxidiv,
+	Oxdiv,
+	Oxcmp,
+	Oxset,
+	Oxsetnp = Oxset + ICxnp,
+	Oxsetp  = Oxset + ICxp,
+	Oxtest,
 	NOp
 };
 
 enum Jmp {
-	JXXX,
-	JRet0,
-	JRetw,
-	JRetl,
-	JRets,
-	JRetd,
-	JRetc,
-#define isret(j) (JRet0 <= j && j <= JRetc)
-	JJmp,
-	JJnz,
-	JXJc,
-	JXJnp = JXJc + ICXnp,
-	JXJp  = JXJc + ICXp,
+	Jxxx,
+	Jret0,
+	Jretw,
+	Jretl,
+	Jrets,
+	Jretd,
+	Jretc,
+#define isret(j) (Jret0 <= j && j <= Jretc)
+	Jjmp,
+	Jjnz,
+	Jxjc,
+	Jxjnp = Jxjc + ICxnp,
+	Jxjp  = Jxjc + ICxp,
 	NJmp
 };
 

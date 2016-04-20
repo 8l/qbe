@@ -234,20 +234,20 @@ reloads(BSet *u, BSet *v)
 
 	for (t=Tmp0; bsiter(u, &t); t++)
 		if (!bshas(v, t))
-			emit(OLoad, tmp[t].cls, TMP(t), slot(t), R);
+			emit(Oload, tmp[t].cls, TMP(t), slot(t), R);
 }
 
 static void
 store(Ref r, int s)
 {
 	if (s != -1)
-		emit(OStorew + tmp[r.val].cls, 0, R, r, SLOT(s));
+		emit(Ostorew + tmp[r.val].cls, 0, R, r, SLOT(s));
 }
 
 static int
 regcpy(Ins *i)
 {
-	return i->op == OCopy && isreg(i->arg[0]);
+	return i->op == Ocopy && isreg(i->arg[0]);
 }
 
 static Ins *
@@ -281,7 +281,7 @@ dopm(Blk *b, Ins *i, BSet *v)
 		bsset(v, i->arg[0].val);
 	} while (i != b->ins && regcpy(i-1));
 	bscopy(u, v);
-	if (i != b->ins && (i-1)->op == OCall) {
+	if (i != b->ins && (i-1)->op == Ocall) {
 		v->t[0] &= ~retregs((i-1)->arg[1], 0);
 		limit2(v, NISave, NFSave, 0);
 		for (r=0, n=0; n<NRSave; n++)
@@ -308,7 +308,7 @@ dopm(Blk *b, Ins *i, BSet *v)
  * borders
  *
  * Be careful with:
- * - OCopy instructions to ensure register
+ * - Ocopy instructions to ensure register
  *   constraints
  */
 void

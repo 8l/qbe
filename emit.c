@@ -43,70 +43,70 @@ static struct {
 	short cls;
 	char *asm;
 } omap[] = {
-	{ OAdd,    Ka, "+add%k %1, %=" },
-	{ OSub,    Ka, "-sub%k %1, %=" },
-	{ OAnd,    Ki, "+and%k %1, %=" },
-	{ OOr,     Ki, "+or%k %1, %=" },
-	{ OXor,    Ki, "+xor%k %1, %=" },
-	{ OSar,    Ki, "-sar%k %B1, %=" },
-	{ OShr,    Ki, "-shr%k %B1, %=" },
-	{ OShl,    Ki, "-shl%k %B1, %=" },
-	{ OMul,    Ki, "+imul%k %1, %=" },
-	{ OMul,    Ks, "+mulss %1, %=" }, /* fixme */
-	{ OMul,    Kd, "+mulsd %1, %=" },
-	{ ODiv,    Ka, "-div%k %1, %=" },
-	{ OStorel, Ka, "movq %L0, %M1" },
-	{ OStorew, Ka, "movl %W0, %M1" },
-	{ OStoreh, Ka, "movw %H0, %M1" },
-	{ OStoreb, Ka, "movb %B0, %M1" },
-	{ OStores, Ka, "movss %S0, %M1" },
-	{ OStored, Ka, "movsd %D0, %M1" },
-	{ OLoad,   Ka, "mov%k %M0, %=" },
-	{ OLoadsw, Kl, "movslq %M0, %L=" },
-	{ OLoadsw, Kw, "movl %M0, %W=" },
-	{ OLoaduw, Ki, "movl %M0, %W=" },
-	{ OLoadsh, Ki, "movsw%k %M0, %=" },
-	{ OLoaduh, Ki, "movzw%k %M0, %=" },
-	{ OLoadsb, Ki, "movsb%k %M0, %=" },
-	{ OLoadub, Ki, "movzb%k %M0, %=" },
-	{ OExtsw,  Kl, "movslq %W0, %L=" },
-	{ OExtuw,  Kl, "movl %W0, %W=" },
-	{ OExtsh,  Ki, "movsw%k %H0, %=" },
-	{ OExtuh,  Ki, "movzw%k %H0, %=" },
-	{ OExtsb,  Ki, "movsb%k %B0, %=" },
-	{ OExtub,  Ki, "movzb%k %B0, %=" },
+	{ Oadd,    Ka, "+add%k %1, %=" },
+	{ Osub,    Ka, "-sub%k %1, %=" },
+	{ Oand,    Ki, "+and%k %1, %=" },
+	{ Oor,     Ki, "+or%k %1, %=" },
+	{ Oxor,    Ki, "+xor%k %1, %=" },
+	{ Osar,    Ki, "-sar%k %B1, %=" },
+	{ Oshr,    Ki, "-shr%k %B1, %=" },
+	{ Oshl,    Ki, "-shl%k %B1, %=" },
+	{ Omul,    Ki, "+imul%k %1, %=" },
+	{ Omul,    Ks, "+mulss %1, %=" }, /* fixme */
+	{ Omul,    Kd, "+mulsd %1, %=" },
+	{ Odiv,    Ka, "-div%k %1, %=" },
+	{ Ostorel, Ka, "movq %L0, %M1" },
+	{ Ostorew, Ka, "movl %W0, %M1" },
+	{ Ostoreh, Ka, "movw %H0, %M1" },
+	{ Ostoreb, Ka, "movb %B0, %M1" },
+	{ Ostores, Ka, "movss %S0, %M1" },
+	{ Ostored, Ka, "movsd %D0, %M1" },
+	{ Oload,   Ka, "mov%k %M0, %=" },
+	{ Oloadsw, Kl, "movslq %M0, %L=" },
+	{ Oloadsw, Kw, "movl %M0, %W=" },
+	{ Oloaduw, Ki, "movl %M0, %W=" },
+	{ Oloadsh, Ki, "movsw%k %M0, %=" },
+	{ Oloaduh, Ki, "movzw%k %M0, %=" },
+	{ Oloadsb, Ki, "movsb%k %M0, %=" },
+	{ Oloadub, Ki, "movzb%k %M0, %=" },
+	{ Oextsw,  Kl, "movslq %W0, %L=" },
+	{ Oextuw,  Kl, "movl %W0, %W=" },
+	{ Oextsh,  Ki, "movsw%k %H0, %=" },
+	{ Oextuh,  Ki, "movzw%k %H0, %=" },
+	{ Oextsb,  Ki, "movsb%k %B0, %=" },
+	{ Oextub,  Ki, "movzb%k %B0, %=" },
 
-	{ OExts,   Kd, "cvtss2sd %0, %=" },  /* see if factorization is possible */
-	{ OTruncd, Ks, "cvttsd2ss %0, %=" },
-	{ OFtosi,  Kw, "cvttss2si %0, %=" },
-	{ OFtosi,  Kl, "cvttsd2si %0, %=" },
-	{ OSitof,  Ks, "cvtsi2ss %W0, %=" },
-	{ OSitof,  Kd, "cvtsi2sd %L0, %=" },
-	{ OCast,   Ki, "movq %D0, %L=" },
-	{ OCast,   Ka, "movq %L0, %D=" },
+	{ Oexts,   Kd, "cvtss2sd %0, %=" },  /* see if factorization is possible */
+	{ Otruncd, Ks, "cvttsd2ss %0, %=" },
+	{ Oftosi,  Kw, "cvttss2si %0, %=" },
+	{ Oftosi,  Kl, "cvttsd2si %0, %=" },
+	{ Ositof,  Ks, "cvtsi2ss %W0, %=" },
+	{ Ositof,  Kd, "cvtsi2sd %L0, %=" },
+	{ Ocast,   Ki, "movq %D0, %L=" },
+	{ Ocast,   Ka, "movq %L0, %D=" },
 
-	{ OAddr,   Ki, "lea%k %M0, %=" },
-	{ OSwap,   Ki, "xchg%k %0, %1" },
-	{ OSign,   Kl, "cqto" },
-	{ OSign,   Kw, "cltd" },
-	{ OXDiv,   Ki, "div%k %0" },
-	{ OXIDiv,  Ki, "idiv%k %0" },
-	{ OXCmp,   Ks, "comiss %S0, %S1" },  /* fixme, Kf */
-	{ OXCmp,   Kd, "comisd %D0, %D1" },
-	{ OXCmp,   Ki, "cmp%k %0, %1" },
-	{ OXTest,  Ki, "test%k %0, %1" },
-	{ OXSet+ICule, Ki, "setbe %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+ICult, Ki, "setb %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+ICsle, Ki, "setle %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+ICslt, Ki, "setl %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+ICsgt, Ki, "setg %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+ICsge, Ki, "setge %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+ICugt, Ki, "seta %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+ICuge, Ki, "setae %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+ICeq,  Ki, "setz %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+ICne,  Ki, "setnz %B=\n\tmovzb%k %B=, %=" },
-	{ OXSet+ICXnp, Ki, "setnp %B=\n\tmovsb%k %B=, %=" },
-	{ OXSet+ICXp,  Ki, "setp %B=\n\tmovsb%k %B=, %=" },
+	{ Oaddr,   Ki, "lea%k %M0, %=" },
+	{ Oswap,   Ki, "xchg%k %0, %1" },
+	{ Osign,   Kl, "cqto" },
+	{ Osign,   Kw, "cltd" },
+	{ Oxdiv,   Ki, "div%k %0" },
+	{ Oxidiv,  Ki, "idiv%k %0" },
+	{ Oxcmp,   Ks, "comiss %S0, %S1" },  /* fixme, Kf */
+	{ Oxcmp,   Kd, "comisd %D0, %D1" },
+	{ Oxcmp,   Ki, "cmp%k %0, %1" },
+	{ Oxtest,  Ki, "test%k %0, %1" },
+	{ Oxset+ICule, Ki, "setbe %B=\n\tmovzb%k %B=, %=" },
+	{ Oxset+ICult, Ki, "setb %B=\n\tmovzb%k %B=, %=" },
+	{ Oxset+ICsle, Ki, "setle %B=\n\tmovzb%k %B=, %=" },
+	{ Oxset+ICslt, Ki, "setl %B=\n\tmovzb%k %B=, %=" },
+	{ Oxset+ICsgt, Ki, "setg %B=\n\tmovzb%k %B=, %=" },
+	{ Oxset+ICsge, Ki, "setge %B=\n\tmovzb%k %B=, %=" },
+	{ Oxset+ICugt, Ki, "seta %B=\n\tmovzb%k %B=, %=" },
+	{ Oxset+ICuge, Ki, "setae %B=\n\tmovzb%k %B=, %=" },
+	{ Oxset+ICeq,  Ki, "setz %B=\n\tmovzb%k %B=, %=" },
+	{ Oxset+ICne,  Ki, "setnz %B=\n\tmovzb%k %B=, %=" },
+	{ Oxset+ICxnp, Ki, "setnp %B=\n\tmovsb%k %B=, %=" },
+	{ Oxset+ICxp,  Ki, "setp %B=\n\tmovsb%k %B=, %=" },
 	{ NOp, 0, 0 }
 };
 
@@ -200,7 +200,7 @@ emitcopy(Ref r1, Ref r2, int k, Fn *fn, FILE *f)
 {
 	Ins icp;
 
-	icp.op = OCopy;
+	icp.op = Ocopy;
 	icp.arg[0] = r2;
 	icp.to = r1;
 	icp.cls = k;
@@ -364,11 +364,11 @@ emitins(Ins i, Fn *fn, FILE *f)
 		}
 		emitf(omap[o].asm, &i, fn, f);
 		break;
-	case ONop:
+	case Onop:
 		/* just do nothing for nops, they are inserted
 		 * by some passes */
 		break;
-	case OMul:
+	case Omul:
 		/* here, we try to use the 3-addresss form
 		 * of multiplication when possible */
 		if (rtype(i.arg[1]) == RCon) {
@@ -383,7 +383,7 @@ emitins(Ins i, Fn *fn, FILE *f)
 			break;
 		}
 		goto Table;
-	case OSub:
+	case Osub:
 		/* we have to use the negation trick to handle
 		 * some 3-address substractions */
 		if (req(i.to, i.arg[1])) {
@@ -392,7 +392,7 @@ emitins(Ins i, Fn *fn, FILE *f)
 			break;
 		}
 		goto Table;
-	case OCopy:
+	case Ocopy:
 		/* make sure we don't emit useless copies,
 		 * also, we can use a trick to load 64-bits
 		 * registers, it's detailed in my note below
@@ -413,7 +413,7 @@ emitins(Ins i, Fn *fn, FILE *f)
 		} else if (!req(i.arg[0], i.to))
 			emitf("mov%k %0, %=", &i, fn, f);
 		break;
-	case OCall:
+	case Ocall:
 		/* calls simply have a weird syntax in AT&T
 		 * assembly... */
 		switch (rtype(i.arg[0])) {
@@ -429,16 +429,16 @@ emitins(Ins i, Fn *fn, FILE *f)
 			die("invalid call argument");
 		}
 		break;
-	case OSAlloc:
+	case Osalloc:
 		/* there is no good reason why this is here
-		 * maybe we should split OSAlloc in 2 different
+		 * maybe we should split Osalloc in 2 different
 		 * instructions depending on the result
 		 */
 		emitf("subq %L0, %%rsp", &i, fn, f);
 		if (!req(i.to, R))
 			emitcopy(i.to, TMP(RSP), Kl, fn, f);
 		break;
-	case OSwap:
+	case Oswap:
 		if (KBASE(i.cls) == 0)
 			goto Table;
 		/* for floats, there is no swap instruction
@@ -466,8 +466,8 @@ cneg(int cmp)
 	case ICuge: return ICult;
 	case ICeq:  return ICne;
 	case ICne:  return ICeq;
-	case ICXnp: return ICXp;
-	case ICXp:  return ICXnp;
+	case ICxnp: return ICxp;
+	case ICxp:  return ICxnp;
 	}
 }
 
@@ -498,8 +498,8 @@ emitfn(Fn *fn, FILE *f)
 		[ICugt] = "a",
 		[ICuge] = "ae",
 		[ICne]  = "nz",
-		[ICXnp] = "np",
-		[ICXp]  = "p"
+		[ICxnp] = "np",
+		[ICxp]  = "p"
 	};
 	static int id0;
 	Blk *b, *s;
@@ -529,7 +529,7 @@ emitfn(Fn *fn, FILE *f)
 		for (i=b->ins; i!=&b->ins[b->nins]; i++)
 			emitins(*i, fn, f);
 		switch (b->jmp.type) {
-		case JRet0:
+		case Jret0:
 			for (r=&rclob[NRClob]; r>rclob;)
 				if (fn->reg & BIT(*--r)) {
 					itmp.arg[0] = TMP(*r);
@@ -540,14 +540,14 @@ emitfn(Fn *fn, FILE *f)
 				"\tret\n"
 			);
 			break;
-		case JJmp:
+		case Jjmp:
 		Jmp:
 			if (b->s1 != b->link)
 				fprintf(f, "\tjmp %sbb%d /* %s */\n",
 					locprefix, id0+b->s1->id, b->s1->name);
 			break;
 		default:
-			c = b->jmp.type - JXJc;
+			c = b->jmp.type - Jxjc;
 			if (0 <= c && c <= NXICmp) {
 				if (b->link == b->s2) {
 					s = b->s1;

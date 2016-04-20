@@ -55,7 +55,7 @@ visitins(Ins *i, Ref *cp, RList **w)
 {
 	Ref r;
 
-	if (i->op == OCopy) {
+	if (i->op == Ocopy) {
 		r = copyof(i->arg[0], cp);
 		update(i->to, r, cp, w);
 	} else if (!req(i->to, R)) {
@@ -125,7 +125,7 @@ copy(Fn *fn)
 		for (i=b->ins; i-b->ins < b->nins; i++) {
 			r = copyof(i->to, cp);
 			if (!req(r, i->to)) {
-				*i = (Ins){.op = ONop};
+				*i = (Ins){.op = Onop};
 				continue;
 			}
 			for (a=0; a<2; a++)

@@ -11,72 +11,72 @@ OpDesc opdesc[NOp] = {
 #define A(a,b,c,d) {[Kw]=K##a, [Kl]=K##b, [Ks]=K##c, [Kd]=K##d}
 
 	/*            NAME       NM      ARGCLS0     ARGCLS1  SF LF FLD*/
-	[OAdd]    = { "add",      2, {A(w,l,s,d), A(w,l,s,d)}, 1, 0, 1 },
-	[OSub]    = { "sub",      2, {A(w,l,s,d), A(w,l,s,d)}, 1, 0, 1 },
-	[ODiv]    = { "div",      2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0, 1 },
-	[ORem]    = { "rem",      2, {A(w,l,e,e), A(w,l,e,e)}, 0, 0, 1 },
-	[OUDiv]   = { "udiv",     2, {A(w,l,e,e), A(w,l,e,e)}, 0, 0, 1 },
-	[OURem]   = { "urem",     2, {A(w,l,e,e), A(w,l,e,e)}, 0, 0, 1 },
-	[OMul]    = { "mul",      2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0, 1 },
-	[OAnd]    = { "and",      2, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 1 },
-	[OOr]     = { "or",       2, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 1 },
-	[OXor]    = { "xor",      2, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 1 },
-	[OSar]    = { "sar",      1, {A(w,l,e,e), A(w,w,e,e)}, 1, 0, 1 },
-	[OShr]    = { "shr",      1, {A(w,l,e,e), A(w,w,e,e)}, 1, 0, 1 },
-	[OShl]    = { "shl",      1, {A(w,l,e,e), A(w,w,e,e)}, 1, 0, 1 },
-	[OStored] = { "stored",   0, {A(d,d,d,d), A(m,m,m,m)}, 0, 1, 0 },
-	[OStores] = { "stores",   0, {A(s,s,s,s), A(m,m,m,m)}, 0, 1, 0 },
-	[OStorel] = { "storel",   0, {A(l,l,l,l), A(m,m,m,m)}, 0, 1, 0 },
-	[OStorew] = { "storew",   0, {A(w,w,w,w), A(m,m,m,m)}, 0, 1, 0 },
-	[OStoreh] = { "storeh",   0, {A(w,w,w,w), A(m,m,m,m)}, 0, 1, 0 },
-	[OStoreb] = { "storeb",   0, {A(w,w,w,w), A(m,m,m,m)}, 0, 1, 0 },
-	[OLoad]   = { "load",     0, {A(m,m,m,m), A(x,x,x,x)}, 0, 1, 0 },
-	[OLoadsw] = { "loadsw",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
-	[OLoaduw] = { "loaduw",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
-	[OLoadsh] = { "loadsh",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
-	[OLoaduh] = { "loaduh",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
-	[OLoadsb] = { "loadsb",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
-	[OLoadub] = { "loadub",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
-	[OExtsw]  = { "extsw",    0, {A(e,w,e,e), A(e,x,e,e)}, 0, 1, 1 },
-	[OExtuw]  = { "extuw",    0, {A(e,w,e,e), A(e,x,e,e)}, 0, 1, 1 },
-	[OExtsh]  = { "extsh",    0, {A(w,w,e,e), A(x,x,e,e)}, 0, 1, 1 },
-	[OExtuh]  = { "extuh",    0, {A(w,w,e,e), A(x,x,e,e)}, 0, 1, 1 },
-	[OExtsb]  = { "extsb",    0, {A(w,w,e,e), A(x,x,e,e)}, 0, 1, 1 },
-	[OExtub]  = { "extub",    0, {A(w,w,e,e), A(x,x,e,e)}, 0, 1, 1 },
-	[OExts]   = { "exts",     0, {A(e,e,e,s), A(e,e,e,x)}, 0, 1, 1 },
-	[OTruncd] = { "truncd",   0, {A(e,e,d,e), A(e,e,x,e)}, 0, 1, 1 },
-	[OFtosi]  = { "ftosi",    0, {A(s,d,e,e), A(x,x,e,e)}, 0, 1, 1 },
-	[OSitof]  = { "sitof",    0, {A(e,e,w,l), A(e,e,x,x)}, 0, 1, 1 },
-	[OCast]   = { "cast",     0, {A(s,d,w,l), A(x,x,x,x)}, 0, 1, 1 },
-	[OCopy]   = { "copy",     1, {A(w,l,s,d), A(x,x,x,x)}, 0, 1, 0 },
-	[ONop]    = { "nop",      0, {A(x,x,x,x), A(x,x,x,x)}, 0, 1, 0 },
-	[OSwap]   = { "swap",     2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0, 0 },
-	[OSign]   = { "sign",     0, {A(w,l,e,e), A(x,x,e,e)}, 0, 0, 0 },
-	[OSAlloc] = { "salloc",   0, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
-	[OXIDiv]  = { "xidiv",    1, {A(w,l,e,e), A(x,x,e,e)}, 0, 0, 0 },
-	[OXDiv]   = { "xdiv",     1, {A(w,l,e,e), A(x,x,e,e)}, 0, 0, 0 },
-	[OXCmp]   = { "xcmp",     1, {A(w,l,s,d), A(w,l,s,d)}, 1, 0, 0 },
-	[OXTest]  = { "xtest",    1, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 0 },
-	[OAddr]   = { "addr",     0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
-	[OPar]    = { "parn",     0, {A(x,x,x,x), A(x,x,x,x)}, 0, 0, 0 },
-	[OParc]   = { "parc",     0, {A(e,x,e,e), A(e,x,e,e)}, 0, 0, 0 },
-	[OArg]    = { "arg",      0, {A(w,l,s,d), A(x,x,x,x)}, 0, 0, 0 },
-	[OArgc]   = { "argc",     0, {A(e,x,e,e), A(e,l,e,e)}, 0, 0, 0 },
-	[OCall]   = { "call",     0, {A(m,m,m,m), A(x,x,x,x)}, 0, 0, 0 },
-	[OXSetnp] = { "xsetnp",   0, {A(x,x,e,e), A(x,x,e,e)}, 0, 0, 0 },
-	[OXSetp]  = { "xsetp",    0, {A(x,x,e,e), A(x,x,e,e)}, 0, 0, 0 },
-	[OAlloc]   = { "alloc4",  1, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
-	[OAlloc+1] = { "alloc8",  1, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
-	[OAlloc+2] = { "alloc16", 1, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
+	[Oadd]    = { "add",      2, {A(w,l,s,d), A(w,l,s,d)}, 1, 0, 1 },
+	[Osub]    = { "sub",      2, {A(w,l,s,d), A(w,l,s,d)}, 1, 0, 1 },
+	[Odiv]    = { "div",      2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0, 1 },
+	[Orem]    = { "rem",      2, {A(w,l,e,e), A(w,l,e,e)}, 0, 0, 1 },
+	[Oudiv]   = { "udiv",     2, {A(w,l,e,e), A(w,l,e,e)}, 0, 0, 1 },
+	[Ourem]   = { "urem",     2, {A(w,l,e,e), A(w,l,e,e)}, 0, 0, 1 },
+	[Omul]    = { "mul",      2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0, 1 },
+	[Oand]    = { "and",      2, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 1 },
+	[Oor]     = { "or",       2, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 1 },
+	[Oxor]    = { "xor",      2, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 1 },
+	[Osar]    = { "sar",      1, {A(w,l,e,e), A(w,w,e,e)}, 1, 0, 1 },
+	[Oshr]    = { "shr",      1, {A(w,l,e,e), A(w,w,e,e)}, 1, 0, 1 },
+	[Oshl]    = { "shl",      1, {A(w,l,e,e), A(w,w,e,e)}, 1, 0, 1 },
+	[Ostored] = { "stored",   0, {A(d,d,d,d), A(m,m,m,m)}, 0, 1, 0 },
+	[Ostores] = { "stores",   0, {A(s,s,s,s), A(m,m,m,m)}, 0, 1, 0 },
+	[Ostorel] = { "storel",   0, {A(l,l,l,l), A(m,m,m,m)}, 0, 1, 0 },
+	[Ostorew] = { "storew",   0, {A(w,w,w,w), A(m,m,m,m)}, 0, 1, 0 },
+	[Ostoreh] = { "storeh",   0, {A(w,w,w,w), A(m,m,m,m)}, 0, 1, 0 },
+	[Ostoreb] = { "storeb",   0, {A(w,w,w,w), A(m,m,m,m)}, 0, 1, 0 },
+	[Oload]   = { "load",     0, {A(m,m,m,m), A(x,x,x,x)}, 0, 1, 0 },
+	[Oloadsw] = { "loadsw",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
+	[Oloaduw] = { "loaduw",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
+	[Oloadsh] = { "loadsh",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
+	[Oloaduh] = { "loaduh",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
+	[Oloadsb] = { "loadsb",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
+	[Oloadub] = { "loadub",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
+	[Oextsw]  = { "extsw",    0, {A(e,w,e,e), A(e,x,e,e)}, 0, 1, 1 },
+	[Oextuw]  = { "extuw",    0, {A(e,w,e,e), A(e,x,e,e)}, 0, 1, 1 },
+	[Oextsh]  = { "extsh",    0, {A(w,w,e,e), A(x,x,e,e)}, 0, 1, 1 },
+	[Oextuh]  = { "extuh",    0, {A(w,w,e,e), A(x,x,e,e)}, 0, 1, 1 },
+	[Oextsb]  = { "extsb",    0, {A(w,w,e,e), A(x,x,e,e)}, 0, 1, 1 },
+	[Oextub]  = { "extub",    0, {A(w,w,e,e), A(x,x,e,e)}, 0, 1, 1 },
+	[Oexts]   = { "exts",     0, {A(e,e,e,s), A(e,e,e,x)}, 0, 1, 1 },
+	[Otruncd] = { "truncd",   0, {A(e,e,d,e), A(e,e,x,e)}, 0, 1, 1 },
+	[Oftosi]  = { "ftosi",    0, {A(s,d,e,e), A(x,x,e,e)}, 0, 1, 1 },
+	[Ositof]  = { "sitof",    0, {A(e,e,w,l), A(e,e,x,x)}, 0, 1, 1 },
+	[Ocast]   = { "cast",     0, {A(s,d,w,l), A(x,x,x,x)}, 0, 1, 1 },
+	[Ocopy]   = { "copy",     1, {A(w,l,s,d), A(x,x,x,x)}, 0, 1, 0 },
+	[Onop]    = { "nop",      0, {A(x,x,x,x), A(x,x,x,x)}, 0, 1, 0 },
+	[Oswap]   = { "swap",     2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0, 0 },
+	[Osign]   = { "sign",     0, {A(w,l,e,e), A(x,x,e,e)}, 0, 0, 0 },
+	[Osalloc] = { "salloc",   0, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
+	[Oxidiv]  = { "xidiv",    1, {A(w,l,e,e), A(x,x,e,e)}, 0, 0, 0 },
+	[Oxdiv]   = { "xdiv",     1, {A(w,l,e,e), A(x,x,e,e)}, 0, 0, 0 },
+	[Oxcmp]   = { "xcmp",     1, {A(w,l,s,d), A(w,l,s,d)}, 1, 0, 0 },
+	[Oxtest]  = { "xtest",    1, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 0 },
+	[Oaddr]   = { "addr",     0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
+	[Opar]    = { "parn",     0, {A(x,x,x,x), A(x,x,x,x)}, 0, 0, 0 },
+	[Oparc]   = { "parc",     0, {A(e,x,e,e), A(e,x,e,e)}, 0, 0, 0 },
+	[Oarg]    = { "arg",      0, {A(w,l,s,d), A(x,x,x,x)}, 0, 0, 0 },
+	[Oargc]   = { "argc",     0, {A(e,x,e,e), A(e,l,e,e)}, 0, 0, 0 },
+	[Ocall]   = { "call",     0, {A(m,m,m,m), A(x,x,x,x)}, 0, 0, 0 },
+	[Oxsetnp] = { "xsetnp",   0, {A(x,x,e,e), A(x,x,e,e)}, 0, 0, 0 },
+	[Oxsetp]  = { "xsetp",    0, {A(x,x,e,e), A(x,x,e,e)}, 0, 0, 0 },
+	[Oalloc]   = { "alloc4",  1, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
+	[Oalloc+1] = { "alloc8",  1, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
+	[Oalloc+2] = { "alloc16", 1, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
 #define X(c) \
-	[OCmpw+IC##c] = { "c"    #c "w", 0, {A(w,w,e,e), A(w,w,e,e)}, 1, 0, 1 }, \
-	[OCmpl+IC##c] = { "c"    #c "l", 0, {A(l,l,e,e), A(l,l,e,e)}, 1, 0, 1 }, \
-	[OXSet+IC##c] = { "xset" #c,     0, {A(x,x,e,e), A(x,x,e,e)}, 0, 1, 0 },
+	[Ocmpw+IC##c] = { "c"    #c "w", 0, {A(w,w,e,e), A(w,w,e,e)}, 1, 0, 1 }, \
+	[Ocmpl+IC##c] = { "c"    #c "l", 0, {A(l,l,e,e), A(l,l,e,e)}, 1, 0, 1 }, \
+	[Oxset+IC##c] = { "xset" #c,     0, {A(x,x,e,e), A(x,x,e,e)}, 0, 1, 0 },
 	ICMPS(X)
 #undef X
 #define X(c) \
-	[OCmps+FC##c] = { "c"    #c "s", 0, {A(s,s,e,e), A(s,s,e,e)}, 1, 0, 1 }, \
-	[OCmpd+FC##c] = { "c"    #c "d", 0, {A(d,d,e,e), A(d,d,e,e)}, 1, 0, 1 },
+	[Ocmps+FC##c] = { "c"    #c "s", 0, {A(s,s,e,e), A(s,s,e,e)}, 1, 0, 1 }, \
+	[Ocmpd+FC##c] = { "c"    #c "d", 0, {A(d,d,e,e), A(d,d,e,e)}, 1, 0, 1 },
 	FCMPS(X)
 #undef X
 
@@ -191,12 +191,12 @@ lex()
 		{ "d", TD },
 		{ "s", TS },
 		{ "z", TZ },
-		{ "loadw", OLoad }, /* for convenience */
-		{ "loadl", OLoad },
-		{ "loads", OLoad },
-		{ "loadd", OLoad },
-		{ "alloc1", OAlloc },
-		{ "alloc2", OAlloc },
+		{ "loadw", Oload }, /* for convenience */
+		{ "loadl", Oload },
+		{ "loads", Oload },
+		{ "loadd", Oload },
+		{ "alloc1", Oalloc },
+		{ "alloc2", Oalloc },
 		{ 0, TXXX }
 	};
 	static char tok[NString];
@@ -453,14 +453,14 @@ parserefl(int arg)
 			err("invalid function parameter");
 		if (k == 4)
 			if (arg)
-				*curi = (Ins){OArgc, R, {TYPE(ty), r}, Kl};
+				*curi = (Ins){Oargc, R, {TYPE(ty), r}, Kl};
 			else
-				*curi = (Ins){OParc, r, {TYPE(ty)}, Kl};
+				*curi = (Ins){Oparc, r, {TYPE(ty)}, Kl};
 		else
 			if (arg)
-				*curi = (Ins){OArg, R, {r}, k};
+				*curi = (Ins){Oarg, R, {r}, k};
 			else
-				*curi = (Ins){OPar, r, {R}, k};
+				*curi = (Ins){Opar, r, {R}, k};
 		curi++;
 		if (peek() == TRParen)
 			break;
@@ -522,12 +522,12 @@ parseline(PState ps)
 		break;
 	case TLbl:
 		b = findblk(tokval.str);
-		if (curb && curb->jmp.type == JXXX) {
+		if (curb && curb->jmp.type == Jxxx) {
 			closeblk();
-			curb->jmp.type = JJmp;
+			curb->jmp.type = Jjmp;
 			curb->s1 = b;
 		}
-		if (b->jmp.type != JXXX)
+		if (b->jmp.type != Jxxx)
 			err("multiple definitions of block @%s", b->name);
 		*blink = b;
 		curb = b;
@@ -536,9 +536,9 @@ parseline(PState ps)
 		return PPhi;
 	case TRet:
 		curb->jmp.type = (int[]){
-			JRetw, JRetl,
-			JRets, JRetd,
-			JRetc, JRet0
+			Jretw, Jretl,
+			Jrets, Jretd,
+			Jretc, Jret0
 		}[rcls];
 		if (rcls < 5) {
 			r = parseref();
@@ -548,10 +548,10 @@ parseline(PState ps)
 		}
 		goto Close;
 	case TJmp:
-		curb->jmp.type = JJmp;
+		curb->jmp.type = Jjmp;
 		goto Jump;
 	case TJnz:
-		curb->jmp.type = JJnz;
+		curb->jmp.type = Jjnz;
 		r = parseref();
 		if (req(r, R))
 			err("invalid argument for jnz jump");
@@ -560,7 +560,7 @@ parseline(PState ps)
 	Jump:
 		expect(TLbl);
 		curb->s1 = findblk(tokval.str);
-		if (curb->jmp.type != JJmp) {
+		if (curb->jmp.type != Jjmp) {
 			expect(TComma);
 			expect(TLbl);
 			curb->s2 = findblk(tokval.str);
@@ -586,7 +586,7 @@ DoOp:
 		arg[0] = parseref();
 		parserefl(1);
 		expect(TNL);
-		op = OCall;
+		op = Ocall;
 		if (k == 4) {
 			k = Kl;
 			arg[1] = TYPE(ty);
@@ -721,19 +721,19 @@ typecheck(Fn *fn)
 			}
 		r = b->jmp.arg;
 		if (isret(b->jmp.type)) {
-			if (b->jmp.type == JRetc) {
+			if (b->jmp.type == Jretc) {
 				if (!usecheck(r, Kl, fn))
 					goto JErr;
-			} else if (!usecheck(r, b->jmp.type-JRetw, fn))
+			} else if (!usecheck(r, b->jmp.type-Jretw, fn))
 				goto JErr;
 		}
-		if (b->jmp.type == JJnz && !usecheck(r, Kw, fn))
+		if (b->jmp.type == Jjnz && !usecheck(r, Kw, fn))
 		JErr:
 			err("invalid type for jump argument %%%s in block @%s",
 				fn->tmp[r.val].name, b->name);
-		if (b->s1 && b->s1->jmp.type == JXXX)
+		if (b->s1 && b->s1->jmp.type == Jxxx)
 			err("block @%s is used undefined", b->s1->name);
-		if (b->s2 && b->s2->jmp.type == JXXX)
+		if (b->s2 && b->s2->jmp.type == Jxxx)
 			err("block @%s is used undefined", b->s2->name);
 	}
 }
@@ -775,7 +775,7 @@ parsefn(int export)
 	while (ps != PEnd);
 	if (!curb)
 		err("empty function");
-	if (curb->jmp.type == JXXX)
+	if (curb->jmp.type == Jxxx)
 		err("last block misses jump");
 	curf->mem = vnew(0, sizeof curf->mem[0]);
 	curf->nmem = 0;
@@ -1086,26 +1086,26 @@ void
 printfn(Fn *fn, FILE *f)
 {
 	static char *jtoa[NJmp] = {
-		[JRet0]     = "ret",
-		[JRetw]     = "retw",
-		[JRetl]     = "retl",
-		[JRetc]     = "retc",
-		[JRets]     = "rets",
-		[JRetd]     = "retd",
-		[JJnz]      = "jnz",
-		[JXJnp]     = "xjnp",
-		[JXJp]      = "xjp",
-	#define X(c) [JXJc+IC##c] = "xj" #c,
+		[Jret0]     = "ret",
+		[Jretw]     = "retw",
+		[Jretl]     = "retl",
+		[Jretc]     = "retc",
+		[Jrets]     = "rets",
+		[Jretd]     = "retd",
+		[Jjnz]      = "jnz",
+		[Jxjnp]     = "xjnp",
+		[Jxjp]      = "xjp",
+	#define X(c) [Jxjc+IC##c] = "xj" #c,
 		ICMPS(X)
 	#undef X
 	};
 	static char prcls[NOp] = {
-		[OArg] = 1,
-		[OSwap] = 1,
-		[OXCmp] = 1,
-		[OXTest] = 1,
-		[OXDiv] = 1,
-		[OXIDiv] = 1,
+		[Oarg] = 1,
+		[Oswap] = 1,
+		[Oxcmp] = 1,
+		[Oxtest] = 1,
+		[Oxdiv] = 1,
+		[Oxidiv] = 1,
 	};
 	static char ktoc[] = "wlsd";
 	Blk *b;
@@ -1154,28 +1154,28 @@ printfn(Fn *fn, FILE *f)
 			fprintf(f, "\n");
 		}
 		switch (b->jmp.type) {
-		case JRet0:
-		case JRetw:
-		case JRetl:
-		case JRets:
-		case JRetd:
-		case JRetc:
+		case Jret0:
+		case Jretw:
+		case Jretl:
+		case Jrets:
+		case Jretd:
+		case Jretc:
 			fprintf(f, "\t%s", jtoa[b->jmp.type]);
-			if (b->jmp.type != JRet0 || !req(b->jmp.arg, R)) {
+			if (b->jmp.type != Jret0 || !req(b->jmp.arg, R)) {
 				fprintf(f, " ");
 				printref(b->jmp.arg, fn, f);
 			}
-			if (b->jmp.type == JRetc)
+			if (b->jmp.type == Jretc)
 				fprintf(f, ", :%s", typ[fn->retty].name);
 			fprintf(f, "\n");
 			break;
-		case JJmp:
+		case Jjmp:
 			if (b->s1 != b->link)
 				fprintf(f, "\tjmp @%s\n", b->s1->name);
 			break;
 		default:
 			fprintf(f, "\t%s ", jtoa[b->jmp.type]);
-			if (b->jmp.type == JJnz) {
+			if (b->jmp.type == Jjnz) {
 				printref(b->jmp.arg, fn, f);
 				fprintf(f, ", ");
 			}

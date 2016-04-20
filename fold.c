@@ -124,7 +124,7 @@ visitjmp(Blk *b, int n, Fn *fn)
 	int l;
 
 	switch (b->jmp.type) {
-	case JJnz:
+	case Jjnz:
 		l = latval(b->jmp.arg);
 		assert(l != Top && "ssa invariant broken");
 		if (l == Bot) {
@@ -143,7 +143,7 @@ visitjmp(Blk *b, int n, Fn *fn)
 			flowrk = &edge[n][0];
 		}
 		break;
-	case JJmp:
+	case Jjmp:
 		edge[n][0].work = flowrk;
 		flowrk = &edge[n][0];
 		break;
@@ -226,7 +226,7 @@ fold(Fn *fn)
 				visitjmp(b, n, fn);
 			}
 			b->visit++;
-			assert(b->jmp.type != JJmp
+			assert(b->jmp.type != Jjmp
 				|| !edge[n][0].dead
 				|| flowrk == &edge[n][0]);
 		}
@@ -290,13 +290,13 @@ fold(Fn *fn)
 			}
 		for (i=b->ins; i-b->ins < b->nins; i++)
 			if (renref(&i->to))
-				*i = (Ins){.op = ONop};
+				*i = (Ins){.op = Onop};
 			else
 				for (n=0; n<2; n++)
 					renref(&i->arg[n]);
 		renref(&b->jmp.arg);
-		if (b->jmp.type == JJnz && rtype(b->jmp.arg) == RCon) {
-				b->jmp.type = JJmp;
+		if (b->jmp.type == Jjnz && rtype(b->jmp.arg) == RCon) {
+				b->jmp.type = Jjmp;
 				if (czero(&fn->con[b->jmp.arg.val], 0))
 					b->s1 = b->s2;
 				b->jmp.arg = R;
@@ -333,7 +333,7 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 	lab = 0;
 	l.s = cl->bits.i;
 	r.s = cr->bits.i;
-	if (op == OAdd) {
+	if (op == Oadd) {
 		if (cl->type == CAddr) {
 			if (cr->type == CAddr)
 				err("undefined addition (addr + addr)");
@@ -342,7 +342,7 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 		else if (cr->type == CAddr)
 			lab = cr->label;
 	}
-	else if (op == OSub) {
+	else if (op == Osub) {
 		if (cl->type == CAddr) {
 			if (cr->type != CAddr)
 				lab = cl->label;
@@ -355,44 +355,44 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 	else if (cl->type == CAddr || cr->type == CAddr)
 		err("invalid address operand for '%s'", opdesc[op].name);
 	switch (op) {
-	case OAdd:  x = l.u + r.u; break;
-	case OSub:  x = l.u - r.u; break;
-	case ODiv:  x = l.s / r.s; break;
-	case ORem:  x = l.s % r.s; break;
-	case OUDiv: x = l.u / r.u; break;
-	case OURem: x = l.u % r.u; break;
-	case OMul:  x = l.u * r.u; break;
-	case OAnd:  x = l.u & r.u; break;
-	case OOr:   x = l.u | r.u; break;
-	case OXor:  x = l.u ^ r.u; break;
-	case OSar:  x = l.s >> (r.u & 63); break;
-	case OShr:  x = l.u >> (r.u & 63); break;
-	case OShl:  x = l.u << (r.u & 63); break;
-	case OExtsb: x = (int8_t)l.u;   break;
-	case OExtub: x = (uint8_t)l.u;  break;
-	case OExtsh: x = (int16_t)l.u;  break;
-	case OExtuh: x = (uint16_t)l.u; break;
-	case OExtsw: x = (int32_t)l.u;  break;
-	case OExtuw: x = (uint32_t)l.u; break;
-	case OFtosi:
+	case Oadd:  x = l.u + r.u; break;
+	case Osub:  x = l.u - r.u; break;
+	case Odiv:  x = l.s / r.s; break;
+	case Orem:  x = l.s % r.s; break;
+	case Oudiv: x = l.u / r.u; break;
+	case Ourem: x = l.u % r.u; break;
+	case Omul:  x = l.u * r.u; break;
+	case Oand:  x = l.u & r.u; break;
+	case Oor:   x = l.u | r.u; break;
+	case Oxor:  x = l.u ^ r.u; break;
+	case Osar:  x = l.s >> (r.u & 63); break;
+	case Oshr:  x = l.u >> (r.u & 63); break;
+	case Oshl:  x = l.u << (r.u & 63); break;
+	case Oextsb: x = (int8_t)l.u;   break;
+	case Oextub: x = (uint8_t)l.u;  break;
+	case Oextsh: x = (int16_t)l.u;  break;
+	case Oextuh: x = (uint16_t)l.u; break;
+	case Oextsw: x = (int32_t)l.u;  break;
+	case Oextuw: x = (uint32_t)l.u; break;
+	case Oftosi:
 		if (w)
 			x = (int64_t)cl->bits.d;
 		else
 			x = (int32_t)cl->bits.s;
 		break;
-	case OCast:
+	case Ocast:
 		x = l.u;
 		if (cl->type == CAddr)
 			lab = cl->label;
 		break;
 	default:
-		if (OCmpw <= op && op <= OCmpl1) {
-			if (op <= OCmpw1) {
+		if (Ocmpw <= op && op <= Ocmpl1) {
+			if (op <= Ocmpw1) {
 				l.u = (uint32_t)l.u;
 				r.u = (uint32_t)r.u;
 			} else
-				op -= OCmpl - OCmpw;
-			switch (op - OCmpw) {
+				op -= Ocmpl - Ocmpw;
+			switch (op - Ocmpw) {
 			case ICule: x = l.u <= r.u; break;
 			case ICult: x = l.u < r.u;  break;
 			case ICsle: x = l.s <= r.s; break;
@@ -406,8 +406,8 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 			default: die("unreachable");
 			}
 		}
-		else if (OCmps <= op && op <= OCmps1) {
-			switch (op - OCmps) {
+		else if (Ocmps <= op && op <= Ocmps1) {
+			switch (op - Ocmps) {
 			case FCle: x = l.fs <= r.fs; break;
 			case FClt: x = l.fs < r.fs;  break;
 			case FCgt: x = l.fs > r.fs;  break;
@@ -419,8 +419,8 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 			default: die("unreachable");
 			}
 		}
-		else if (OCmpd <= op && op <= OCmpd1) {
-			switch (op - OCmpd) {
+		else if (Ocmpd <= op && op <= Ocmpd1) {
+			switch (op - Ocmpd) {
 			case FCle: x = l.fd <= r.fd; break;
 			case FClt: x = l.fd < r.fd;  break;
 			case FCgt: x = l.fd > r.fd;  break;
@@ -453,13 +453,13 @@ foldflt(Con *res, int op, int w, Con *cl, Con *cr)
 		ld = cl->bits.d;
 		rd = cr->bits.d;
 		switch (op) {
-		case OAdd: xd = ld + rd; break;
-		case OSub: xd = ld - rd; break;
-		case ODiv: xd = ld / rd; break;
-		case OMul: xd = ld * rd; break;
-		case OSitof: xd = cl->bits.i; break;
-		case OExts: xd = cl->bits.s; break;
-		case OCast: xd = ld; break;
+		case Oadd: xd = ld + rd; break;
+		case Osub: xd = ld - rd; break;
+		case Odiv: xd = ld / rd; break;
+		case Omul: xd = ld * rd; break;
+		case Ositof: xd = cl->bits.i; break;
+		case Oexts: xd = cl->bits.s; break;
+		case Ocast: xd = ld; break;
 		default: die("unreachable");
 		}
 		*res = (Con){CBits, .bits={.d=xd}, .flt=2};
@@ -467,13 +467,13 @@ foldflt(Con *res, int op, int w, Con *cl, Con *cr)
 		ls = cl->bits.s;
 		rs = cr->bits.s;
 		switch (op) {
-		case OAdd: xs = ls + rs; break;
-		case OSub: xs = ls - rs; break;
-		case ODiv: xs = ls / rs; break;
-		case OMul: xs = ls * rs; break;
-		case OSitof: xs = cl->bits.i; break;
-		case OTruncd: xs = cl->bits.d; break;
-		case OCast: xs = ls; break;
+		case Oadd: xs = ls + rs; break;
+		case Osub: xs = ls - rs; break;
+		case Odiv: xs = ls / rs; break;
+		case Omul: xs = ls * rs; break;
+		case Ositof: xs = cl->bits.i; break;
+		case Otruncd: xs = cl->bits.d; break;
+		case Ocast: xs = ls; break;
 		default: die("unreachable");
 		}
 		*res = (Con){CBits, .bits={.s=xs}, .flt=1};
@@ -486,8 +486,8 @@ opfold(int op, int cls, Con *cl, Con *cr, Fn *fn)
 	int nc;
 	Con c;
 
-	if ((op == ODiv || op == OUDiv
-	|| op == ORem || op == OURem) && czero(cr, KWIDE(cls)))
+	if ((op == Odiv || op == Oudiv
+	|| op == Orem || op == Ourem) && czero(cr, KWIDE(cls)))
 		err("null divisor in '%s'", opdesc[op].name);
 	if (cls == Kw || cls == Kl)
 		foldint(&c, op, cls == Kl, cl, cr);

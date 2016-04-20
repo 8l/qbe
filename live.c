@@ -115,7 +115,7 @@ Again:
 		for (k=0; k<2; k++)
 			b->nlive[k] = nlv[k];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
-			if ((--i)->op == OCall && rtype(i->arg[1]) == RCall) {
+			if ((--i)->op == Ocall && rtype(i->arg[1]) == RCall) {
 				b->in->t[0] &= ~retregs(i->arg[1], m);
 				for (k=0; k<2; k++)
 					nlv[k] -= m[k];
