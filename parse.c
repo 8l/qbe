@@ -578,7 +578,7 @@ parseline(PState ps)
 	op = next();
 DoOp:
 	if (op == Tphi) {
-		if (ps != PPhi)
+		if (ps != PPhi || curb == curf->start)
 			err("unexpected phi instruction");
 		op = -1;
 	}
