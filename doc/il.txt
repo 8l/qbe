@@ -709,7 +709,7 @@ single-precision floating point number `%f` into `%rs`.
 ~~~~~~
 
     `bnf
-    CALL := %IDENT '=' ( BASETY | :IDENT ) 'call' VAL PARAMS
+    CALL := [ %IDENT '=' ( BASETY | :IDENT ) ] 'call' VAL PARAMS
 
     PARAMS := '(' ( (BASETY | :IDENT) %IDENT ), ')'
 

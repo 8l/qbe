@@ -508,7 +508,7 @@ parseline(PState ps)
 		err("label or } expected");
 	switch (t) {
 	default:
-		if (isstore(t)) {
+		if (isstore(t) || t == Tcall) {
 			/* operations without result */
 			r = R;
 			k = Kw;
