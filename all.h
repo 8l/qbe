@@ -68,12 +68,12 @@ enum Reg {
 
 	Tmp0, /* first non-reg temporary */
 
-	NIReg = R12 - RAX + 1,
-	NFReg = XMM14 - XMM0 + 1,
-	NISave = 9,
+	NIReg = R15 - RAX + 1,
+	NFReg = XMM14 - XMM0 + 1, /* XMM15 is reserved */
+	NISave = R11 - RAX + 1,
 	NFSave = NFReg,
 	NRSave = NISave + NFSave,
-	NRClob = 5,
+	NRClob = R15 - RBX + 1,
 };
 
 enum {
@@ -395,7 +395,7 @@ struct Con {
 		double d;
 		float s;
 	} bits;
-	char flt; /* for printing, see parse.c */
+	char flt; /* 1 to print as s, 2 to print as d */
 	char local;
 };
 
@@ -509,8 +509,7 @@ void bsdiff(BSet *, BSet *);
 int bsequal(BSet *, BSet *);
 int bsiter(BSet *, int *);
 
-static inline int
-bshas(BSet *bs, uint elt)
+static inline int bshas(BSet *bs, uint elt)
 {
 	assert(elt < bs->nt * NBit);
 	return (bs->t[elt/NBit] & BIT(elt%NBit)) != 0;
