@@ -553,9 +553,9 @@ towards zero.
       * `loadd` -- `d(m)`
       * `loads` -- `s(m)`
       * `loadl` -- `l(m)`
-      * `loadsw`, `loadzw` -- `I(mm)`
-      * `loadsh`, `loadzh` -- `I(mm)`
-      * `loadsb`, `loadzb` -- `I(mm)`
+      * `loadsw`, `loaduw` -- `I(mm)`
+      * `loadsh`, `loaduh` -- `I(mm)`
+      * `loadsb`, `loadub` -- `I(mm)`
 
     For types smaller than long, two variants of the load
     instruction is available: one will sign extend the value
@@ -563,7 +563,7 @@ towards zero.
     all loads smaller than long can load to either a long or
     a word.
 
-    The two instructions `loadsw` and `loadzw` have the same
+    The two instructions `loadsw` and `loaduw` have the same
     effect when they are used to define a word temporary.
     A `loadw` instruction is provided as syntactic sugar for
     `loadsw` to make explicit that the extension mechanism
@@ -656,9 +656,9 @@ the value of the source type.  Conversions can extend the
 precision of a temporary (e.g. from signed 8 bits to 32 bits),
 or convert a floating point into an integer and vice versa.
 
-  * `extsw`, `extzw` -- `l(w)`
-  * `extsh`, `extzh` -- `I(ww)`
-  * `extsb`, `extzb` -- `I(ww)`
+  * `extsw`, `extuw` -- `l(w)`
+  * `extsh`, `extuh` -- `I(ww)`
+  * `extsb`, `extub` -- `I(ww)`
   * `exts` -- `d(s)`
   * `truncd` -- `s(d)`
   * `ftosi` -- `I(F)`
