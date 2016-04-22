@@ -286,8 +286,10 @@ sel(Ins i, ANum *an, Fn *fn)
 	case Oor:
 	case Oxor:
 	case Oxtest:
-	case Oftosi:
-	case Ositof:
+	case Ostosi:
+	case Odtosi:
+	case Oswtof:
+	case Osltof:
 	case Oexts:
 	case Otruncd:
 	case Ocast:

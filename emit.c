@@ -78,10 +78,10 @@ static struct {
 
 	{ Oexts,   Kd, "cvtss2sd %0, %=" },  /* see if factorization is possible */
 	{ Otruncd, Ks, "cvttsd2ss %0, %=" },
-	{ Oftosi,  Kw, "cvttss2si %0, %=" },
-	{ Oftosi,  Kl, "cvttsd2si %0, %=" },
-	{ Ositof,  Ks, "cvtsi2ss %W0, %=" },
-	{ Ositof,  Kd, "cvtsi2sd %L0, %=" },
+	{ Ostosi,  Ki, "cvttss2si%k %0, %=" },
+	{ Odtosi,  Ki, "cvttsd2si%k %0, %=" },
+	{ Oswtof,  Ka, "cvtsi2%k %W0, %=" },
+	{ Osltof,  Ka, "cvtsi2%k %L0, %=" },
 	{ Ocast,   Ki, "movq %D0, %L=" },
 	{ Ocast,   Ka, "movq %L0, %D=" },
 

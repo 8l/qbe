@@ -12,8 +12,8 @@ function s $fneg(s %f) {
 export
 function d $ftrunc(d %f) {
 @ftrunc
-	%l0 =l ftosi %f
-	%rt =d sitof %l0
+	%l0 =w dtosi %f
+	%rt =d swtof %l0
 	ret %rt
 }
 

@@ -251,8 +251,10 @@ enum Op {
 
 	Oexts,
 	Otruncd,
-	Oftosi,
-	Ositof,
+	Ostosi,
+	Odtosi,
+	Oswtof,
+	Osltof,
 	Ocast,
 
 	Oalloc,

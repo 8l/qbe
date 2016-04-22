@@ -374,12 +374,8 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 	case Oextuh: x = (uint16_t)l.u; break;
 	case Oextsw: x = (int32_t)l.u;  break;
 	case Oextuw: x = (uint32_t)l.u; break;
-	case Oftosi:
-		if (w)
-			x = (int64_t)cl->bits.d;
-		else
-			x = (int32_t)cl->bits.s;
-		break;
+	case Ostosi: x = w ? (int64_t)cl->bits.s : (int32_t)cl->bits.s; break;
+	case Odtosi: x = w ? (int64_t)cl->bits.d : (int32_t)cl->bits.d; break;
 	case Ocast:
 		x = l.u;
 		if (cl->type == CAddr)
@@ -457,7 +453,8 @@ foldflt(Con *res, int op, int w, Con *cl, Con *cr)
 		case Osub: xd = ld - rd; break;
 		case Odiv: xd = ld / rd; break;
 		case Omul: xd = ld * rd; break;
-		case Ositof: xd = cl->bits.i; break;
+		case Oswtof: xd = (int32_t)cl->bits.i; break;
+		case Osltof: xd = (int64_t)cl->bits.i; break;
 		case Oexts: xd = cl->bits.s; break;
 		case Ocast: xd = ld; break;
 		default: die("unreachable");
@@ -471,7 +468,8 @@ foldflt(Con *res, int op, int w, Con *cl, Con *cr)
 		case Osub: xs = ls - rs; break;
 		case Odiv: xs = ls / rs; break;
 		case Omul: xs = ls * rs; break;
-		case Ositof: xs = cl->bits.i; break;
+		case Oswtof: xs = (int32_t)cl->bits.i; break;
+		case Osltof: xs = (int64_t)cl->bits.i; break;
 		case Otruncd: xs = cl->bits.d; break;
 		case Ocast: xs = ls; break;
 		default: die("unreachable");
