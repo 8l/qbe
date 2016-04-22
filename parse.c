@@ -818,7 +818,7 @@ parsetyp()
 		t = nextnl();
 	} else {
 		ty->dark = 0;
-		n = -1;
+		n = 0;
 		sz = 0;
 		al = 0;
 		while (t != Trbrace) {
@@ -836,10 +836,11 @@ parsetyp()
 				al = a;
 			if ((a = sz & (s-1))) {
 				a = s - a;
-				if (++n < NSeg) {
+				if (n < NSeg) {
 					/* padding segment */
 					ty->seg[n].ispad = 1;
 					ty->seg[n].len = a;
+					n++;
 				}
 			}
 			t = nextnl();
@@ -848,19 +849,19 @@ parsetyp()
 				t = nextnl();
 			} else
 				c = 1;
-			while (c-- > 0) {
-				if (++n < NSeg) {
+			while (c-- > 0)
+				if (n < NSeg) {
 					ty->seg[n].isflt = flt;
 					ty->seg[n].ispad = 0;
 					ty->seg[n].len = s;
+					sz += a + s;
+					n++;
 				}
-				sz += a + s;
-			}
 			if (t != Tcomma)
 				break;
 			t = nextnl();
 		}
-		if (++n >= NSeg)
+		if (n >= NSeg)
 			ty->dark = 1;
 		else
 			ty->seg[n].len = 0;
