@@ -661,8 +661,10 @@ or convert a floating point into an integer and vice versa.
   * `extsb`, `extub` -- `I(ww)`
   * `exts` -- `d(s)`
   * `truncd` -- `s(d)`
-  * `ftosi` -- `I(F)`
-  * `sitof` -- `F(I)`
+  * `stosi` -- `I(ss)`
+  * `dtosi` -- `I(dd)`
+  * `swtof` -- `F(ww)`
+  * `sltof` -- `F(ll)`
 
 Extending the precision of a temporary is done using the
 `ext` family of instructions.  Because QBE types do not
@@ -679,11 +681,11 @@ single-precision floating point, it is truncated towards
 zero.
 
 Converting between signed integers and floating points is
-done using `ftosi` (float to signed integer) and `sitof`
-(signed integer to float).  Note that the bit width of the
-argument depends on the return type.  A double floatint
-point number can only be converted directly to a long
-integer.
+done using `stosi` (single to signed integer), `dtosi`
+(double to signed integer), `swtof` (signed word to float),
+and `sltof` (signed long to float).  These instructions
+only handle signed integers, conversion to and from
+unsigned types are not yet supported.
 
 Because of <@ Subtyping >, there is no need to have an
 instruction to lower the precision of an integer temporary.
