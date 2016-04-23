@@ -306,7 +306,7 @@ enum Jmp {
 struct OpDesc {
 	char *name;
 	int nmem;
-	char argcls[2][4];
+	short argcls[2][4];
 	uint sflag:1; /* sets the zero flag */
 	uint lflag:1; /* leaves flags */
 	uint cfold:1; /* can fold */
