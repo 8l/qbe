@@ -366,14 +366,17 @@ seljmp(Blk *b, Fn *fn)
 	Ref r;
 	int c, k;
 	Ins *fi;
+	Tmp *t;
 
 	if (b->jmp.type == Jret0 || b->jmp.type == Jjmp)
 		return;
 	assert(b->jmp.type == Jjnz);
 	r = b->jmp.arg;
+	t = &fn->tmp[r.val];
 	b->jmp.arg = R;
 	assert(!req(r, R) && rtype(r) != RCon);
 	if (b->s1 == b->s2) {
+		chuse(r, -1, fn);
 		b->jmp.type = Jjmp;
 		b->s2 = 0;
 		return;
@@ -384,14 +387,13 @@ seljmp(Blk *b, Fn *fn)
 			if (rtype(fi->arg[0]) == RCon)
 				c = icmpop(c);
 			b->jmp.type = Jxjc + c;
-			if (fn->tmp[r.val].nuse == 1) {
-				assert(fn->tmp[r.val].ndef == 1);
+			if (t->nuse == 1) {
 				selcmp(fi->arg, k, fn);
 				*fi = (Ins){.op = Onop};
 			}
 			return;
 		}
-		if (fi->op == Oand && fn->tmp[r.val].nuse == 1
+		if (fi->op == Oand && t->nuse == 1
 		&& (rtype(fi->arg[0]) == RTmp ||
 		    rtype(fi->arg[1]) == RTmp)) {
 			fi->op = Oxtest;
@@ -408,7 +410,7 @@ seljmp(Blk *b, Fn *fn)
 		 * the result of the flag-setting instruction
 		 * has to be marked as live
 		 */
-		if (fn->tmp[r.val].nuse == 1)
+		if (t->nuse == 1)
 			emit(Ocopy, Kw, R, r, R);
 		b->jmp.type = Jxjc + ICne;
 		return;
