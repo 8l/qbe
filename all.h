@@ -431,7 +431,7 @@ struct Fn {
 struct Typ {
 	char name[NString];
 	int dark;
-	uint size;
+	ulong size;
 	int align;
 
 	struct {

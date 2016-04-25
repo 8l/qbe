@@ -791,7 +791,8 @@ static void
 parsetyp()
 {
 	Typ *ty;
-	int t, n, sz, al, s, a, c, flt;
+	int t, n, c, a, al, flt;
+	ulong sz, s;
 
 	if (ntyp >= NTyp)
 		err("too many type definitions");
@@ -851,14 +852,12 @@ parsetyp()
 				t = nextnl();
 			} else
 				c = 1;
-			while (c-- > 0)
-				if (n < NSeg) {
-					ty->seg[n].isflt = flt;
-					ty->seg[n].ispad = 0;
-					ty->seg[n].len = s;
-					sz += a + s;
-					n++;
-				}
+			sz += a + c*s;
+			for (; c>0 && n<NSeg; c--, n++) {
+				ty->seg[n].isflt = flt;
+				ty->seg[n].ispad = 0;
+				ty->seg[n].len = s;
+			}
 			if (t != Tcomma)
 				break;
 			t = nextnl();
@@ -871,8 +870,8 @@ parsetyp()
 			ty->align = al;
 		else
 			al = ty->align;
-		a = (1 << al) - 1;
-		ty->size = (sz + a) & ~a;
+		a = 1 << al;
+		ty->size = (sz + a - 1) & -a;
 	}
 	if (t != Trbrace)
 		err(", or } expected");
