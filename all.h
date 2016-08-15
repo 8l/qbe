@@ -100,15 +100,6 @@ struct Ref {
 	uint32_t val:29;
 };
 
-enum Alt {
-	AType,
-	ACall,
-	AMem,
-
-	AShift = 28,
-	AMask = (1<<AShift) - 1
-};
-
 enum {
 	RTmp,
 	RCon,

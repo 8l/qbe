@@ -172,7 +172,7 @@ classify(Ins *i0, Ins *i1, AClass *ac, int op, AClass *aret)
 			a->size = 8;
 			a->cls[0] = i->cls;
 		} else {
-			n = i->arg[0].val & AMask;
+			n = i->arg[0].val;
 			aclass(a, &typ[n]);
 			if (a->inmem)
 				continue;
