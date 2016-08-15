@@ -261,7 +261,7 @@ lex()
 		return Tint;
 	}
 	if (c == '"') {
-		tokval.str = vnew(0, 1);
+		tokval.str = vnew(0, 1, alloc);
 		for (i=0;; i++) {
 			c = fgetc(inf);
 			if (c == EOF)
@@ -425,7 +425,7 @@ parsecls(int *tyn)
 				*tyn = i;
 				return 4;
 			}
-		err("undefined type");
+		err("undefined type :%s", tokval.str);
 	case Tw:
 		return Kw;
 	case Tl:
@@ -752,11 +752,11 @@ parsefn(int export)
 	curf = alloc(sizeof *curf);
 	curf->ntmp = 0;
 	curf->ncon = 1; /* first constant must be 0 */
-	curf->tmp = vnew(curf->ntmp, sizeof curf->tmp[0]);
-	curf->con = vnew(curf->ncon, sizeof curf->con[0]);
+	curf->tmp = vnew(curf->ntmp, sizeof curf->tmp[0], alloc);
+	curf->con = vnew(curf->ncon, sizeof curf->con[0], alloc);
 	for (r=0; r<Tmp0; r++)
 		newtmp(0, r < XMM0 ? Kl : Kd, curf);
-	bmap = vnew(nblk, sizeof bmap[0]);
+	bmap = vnew(nblk, sizeof bmap[0], alloc);
 	curf->con[0].type = CBits;
 	curf->export = export;
 	blink = &curf->start;
@@ -779,7 +779,7 @@ parsefn(int export)
 		err("empty function");
 	if (curb->jmp.type == Jxxx)
 		err("last block misses jump");
-	curf->mem = vnew(0, sizeof curf->mem[0]);
+	curf->mem = vnew(0, sizeof curf->mem[0], alloc);
 	curf->nmem = 0;
 	curf->nblk = nblk;
 	curf->rpo = 0;

@@ -52,7 +52,7 @@ filluse(Fn *fn)
 		tmp[t].phi = 0;
 		tmp[t].cls = 0;
 		if (tmp[t].use == 0)
-			tmp[t].use = vnew(0, sizeof(Use));
+			tmp[t].use = vnew(0, sizeof(Use), alloc);
 	}
 	for (b=fn->start; b; b=b->link) {
 		for (p=b->phi; p; p=p->link) {
@@ -253,7 +253,7 @@ addfron(Blk *a, Blk *b)
 		if (a->fron[n] == b)
 			return;
 	if (!a->nfron)
-		a->fron = vnew(++a->nfron, sizeof a->fron[0]);
+		a->fron = vnew(++a->nfron, sizeof a->fron[0], alloc);
 	else
 		vgrow(&a->fron, ++a->nfron);
 	a->fron[a->nfron-1] = b;
