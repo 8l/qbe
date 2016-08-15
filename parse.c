@@ -119,8 +119,8 @@ enum {
 	Ttmp,
 	Tlbl,
 	Tglo,
-	TTyp,
-	TStr,
+	Ttyp,
+	Tstr,
 
 	Tplus,
 	Teq,
@@ -245,7 +245,7 @@ lex()
 		t = Tglo;
 		goto Alpha;
 	case ':':
-		t = TTyp;
+		t = Ttyp;
 		goto Alpha;
 	case '#':
 		while ((c=fgetc(inf)) != '\n' && c != EOF)
@@ -270,7 +270,7 @@ lex()
 			if (c == '"')
 			if (!i || tokval.str[i-1] != '\\') {
 				tokval.str[i] = 0;
-				return TStr;
+				return Tstr;
 			}
 			tokval.str[i] = c;
 		}
@@ -419,7 +419,7 @@ parsecls(int *tyn)
 	switch (next()) {
 	default:
 		err("invalid class specifier");
-	case TTyp:
+	case Ttyp:
 		for (i=0; i<ntyp; i++)
 			if (strcmp(tokval.str, typ[i].name) == 0) {
 				*tyn = i;
@@ -798,7 +798,7 @@ parsetyp()
 		err("too many type definitions");
 	ty = &typ[ntyp++];
 	ty->align = -1;
-	if (nextnl() != TTyp ||  nextnl() != Teq)
+	if (nextnl() != Ttyp ||  nextnl() != Teq)
 		err("type name, then = expected");
 	strcpy(ty->name, tokval.str);
 	t = nextnl();
@@ -955,7 +955,7 @@ parsedat(void cb(Dat *), int export)
 				d.u.num = tokval.num;
 			else if (t == Tglo)
 				parsedatref(&d);
-			else if (t == TStr)
+			else if (t == Tstr)
 				parsedatstr(&d);
 			else
 				err("constant literal expected");
