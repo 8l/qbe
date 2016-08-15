@@ -49,15 +49,18 @@ aclass(AClass *a, Typ *t)
 	for (e=0, s=0; e<2; e++) {
 		cls = -1;
 		for (n=0; n<8 && t->seg[s].len; s++) {
-			if (t->seg[s].ispad) {
+			switch (t->seg[s].type) {
+			case Spad:
 				/* don't change anything */
-			}
-			else if (t->seg[s].isflt) {
+				break;
+			case Sflt:
 				if (cls == -1)
 					cls = Kd;
-			}
-			else
+				break;
+			case Sint:
 				cls = Kl;
+				break;
+			}
 			n += t->seg[s].len;
 		}
 		assert(n <= 8);

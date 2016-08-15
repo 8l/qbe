@@ -425,9 +425,14 @@ struct Typ {
 	ulong size;
 	int align;
 
-	struct {
-		uint isflt:1;
-		uint ispad:1;
+	struct Seg {
+		enum {
+			Spad,
+			Sint,
+			Sflt,
+			Styp,
+		};
+		uint type:2;
 		uint len:30;
 	} seg[NSeg+1];
 };

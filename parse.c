@@ -791,7 +791,7 @@ static void
 parsetyp()
 {
 	Typ *ty;
-	int t, n, c, a, al, flt;
+	int t, n, c, a, al, type;
 	ulong sz, s;
 
 	if (ntyp >= NTyp)
@@ -825,12 +825,12 @@ parsetyp()
 		sz = 0;
 		al = 0;
 		while (t != Trbrace) {
-			flt = 0;
+			type = Sint;
 			switch (t) {
 			default: err("invalid size specifier %c", tokval.chr);
-			case Td: flt = 1;
+			case Td: type = Sflt;
 			case Tl: s = 8; a = 3; break;
-			case Ts: flt = 1;
+			case Ts: type = Sflt;
 			case Tw: s = 4; a = 2; break;
 			case Th: s = 2; a = 1; break;
 			case Tb: s = 1; a = 0; break;
@@ -841,7 +841,7 @@ parsetyp()
 				a = s - a;
 				if (n < NSeg) {
 					/* padding segment */
-					ty->seg[n].ispad = 1;
+					ty->seg[n].type = Spad;
 					ty->seg[n].len = a;
 					n++;
 				}
@@ -854,8 +854,7 @@ parsetyp()
 				c = 1;
 			sz += a + c*s;
 			for (; c>0 && n<NSeg; c--, n++) {
-				ty->seg[n].isflt = flt;
-				ty->seg[n].ispad = 0;
+				ty->seg[n].type = type;
 				ty->seg[n].len = s;
 			}
 			if (t != Tcomma)
