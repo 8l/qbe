@@ -25,6 +25,7 @@ typedef struct Con Con;
 typedef struct Addr Mem;
 typedef struct Fn Fn;
 typedef struct Typ Typ;
+typedef struct Seg Seg;
 typedef struct Dat Dat;
 
 enum Reg {
@@ -422,8 +423,9 @@ struct Fn {
 struct Typ {
 	char name[NString];
 	int dark;
-	ulong size;
 	int align;
+	size_t size;
+	int nunion;
 
 	struct Seg {
 		enum {
@@ -433,8 +435,8 @@ struct Typ {
 			Styp,
 		};
 		uint type:2;
-		uint len:30;
-	} seg[NSeg+1];
+		uint len:30; /* index in typ[] for Styp */
+	} (*seg)[NSeg+1];
 };
 
 struct Dat {

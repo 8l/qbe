@@ -21,6 +21,7 @@ aclass(AClass *a, Typ *t)
 {
 	int e, s, n, cls;
 	uint sz, al;
+	Seg *seg;
 
 	sz = t->size;
 	al = 1u << t->align;
@@ -45,11 +46,12 @@ aclass(AClass *a, Typ *t)
 		return;
 	}
 
+	seg = t->seg[0];
 	a->inmem = 0;
 	for (e=0, s=0; e<2; e++) {
 		cls = -1;
-		for (n=0; n<8 && t->seg[s].len; s++) {
-			switch (t->seg[s].type) {
+		for (n=0; n<8 && seg[s].len; s++) {
+			switch (seg[s].type) {
 			case Spad:
 				/* don't change anything */
 				break;
@@ -60,8 +62,11 @@ aclass(AClass *a, Typ *t)
 			case Sint:
 				cls = Kl;
 				break;
+			case Styp:
+				assert(!"todo");
+				break;
 			}
-			n += t->seg[s].len;
+			n += seg[s].len;
 		}
 		assert(n <= 8);
 		a->cls[e] = cls;
