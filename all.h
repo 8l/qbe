@@ -429,13 +429,14 @@ struct Typ {
 
 	struct Seg {
 		enum {
+			Send,
 			Spad,
 			Sint,
 			Sflt,
 			Styp,
 		};
-		uint type:2;
-		uint len:30; /* index in typ[] for Styp */
+		uint type:3;
+		uint len:29; /* index in typ[] for Styp */
 	} (*seg)[NSeg+1];
 };
 

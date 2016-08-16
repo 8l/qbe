@@ -847,8 +847,7 @@ parseseg(Seg *seg, Typ *ty, int t)
 	}
 	if (t != Trbrace)
 		err(", or } expected");
-	seg[n].type = Sint;
-	seg[n].len = 0;
+	seg[n].type = Send;
 	a = 1 << al;
 	sz = (sz + a - 1) & -a;
 	if (sz >= ty->size)
