@@ -26,8 +26,10 @@ classify(AClass *a, Typ *t, int *pn, int *pe)
 		seg = t->seg[n];
 		for (s=0; *pe<2; (*pe)++) {
 			cls = &a->cls[*pe];
-			for (; *pn<8 && seg[s].type!=Send; s++) {
+			for (; *pn<8; s++) {
 				switch (seg[s].type) {
+				case Send:
+					goto Done;
 				case Spad:
 					/* don't change anything */
 					break;
@@ -44,6 +46,7 @@ classify(AClass *a, Typ *t, int *pn, int *pe)
 				}
 				*pn += seg[s].len;
 			}
+		Done:
 			assert(*pn <= 8);
 			*pn = 0;
 		}

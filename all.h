@@ -434,9 +434,8 @@ struct Typ {
 			Sint,
 			Sflt,
 			Styp,
-		};
-		uint type:3;
-		uint len:29; /* index in typ[] for Styp */
+		} type;
+		uint len; /* index in typ[] for Styp */
 	} (*seg)[NSeg+1];
 };
 
