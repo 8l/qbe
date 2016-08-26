@@ -193,7 +193,7 @@ fold(Fn *fn)
 
 	val = emalloc(fn->ntmp * sizeof val[0]);
 	edge = emalloc(fn->nblk * sizeof edge[0]);
-	usewrk = vnew(0, sizeof usewrk[0]);
+	usewrk = vnew(0, sizeof usewrk[0], emalloc);
 
 	for (n=0; n<fn->ntmp; n++)
 		val[n] = Top;
@@ -314,6 +314,7 @@ fold(Fn *fn)
 
 	free(val);
 	free(edge);
+	vfree(usewrk);
 }
 
 /* boring folding code */

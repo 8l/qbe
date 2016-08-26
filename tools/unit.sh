@@ -91,7 +91,7 @@ once() {
 
 if test -z "$1"
 then
-	echo "usage: test/go.sh {all, SSAFILE}" 2>&1
+	echo "usage: tools/unit.sh {all, SSAFILE}" 2>&1
 	exit 1
 fi
 

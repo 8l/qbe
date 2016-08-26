@@ -25,6 +25,7 @@ typedef struct Con Con;
 typedef struct Addr Mem;
 typedef struct Fn Fn;
 typedef struct Typ Typ;
+typedef struct Seg Seg;
 typedef struct Dat Dat;
 
 enum Reg {
@@ -98,15 +99,6 @@ struct BSet {
 struct Ref {
 	uint32_t type:3;
 	uint32_t val:29;
-};
-
-enum Alt {
-	AType,
-	ACall,
-	AMem,
-
-	AShift = 28,
-	AMask = (1<<AShift) - 1
 };
 
 enum {
@@ -431,14 +423,20 @@ struct Fn {
 struct Typ {
 	char name[NString];
 	int dark;
-	ulong size;
 	int align;
+	size_t size;
+	int nunion;
 
-	struct {
-		uint isflt:1;
-		uint ispad:1;
-		uint len:30;
-	} seg[NSeg+1];
+	struct Seg {
+		enum {
+			Send,
+			Spad,
+			Sint,
+			Sflt,
+			Styp,
+		} type;
+		uint len; /* index in typ[] for Styp */
+	} (*seg)[NSeg+1];
 };
 
 struct Dat {
@@ -489,7 +487,8 @@ void emit(int, int, Ref, Ref, Ref);
 void emiti(Ins);
 void idup(Ins **, Ins *, ulong);
 Ins *icpy(Ins *, Ins *, ulong);
-void *vnew(ulong, size_t);
+void *vnew(ulong, size_t, void *(size_t));
+void vfree(void *);
 void vgrow(void *, ulong);
 int clsmerge(short *, short);
 int phicls(int, Tmp *);

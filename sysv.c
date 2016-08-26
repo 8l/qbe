@@ -17,9 +17,46 @@ struct RAlloc {
 };
 
 static void
-aclass(AClass *a, Typ *t)
+classify(AClass *a, Typ *t, int *pn, int *pe)
 {
-	int e, s, n, cls;
+	Seg *seg;
+	int n, s, *cls;
+
+	for (n=0; n<t->nunion; n++) {
+		seg = t->seg[n];
+		for (s=0; *pe<2; (*pe)++) {
+			cls = &a->cls[*pe];
+			for (; *pn<8; s++) {
+				switch (seg[s].type) {
+				case Send:
+					goto Done;
+				case Spad:
+					/* don't change anything */
+					break;
+				case Sflt:
+					if (*cls == Kx)
+						*cls = Kd;
+					break;
+				case Sint:
+					*cls = Kl;
+					break;
+				case Styp:
+					classify(a, &typ[seg[s].len], pn, pe);
+					continue;
+				}
+				*pn += seg[s].len;
+			}
+		Done:
+			assert(*pn <= 8);
+			*pn = 0;
+		}
+	}
+}
+
+static void
+typclass(AClass *a, Typ *t)
+{
+	int e, n;
 	uint sz, al;
 
 	sz = t->size;
@@ -45,24 +82,12 @@ aclass(AClass *a, Typ *t)
 		return;
 	}
 
+	a->cls[0] = Kx;
+	a->cls[1] = Kx;
 	a->inmem = 0;
-	for (e=0, s=0; e<2; e++) {
-		cls = -1;
-		for (n=0; n<8 && t->seg[s].len; s++) {
-			if (t->seg[s].ispad) {
-				/* don't change anything */
-			}
-			else if (t->seg[s].isflt) {
-				if (cls == -1)
-					cls = Kd;
-			}
-			else
-				cls = Kl;
-			n += t->seg[s].len;
-		}
-		assert(n <= 8);
-		a->cls[e] = cls;
-	}
+	n = 0;
+	e = 0;
+	classify(a, t, &n, &e);
 }
 
 static void
@@ -116,7 +141,7 @@ selret(Blk *b, Fn *fn)
 	b->jmp.type = Jret0;
 
 	if (j == Jretc) {
-		aclass(&aret, &typ[fn->retty]);
+		typclass(&aret, &typ[fn->retty]);
 		if (aret.inmem) {
 			assert(rtype(fn->retr) == RTmp);
 			emit(Ocopy, Kl, TMP(RAX), fn->retr, R);
@@ -146,7 +171,7 @@ selret(Blk *b, Fn *fn)
 }
 
 static int
-classify(Ins *i0, Ins *i1, AClass *ac, int op, AClass *aret)
+argsclass(Ins *i0, Ins *i1, AClass *ac, int op, AClass *aret)
 {
 	int nint, ni, nsse, ns, n, *pn;
 	AClass *a;
@@ -172,8 +197,8 @@ classify(Ins *i0, Ins *i1, AClass *ac, int op, AClass *aret)
 			a->size = 8;
 			a->cls[0] = i->cls;
 		} else {
-			n = i->arg[0].val & AMask;
-			aclass(a, &typ[n]);
+			n = i->arg[0].val;
+			typclass(a, &typ[n]);
 			if (a->inmem)
 				continue;
 			ni = ns = 0;
@@ -271,10 +296,10 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 	ac = alloc((i1-i0) * sizeof ac[0]);
 	if (!req(i1->arg[1], R)) {
 		assert(rtype(i1->arg[1]) == RType);
-		aclass(&aret, &typ[i1->arg[1].val]);
-		ca = classify(i0, i1, ac, Oarg, &aret);
+		typclass(&aret, &typ[i1->arg[1].val]);
+		ca = argsclass(i0, i1, ac, Oarg, &aret);
 	} else
-		ca = classify(i0, i1, ac, Oarg, 0);
+		ca = argsclass(i0, i1, ac, Oarg, 0);
 
 	for (stk=0, a=&ac[i1-i0]; a>ac;)
 		if ((--a)->inmem) {
@@ -385,10 +410,10 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	ni = ns = 0;
 
 	if (fn->retty >= 0) {
-		aclass(&aret, &typ[fn->retty]);
-		classify(i0, i1, ac, Opar, &aret);
+		typclass(&aret, &typ[fn->retty]);
+		argsclass(i0, i1, ac, Opar, &aret);
 	} else
-		classify(i0, i1, ac, Opar, 0);
+		argsclass(i0, i1, ac, Opar, 0);
 
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		if (i->op != Oparc || a->inmem)

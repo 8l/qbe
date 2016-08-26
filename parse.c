@@ -119,8 +119,8 @@ enum {
 	Ttmp,
 	Tlbl,
 	Tglo,
-	TTyp,
-	TStr,
+	Ttyp,
+	Tstr,
 
 	Tplus,
 	Teq,
@@ -245,7 +245,7 @@ lex()
 		t = Tglo;
 		goto Alpha;
 	case ':':
-		t = TTyp;
+		t = Ttyp;
 		goto Alpha;
 	case '#':
 		while ((c=fgetc(inf)) != '\n' && c != EOF)
@@ -261,7 +261,7 @@ lex()
 		return Tint;
 	}
 	if (c == '"') {
-		tokval.str = vnew(0, 1);
+		tokval.str = vnew(0, 1, alloc);
 		for (i=0;; i++) {
 			c = fgetc(inf);
 			if (c == EOF)
@@ -270,7 +270,7 @@ lex()
 			if (c == '"')
 			if (!i || tokval.str[i-1] != '\\') {
 				tokval.str[i] = 0;
-				return TStr;
+				return Tstr;
 			}
 			tokval.str[i] = c;
 		}
@@ -412,20 +412,23 @@ parseref()
 }
 
 static int
+findtyp(int i)
+{
+	while (--i >= 0)
+		if (strcmp(tokval.str, typ[i].name) == 0)
+			return i;
+	err("undefined type :%s", tokval.str);
+}
+
+static int
 parsecls(int *tyn)
 {
-	int i;
-
 	switch (next()) {
 	default:
 		err("invalid class specifier");
-	case TTyp:
-		for (i=0; i<ntyp; i++)
-			if (strcmp(tokval.str, typ[i].name) == 0) {
-				*tyn = i;
-				return 4;
-			}
-		err("undefined type");
+	case Ttyp:
+		*tyn = findtyp(ntyp);
+		return 4;
 	case Tw:
 		return Kw;
 	case Tl:
@@ -752,11 +755,11 @@ parsefn(int export)
 	curf = alloc(sizeof *curf);
 	curf->ntmp = 0;
 	curf->ncon = 1; /* first constant must be 0 */
-	curf->tmp = vnew(curf->ntmp, sizeof curf->tmp[0]);
-	curf->con = vnew(curf->ncon, sizeof curf->con[0]);
+	curf->tmp = vnew(curf->ntmp, sizeof curf->tmp[0], alloc);
+	curf->con = vnew(curf->ncon, sizeof curf->con[0], alloc);
 	for (r=0; r<Tmp0; r++)
 		newtmp(0, r < XMM0 ? Kl : Kd, curf);
-	bmap = vnew(nblk, sizeof bmap[0]);
+	bmap = vnew(nblk, sizeof bmap[0], alloc);
 	curf->con[0].type = CBits;
 	curf->export = export;
 	blink = &curf->start;
@@ -779,7 +782,7 @@ parsefn(int export)
 		err("empty function");
 	if (curb->jmp.type == Jxxx)
 		err("last block misses jump");
-	curf->mem = vnew(0, sizeof curf->mem[0]);
+	curf->mem = vnew(0, sizeof curf->mem[0], alloc);
 	curf->nmem = 0;
 	curf->nblk = nblk;
 	curf->rpo = 0;
@@ -788,18 +791,84 @@ parsefn(int export)
 }
 
 static void
+parseseg(Seg *seg, Typ *ty, int t)
+{
+	Typ *ty1;
+	int n, c, a, al, type;
+	size_t sz, s;
+
+	n = 0;
+	sz = 0;
+	al = ty->align;
+	while (t != Trbrace) {
+		type = Sint;
+		switch (t) {
+		default: err("invalid type member specifier");
+		case Td: type = Sflt;
+		case Tl: s = 8; a = 3; break;
+		case Ts: type = Sflt;
+		case Tw: s = 4; a = 2; break;
+		case Th: s = 2; a = 1; break;
+		case Tb: s = 1; a = 0; break;
+		case Ttyp:
+			type = Styp;
+			ty1 = &typ[findtyp(ntyp-1)];
+			s = ty1->size;
+			a = ty1->align;
+			break;
+		}
+		if (a > al)
+			al = a;
+		if ((a = sz & (s-1))) {
+			a = s - a;
+			if (n < NSeg) {
+				/* padding segment */
+				seg[n].type = Spad;
+				seg[n].len = a;
+				n++;
+			}
+		}
+		t = nextnl();
+		if (t == Tint) {
+			c = tokval.num;
+			t = nextnl();
+		} else
+			c = 1;
+		sz += a + c*s;
+		if (type == Styp)
+			s = ty1 - typ;
+		for (; c>0 && n<NSeg; c--, n++) {
+			seg[n].type = type;
+			seg[n].len = s;
+		}
+		if (t != Tcomma)
+			break;
+		t = nextnl();
+	}
+	if (t != Trbrace)
+		err(", or } expected");
+	seg[n].type = Send;
+	a = 1 << al;
+	sz = (sz + a - 1) & -a;
+	if (sz >= ty->size)
+		ty->size = sz;
+	ty->align = al;
+}
+
+static void
 parsetyp()
 {
 	Typ *ty;
-	int t, n, c, a, al, flt;
-	ulong sz, s;
+	int t, n, al;
 
 	if (ntyp >= NTyp)
 		err("too many type definitions");
 	ty = &typ[ntyp++];
+	ty->dark = 0;
 	ty->align = -1;
-	if (nextnl() != TTyp ||  nextnl() != Teq)
-		err("type name, then = expected");
+	ty->size = 0;
+	if (nextnl() != Ttyp ||  nextnl() != Teq)
+		err("type name and then = expected");
 	strcpy(ty->name, tokval.str);
 	t = nextnl();
 	if (t == Talign) {
@@ -818,63 +887,23 @@ parsetyp()
 		ty->size = tokval.num;
 		if (ty->align == -1)
 			err("dark types need alignment");
-		t = nextnl();
-	} else {
-		ty->dark = 0;
-		n = 0;
-		sz = 0;
-		al = 0;
-		while (t != Trbrace) {
-			flt = 0;
-			switch (t) {
-			default: err("invalid size specifier %c", tokval.chr);
-			case Td: flt = 1;
-			case Tl: s = 8; a = 3; break;
-			case Ts: flt = 1;
-			case Tw: s = 4; a = 2; break;
-			case Th: s = 2; a = 1; break;
-			case Tb: s = 1; a = 0; break;
-			}
-			if (a > al)
-				al = a;
-			if ((a = sz & (s-1))) {
-				a = s - a;
-				if (n < NSeg) {
-					/* padding segment */
-					ty->seg[n].ispad = 1;
-					ty->seg[n].len = a;
-					n++;
-				}
-			}
-			t = nextnl();
-			if (t == Tint) {
-				c = tokval.num;
-				t = nextnl();
-			} else
-				c = 1;
-			sz += a + c*s;
-			for (; c>0 && n<NSeg; c--, n++) {
-				ty->seg[n].isflt = flt;
-				ty->seg[n].ispad = 0;
-				ty->seg[n].len = s;
-			}
-			if (t != Tcomma)
-				break;
-			t = nextnl();
-		}
-		if (n >= NSeg)
-			ty->dark = 1;
-		else
-			ty->seg[n].len = 0;
-		if (ty->align == -1)
-			ty->align = al;
-		else
-			al = ty->align;
-		a = 1 << al;
-		ty->size = (sz + a - 1) & -a;
+		if (nextnl() != Trbrace)
+			err("} expected");
+		return;
 	}
-	if (t != Trbrace)
-		err(", or } expected");
+	n = 0;
+	ty->seg = vnew(1, sizeof ty->seg[0], emalloc);
+	if (t == Tlbrace)
+		do {
+			if (t != Tlbrace)
+				err("invalid union member");
+			vgrow(&ty->seg, n+1);
+			parseseg(ty->seg[n++], ty, nextnl());
+			t = nextnl();
+		} while (t != Trbrace);
+	else
+		parseseg(ty->seg[n++], ty, t);
+	ty->nunion = n;
 }
 
 static void
@@ -956,7 +985,7 @@ parsedat(void cb(Dat *), int export)
 				d.u.num = tokval.num;
 			else if (t == Tglo)
 				parsedatref(&d);
-			else if (t == TStr)
+			else if (t == Tstr)
 				parsedatstr(&d);
 			else
 				err("constant literal expected");

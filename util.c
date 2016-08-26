@@ -6,6 +6,7 @@ typedef struct Vec Vec;
 
 struct Vec {
 	ulong mag;
+	void *(*alloc)();
 	size_t esz;
 	ulong cap;
 	union {
@@ -159,7 +160,7 @@ icpy(Ins *d, Ins *s, ulong n)
 }
 
 void *
-vnew(ulong len, size_t esz)
+vnew(ulong len, size_t esz, void *alloc(size_t))
 {
 	ulong cap;
 	Vec *v;
@@ -170,7 +171,21 @@ vnew(ulong len, size_t esz)
 	v->mag = VMag;
 	v->cap = cap;
 	v->esz = esz;
+	v->alloc = alloc;
 	return v + 1;
+}
+
+void
+vfree(void *p)
+{
+	Vec *v;
+
+	v = (Vec *)p - 1;
+	assert(v->mag == VMag);
+	if (v->alloc == emalloc) {
+		v->mag = 0;
+		free(v);
+	}
 }
 
 void
@@ -183,8 +198,9 @@ vgrow(void *vp, ulong len)
 	assert(v+1 && v->mag == VMag);
 	if (v->cap >= len)
 		return;
-	v1 = vnew(len, v->esz);
+	v1 = vnew(len, v->esz, v->alloc);
 	memcpy(v1, v+1, v->cap * v->esz);
+	vfree(v+1);
 	*(Vec **)vp = v1;
 }
 
