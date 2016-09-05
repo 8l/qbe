@@ -530,7 +530,8 @@ void bsdiff(BSet *, BSet *);
 int bsequal(BSet *, BSet *);
 int bsiter(BSet *, int *);
 
-static inline int bshas(BSet *bs, uint elt)
+static inline int
+bshas(BSet *bs, uint elt)
 {
 	assert(elt < bs->nt * NBit);
 	return (bs->t[elt/NBit] & BIT(elt%NBit)) != 0;
@@ -560,6 +561,9 @@ void memopt(Fn *);
 void fillalias(Fn *);
 int alias(Ref, int, Ref, int, int *, Fn *);
 int escapes(Ref, Fn *);
+
+/* load.c */
+void loadopt(Fn *);
 
 /* ssa.c */
 void filluse(Fn *);
