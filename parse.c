@@ -545,10 +545,12 @@ parseline(PState ps)
 			Jrets, Jretd,
 			Jretc, Jret0
 		}[rcls];
-		if (rcls < 5) {
+		if (peek() == Tnl)
+			curb->jmp.type = Jret0;
+		else if (rcls < 5) {
 			r = parseref();
 			if (req(r, R))
-				err("return value expected");
+				err("invalid return value");
 			curb->jmp.arg = r;
 		}
 		goto Close;
