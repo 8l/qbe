@@ -4,7 +4,7 @@ ABI = sysv
 V = @
 OBJDIR = obj
 
-SRC = main.c util.c parse.c cfg.c mem.c ssa.c copy.c fold.c live.c $(ABI).c isel.c spill.c rega.c emit.c
+SRC = main.c util.c parse.c cfg.c mem.c ssa.c alias.c copy.c fold.c live.c $(ABI).c isel.c spill.c rega.c emit.c
 OBJ = $(SRC:%.c=$(OBJDIR)/%.o)
 
 CFLAGS += -Wall -Wextra -std=c99 -g -pedantic

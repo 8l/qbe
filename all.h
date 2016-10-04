@@ -20,6 +20,7 @@ typedef struct Ins Ins;
 typedef struct Phi Phi;
 typedef struct Blk Blk;
 typedef struct Use Use;
+typedef struct Alias Alias;
 typedef struct Tmp Tmp;
 typedef struct Con Con;
 typedef struct Addr Mem;
@@ -104,8 +105,8 @@ struct Ref {
 enum {
 	RTmp,
 	RCon,
-	RSlot,
 	RType,
+	RSlot,
 	RCall,
 	RMem,
 };
@@ -362,6 +363,26 @@ struct Use {
 	} u;
 };
 
+enum {
+	NoAlias,
+	MayAlias,
+	MustAlias
+};
+
+struct Alias {
+	enum {
+		ABot = 0,
+		ALoc = 1, /* stack local */
+		ACon = 2,
+		AEsc = 3, /* stack escaping */
+		ASym = 4,
+		AUnk = 6,
+	} type;
+	Ref base;
+	char label[NString];
+	int64_t offset;
+};
+
 struct Tmp {
 	char name[NString];
 	Use *use;
@@ -374,6 +395,7 @@ struct Tmp {
 		bits m;
 	} hint;
 	int phi;
+	Alias alias;
 	int visit;
 };
 
@@ -533,6 +555,11 @@ void fillfron(Fn *);
 
 /* mem.c */
 void memopt(Fn *);
+
+/* alias.c */
+void fillalias(Fn *);
+int alias(Ref, int, Ref, int, int *, Fn *);
+int escapes(Ref, Fn *);
 
 /* ssa.c */
 void filluse(Fn *);
