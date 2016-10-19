@@ -24,8 +24,7 @@ extract() {
 			next
 		}
 		/^# <<</ {
-			if (p)
-				p = 0
+			p = 0
 		}
 		p
 	" $FILE \
@@ -42,7 +41,7 @@ once() {
 		exit 1
 	fi
 
-	echo "$(basename $T)..."
+	printf "%-45s" "$(basename $T)..."
 
 	if ! $QBE -o $ASM $T
 	then
@@ -83,7 +82,7 @@ once() {
 		return 1
 	fi
 
-	printf "\033[1A\033[45C[ok]\n"
+	echo "[ok]"
 }
 
 
