@@ -45,8 +45,12 @@ func(Fn *fn)
 	fillrpo(fn);
 	fillpreds(fn);
 	filluse(fn);
-	memopt(fn);
+	/* memopt(fn); */
 	ssa(fn);
+	filluse(fn);
+	ssacheck(fn);
+	fillalias(fn);
+	loadopt(fn);
 	filluse(fn);
 	ssacheck(fn);
 	copy(fn);
