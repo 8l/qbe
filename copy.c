@@ -38,7 +38,7 @@ visitphi(Phi *p, Ref *cp, RList **w)
 	r = R;
 	for (a=0; a<p->narg; a++) {
 		r1 = copyof(p->arg[a], cp);
-		if (req(r1, R))
+		if (req(r1, R) || req(r1, p->to))
 			continue;
 		if (req(r, R) || req(r, r1))
 			r = r1;
