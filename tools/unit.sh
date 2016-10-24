@@ -110,6 +110,7 @@ case $1 in
 			echo
 			echo "All is fine!"
 		fi
+		exit $F
 		;;
 	*)
 		once $1
