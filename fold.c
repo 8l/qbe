@@ -385,8 +385,8 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 	default:
 		if (Ocmpw <= op && op <= Ocmpl1) {
 			if (op <= Ocmpw1) {
-				l.u = (uint32_t)l.u;
-				r.u = (uint32_t)r.u;
+				l.u = (int32_t)l.u;
+				r.u = (int32_t)r.u;
 			} else
 				op -= Ocmpl - Ocmpw;
 			switch (op - Ocmpw) {
