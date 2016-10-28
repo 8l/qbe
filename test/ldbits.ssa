@@ -1,0 +1,40 @@
+# unit tests for load elimination
+
+export
+function $tests() {
+@start
+	%p =l alloc8 16
+	%p3 =l add %p, 3
+	%p4 =l add %p, 4
+	%p6 =l add %p, 6
+	%p8 =l add %p, 8
+@test1
+	storew 1, $a
+	storel 1311768467139281697, %p
+	storeh 255, %p8
+	%x1 =w load %p6
+	%c1 =w cnew %x1, 16716340
+	jnz %c1, @fail, @test2
+@test2
+	storew 2, $a
+	%x2 =w loadub %p3
+	%c2 =w cnew %x2, 135
+	jnz %c2, @fail, @test3
+@test3
+	storew 3, $a
+	storew 2864434397, %p8
+	%x3 =l load %p3
+	%c3 =w cnel %x3, -4914310023110821753
+	jnz %c3, @fail, @test4
+@test4
+@ok
+	storew 0, $a
+@fail
+	ret
+}
+
+# >>> driver
+# extern void tests(void);
+# int a;
+# int main() { tests(); return a; }
+# <<<
