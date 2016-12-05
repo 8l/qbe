@@ -59,7 +59,7 @@ once() {
 		LNK="$ASM"
 	fi
 
-	if ! cc -g -o $BIN $LNK
+	if ! cc -no-pie -g -o $BIN $LNK
 	then
 		echo "[cc fail]"
 		return 1
