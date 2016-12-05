@@ -1,22 +1,14 @@
 #include "all.h"
 
 static void
-loopmark(Blk *hd, Blk *b, Phi *p)
+loopmark(Blk *hd, Blk *b)
 {
-	int k, head;
-	uint n, a;
+	int k;
+	uint n;
 
-	head = hd->id;
-	if (b->id < head)
+	if (b->id < hd->id || b->visit == hd->id)
 		return;
-	for (; p; p=p->link)
-		for (a=0; a<p->narg; a++)
-			if (p->blk[a] == b)
-			if (rtype(p->arg[a]) == RTmp)
-				bsset(hd->gen, p->arg[a].val);
-	if (b->visit == head)
-		return;
-	b->visit = head;
+	b->visit = hd->id;
 	b->loop *= 10;
 	/* aggregate looping information at
 	 * loop headers */
@@ -25,7 +17,7 @@ loopmark(Blk *hd, Blk *b, Phi *p)
 		if (b->nlive[k] > hd->nlive[k])
 			hd->nlive[k] = b->nlive[k];
 	for (n=0; n<b->npred; n++)
-		loopmark(hd, b->pred[n], b->phi);
+		loopmark(hd, b->pred[n]);
 }
 
 static void
@@ -72,7 +64,7 @@ fillcost(Fn *fn)
 		hd = 0;
 		for (a=0; a<b->npred; a++)
 			if (b->pred[a]->id >= n) {
-				loopmark(b, b->pred[a], b->phi);
+				loopmark(b, b->pred[a]);
 				hd = 1;
 			}
 		if (hd && debug['S']) {

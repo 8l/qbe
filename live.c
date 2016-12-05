@@ -13,8 +13,10 @@ liveon(BSet *v, Blk *b, Blk *s)
 	for (p=s->phi; p; p=p->link)
 		for (a=0; a<p->narg; a++)
 			if (p->blk[a] == b)
-			if (rtype(p->arg[a]) == RTmp)
+			if (rtype(p->arg[a]) == RTmp) {
 				bsset(v, p->arg[a].val);
+				bsset(b->gen, p->arg[a].val);
+			}
 }
 
 static int
