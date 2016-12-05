@@ -87,47 +87,6 @@ freeall()
 	nptr = 1;
 }
 
-Blk *
-blknew()
-{
-	static Blk z;
-	Blk *b;
-
-	b = alloc(sizeof *b);
-	*b = z;
-	return b;
-}
-
-void
-blkdel(Blk *b)
-{
-	Blk *s, **ps, *succ[3];
-	Phi *p;
-	uint a;
-
-	succ[0] = b->s1;
-	succ[1] = b->s2 == b->s1 ? 0 : b->s2;
-	succ[2] = 0;
-	for (ps=succ; (s=*ps); ps++) {
-		for (p=s->phi; p; p=p->link) {
-			for (a=0; p->blk[a]!=b; a++)
-				assert(a+1<p->narg);
-			p->narg--;
-			memmove(&p->blk[a], &p->blk[a+1],
-				sizeof p->blk[0] * (p->narg-a));
-			memmove(&p->arg[a], &p->arg[a+1],
-				sizeof p->arg[0] * (p->narg-a));
-		}
-		if (s->npred != 0) {
-			for (a=0; s->pred[a]!=b; a++)
-				assert(a+1<s->npred);
-			s->npred--;
-			memmove(&s->pred[a], &s->pred[a+1],
-				sizeof s->pred[0] * (s->npred-a));
-		}
-	}
-}
-
 void
 emit(int op, int k, Ref to, Ref arg0, Ref arg1)
 {

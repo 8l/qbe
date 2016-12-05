@@ -481,8 +481,6 @@ void die_(char *, char *, ...) __attribute__((noreturn));
 void *emalloc(size_t);
 void *alloc(size_t);
 void freeall(void);
-Blk *blknew(void);
-void blkdel(Blk *);
 void emit(int, int, Ref, Ref, Ref);
 void emiti(Ins);
 void idup(Ins **, Ins *, ulong);
@@ -522,6 +520,16 @@ void parse(FILE *, char *, void (Dat *), void (Fn *));
 void printfn(Fn *, FILE *);
 void printref(Ref, Fn *, FILE *);
 void err(char *, ...) __attribute__((noreturn));
+
+/* cfg.c */
+Blk *blknew(void);
+void blkdel(Blk *);
+void fillpreds(Fn *);
+void fillrpo(Fn *);
+void filldom(Fn *);
+int sdom(Blk *, Blk *);
+int dom(Blk *, Blk *);
+void fillfron(Fn *);
 
 /* mem.c */
 void memopt(Fn *);
