@@ -250,6 +250,7 @@ newtmp(char *prfx, int k,  Fn *fn)
 
 	t = fn->ntmp++;
 	vgrow(&fn->tmp, fn->ntmp);
+	memset(&fn->tmp[t], 0, sizeof(Tmp));
 	if (prfx)
 		sprintf(fn->tmp[t].name, "%s.%d", prfx, ++n);
 	fn->tmp[t].cls = k;
