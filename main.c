@@ -49,6 +49,7 @@ func(Fn *fn)
 	ssa(fn);
 	filluse(fn);
 	ssacheck(fn);
+	fillloop(fn);
 	fillalias(fn);
 	loadopt(fn);
 	filluse(fn);

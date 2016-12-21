@@ -228,3 +228,50 @@ fillfron(Fn *fn)
 				addfron(a, b->s2);
 	}
 }
+
+static void
+loopmark(Blk *hd, Blk *b, void f(Blk *, Blk *))
+{
+	uint p;
+
+	if (b->id < hd->id || b->visit == hd->id)
+		return;
+	b->visit = hd->id;
+	f(hd, b);
+	for (p=0; p<b->npred; ++p)
+		loopmark(hd, b->pred[p], f);
+}
+
+void
+loopiter(Fn *fn, void f(Blk *, Blk *))
+{
+	int n;
+	uint p;
+	Blk *b;
+
+	for (b=fn->start; b; b=b->link)
+		b->visit = -1;
+	for (n=0; n<fn->nblk; ++n) {
+		b = fn->rpo[n];
+		for (p=0; p<b->npred; ++p)
+			if (b->pred[p]->id >= n)
+				loopmark(b, b->pred[p], f);
+	}
+}
+
+void
+multloop(Blk *hd, Blk *b)
+{
+	(void)hd;
+	b->loop *= 10;
+}
+
+void
+fillloop(Fn *fn)
+{
+	Blk *b;
+
+	for (b=fn->start; b; b=b->link)
+		b->loop = 1;
+	loopiter(fn, multloop);
+}

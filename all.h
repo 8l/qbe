@@ -553,6 +553,8 @@ void filldom(Fn *);
 int sdom(Blk *, Blk *);
 int dom(Blk *, Blk *);
 void fillfron(Fn *);
+void loopiter(Fn *, void (*)(Blk *, Blk *));
+void fillloop(Fn *);
 
 /* mem.c */
 void memopt(Fn *);

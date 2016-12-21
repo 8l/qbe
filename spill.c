@@ -1,23 +1,16 @@
 #include "all.h"
 
 static void
-loopmark(Blk *hd, Blk *b)
+aggreg(Blk *hd, Blk *b)
 {
 	int k;
-	uint n;
 
-	if (b->id < hd->id || b->visit == hd->id)
-		return;
-	b->visit = hd->id;
-	b->loop *= 10;
 	/* aggregate looping information at
 	 * loop headers */
 	bsunion(hd->gen, b->gen);
 	for (k=0; k<2; k++)
 		if (b->nlive[k] > hd->nlive[k])
 			hd->nlive[k] = b->nlive[k];
-	for (n=0; n<b->npred; n++)
-		loopmark(hd, b->pred[n]);
 }
 
 static void
@@ -46,32 +39,26 @@ tmpuse(Ref r, int use, int loop, Fn *fn)
 void
 fillcost(Fn *fn)
 {
-	int n, hd;
+	int n;
 	uint a;
 	Blk *b;
 	Ins *i;
 	Tmp *t;
 	Phi *p;
 
-	for (b=fn->start; b; b=b->link) {
-		b->loop = 1;
-		b->visit = -1;
-	}
-	if (debug['S'])
+	loopiter(fn, aggreg);
+	if (debug['S']) {
 		fprintf(stderr, "\n> Loop information:\n");
-	for (n=0; n<fn->nblk; n++) {
-		b = fn->rpo[n];
-		hd = 0;
-		for (a=0; a<b->npred; a++)
-			if (b->pred[a]->id >= n) {
-				loopmark(b, b->pred[a]);
-				hd = 1;
+		for (b=fn->start; b; b=b->link) {
+			for (a=0; a<b->npred; ++a)
+				if (b->id <= b->pred[a]->id)
+					break;
+			if (a != b->npred) {
+				fprintf(stderr, "\t%-10s", b->name);
+				fprintf(stderr, " (% 3d ", b->nlive[0]);
+				fprintf(stderr, "% 3d) ", b->nlive[1]);
+				dumpts(b->gen, fn->tmp, stderr);
 			}
-		if (hd && debug['S']) {
-			fprintf(stderr, "\t%-10s", b->name);
-			fprintf(stderr, " (% 3d ", b->nlive[0]);
-			fprintf(stderr, "% 3d) ", b->nlive[1]);
-			dumpts(b->gen, fn->tmp, stderr);
 		}
 	}
 	for (t=fn->tmp; t-fn->tmp < fn->ntmp; t++) {
