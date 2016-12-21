@@ -260,7 +260,7 @@ def(Slice sl, bits msk, Blk *b, Ins *i, Loc *il)
 		goto Load;
 	if (b->npred == 1) {
 		bp = b->pred[0];
-		assert(bp->loop == il->blk->loop);
+		assert(bp->s2 || bp->loop == il->blk->loop);
 		l = *il;
 		if (bp->s2)
 			l.type = LNoLoad;
