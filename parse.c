@@ -202,7 +202,7 @@ lex()
 		{ 0, Txxx }
 	};
 	static char tok[NString];
-	int c, i;
+	int c, i, esc;
 	int t;
 
 	do
@@ -262,16 +262,17 @@ lex()
 	}
 	if (c == '"') {
 		tokval.str = vnew(0, 1, alloc);
+		esc = 0;
 		for (i=0;; i++) {
 			c = fgetc(inf);
 			if (c == EOF)
 				err("unterminated string");
 			vgrow(&tokval.str, i+1);
-			if (c == '"')
-			if (!i || tokval.str[i-1] != '\\') {
+			if (c == '"' && !esc) {
 				tokval.str[i] = 0;
 				return Tstr;
 			}
+			esc = (c == '\\' && !esc);
 			tokval.str[i] = c;
 		}
 	}
