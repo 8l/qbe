@@ -162,7 +162,7 @@ seladdr(Ref *r, ANum *an, Fn *fn)
 	r0 = *r;
 	if (rtype(r0) == RTmp) {
 		amatch(&a, r0, an, fn, 1);
-		if (req(a.base, R))
+		if (req(a.base, R) || req(a.base, r0))
 			return;
 		chuse(r0, -1, fn);
 		vgrow(&fn->mem, ++fn->nmem);
