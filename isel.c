@@ -24,7 +24,6 @@ typedef struct ANum ANum;
 struct ANum {
 	char n, l, r;
 	Ins *i;
-	Ref mem;
 };
 
 static void amatch(Addr *, Ref, ANum *, Fn *, int);
@@ -158,24 +157,19 @@ static void
 seladdr(Ref *r, ANum *an, Fn *fn)
 {
 	Addr a;
-	Ref r0, r1;
+	Ref r0;
 
 	r0 = *r;
 	if (rtype(r0) == RTmp) {
+		amatch(&a, r0, an, fn, 1);
+		if (req(a.base, R))
+			return;
 		chuse(r0, -1, fn);
-		r1 = an[r0.val].mem;
-		if (req(r1, R)) {
-			amatch(&a, r0, an, fn, 1);
-			vgrow(&fn->mem, ++fn->nmem);
-			fn->mem[fn->nmem-1] = a;
-			r1 = MEM(fn->nmem-1);
-			chuse(a.base, +1, fn);
-			chuse(a.index, +1, fn);
-			if (rtype(a.base) != RTmp)
-			if (rtype(a.index) != RTmp)
-				an[r0.val].mem = r1;
-		}
-		*r = r1;
+		vgrow(&fn->mem, ++fn->nmem);
+		fn->mem[fn->nmem-1] = a;
+		chuse(a.base, +1, fn);
+		chuse(a.index, +1, fn);
+		*r = MEM(fn->nmem-1);
 	}
 }
 
@@ -629,5 +623,9 @@ isel(Fn *fn)
 	if (debug['I']) {
 		fprintf(stderr, "\n> After instruction selection:\n");
 		printfn(fn, stderr);
+		for (n=0; n<fn->ntmp; ++n) {
+			if (strcmp(fn->tmp[n].name, "i") == 0)
+				fprintf(stderr, ">> nuse for i: %d\n", fn->tmp[n].nuse);
+		}
 	}
 }
