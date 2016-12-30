@@ -623,9 +623,5 @@ isel(Fn *fn)
 	if (debug['I']) {
 		fprintf(stderr, "\n> After instruction selection:\n");
 		printfn(fn, stderr);
-		for (n=0; n<fn->ntmp; ++n) {
-			if (strcmp(fn->tmp[n].name, "i") == 0)
-				fprintf(stderr, ">> nuse for i: %d\n", fn->tmp[n].nuse);
-		}
 	}
 }
