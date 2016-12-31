@@ -4,8 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
-
-typedef unsigned int uint;
+#include <stdint.h>
 
 char *tok[] = {
 
@@ -34,12 +33,12 @@ enum {
 	Ntok = sizeof tok / sizeof tok[0]
 };
 
-uint th[Ntok];
+uint32_t th[Ntok];
 
-uint
+uint32_t
 hash(char *s)
 {
-	uint h;
+	uint32_t h;
 
 	h = 0;
 	for (; *s; ++s)
@@ -51,9 +50,8 @@ int
 main()
 {
 	char *bmap;
-	uint h;
+	uint32_t h, M, K;
 	int i, j;
-	int M, K;
 
 	bmap = malloc(1u << 31);
 
@@ -74,7 +72,8 @@ main()
 
 	for (;; --M) {
 		printf("trying M=%d...\n", M);
-		for (K = 1; K<UINT_MAX-2; K+=2) {
+		K = 1;
+		do {
 			memset(bmap, 0, 1 << (32 - M));
 			for (i=0; i<Ntok; ++i) {
 				h = (th[i]*K) >> M;
@@ -86,6 +85,7 @@ main()
 				printf("found K=%d for M=%d\n", K, M);
 				exit(0);
 			}
-		}
+			K += 2;
+		} while (K != 1);
 	}
 }
