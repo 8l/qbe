@@ -94,7 +94,16 @@ typedef enum {
 } PState;
 
 enum {
-	Txxx = NPubOp,
+	Txxx = 0,
+
+	/* aliases */
+	Tloadw = NPubOp,
+	Tloadl,
+	Tloads,
+	Tloadd,
+	Talloc1,
+	Talloc2,
+
 	Tcall,
 	Tphi,
 	Tjmp,
@@ -131,9 +140,43 @@ enum {
 	Trbrace,
 	Tnl,
 	Teof,
+
+	Ntok
 };
 
+static char *kwmap[Ntok] = {
+	[Tloadw] = "loadw",
+	[Tloadl] = "loadl",
+	[Tloads] = "loads",
+	[Tloadd] = "loadd",
+	[Talloc1] = "alloc1",
+	[Talloc2] = "alloc2",
+	[Tcall] = "call",
+	[Tphi] = "phi",
+	[Tjmp] = "jmp",
+	[Tjnz] = "jnz",
+	[Tret] = "ret",
+	[Texport] = "export",
+	[Tfunc] = "function",
+	[Ttype] = "type",
+	[Tdata] = "data",
+	[Talign] = "align",
+	[Tl] = "l",
+	[Tw] = "w",
+	[Th] = "h",
+	[Tb] = "b",
+	[Td] = "d",
+	[Ts] = "s",
+	[Tz] = "z",
+};
 
+enum {
+	/* found using tools/lexh.c */
+	K = 2948605,
+	M = 23,
+};
+
+static char lexh[1 << (32-M)];
 static FILE *inf;
 static char *inpath;
 static int thead;
@@ -169,38 +212,42 @@ err(char *s, ...)
 	exit(1);
 }
 
+static inline long
+tokh(char *s)
+{
+	uint32_t h;
+
+	h = 0;
+	for (; *s; ++s)
+		h = *s + 5*h;
+	return h*K >> M;
+}
+
+static void
+lexinit()
+{
+	static int done;
+	int i;
+	long h;
+
+	if (done)
+		return;
+	for (i=0; i<NPubOp; ++i)
+		if (opdesc[i].name)
+			kwmap[i] = opdesc[i].name;
+	assert(Ntok <= CHAR_MAX);
+	for (i=0; i<Ntok; ++i)
+		if (kwmap[i]) {
+			h = tokh(kwmap[i]);
+			assert(lexh[h] == Txxx);
+			lexh[h] = i;
+		}
+	done = 1;
+}
+
 static int
 lex()
 {
-	static struct {
-		char *str;
-		int tok;
-	} tmap[] = {
-		{ "call", Tcall },
-		{ "phi", Tphi },
-		{ "jmp", Tjmp },
-		{ "jnz", Tjnz },
-		{ "ret", Tret },
-		{ "export", Texport },
-		{ "function", Tfunc },
-		{ "type", Ttype },
-		{ "data", Tdata },
-		{ "align", Talign },
-		{ "l", Tl },
-		{ "w", Tw },
-		{ "h", Th },
-		{ "b", Tb },
-		{ "d", Td },
-		{ "s", Ts },
-		{ "z", Tz },
-		{ "loadw", Oload }, /* for convenience */
-		{ "loadl", Oload },
-		{ "loads", Oload },
-		{ "loadd", Oload },
-		{ "alloc1", Oalloc },
-		{ "alloc2", Oalloc },
-		{ 0, Txxx }
-	};
 	static char tok[NString];
 	int c, i, esc;
 	int t;
@@ -293,15 +340,12 @@ Alpha:		c = fgetc(inf);
 	if (t != Txxx) {
 		return t;
 	}
-	for (i=0; i<NPubOp; i++)
-		if (opdesc[i].name)
-		if (strcmp(tok, opdesc[i].name) == 0)
-			return i;
-	for (i=0; tmap[i].str; i++)
-		if (strcmp(tok, tmap[i].str) == 0)
-			return tmap[i].tok;
-	err("unknown keyword %s", tokval.str);
-	return Txxx;
+	t = lexh[tokh(tok)];
+	if (t == Txxx || strcmp(kwmap[t], tok) != 0) {
+		err("unknown keyword %s", tok);
+		return Txxx;
+	}
+	return t;
 }
 
 static int
@@ -602,6 +646,10 @@ DoOp:
 			arg[1] = R;
 		goto Ins;
 	}
+	if (op >= Tloadw && op <= Tloadd)
+		op = Oload;
+	if (op == Talloc1 || op == Talloc2)
+		op = Oalloc;
 	if (k == 4)
 		err("size class must be w, l, s, or d");
 	if (op >= NPubOp)
@@ -1010,6 +1058,7 @@ parse(FILE *f, char *path, void data(Dat *), void func(Fn *))
 {
 	int t, export;
 
+	lexinit();
 	inf = f;
 	inpath = path;
 	lnum = 1;
