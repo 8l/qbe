@@ -42,7 +42,7 @@ hash(char *s)
 
 	h = 0;
 	for (; *s; ++s)
-		h = *s + 5*h;
+		h = *s + 17*h;
 	return h;
 }
 

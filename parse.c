@@ -171,9 +171,10 @@ static char *kwmap[Ntok] = {
 };
 
 enum {
-	/* found using tools/lexh.c */
-	K = 2948605,
-	M = 23,
+	BMask = 8191, /* for blocks hash */
+
+	K = 2047061843, /* found using tools/lexh.c */
+	M = 24,
 };
 
 static char lexh[1 << (32-M)];
@@ -191,13 +192,12 @@ static int lnum;
 
 static Fn *curf;
 static Phi **plink;
-static Blk **bmap;
 static Blk *curb;
 static Blk **blink;
+static Blk *blkh[BMask+1];
 static int nblk;
 static int rcls;
 static int ntyp;
-
 
 void
 err(char *s, ...)
@@ -212,15 +212,15 @@ err(char *s, ...)
 	exit(1);
 }
 
-static inline long
-tokh(char *s)
+static inline uint32_t
+hash(char *s)
 {
 	uint32_t h;
 
 	h = 0;
 	for (; *s; ++s)
-		h = *s + 5*h;
-	return h*K >> M;
+		h = *s + 17*h;
+	return h;
 }
 
 static void
@@ -238,7 +238,7 @@ lexinit()
 	assert(Ntok <= CHAR_MAX);
 	for (i=0; i<Ntok; ++i)
 		if (kwmap[i]) {
-			h = tokh(kwmap[i]);
+			h = hash(kwmap[i])*K >> M;
 			assert(lexh[h] == Txxx);
 			lexh[h] = i;
 		}
@@ -340,7 +340,7 @@ Alpha:		c = fgetc(inf);
 	if (t != Txxx) {
 		return t;
 	}
-	t = lexh[tokh(tok)];
+	t = lexh[hash(tok)*K >> M];
 	if (t == Txxx || strcmp(kwmap[t], tok) != 0) {
 		err("unknown keyword %s", tok);
 		return Txxx;
@@ -522,16 +522,19 @@ parserefl(int arg)
 static Blk *
 findblk(char *name)
 {
-	int i;
+	Blk *b;
+	uint32_t h;
 
-	for (i=0; i<nblk; i++)
-		if (strcmp(bmap[i]->name, name) == 0)
-			return bmap[i];
-	vgrow(&bmap, ++nblk);
-	bmap[i] = blknew();
-	bmap[i]->id = i;
-	strcpy(bmap[i]->name, name);
-	return bmap[i];
+	h = hash(name) & BMask;
+	for (b=blkh[h]; b; b=b->dlink)
+		if (strcmp(b->name, name) == 0)
+			return b;
+	b = blknew();
+	b->id = nblk++;
+	strcpy(b->name, name);
+	b->dlink = blkh[h];
+	blkh[h] = b;
+	return b;
 }
 
 static void
@@ -797,7 +800,8 @@ typecheck(Fn *fn)
 static Fn *
 parsefn(int export)
 {
-	int r;
+	Blk *b;
+	int i;
 	PState ps;
 
 	curb = 0;
@@ -808,9 +812,8 @@ parsefn(int export)
 	curf->ncon = 1; /* first constant must be 0 */
 	curf->tmp = vnew(curf->ntmp, sizeof curf->tmp[0], alloc);
 	curf->con = vnew(curf->ncon, sizeof curf->con[0], alloc);
-	for (r=0; r<Tmp0; r++)
-		newtmp(0, r < XMM0 ? Kl : Kd, curf);
-	bmap = vnew(nblk, sizeof bmap[0], alloc);
+	for (i=0; i<Tmp0; ++i)
+		newtmp(0, i < XMM0 ? Kl : Kd, curf);
 	curf->con[0].type = CBits;
 	curf->export = export;
 	blink = &curf->start;
@@ -837,6 +840,10 @@ parsefn(int export)
 	curf->nmem = 0;
 	curf->nblk = nblk;
 	curf->rpo = 0;
+	for (b=0; b; b=b->link)
+		b->dlink = 0; /* was trashed by findblk() */
+	for (i=0; i<BMask+1; ++i)
+		blkh[i] = 0;
 	typecheck(curf);
 	return curf;
 }
