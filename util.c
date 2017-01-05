@@ -275,6 +275,32 @@ popcnt(bits b)
 	return b & 0xff;
 }
 
+inline static int
+firstbit(bits b)
+{
+	int n;
+
+	n = 0;
+	if (!(b & 0xffffffff)) {
+		n += 32;
+		b >>= 32;
+	}
+	if (!(b & 0xffff)) {
+		n += 16;
+		b >>= 16;
+	}
+	if (!(b & 0xff)) {
+		n += 8;
+		b >>= 8;
+	}
+	if (!(b & 0xf)) {
+		n += 4;
+		b >>= 4;
+	}
+	n += (char[16]){4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0}[b & 0xf];
+	return n;
+}
+
 uint
 bscount(BSet *bs)
 {
@@ -349,18 +375,23 @@ bszero(BSet *bs)
 int
 bsiter(BSet *bs, int *elt)
 {
-	uint i;
+	bits b;
+	uint t, i;
 
-	for (i=*elt;; i++) {
-		while (i < bsmax(bs) && !bs->t[i/NBit])
-			i = (i + NBit) & -NBit;
-		if (i >= bsmax(bs))
+	i = *elt;
+	t = i/NBit;
+	if (t >= bs->nt)
+		return 0;
+	b = bs->t[t];
+	b &= ~(BIT(i%NBit) - 1);
+	while (!b) {
+		++t;
+		if (t >= bs->nt)
 			return 0;
-		if (bshas(bs, i)) {
-			*elt = i;
-			return 1;
-		}
+		b = bs->t[t];
 	}
+	*elt = NBit*t + firstbit(b);
+	return 1;
 }
 
 void
