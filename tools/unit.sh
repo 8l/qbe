@@ -59,7 +59,7 @@ once() {
 		LNK="$ASM"
 	fi
 
-	if ! cc -no-pie -g -o $BIN $LNK
+	if ! cc $PIE -g -o $BIN $LNK
 	then
 		echo "[cc fail]"
 		return 1
@@ -93,6 +93,15 @@ then
 	echo "usage: tools/unit.sh {all, SSAFILE}" 2>&1
 	exit 1
 fi
+
+for wtf in -nopie -no-pie
+do
+	if echo "int main() { return 0; }" |
+	   cc $wtf -x c -o /dev/null - >/dev/null 2>&1
+	then
+		PIE=$wtf
+	fi
+done
 
 case $1 in
 	"all")
