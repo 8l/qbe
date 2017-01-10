@@ -114,7 +114,7 @@ argcls(Ins *i, int n)
 static void
 fixarg(Ref *r, int k, int phi, Fn *fn)
 {
-	Addr a;
+	Addr a, *m;
 	Ref r0, r1;
 	int s, n;
 
@@ -149,6 +149,18 @@ fixarg(Ref *r, int k, int phi, Fn *fn)
 		 */
 		r1 = newtmp("isel", Kl, fn);
 		emit(Oaddr, Kl, r1, SLOT(s), R);
+	} else if (rtype(r0) == RMem) {
+		/* apple asm fix */
+		m = &fn->mem[r0.val];
+		if (req(m->base, R)) {
+			n = fn->ncon;
+			vgrow(&fn->con, ++fn->ncon);
+			fn->con[n] = m->offset;
+			m->offset.type = CUndef;
+			r0 = newtmp("isel", Kl, fn);
+			emit(Oaddr, Kl, r0, CON(n), R);
+			m->base = r0;
+		}
 	}
 	*r = r1;
 }
@@ -162,8 +174,19 @@ seladdr(Ref *r, ANum *an, Fn *fn)
 	r0 = *r;
 	if (rtype(r0) == RTmp) {
 		amatch(&a, r0, an, fn, 1);
-		if (req(a.base, R) || req(a.base, r0))
+		if (req(a.base, r0))
 			return;
+		if (a.offset.type == CAddr)
+		if (!req(a.base, R)) {
+			/* apple asm fix */
+			if (!req(a.index, R))
+				return;
+			else {
+				a.index = a.base;
+				a.scale = 1;
+				a.base = R;
+			}
+		}
 		chuse(r0, -1, fn);
 		vgrow(&fn->mem, ++fn->nmem);
 		fn->mem[fn->nmem-1] = a;
@@ -185,7 +208,7 @@ selcmp(Ref arg[2], int k, Fn *fn)
 	}
 	assert(rtype(arg[0]) != RCon);
 	emit(Oxcmp, k, R, arg[1], arg[0]);
-	iarg = curi->arg;
+	iarg = curi->arg; /* fixarg() can change curi */
 	fixarg(&iarg[0], k, 0, fn);
 	fixarg(&iarg[1], k, 0, fn);
 }
@@ -290,7 +313,7 @@ sel(Ins i, ANum *an, Fn *fn)
 	case_OExt:
 Emit:
 		emiti(i);
-		iarg = curi->arg;
+		iarg = curi->arg; /* fixarg() can change curi */
 		fixarg(&iarg[0], argcls(&i, 0), 0, fn);
 		fixarg(&iarg[1], argcls(&i, 1), 0, fn);
 		break;
