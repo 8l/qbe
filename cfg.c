@@ -207,7 +207,7 @@ addfron(Blk *a, Blk *b)
 		if (a->fron[n] == b)
 			return;
 	if (!a->nfron)
-		a->fron = vnew(++a->nfron, sizeof a->fron[0], alloc);
+		a->fron = vnew(++a->nfron, sizeof a->fron[0], Pfn);
 	else
 		vgrow(&a->fron, ++a->nfron);
 	a->fron[a->nfron-1] = b;

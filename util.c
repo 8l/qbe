@@ -6,7 +6,7 @@ typedef struct Vec Vec;
 
 struct Vec {
 	ulong mag;
-	void *(*alloc)();
+	Pool pool;
 	size_t esz;
 	ulong cap;
 	union {
@@ -119,18 +119,20 @@ icpy(Ins *d, Ins *s, ulong n)
 }
 
 void *
-vnew(ulong len, size_t esz, void *alloc(size_t))
+vnew(ulong len, size_t esz, Pool pool)
 {
+	void *(*f)(size_t);
 	ulong cap;
 	Vec *v;
 
 	for (cap=VMin; cap<len; cap*=2)
 		;
-	v = alloc(cap * esz + sizeof(Vec));
+	f = pool == Pheap ? emalloc : alloc;
+	v = f(cap * esz + sizeof(Vec));
 	v->mag = VMag;
 	v->cap = cap;
 	v->esz = esz;
-	v->alloc = alloc;
+	v->pool = pool;
 	return v + 1;
 }
 
@@ -141,7 +143,7 @@ vfree(void *p)
 
 	v = (Vec *)p - 1;
 	assert(v->mag == VMag);
-	if (v->alloc == emalloc) {
+	if (v->pool == Pheap) {
 		v->mag = 0;
 		free(v);
 	}
@@ -157,7 +159,7 @@ vgrow(void *vp, ulong len)
 	assert(v+1 && v->mag == VMag);
 	if (v->cap >= len)
 		return;
-	v1 = vnew(len, v->esz, v->alloc);
+	v1 = vnew(len, v->esz, v->pool);
 	memcpy(v1, v+1, v->cap * v->esz);
 	vfree(v+1);
 	*(Vec **)vp = v1;

@@ -308,7 +308,7 @@ lex()
 		return Tint;
 	}
 	if (c == '"') {
-		tokval.str = vnew(0, 1, alloc);
+		tokval.str = vnew(0, 1, Pfn);
 		esc = 0;
 		for (i=0;; i++) {
 			c = fgetc(inf);
@@ -810,8 +810,8 @@ parsefn(int export)
 	curf = alloc(sizeof *curf);
 	curf->ntmp = 0;
 	curf->ncon = 1; /* first constant must be 0 */
-	curf->tmp = vnew(curf->ntmp, sizeof curf->tmp[0], alloc);
-	curf->con = vnew(curf->ncon, sizeof curf->con[0], alloc);
+	curf->tmp = vnew(curf->ntmp, sizeof curf->tmp[0], Pfn);
+	curf->con = vnew(curf->ncon, sizeof curf->con[0], Pfn);
 	for (i=0; i<Tmp0; ++i)
 		newtmp(0, i < XMM0 ? Kl : Kd, curf);
 	curf->con[0].type = CBits;
@@ -836,7 +836,7 @@ parsefn(int export)
 		err("empty function");
 	if (curb->jmp.type == Jxxx)
 		err("last block misses jump");
-	curf->mem = vnew(0, sizeof curf->mem[0], alloc);
+	curf->mem = vnew(0, sizeof curf->mem[0], Pfn);
 	curf->nmem = 0;
 	curf->nblk = nblk;
 	curf->rpo = 0;
@@ -950,7 +950,7 @@ parsetyp()
 		return;
 	}
 	n = 0;
-	ty->seg = vnew(1, sizeof ty->seg[0], emalloc);
+	ty->seg = vnew(1, sizeof ty->seg[0], Pheap);
 	if (t == Tlbrace)
 		do {
 			if (t != Tlbrace)

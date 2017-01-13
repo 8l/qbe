@@ -52,7 +52,7 @@ filluse(Fn *fn)
 		tmp[t].phi = 0;
 		tmp[t].cls = 0;
 		if (tmp[t].use == 0)
-			tmp[t].use = vnew(0, sizeof(Use), alloc);
+			tmp[t].use = vnew(0, sizeof(Use), Pfn);
 	}
 	for (b=fn->start; b; b=b->link) {
 		for (p=b->phi; p; p=p->link) {

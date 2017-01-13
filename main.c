@@ -3,6 +3,11 @@
 #include <ctype.h>
 #include <getopt.h>
 
+enum Asm {
+	Gasmacho,
+	Gaself,
+};
+
 char debug['Z'+1] = {
 	['P'] = 0, /* parsing */
 	['A'] = 0, /* abi lowering */

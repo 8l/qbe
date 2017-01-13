@@ -490,13 +490,14 @@ struct Dat {
 
 
 /* main.c */
-enum Asm {
-	Gasmacho,
-	Gaself,
-};
 extern char debug['Z'+1];
 
 /* util.c */
+typedef enum {
+	Pheap, /* free() necessary */
+	Pfn, /* discarded after processing the function */
+} Pool;
+
 extern Typ typ[NTyp];
 extern Ins insb[NIns], *curi;
 void die_(char *, char *, ...) __attribute__((noreturn));
@@ -507,7 +508,7 @@ void emit(int, int, Ref, Ref, Ref);
 void emiti(Ins);
 void idup(Ins **, Ins *, ulong);
 Ins *icpy(Ins *, Ins *, ulong);
-void *vnew(ulong, size_t, void *(size_t));
+void *vnew(ulong, size_t, Pool);
 void vfree(void *);
 void vgrow(void *, ulong);
 int clsmerge(short *, short);

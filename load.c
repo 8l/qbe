@@ -336,7 +336,7 @@ loadopt(Fn *fn)
 	Loc l;
 
 	curf = fn;
-	ilog = vnew(0, sizeof ilog[0], emalloc);
+	ilog = vnew(0, sizeof ilog[0], Pheap);
 	nlog = 0;
 	inum = 0;
 	for (b=fn->start; b; b=b->link)
@@ -351,7 +351,7 @@ loadopt(Fn *fn)
 	qsort(ilog, nlog, sizeof ilog[0], icmp);
 	vgrow(&ilog, nlog+1);
 	ilog[nlog].bid = fn->nblk; /* add a sentinel */
-	ib = vnew(0, sizeof(Ins), emalloc);
+	ib = vnew(0, sizeof(Ins), Pheap);
 	for (ist=ilog, n=0; n<fn->nblk; ++n) {
 		b = fn->rpo[n];
 		for (; ist->bid == n && ist->isphi; ++ist) {
