@@ -30,6 +30,7 @@
       * <@ Cast >
       * <@ Call >
       * <@ Phi >
+      * <@ Instructions index >
 
 - 1. Basic Concepts
 -------------------
@@ -800,3 +801,52 @@ An important remark about phi instructions is that QBE
 assumes that if a variable is defined by a phi it respects
 all the SSA invariants.  So it is critical to not use phi
 instructions unless you know exactly what you are doing.
+
+~ Instructions index
+~~~~~~~~~~~~~~~~~~~~~
+
+List of all QBE IL instructions, linked to their respective
+section.
+
+ * <@ Arithmetic and Bits >
+
+    `add`, `sub`, `div`, `mul`
+
+    `udiv`, `rem`, `urem`
+
+    `or`, `xor`, `and`
+
+    `sar`, `shr`, `shl`
+
+ * <@ Memory >
+
+    `stored`, `stores`, `storel`, `storew`, `storeh`, `storeb`
+
+    `loadd`, `loads`, `loadl`, `loadsw`, `loadsh`, `loadsb`
+
+    `alloc4`, `alloc8`, `alloc16`
+
+ * <@ Comparisons >
+
+    `ceqb`, `ceqh`, `ceqw`, `ceql`, `cneb`, `cneh`, `cnew`,
+    `cnel`, `csleb`, `csleh`, `cslew`, `cslel`, `csltb`,
+    `cslth`, `csltw`, `csltl`, `csgeb`, `csgeh`, `csgew`,
+    `csgel`, `csgtb`, `csgth`, `csgtw`, `csgtl`, `culeb`,
+    `culeh`, `culew`, `culel`, `cultb`, `culth`, `cultw`,
+    `cultl`, `cugeb`, `cugeh`, `cugew`, `cugel`, `cugtb`,
+    `cugth`, `cugtw`, `cugtl`
+
+    `ceqs`, `ceqd`, `cnes`, `cned`, `cles`, `cled`, `clts`,
+    `cltd`, `cges`, `cged`, `cgts`, `cgtd`, `cos`, `cod`,
+    `cuos`, `cuod`
+
+ * <@ Conversions >
+
+    `extsw`, `extsh`, `extsb`, `exts`
+    `extuw`, `extuh`, `extub`, `truncd`
+    `stosi`, `dtosi`, `swtof`, `sltof`
+
+ * <@ Cast >
+
+    `cast`
+
