@@ -109,7 +109,7 @@ starting with the sigil `?`.
 
     `bnf
     BASETY := 'w' | 'l' | 's' | 'd'  # Base types
-    EXTTY  := BASETY    | 'h' | 'b'  # Extended types
+    EXTTY  := BASETY    | 'b' | 'h'  # Extended types
 
 The IL makes very minimal use of types.  By design, the types
 used are restricted to what is necessary for unambiguous
@@ -125,8 +125,8 @@ by an integer type sufficiently wide to represent all memory
 addresses (e.g. `l` on x64).  Temporaries in the IL can only
 have a basic type.
 
-Extended types contain base types and add `h` (half word)
-and `b` (byte), respectively for 16 bits and 8 bits integers.
+Extended types contain base types plus `b` (byte) and `h`
+(half word), respectively for 8 bits and 16 bits integers.
 They are used in <@ Aggregate Types> and <@ Data> definitions.
 
 For C interfacing, the IL also provides user-defined aggregate
