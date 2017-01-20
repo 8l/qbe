@@ -30,7 +30,7 @@
       * <@ Cast >
       * <@ Call >
       * <@ Phi >
-      * <@ Instructions index >
+  7. <@ Instructions Index >
 
 - 1. Basic Concepts
 -------------------
@@ -434,7 +434,7 @@ the following list.
     a return type, no return value can be used.
 
 - 6. Instructions
--------------------------
+-----------------
 
 Instructions are the smallest piece of code in the IL, they
 form the body of <@ Blocks >.  The IL uses a three-address
@@ -802,51 +802,39 @@ assumes that if a variable is defined by a phi it respects
 all the SSA invariants.  So it is critical to not use phi
 instructions unless you know exactly what you are doing.
 
-~ Instructions index
-~~~~~~~~~~~~~~~~~~~~~
+- 7. Instructions Index
+-----------------------
 
-List of all QBE IL instructions, linked to their respective
-section.
+<@ Arithmetic and Bits >:
+  `add`, `sub`, `div`, `mul`, `udiv`, `rem`, `urem`, `or`,
+  `xor`, `and`, `sar`, `shr`, `shl`
 
- * <@ Arithmetic and Bits >
+<@ Memory >:
+  `storeb`, `storeh`, `storew`, `storel`, `stores`, `stored`,
+  `loadd`, `loads`, `loadl`, `loadw`, `loadsw`, `loaduw`,
+  `loadsh`, `loaduh`, `loadsb`, `loadub`, `alloc4`, `alloc8`,
+  `alloc16`
 
-    `add`, `sub`, `div`, `mul`
+<@ Comparisons >:
+  `ceqw`, `ceql`, `cnew`, `cnel`, `cslew`, `cslel`, `csltw`,
+  `csltl`, `csgew`, `csgel`, `csgtw`, `csgtl`, `culew`,
+  `culel`, `cultw`, `cultl`, `cugew`, `cugel`, `cugtw`,
+  `cugtl`, `ceqs`, `ceqd`, `cnes`, `cned`, `cles`, `cled`,
+  `clts`, `cltd`, `cges`, `cged`, `cgts`, `cgtd`, `cos`,
+  `cod`, `cuos`, `cuod`
 
-    `udiv`, `rem`, `urem`
+<@ Conversions >:
+  `extsw`, `extsh`, `extsb`, `exts`, `extuw`, `extuh`,
+  `extub`, `truncd`, `stosi`, `dtosi`, `swtof`, `sltof`
 
-    `or`, `xor`, `and`
+<@ Cast >:
+  `cast`
 
-    `sar`, `shr`, `shl`
+<@ Call >:
+  `call`
 
- * <@ Memory >
+<@ Phi >:
+  `phi`
 
-    `stored`, `stores`, `storel`, `storew`, `storeh`, `storeb`
-
-    `loadd`, `loads`, `loadl`, `loadsw`, `loadsh`, `loadsb`
-
-    `alloc4`, `alloc8`, `alloc16`
-
- * <@ Comparisons >
-
-    `ceqb`, `ceqh`, `ceqw`, `ceql`, `cneb`, `cneh`, `cnew`,
-    `cnel`, `csleb`, `csleh`, `cslew`, `cslel`, `csltb`,
-    `cslth`, `csltw`, `csltl`, `csgeb`, `csgeh`, `csgew`,
-    `csgel`, `csgtb`, `csgth`, `csgtw`, `csgtl`, `culeb`,
-    `culeh`, `culew`, `culel`, `cultb`, `culth`, `cultw`,
-    `cultl`, `cugeb`, `cugeh`, `cugew`, `cugel`, `cugtb`,
-    `cugth`, `cugtw`, `cugtl`
-
-    `ceqs`, `ceqd`, `cnes`, `cned`, `cles`, `cled`, `clts`,
-    `cltd`, `cges`, `cged`, `cgts`, `cgtd`, `cos`, `cod`,
-    `cuos`, `cuod`
-
- * <@ Conversions >
-
-    `extsw`, `extsh`, `extsb`, `exts`
-    `extuw`, `extuh`, `extub`, `truncd`
-    `stosi`, `dtosi`, `swtof`, `sltof`
-
- * <@ Cast >
-
-    `cast`
-
+<@ Jumps >:
+  `jmp`, `jnz`, `ret`
