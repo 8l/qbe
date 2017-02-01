@@ -162,7 +162,8 @@ varget(char *v)
 			s.ctyp = varh[h].ctyp;
 			return &s;
 		}
-	} while (++h != h0 && varh[h].v[0] != 0);
+		h = (h+1) % NVar;
+	} while (h != h0 && varh[h].v[0] != 0);
 	return 0;
 }
 
