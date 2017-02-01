@@ -137,7 +137,8 @@ varadd(char *v, int glo, unsigned ctyp)
 		}
 		if (strcmp(varh[h].v, v) == 0)
 			die("double definition");
-	} while(++h != h0);
+		h = (h+1) % NVar;
+	} while(h != h0);
 	die("too many variables");
 }
 
