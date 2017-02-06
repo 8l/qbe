@@ -188,15 +188,15 @@ fold(Fn *fn)
 	Blk *b, **pb;
 	Phi *p, **pp;
 	Ins *i;
-	int n, d;
-	uint a;
+	int t, d;
+	uint n, a;
 
 	val = emalloc(fn->ntmp * sizeof val[0]);
 	edge = emalloc(fn->nblk * sizeof edge[0]);
 	usewrk = vnew(0, sizeof usewrk[0], Pheap);
 
-	for (n=0; n<fn->ntmp; n++)
-		val[n] = Top;
+	for (t=0; t<fn->ntmp; t++)
+		val[t] = Top;
 	for (n=0; n<fn->nblk; n++) {
 		b = fn->rpo[n];
 		b->visit = 0;
@@ -256,14 +256,14 @@ fold(Fn *fn)
 
 	if (debug['F']) {
 		fprintf(stderr, "\n> SCCP findings:");
-		for (n=Tmp0; n<fn->ntmp; n++) {
-			if (val[n] == Bot)
+		for (t=Tmp0; t<fn->ntmp; t++) {
+			if (val[t] == Bot)
 				continue;
-			fprintf(stderr, "\n%10s: ", fn->tmp[n].name);
-			if (val[n] == Top)
+			fprintf(stderr, "\n%10s: ", fn->tmp[t].name);
+			if (val[t] == Top)
 				fprintf(stderr, "Top");
 			else
-				printref(CON(val[n]), fn, stderr);
+				printref(CON(val[t]), fn, stderr);
 		}
 		fprintf(stderr, "\n dead code: ");
 	}

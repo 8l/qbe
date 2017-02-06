@@ -101,7 +101,8 @@ phiins(Fn *fn)
 	Ins *i;
 	Phi *p;
 	Ref r;
-	int t, n, nt;
+	int t, nt;
+	uint n;
 	short k;
 
 	bsinit(u, fn->nblk);

@@ -76,11 +76,11 @@ fillpreds(Fn *f)
 }
 
 static int
-rporec(Blk *b, int x)
+rporec(Blk *b, uint x)
 {
 	Blk *s1, *s2;
 
-	if (!b || b->id >= 0)
+	if (!b || b->id != -1u)
 		return x;
 	b->id = 1;
 	s1 = b->s1;
@@ -100,16 +100,16 @@ rporec(Blk *b, int x)
 void
 fillrpo(Fn *f)
 {
-	int n;
+	uint n;
 	Blk *b, **p;
 
 	for (b=f->start; b; b=b->link)
-		b->id = -1;
+		b->id = -1u;
 	n = 1 + rporec(f->start, f->nblk-1);
 	f->nblk -= n;
 	f->rpo = alloc(f->nblk * sizeof f->rpo[0]);
 	for (p=&f->start; (b=*p);) {
-		if (b->id == -1) {
+		if (b->id == -1u) {
 			blkdel(b);
 			*p = b->link;
 		} else {
@@ -150,8 +150,8 @@ void
 filldom(Fn *fn)
 {
 	Blk *b, *d;
-	int ch, n;
-	uint p;
+	int ch;
+	uint n, p;
 
 	for (b=fn->start; b; b=b->link) {
 		b->idom = 0;
@@ -201,7 +201,7 @@ dom(Blk *b1, Blk *b2)
 static void
 addfron(Blk *a, Blk *b)
 {
-	int n;
+	uint n;
 
 	for (n=0; n<a->nfron; n++)
 		if (a->fron[n] == b)
@@ -245,12 +245,11 @@ loopmark(Blk *hd, Blk *b, void f(Blk *, Blk *))
 void
 loopiter(Fn *fn, void f(Blk *, Blk *))
 {
-	int n;
-	uint p;
+	uint n, p;
 	Blk *b;
 
 	for (b=fn->start; b; b=b->link)
-		b->visit = -1;
+		b->visit = -1u;
 	for (n=0; n<fn->nblk; ++n) {
 		b = fn->rpo[n];
 		for (p=0; p<b->npred; ++p)

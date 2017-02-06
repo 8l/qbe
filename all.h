@@ -333,13 +333,13 @@ struct Blk {
 	Blk *s2;
 	Blk *link;
 
-	int id;
-	int visit;
+	uint id;
+	uint visit;
 
 	Blk *idom;
 	Blk *dom, *dlink;
 	Blk **fron;
-	int nfron;
+	uint nfron;
 
 	Blk **pred;
 	uint npred;
@@ -432,7 +432,7 @@ struct Fn {
 	int ntmp;
 	int ncon;
 	int nmem;
-	int nblk;
+	uint nblk;
 	int retty; /* index in typ[], -1 if no aggregate return */
 	Ref retr;
 	Blk **rpo;

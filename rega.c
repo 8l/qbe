@@ -423,12 +423,12 @@ doblk(Blk *b, RMap *cur)
 void
 rega(Fn *fn)
 {
-	int j, t, n, r, r1, x, rl[Tmp0];
+	int j, t, r, r1, x, rl[Tmp0];
 	Blk *b, *b1, *s, ***ps, *blist;
 	RMap *end, *beg, cur, old;
 	Ins *i;
 	Phi *p;
-	uint u;
+	uint u, n;
 	Ref src, dst;
 
 	/* 1. setup */
@@ -455,7 +455,7 @@ rega(Fn *fn)
 		}
 
 	/* 2. assign registers following post-order */
-	for (n=fn->nblk-1; n>=0; n--) {
+	for (n=fn->nblk-1; n!=-1u; n--) {
 		b = fn->rpo[n];
 		cur.n = 0;
 		bszero(cur.b);

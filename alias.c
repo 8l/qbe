@@ -101,7 +101,7 @@ esc(Ref r, Fn *fn)
 void
 fillalias(Fn *fn)
 {
-	int n;
+	uint n;
 	Blk *b;
 	Phi *p;
 	Ins *i;

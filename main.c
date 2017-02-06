@@ -39,7 +39,7 @@ data(Dat *d)
 static void
 func(Fn *fn)
 {
-	int n;
+	uint n;
 
 	if (dbg)
 		fprintf(stderr, "**** Function %s ****", fn->name);

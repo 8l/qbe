@@ -26,7 +26,7 @@ struct Slice {
 struct Insert {
 	uint isphi:1;
 	uint num:31;
-	int bid;
+	uint bid;
 	uint off;
 	union {
 		Ins ins;
@@ -329,8 +329,8 @@ loadopt(Fn *fn)
 {
 	Ins *i, *ib;
 	Blk *b;
-	int n, sz;
-	uint ni, ext, nt;
+	int sz;
+	uint n, ni, ext, nt;
 	Insert *ist;
 	Slice sl;
 	Loc l;
