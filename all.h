@@ -547,7 +547,7 @@ void err(char *, ...) __attribute__((noreturn));
 
 /* cfg.c */
 Blk *blknew(void);
-void blkdel(Blk *);
+void edgedel(Blk *, Blk **);
 void fillpreds(Fn *);
 void fillrpo(Fn *);
 void filldom(Fn *);

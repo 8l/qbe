@@ -12,32 +12,33 @@ blknew()
 }
 
 void
-blkdel(Blk *b)
+edgedel(Blk *bs, Blk **pbd)
 {
-	Blk *s, **ps, *succ[3];
+	Blk *bd;
 	Phi *p;
 	uint a;
+	int mult;
 
-	succ[0] = b->s1;
-	succ[1] = b->s2 == b->s1 ? 0 : b->s2;
-	succ[2] = 0;
-	for (ps=succ; (s=*ps); ps++) {
-		for (p=s->phi; p; p=p->link) {
-			for (a=0; p->blk[a]!=b; a++)
-				assert(a+1<p->narg);
-			p->narg--;
-			memmove(&p->blk[a], &p->blk[a+1],
-				sizeof p->blk[0] * (p->narg-a));
-			memmove(&p->arg[a], &p->arg[a+1],
-				sizeof p->arg[0] * (p->narg-a));
-		}
-		if (s->npred != 0) {
-			for (a=0; s->pred[a]!=b; a++)
-				assert(a+1<s->npred);
-			s->npred--;
-			memmove(&s->pred[a], &s->pred[a+1],
-				sizeof s->pred[0] * (s->npred-a));
-		}
+	bd = *pbd;
+	mult = 1 + (bs->s1 == bs->s2);
+	*pbd = 0;
+	if (!bd || mult > 1)
+		return;
+	for (p=bd->phi; p; p=p->link) {
+		for (a=0; p->blk[a]!=bs; a++)
+			assert(a+1<p->narg);
+		p->narg--;
+		memmove(&p->blk[a], &p->blk[a+1],
+			sizeof p->blk[0] * (p->narg-a));
+		memmove(&p->arg[a], &p->arg[a+1],
+			sizeof p->arg[0] * (p->narg-a));
+	}
+	if (bd->npred != 0) {
+		for (a=0; bd->pred[a]!=bs; a++)
+			assert(a+1<bd->npred);
+		bd->npred--;
+		memmove(&bd->pred[a], &bd->pred[a+1],
+			sizeof bd->pred[0] * (bd->npred-a));
 	}
 }
 
@@ -110,7 +111,8 @@ fillrpo(Fn *f)
 	f->rpo = alloc(f->nblk * sizeof f->rpo[0]);
 	for (p=&f->start; (b=*p);) {
 		if (b->id == -1u) {
-			blkdel(b);
+			edgedel(b, &b->s1);
+			edgedel(b, &b->s2);
 			*p = b->link;
 		} else {
 			b->id -= n;

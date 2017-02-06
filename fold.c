@@ -275,7 +275,8 @@ fold(Fn *fn)
 			d = 1;
 			if (debug['F'])
 				fprintf(stderr, "%s ", b->name);
-			blkdel(b);
+			edgedel(b, &b->s1);
+			edgedel(b, &b->s2);
 			*pb = b->link;
 			continue;
 		}
@@ -296,11 +297,14 @@ fold(Fn *fn)
 					renref(&i->arg[n]);
 		renref(&b->jmp.arg);
 		if (b->jmp.type == Jjnz && rtype(b->jmp.arg) == RCon) {
-				b->jmp.type = Jjmp;
-				if (czero(&fn->con[b->jmp.arg.val], 0))
+				if (czero(&fn->con[b->jmp.arg.val], 0)) {
+					edgedel(b, &b->s1);
 					b->s1 = b->s2;
+					b->s2 = 0;
+				} else
+					edgedel(b, &b->s2);
+				b->jmp.type = Jjmp;
 				b->jmp.arg = R;
-				b->s2 = 0;
 		}
 		pb = &b->link;
 	}
