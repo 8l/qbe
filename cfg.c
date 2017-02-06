@@ -219,6 +219,8 @@ fillfron(Fn *fn)
 {
 	Blk *a, *b;
 
+	for (b=fn->start; b; b=b->link)
+		b->nfron = 0;
 	for (b=fn->start; b; b=b->link) {
 		if (b->s1)
 			for (a=b; !sdom(a, b->s1); a=a->idom)
