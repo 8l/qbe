@@ -63,6 +63,7 @@ func(Fn *fn)
 	filluse(fn);
 	fold(fn);
 	abi(fn);
+	fillpreds(fn);
 	filluse(fn);
 	isel(fn);
 	fillrpo(fn);

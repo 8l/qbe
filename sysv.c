@@ -228,6 +228,17 @@ int rclob[] = {RBX, R12, R13, R14, R15};
 MAKESURE(rsave_has_correct_size, sizeof rsave == NRSave * sizeof(int));
 MAKESURE(rclob_has_correct_size, sizeof rclob == NRClob * sizeof(int));
 
+/* layout of call's second argument (RCall)
+ *
+ *  29     12    8    4  3  0
+ *  |0...00|x|xxxx|xxxx|xx|xx|                  range
+ *          |    |    |  |  ` gp regs returned (0..2)
+ *          |    |    |  ` sse regs returned   (0..2)
+ *          |    |    ` gp regs passed         (0..6)
+ *          |    ` sse regs passed             (0..8)
+ *          ` 1 if calling a vararg function   (0..1)
+ */
+
 bits
 retregs(Ref r, int p[2])
 {
@@ -257,21 +268,22 @@ bits
 argregs(Ref r, int p[2])
 {
 	bits b;
-	int j, ni, nf;
+	int j, ni, nf, va;
 
 	assert(rtype(r) == RCall);
 	b = 0;
 	ni = (r.val >> 4) & 15;
 	nf = (r.val >> 8) & 15;
+	va = (r.val >> 12) & 1;
 	for (j=0; j<ni; j++)
 		b |= BIT(rsave[j]);
 	for (j=0; j<nf; j++)
 		b |= BIT(XMM0+j);
 	if (p) {
-		p[0] = ni + 1;
+		p[0] = ni + va;
 		p[1] = nf;
 	}
-	return b | BIT(RAX);
+	return b | (va ? BIT(RAX) : 0);
 }
 
 static Ref
@@ -288,7 +300,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 {
 	Ins *i;
 	AClass *ac, *a, aret;
-	int ca, ni, ns, al;
+	int ca, ni, ns, al, va;
 	uint stk, off;
 	Ref r, r1, r2, reg[2];
 	RAlloc *ra;
@@ -354,8 +366,11 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 			ca += 1 << 2;
 		}
 	}
+	va = i1->op == Ovacall;
+	ca |= va << 12;
 	emit(Ocall, i1->cls, R, i1->arg[0], CALL(ca));
-	emit(Ocopy, Kw, TMP(RAX), getcon((ca >> 8) & 15, fn), R);
+	if (va)
+		emit(Ocopy, Kw, TMP(RAX), getcon((ca >> 8) & 15, fn), R);
 
 	ni = ns = 0;
 	if (ra && aret.inmem)
@@ -397,12 +412,12 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 	emit(Osalloc, Kl, r, getcon(stk, fn), R);
 }
 
-static void
+static int
 selpar(Fn *fn, Ins *i0, Ins *i1)
 {
 	AClass *ac, *a, aret;
 	Ins *i;
-	int ni, ns, s, al;
+	int ni, ns, s, al, fa;
 	Ref r;
 
 	ac = alloc((i1-i0) * sizeof ac[0]);
@@ -411,9 +426,9 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 
 	if (fn->retty >= 0) {
 		typclass(&aret, &typ[fn->retty]);
-		argsclass(i0, i1, ac, Opar, &aret);
+		fa = argsclass(i0, i1, ac, Opar, &aret);
 	} else
-		argsclass(i0, i1, ac, Opar, 0);
+		fa = argsclass(i0, i1, ac, Opar, 0);
 
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		if (i->op != Oparc || a->inmem)
@@ -462,6 +477,156 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 		} else
 			emit(Ocopy, i->cls, i->to, r, R);
 	}
+
+	return fa | (s*4)<<12;
+}
+
+static Blk *
+split(Fn *fn, Blk *b)
+{
+	Blk *bn;
+
+	++fn->nblk;
+	bn = blknew();
+	bn->nins = &insb[NIns] - curi;
+	idup(&bn->ins, curi, bn->nins);
+	curi = &insb[NIns];
+	bn->visit = ++b->visit;
+	snprintf(bn->name, NString, "%s.%d", b->name, b->visit);
+	bn->loop = b->loop;
+	bn->link = b->link;
+	b->link = bn;
+	return bn;
+}
+
+static void
+chpred(Blk *b, Blk *bp, Blk *bp1)
+{
+	Phi *p;
+	uint a;
+
+	for (p=b->phi; p; p=p->link) {
+		for (a=0; p->blk[a]!=bp; a++)
+			assert(a+1<p->narg);
+		p->blk[a] = bp1;
+	}
+}
+
+void
+selvaarg(Fn *fn, Blk *b, Ins *i)
+{
+	Ref loc, lreg, lstk, nr, r0, r1, c4, c8, c16, c, ap;
+	Blk *b0, *bstk, *breg;
+	int isint;
+
+	c4 = getcon(4, fn);
+	c8 = getcon(8, fn);
+	c16 = getcon(16, fn);
+	ap = i->arg[0];
+	isint = KBASE(i->cls) == 0;
+
+	/* @b [...]
+	       r0 =l add ap, (0 or 4)
+	       nr =l loadsw r0
+	       r1 =w cultw nr, (48 or 176)
+	       jnz r1, @breg, @bstk
+	   @breg
+	       r0 =l add ap, 16
+	       r1 =l loadl r0
+	       lreg =l add r1, nr
+	       r0 =w add nr, (8 or 16)
+	       r1 =l add ap, (0 or 4)
+	       storew r0, r1
+	   @bstk
+	       r0 =l add ap, 8
+	       lstk =l loadl r0
+	       r1 =l add lstk, 8
+	       storel r1, r0
+	   @b0
+	       %loc =l phi @breg %lreg, @bstk %lstk
+	       i->to =(i->cls) load %loc
+	*/
+
+	loc = newtmp("abi", Kl, fn);
+	emit(Oload, i->cls, i->to, loc, R);
+	b0 = split(fn, b);
+	b0->jmp = b->jmp;
+	b0->s1 = b->s1;
+	b0->s2 = b->s2;
+	if (b->s1)
+		chpred(b->s1, b, b0);
+	if (b->s2 && b->s2 != b->s1)
+		chpred(b->s2, b, b0);
+
+	lreg = newtmp("abi", Kl, fn);
+	nr = newtmp("abi", Kl, fn);
+	r0 = newtmp("abi", Kw, fn);
+	r1 = newtmp("abi", Kl, fn);
+	emit(Ostorew, Kw, R, r0, r1);
+	emit(Oadd, Kl, r1, ap, isint ? CON_Z : c4);
+	emit(Oadd, Kw, r0, nr, isint ? c8 : c16);
+	r0 = newtmp("abi", Kl, fn);
+	r1 = newtmp("abi", Kl, fn);
+	emit(Oadd, Kl, lreg, r1, nr);
+	emit(Oload, Kl, r1, r0, R);
+	emit(Oadd, Kl, r0, ap, c16);
+	breg = split(fn, b);
+	breg->jmp.type = Jjmp;
+	breg->s1 = b0;
+
+	lstk = newtmp("abi", Kl, fn);
+	r0 = newtmp("abi", Kl, fn);
+	r1 = newtmp("abi", Kl, fn);
+	emit(Ostorel, Kw, R, r1, r0);
+	emit(Oadd, Kl, r1, lstk, c8);
+	emit(Oload, Kl, lstk, r0, R);
+	emit(Oadd, Kl, r0, ap, c8);
+	bstk = split(fn, b);
+	bstk->jmp.type = Jjmp;
+	bstk->s1 = b0;
+
+	b0->phi = alloc(sizeof *b0->phi);
+	*b0->phi = (Phi){
+		.cls = Kl, .to = loc,
+		.narg = 2,
+		.blk = {bstk, breg},
+		.arg = {lstk, lreg},
+	};
+	r0 = newtmp("abi", Kl, fn);
+	r1 = newtmp("abi", Kw, fn);
+	b->jmp.type = Jjnz;
+	b->jmp.arg = r1;
+	b->s1 = breg;
+	b->s2 = bstk;
+	c = getcon(isint ? 48 : 176, fn);
+	emit(Ocmpw+ICult, Kw, r1, nr, c);
+	emit(Oloadsw, Kl, nr, r0, R);
+	emit(Oadd, Kl, r0, ap, isint ? CON_Z : c4);
+}
+
+void
+selvastart(Fn *fn, int fa, Ref ap)
+{
+	Ref r0, r1;
+	int gp, fp, sp;
+
+	gp = ((fa >> 4) & 15) * 8;
+	fp = 48 + ((fa >> 8) & 15) * 16;
+	sp = fa >> 12;
+	r0 = newtmp("abi", Kl, fn);
+	r1 = newtmp("abi", Kl, fn);
+	emit(Ostorel, Kw, R, r1, r0);
+	emit(Oadd, Kl, r1, TMP(RBP), getcon(-176, fn));
+	emit(Oadd, Kl, r0, ap, getcon(16, fn));
+	r0 = newtmp("abi", Kl, fn);
+	r1 = newtmp("abi", Kl, fn);
+	emit(Ostorel, Kw, R, r1, r0);
+	emit(Oadd, Kl, r1, TMP(RBP), getcon(sp, fn));
+	emit(Oadd, Kl, r0, ap, getcon(8, fn));
+	r0 = newtmp("abi", Kl, fn);
+	emit(Ostorew, Kw, R, getcon(fp, fn), r0);
+	emit(Oadd, Kl, r0, ap, getcon(4, fn));
+	emit(Ostorew, Kw, R, getcon(gp, fn), ap);
 }
 
 void
@@ -470,13 +635,16 @@ abi(Fn *fn)
 	Blk *b;
 	Ins *i, *i0, *ip;
 	RAlloc *ral;
-	int n;
+	int n, fa;
 
-	/* lower arguments */
+	for (b=fn->start; b; b=b->link)
+		b->visit = 0;
+
+	/* lower parameters */
 	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
 		if (i->op != Opar && i->op != Oparc)
 			break;
-	selpar(fn, b->ins, i);
+	fa = selpar(fn, b->ins, i);
 	n = b->nins - (i - b->ins) + (&insb[NIns] - curi);
 	i0 = alloc(n * sizeof(Ins));
 	ip = icpy(ip = i0, curi, &insb[NIns] - curi);
@@ -484,27 +652,40 @@ abi(Fn *fn)
 	b->nins = n;
 	b->ins = i0;
 
-	/* lower calls and returns */
+	/* lower calls, returns, and vararg instructions */
 	ral = 0;
 	b = fn->start;
 	do {
 		if (!(b = b->link))
 			b = fn->start; /* do it last */
+		if (b->visit)
+			continue;
 		curi = &insb[NIns];
 		selret(b, fn);
-		for (i=&b->ins[b->nins]; i!=b->ins;) {
-			if ((--i)->op == Ocall) {
+		for (i=&b->ins[b->nins]; i!=b->ins;)
+			switch ((--i)->op) {
+			default:
+				emiti(*i);
+				break;
+			case Ocall:
+			case Ovacall:
 				for (i0=i; i0>b->ins; i0--)
 					if ((i0-1)->op != Oarg)
 					if ((i0-1)->op != Oargc)
 						break;
 				selcall(fn, i0, i, &ral);
 				i = i0;
-				continue;
+				break;
+			case Ovastart:
+				selvastart(fn, fa, i->arg[0]);
+				break;
+			case Ovaarg:
+				selvaarg(fn, b, i);
+				break;
+			case Oarg:
+			case Oargc:
+				die("unreachable");
 			}
-			assert(i->op != Oarg && i->op != Oargc);
-			emiti(*i);
-		}
 		if (b == fn->start)
 			for (; ral; ral=ral->link)
 				emiti(ral->i);

@@ -256,6 +256,9 @@ enum Op {
 	Oalloc,
 	Oalloc1 = Oalloc + NAlign-1,
 
+	Ovastart,
+	Ovaarg,
+
 	Ocopy,
 	NPubOp,
 
@@ -265,6 +268,7 @@ enum Op {
 	Oarg,
 	Oargc,
 	Ocall,
+	Ovacall,
 
 	/* reserved instructions */
 	Onop,
@@ -442,6 +446,7 @@ struct Fn {
 	bits reg;
 	int slot;
 	char export;
+	char vararg;
 	char name[NString];
 };
 

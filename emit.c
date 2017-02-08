@@ -137,13 +137,14 @@ slot(int s, Fn *fn)
 
 	/* sign extend s using a bitfield */
 	x.i = s;
+	assert(x.i <= fn->slot);
 	/* specific to NAlign == 3 */
 	if (x.i < 0)
 		return -4 * x.i;
-	else {
-		assert(fn->slot >= x.i);
+	else if (fn->vararg)
+		return -176 + -4 * (fn->slot - x.i);
+	else
 		return -4 * (fn->slot - x.i);
-	}
 }
 
 static void
@@ -481,7 +482,7 @@ framesz(Fn *fn)
 		o ^= 1 & (fn->reg >> rclob[i]);
 	f = fn->slot;
 	f = (f + 3) & -4;
-	return 4*f + 8*o;
+	return 4*f + 8*o + 176*fn->vararg;
 }
 
 void
@@ -504,20 +505,27 @@ emitfn(Fn *fn, FILE *f)
 	static int id0;
 	Blk *b, *s;
 	Ins *i, itmp;
-	int *r, c, fs;
+	int *r, c, fs, o, n;
 
 	fprintf(f, ".text\n");
 	if (fn->export)
 		fprintf(f, ".globl %s%s\n", symprefix, fn->name);
 	fprintf(f,
 		"%s%s:\n"
-		"\tpush %%rbp\n"
-		"\tmov %%rsp, %%rbp\n",
+		"\tpushq %%rbp\n"
+		"\tmovq %%rsp, %%rbp\n",
 		symprefix, fn->name
 	);
 	fs = framesz(fn);
 	if (fs)
 		fprintf(f, "\tsub $%d, %%rsp\n", fs);
+	if (fn->vararg) {
+		o = -176;
+		for (r=rsave; r-rsave<6; ++r, o+=8)
+			fprintf(f, "\tmovq %%%s, %d(%%rbp)\n", rname[*r][0], o);
+		for (n=0; n<8; ++n, o+=16)
+			fprintf(f, "\tmovaps %%xmm%d, %d(%%rbp)\n", n, o);
+	}
 	for (r=rclob; r-rclob < NRClob; r++)
 		if (fn->reg & BIT(*r)) {
 			itmp.arg[0] = TMP(*r);

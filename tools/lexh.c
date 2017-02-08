@@ -22,6 +22,7 @@ char *tok[] = {
 	"ceql", "cnel", "cles", "clts", "cgts", "cges",
 	"cnes", "ceqs", "cos", "cuos", "cled", "cltd",
 	"cgtd", "cged", "cned", "ceqd", "cod", "cuod",
+	"vaarg", "vastart", "...",
 
 	"call", "phi", "jmp", "jnz", "ret", "export",
 	"function", "type", "data", "align", "l", "w",

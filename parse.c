@@ -65,11 +65,14 @@ OpDesc opdesc[NOp] = {
 	[Oarg]    = { "arg",      0, {A(w,l,s,d), A(x,x,x,x)}, 0, 0, 0 },
 	[Oargc]   = { "argc",     0, {A(e,x,e,e), A(e,l,e,e)}, 0, 0, 0 },
 	[Ocall]   = { "call",     0, {A(m,m,m,m), A(x,x,x,x)}, 0, 0, 0 },
+	[Ovacall] = { "vacall",   0, {A(m,m,m,m), A(x,x,x,x)}, 0, 0, 0 },
 	[Oxsetnp] = { "xsetnp",   0, {A(x,x,e,e), A(x,x,e,e)}, 0, 0, 0 },
 	[Oxsetp]  = { "xsetp",    0, {A(x,x,e,e), A(x,x,e,e)}, 0, 0, 0 },
 	[Oalloc]   = { "alloc4",  1, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
 	[Oalloc+1] = { "alloc8",  1, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
 	[Oalloc+2] = { "alloc16", 1, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
+	[Ovaarg]   = { "vaarg",   0, {A(m,m,m,m), A(x,x,x,x)}, 0, 0, 0 },
+	[Ovastart] = { "vastart", 0, {A(m,m,m,m), A(x,x,x,x)}, 0, 0, 0 },
 #define X(c) \
 	[Ocmpw+IC##c] = { "c"    #c "w", 0, {A(w,w,e,e), A(w,w,e,e)}, 1, 0, 1 }, \
 	[Ocmpl+IC##c] = { "c"    #c "l", 0, {A(l,l,e,e), A(l,l,e,e)}, 1, 0, 1 }, \
@@ -139,6 +142,7 @@ enum {
 	Tlbrace,
 	Trbrace,
 	Tnl,
+	Tdots,
 	Teof,
 
 	Ntok
@@ -168,13 +172,14 @@ static char *kwmap[Ntok] = {
 	[Td] = "d",
 	[Ts] = "s",
 	[Tz] = "z",
+	[Tdots] = "...",
 };
 
 enum {
 	BMask = 8191, /* for blocks hash */
 
-	K = 2047061843, /* found using tools/lexh.c */
-	M = 24,
+	K = 3233235, /* found using tools/lexh.c */
+	M = 23,
 };
 
 static char lexh[1 << (32-M)];
@@ -326,7 +331,7 @@ lex()
 	if (0)
 Alpha:		c = fgetc(inf);
 	if (!isalpha(c) && c != '.' && c != '_')
-		err("lexing failure: invalid character %c (%d)", c, c);
+		err("invalid character %c (%d)", c, c);
 	i = 0;
 	do {
 		if (i >= NString-1)
@@ -485,14 +490,14 @@ parsecls(int *tyn)
 	}
 }
 
-static void
+static int
 parserefl(int arg)
 {
 	int k, ty;
 	Ref r;
 
 	expect(Tlparen);
-	while (peek() != Trparen) {
+	while (peek() != Trparen && peek() != Tdots) {
 		if (curi - insb >= NIns)
 			err("too many instructions (1)");
 		k = parsecls(&ty);
@@ -516,7 +521,11 @@ parserefl(int arg)
 			break;
 		expect(Tcomma);
 	}
-	next();
+	if (next() == Tdots) {
+		expect(Trparen);
+		return 1;
+	}
+	return 0;
 }
 
 static Blk *
@@ -561,7 +570,9 @@ parseline(PState ps)
 		err("label or } expected");
 	switch (t) {
 	default:
-		if (isstore(t) || t == Tcall) {
+		if (isstore(t)) {
+		case Tcall:
+		case Ovastart:
 			/* operations without result */
 			r = R;
 			k = Kw;
@@ -639,9 +650,11 @@ DoOp:
 	}
 	if (op == Tcall) {
 		arg[0] = parseref();
-		parserefl(1);
+		if (parserefl(1))
+			op = Ovacall;
+		else
+			op = Ocall;
 		expect(Tnl);
-		op = Ocall;
 		if (k == 4) {
 			k = Kl;
 			arg[1] = TYPE(ty);
@@ -825,7 +838,7 @@ parsefn(int export)
 	if (next() != Tglo)
 		err("function name expected");
 	strcpy(curf->name, tokval.str);
-	parserefl(0);
+	curf->vararg = parserefl(0);
 	if (nextnl() != Tlbrace)
 		err("function body must start with {");
 	ps = PLbl;
@@ -1142,7 +1155,7 @@ printref(Ref r, Fn *fn, FILE *f)
 		fprintf(f, "S%d", (r.val&(1<<28)) ? r.val-(1<<29) : r.val);
 		break;
 	case RCall:
-		fprintf(f, "%03x", r.val);
+		fprintf(f, "%04x", r.val);
 		break;
 	case RType:
 		fprintf(f, ":%s", typ[r.val].name);
