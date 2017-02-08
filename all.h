@@ -29,6 +29,18 @@ typedef struct Typ Typ;
 typedef struct Seg Seg;
 typedef struct Dat Dat;
 
+enum {
+	NString = 32,
+	NPred   = 63,
+	NIns    = 8192,
+	NAlign  = 3,
+	NSeg    = 32,
+	NTyp    = 128,
+	NBit    = CHAR_BIT * sizeof(bits),
+};
+
+#define BIT(n) ((bits)1 << (n))
+
 enum Reg {
 	RXX,
 
@@ -48,8 +60,9 @@ enum Reg {
 	R14,
 	R15,
 
-	RBP, /* reserved */
+	RBP, /* globally live */
 	RSP,
+#define RGLOB (BIT(RBP)|BIT(RSP))
 
 	XMM0, /* sse */
 	XMM1,
@@ -70,7 +83,8 @@ enum Reg {
 
 	Tmp0, /* first non-reg temporary */
 
-	NIReg = R15 - RAX + 1,
+	NRGlob = 2,
+	NIReg = R15 - RAX + 1 + NRGlob,
 	NFReg = XMM14 - XMM0 + 1, /* XMM15 is reserved */
 	NISave = R11 - RAX + 1,
 	NFSave = NFReg,
@@ -78,19 +92,8 @@ enum Reg {
 	NRClob = R15 - RBX + 1,
 };
 
-enum {
-	NString = 32,
-	NPred   = 63,
-	NIns    = 8192,
-	NAlign  = 3,
-	NSeg    = 32,
-	NTyp    = 128,
-	NBit    = CHAR_BIT * sizeof(bits),
-};
-
 MAKESURE(NBit_is_enough, NBit >= (int)Tmp0);
 
-#define BIT(n) ((bits)1 << (n))
 
 struct BSet {
 	uint nt;
@@ -388,7 +391,7 @@ struct Tmp {
 	Use *use;
 	uint ndef, nuse;
 	uint cost;
-	short slot;
+	short slot; /* -1 for unset */
 	short cls;
 	struct {
 		int r;

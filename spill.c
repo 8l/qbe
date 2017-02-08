@@ -62,7 +62,7 @@ fillcost(Fn *fn)
 		}
 	}
 	for (t=fn->tmp; t-fn->tmp < fn->ntmp; t++) {
-		t->cost = t-fn->tmp < Tmp0 ? 1e6 : 0;
+		t->cost = t-fn->tmp < Tmp0 ? UINT_MAX : 0;
 		t->nuse = 0;
 		t->ndef = 0;
 	}
@@ -107,7 +107,11 @@ static BSet mask[2][1]; /* class masks */
 static int
 tcmp0(const void *pa, const void *pb)
 {
-	return tmp[*(int *)pb].cost - tmp[*(int *)pa].cost;
+	uint ca, cb;
+
+	ca = tmp[*(int *)pa].cost;
+	cb = tmp[*(int *)pb].cost;
+	return (cb < ca) ? -1 : (cb > ca);
 }
 
 static int
@@ -337,9 +341,10 @@ spill(Fn *fn)
 		if (!hd || s2->id >= hd->id)
 			hd = s2;
 		r = 0;
-		bszero(v);
 		if (hd) {
 			/* back-edge */
+			bszero(v);
+			hd->gen->t[0] |= RGLOB; /* don't spill registers */
 			for (k=0; k<2; k++) {
 				n = k == 0 ? NIReg : NFReg;
 				bscopy(u, b->out);
@@ -365,11 +370,8 @@ spill(Fn *fn)
 				bsunion(v, u);
 			}
 			limit2(v, 0, 0, w);
-		} else if (rtype(b->jmp.arg) == RCall) {
-			/* return */
-			r = retregs(b->jmp.arg, 0);
-			v->t[0] |= r;
-		}
+		} else
+			bscopy(v, b->out);
 		for (t=Tmp0; bsiter(b->out, &t); t++)
 			if (!bshas(v, t))
 				slot(t);
@@ -447,7 +449,7 @@ spill(Fn *fn)
 			if (r)
 				sethint(v, r);
 		}
-		assert(!r || b==fn->start);
+		assert(!(r & ~RGLOB) || b==fn->start);
 
 		for (p=b->phi; p; p=p->link) {
 			assert(rtype(p->to) == RTmp);

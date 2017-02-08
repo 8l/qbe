@@ -149,7 +149,8 @@ fixarg(Ref *r, int k, int phi, Fn *fn)
 		 */
 		r1 = newtmp("isel", Kl, fn);
 		emit(Oaddr, Kl, r1, SLOT(s), R);
-	} else if (rtype(r0) == RMem) {
+	}
+	else if (rtype(r0) == RMem) {
 		/* apple asm fix */
 		m = &fn->mem[r0.val];
 		if (req(m->base, R)) {

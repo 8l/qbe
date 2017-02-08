@@ -154,9 +154,10 @@ mdump(RMap *m)
 	int i;
 
 	for (i=0; i<m->n; i++)
-		fprintf(stderr, " (%s, R%d)",
-			tmp[m->t[i]].name,
-			m->r[i]);
+		if (m->t[i] >= Tmp0)
+			fprintf(stderr, " (%s, R%d)",
+				tmp[m->t[i]].name,
+				m->r[i]);
 	fprintf(stderr, "\n");
 }
 
@@ -360,15 +361,10 @@ doblk(Blk *b, RMap *cur)
 	Mem *m;
 	Ref *ra[4];
 
+	for (r=0; bsiter(b->out, &r) && r<Tmp0; r++)
+		radd(cur, r, r);
 	if (rtype(b->jmp.arg) == RTmp)
 		b->jmp.arg = ralloc(cur, b->jmp.arg.val);
-	else if (rtype(b->jmp.arg) == RCall) {
-		/* add return registers */
-		rs = retregs(b->jmp.arg, 0);
-		for (r=0; rs; rs/=2, r++)
-			if (rs & 1)
-				radd(cur, r, r);
-	}
 	for (i=&b->ins[b->nins]; i!=b->ins;) {
 		switch ((--i)->op) {
 		case Ocall:
@@ -444,8 +440,8 @@ rega(Fn *fn)
 	bsinit(cur.b, fn->ntmp);
 	bsinit(old.b, fn->ntmp);
 
-	for (t=Tmp0; t<fn->ntmp; t++)
-		*hint(t) = -1;
+	for (t=0; t<fn->ntmp; t++)
+		*hint(t) = t < Tmp0 ? t : -1;
 	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
 		if (i->op != Ocopy || !isreg(i->arg[0]))
 			break;
