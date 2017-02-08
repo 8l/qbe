@@ -93,7 +93,7 @@ rporec(Blk *b, uint x)
 	x = rporec(s1, x);
 	x = rporec(s2, x);
 	b->id = x;
-	assert(x >= 0);
+	assert(x != -1u);
 	return x - 1;
 }
 
