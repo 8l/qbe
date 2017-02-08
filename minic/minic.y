@@ -290,18 +290,12 @@ call(Node *n, Symb *sr)
 	fprintf(of, "\t");
 	psymb(*sr);
 	fprintf(of, " =%c call $%s(", irtyp(sr->ctyp), f);
-	a = n->r;
-	if (a)
-		for (;;) {
-			fprintf(of, "%c ", irtyp(a->u.s.ctyp));
-			psymb(a->u.s);
-			a = a->r;
-			if (a)
-				fprintf(of, ", ");
-			else
-				break;
-		}
-	fprintf(of, ")\n");
+	for (a=n->r; a; a=a->r) {
+		fprintf(of, "%c ", irtyp(a->u.s.ctyp));
+		psymb(a->u.s);
+		fprintf(of, ", ");
+	}
+	fprintf(of, "...)\n");
 }
 
 Symb
