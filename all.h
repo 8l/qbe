@@ -9,7 +9,6 @@
 #define die(...) die_(__FILE__, __VA_ARGS__)
 
 typedef unsigned int uint;
-typedef unsigned short ushort;
 typedef unsigned long ulong;
 typedef unsigned long long bits;
 
@@ -101,8 +100,8 @@ struct BSet {
 };
 
 struct Ref {
-	uint32_t type:3;
-	uint32_t val:29;
+	uint type:3;
+	uint val:29;
 };
 
 enum {
@@ -456,14 +455,13 @@ struct Typ {
 	int align;
 	size_t size;
 	int nunion;
-
 	struct Seg {
 		enum {
-			Send,
-			Spad,
-			Sint,
-			Sflt,
-			Styp,
+			SEnd,
+			SPad,
+			SInt,
+			SFlt,
+			STyp,
 		} type;
 		uint len; /* index in typ[] for Styp */
 	} (*seg)[NSeg+1];

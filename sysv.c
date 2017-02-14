@@ -28,19 +28,19 @@ classify(AClass *a, Typ *t, int *pn, int *pe)
 			cls = &a->cls[*pe];
 			for (; *pn<8; s++) {
 				switch (seg[s].type) {
-				case Send:
+				case SEnd:
 					goto Done;
-				case Spad:
+				case SPad:
 					/* don't change anything */
 					break;
-				case Sflt:
+				case SFlt:
 					if (*cls == Kx)
 						*cls = Kd;
 					break;
-				case Sint:
+				case SInt:
 					*cls = Kl;
 					break;
-				case Styp:
+				case STyp:
 					classify(a, &typ[seg[s].len], pn, pe);
 					continue;
 				}

@@ -872,17 +872,17 @@ parseseg(Seg *seg, Typ *ty, int t)
 	sz = 0;
 	al = ty->align;
 	while (t != Trbrace) {
-		type = Sint;
+		type = SInt;
 		switch (t) {
 		default: err("invalid type member specifier");
-		case Td: type = Sflt;
+		case Td: type = SFlt;
 		case Tl: s = 8; a = 3; break;
-		case Ts: type = Sflt;
+		case Ts: type = SFlt;
 		case Tw: s = 4; a = 2; break;
 		case Th: s = 2; a = 1; break;
 		case Tb: s = 1; a = 0; break;
 		case Ttyp:
-			type = Styp;
+			type = STyp;
 			ty1 = &typ[findtyp(ntyp-1)];
 			s = ty1->size;
 			a = ty1->align;
@@ -894,7 +894,7 @@ parseseg(Seg *seg, Typ *ty, int t)
 			a = s - a;
 			if (n < NSeg) {
 				/* padding segment */
-				seg[n].type = Spad;
+				seg[n].type = SPad;
 				seg[n].len = a;
 				n++;
 			}
@@ -906,7 +906,7 @@ parseseg(Seg *seg, Typ *ty, int t)
 		} else
 			c = 1;
 		sz += a + c*s;
-		if (type == Styp)
+		if (type == STyp)
 			s = ty1 - typ;
 		for (; c>0 && n<NSeg; c--, n++) {
 			seg[n].type = type;
@@ -918,7 +918,7 @@ parseseg(Seg *seg, Typ *ty, int t)
 	}
 	if (t != Trbrace)
 		err(", or } expected");
-	seg[n].type = Send;
+	seg[n].type = SEnd;
 	a = 1 << al;
 	sz = (sz + a - 1) & -a;
 	if (sz >= ty->size)
