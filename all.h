@@ -264,8 +264,12 @@ enum Op {
 	/* function instructions */
 	Opar = NPubOp,
 	Oparc,
+	Opare,
+#define ispar(o) (Opar <= o && o <= Opare)
 	Oarg,
 	Oargc,
+	Oarge,
+#define isarg(o) (Oarg <= o && o <= Oarge)
 	Ocall,
 	Ovacall,
 

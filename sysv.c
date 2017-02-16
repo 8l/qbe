@@ -171,7 +171,7 @@ selret(Blk *b, Fn *fn)
 }
 
 static int
-argsclass(Ins *i0, Ins *i1, AClass *ac, int op, AClass *aret)
+argsclass(Ins *i0, Ins *i1, AClass *ac, int op, AClass *aret, Ref *env)
 {
 	int nint, ni, nsse, ns, n, *pn;
 	AClass *a;
@@ -182,8 +182,9 @@ argsclass(Ins *i0, Ins *i1, AClass *ac, int op, AClass *aret)
 	else
 		nint = 6;
 	nsse = 8;
-	for (i=i0, a=ac; i<i1; i++, a++) {
-		if (i->op == op) {
+	for (i=i0, a=ac; i<i1; i++, a++)
+		switch (i->op - op + Oarg) {
+		case Oarg:
 			if (KBASE(i->cls) == 0)
 				pn = &nint;
 			else
@@ -196,7 +197,8 @@ argsclass(Ins *i0, Ins *i1, AClass *ac, int op, AClass *aret)
 			a->align = 3;
 			a->size = 8;
 			a->cls[0] = i->cls;
-		} else {
+			break;
+		case Oargc:
 			n = i->arg[0].val;
 			typclass(a, &typ[n]);
 			if (a->inmem)
@@ -212,8 +214,14 @@ argsclass(Ins *i0, Ins *i1, AClass *ac, int op, AClass *aret)
 				nsse -= ns;
 			} else
 				a->inmem = 1;
+			break;
+		case Oarge:
+			if (op == Opar)
+				*env = i->to;
+			else
+				*env = i->arg[0];
+			break;
 		}
-	}
 
 	return ((6-nint) << 4) | ((8-nsse) << 8);
 }
@@ -236,7 +244,7 @@ MAKESURE(rclob_has_correct_size, sizeof rclob == NRClob * sizeof(int));
  *          |    |    |  ` sse regs returned   (0..2)
  *          |    |    ` gp regs passed         (0..6)
  *          |    ` sse regs passed             (0..8)
- *          ` 1 if calling a vararg function   (0..1)
+ *          ` 1 if rax used to pass data       (0..1)
  */
 
 bits
@@ -268,22 +276,22 @@ bits
 argregs(Ref r, int p[2])
 {
 	bits b;
-	int j, ni, nf, va;
+	int j, ni, nf, ra;
 
 	assert(rtype(r) == RCall);
 	b = 0;
 	ni = (r.val >> 4) & 15;
 	nf = (r.val >> 8) & 15;
-	va = (r.val >> 12) & 1;
+	ra = (r.val >> 12) & 1;
 	for (j=0; j<ni; j++)
 		b |= BIT(rsave[j]);
 	for (j=0; j<nf; j++)
 		b |= BIT(XMM0+j);
 	if (p) {
-		p[0] = ni + va;
+		p[0] = ni + ra;
 		p[1] = nf;
 	}
-	return b | (va ? BIT(RAX) : 0);
+	return b | (ra ? BIT(RAX) : 0);
 }
 
 static Ref
@@ -300,18 +308,20 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 {
 	Ins *i;
 	AClass *ac, *a, aret;
-	int ca, ni, ns, al, va;
+	int ca, ni, ns, al, varc, envc;
 	uint stk, off;
-	Ref r, r1, r2, reg[2];
+	Ref r, r1, r2, reg[2], env;
 	RAlloc *ra;
 
+	env = R;
 	ac = alloc((i1-i0) * sizeof ac[0]);
+
 	if (!req(i1->arg[1], R)) {
 		assert(rtype(i1->arg[1]) == RType);
 		typclass(&aret, &typ[i1->arg[1].val]);
-		ca = argsclass(i0, i1, ac, Oarg, &aret);
+		ca = argsclass(i0, i1, ac, Oarg, &aret, &env);
 	} else
-		ca = argsclass(i0, i1, ac, Oarg, 0);
+		ca = argsclass(i0, i1, ac, Oarg, 0, &env);
 
 	for (stk=0, a=&ac[i1-i0]; a>ac;)
 		if ((--a)->inmem) {
@@ -366,10 +376,15 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 			ca += 1 << 2;
 		}
 	}
-	va = i1->op == Ovacall;
-	ca |= va << 12;
+	envc = !req(R, env);
+	varc = i1->op == Ovacall;
+	if (varc && envc)
+		err("sysv abi does not support variadic env calls");
+	ca |= (varc | envc) << 12;
 	emit(Ocall, i1->cls, R, i1->arg[0], CALL(ca));
-	if (va)
+	if (envc)
+		emit(Ocopy, Kl, TMP(RAX), env, R);
+	if (varc)
 		emit(Ocopy, Kw, TMP(RAX), getcon((ca >> 8) & 15, fn), R);
 
 	ni = ns = 0;
@@ -418,17 +433,18 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	AClass *ac, *a, aret;
 	Ins *i;
 	int ni, ns, s, al, fa;
-	Ref r;
+	Ref r, env;
 
+	env = R;
 	ac = alloc((i1-i0) * sizeof ac[0]);
 	curi = &insb[NIns];
 	ni = ns = 0;
 
 	if (fn->retty >= 0) {
 		typclass(&aret, &typ[fn->retty]);
-		fa = argsclass(i0, i1, ac, Opar, &aret);
+		fa = argsclass(i0, i1, ac, Opar, &aret, &env);
 	} else
-		fa = argsclass(i0, i1, ac, Opar, 0);
+		fa = argsclass(i0, i1, ac, Opar, 0, &env);
 
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		if (i->op != Oparc || a->inmem)
@@ -477,6 +493,9 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 		} else
 			emit(Ocopy, i->cls, i->to, r, R);
 	}
+
+	if (!req(R, env))
+		emit(Ocopy, Kl, env, TMP(RAX), R);
 
 	return fa | (s*4)<<12;
 }
@@ -641,8 +660,8 @@ abi(Fn *fn)
 		b->visit = 0;
 
 	/* lower parameters */
-	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
-		if (i->op != Opar && i->op != Oparc)
+	for (b=fn->start, i=b->ins; i-b->ins<b->nins; i++)
+		if (!ispar(i->op))
 			break;
 	fa = selpar(fn, b->ins, i);
 	n = b->nins - (i - b->ins) + (&insb[NIns] - curi);
@@ -670,8 +689,7 @@ abi(Fn *fn)
 			case Ocall:
 			case Ovacall:
 				for (i0=i; i0>b->ins; i0--)
-					if ((i0-1)->op != Oarg)
-					if ((i0-1)->op != Oargc)
+					if (!isarg((i0-1)->op))
 						break;
 				selcall(fn, i0, i, &ral);
 				i = i0;

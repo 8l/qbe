@@ -60,9 +60,11 @@ OpDesc opdesc[NOp] = {
 	[Oxcmp]   = { "xcmp",     1, {A(w,l,s,d), A(w,l,s,d)}, 1, 0, 0 },
 	[Oxtest]  = { "xtest",    1, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 0 },
 	[Oaddr]   = { "addr",     0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
-	[Opar]    = { "parn",     0, {A(x,x,x,x), A(x,x,x,x)}, 0, 0, 0 },
+	[Opar]    = { "par",      0, {A(x,x,x,x), A(x,x,x,x)}, 0, 0, 0 },
+	[Opare]   = { "pare",     0, {A(x,x,x,x), A(x,x,x,x)}, 0, 0, 0 },
 	[Oparc]   = { "parc",     0, {A(e,x,e,e), A(e,x,e,e)}, 0, 0, 0 },
 	[Oarg]    = { "arg",      0, {A(w,l,s,d), A(x,x,x,x)}, 0, 0, 0 },
+	[Oarge]   = { "arge",     0, {A(w,l,s,d), A(x,x,x,x)}, 0, 0, 0 },
 	[Oargc]   = { "argc",     0, {A(e,x,e,e), A(e,l,e,e)}, 0, 0, 0 },
 	[Ocall]   = { "call",     0, {A(m,m,m,m), A(x,x,x,x)}, 0, 0, 0 },
 	[Ovacall] = { "vacall",   0, {A(m,m,m,m), A(x,x,x,x)}, 0, 0, 0 },
@@ -108,6 +110,7 @@ enum {
 	Talloc2,
 
 	Tcall,
+	Tenv,
 	Tphi,
 	Tjmp,
 	Tjnz,
@@ -156,6 +159,7 @@ static char *kwmap[Ntok] = {
 	[Talloc1] = "alloc1",
 	[Talloc2] = "alloc2",
 	[Tcall] = "call",
+	[Tenv] = "env",
 	[Tphi] = "phi",
 	[Tjmp] = "jmp",
 	[Tjnz] = "jnz",
@@ -493,17 +497,25 @@ parsecls(int *tyn)
 static int
 parserefl(int arg)
 {
-	int k, ty;
+	int k, ty, env, hasenv;
 	Ref r;
 
+	hasenv = 0;
 	expect(Tlparen);
 	while (peek() != Trparen && peek() != Tdots) {
 		if (curi - insb >= NIns)
 			err("too many instructions (1)");
+		env = peek() == Tenv;
+		if (env)
+			next();
 		k = parsecls(&ty);
 		r = parseref();
 		if (req(r, R))
-			err("invalid reference argument");
+			err("invalid argument");
+		if (hasenv && env)
+			err("only one environment allowed");
+		if (env && k != Kl)
+			err("environment must be of type l");
 		if (!arg && rtype(r) != RTmp)
 			err("invalid function parameter");
 		if (k == 4)
@@ -511,12 +523,18 @@ parserefl(int arg)
 				*curi = (Ins){Oargc, R, {TYPE(ty), r}, Kl};
 			else
 				*curi = (Ins){Oparc, r, {TYPE(ty)}, Kl};
+		else if (env)
+			if (arg)
+				*curi = (Ins){Oarge, R, {r}, k};
+			else
+				*curi = (Ins){Opare, r, {R}, k};
 		else
 			if (arg)
 				*curi = (Ins){Oarg, R, {r}, k};
 			else
 				*curi = (Ins){Opar, r, {R}, k};
 		curi++;
+		hasenv |= env;
 		if (peek() == Trparen)
 			break;
 		expect(Tcomma);
