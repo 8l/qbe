@@ -244,7 +244,7 @@ MAKESURE(rclob_has_correct_size, sizeof rclob == NRClob * sizeof(int));
  *          |    |    |  ` sse regs returned   (0..2)
  *          |    |    ` gp regs passed         (0..6)
  *          |    ` sse regs passed             (0..8)
- *          ` 1 if rax used to pass data       (0..1)
+ *          ` 1 if rax is used to pass data    (0..1)
  */
 
 bits
