@@ -323,7 +323,7 @@ fold(Fn *fn)
 
 /* boring folding code */
 
-static void
+static int
 foldint(Con *res, int op, int w, Con *cl, Con *cr)
 {
 	union {
@@ -357,8 +357,11 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 		else if (cr->type == CAddr)
 			err("undefined substraction (num - addr)");
 	}
-	else if (cl->type == CAddr || cr->type == CAddr)
+	else if (cl->type == CAddr || cr->type == CAddr) {
+		if (Ocmpl <= op && op <= Ocmpl1)
+			return 1;
 		err("invalid address operand for '%s'", opdesc[op].name);
+	}
 	switch (op) {
 	case Oadd:  x = l.u + r.u; break;
 	case Osub:  x = l.u - r.u; break;
@@ -440,6 +443,7 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 	res->bits.i = x;
 	if (lab)
 		strcpy(res->label, lab);
+	return 0;
 }
 
 static void
@@ -492,9 +496,10 @@ opfold(int op, int cls, Con *cl, Con *cr, Fn *fn)
 	if ((op == Odiv || op == Oudiv
 	|| op == Orem || op == Ourem) && czero(cr, KWIDE(cls)))
 		err("null divisor in '%s'", opdesc[op].name);
-	if (cls == Kw || cls == Kl)
-		foldint(&c, op, cls == Kl, cl, cr);
-	else
+	if (cls == Kw || cls == Kl) {
+		if (foldint(&c, op, cls == Kl, cl, cr))
+			return Bot;
+	} else
 		foldflt(&c, op, cls == Kd, cl, cr);
 	if (c.type == CBits)
 		nc = getcon(c.bits.i, fn).val;

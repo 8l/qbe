@@ -47,30 +47,24 @@ fcmptoi(int fc)
 static int
 iscmp(int op, int *pk, int *pc)
 {
-	int k, c;
-
 	if (Ocmpw <= op && op <= Ocmpw1) {
-		c = op - Ocmpw;
-		k = Kw;
+		*pc = op - Ocmpw;
+		*pk = Kw;
 	}
 	else if (Ocmpl <= op && op <= Ocmpl1) {
-		c = op - Ocmpl;
-		k = Kl;
+		*pc = op - Ocmpl;
+		*pk = Kl;
 	}
 	else if (Ocmps <= op && op <= Ocmps1) {
-		c = fcmptoi(op - Ocmps);
-		k = Ks;
+		*pc = fcmptoi(op - Ocmps);
+		*pk = Ks;
 	}
 	else if (Ocmpd <= op && op <= Ocmpd1) {
-		c = fcmptoi(op - Ocmpd);
-		k = Kd;
+		*pc = fcmptoi(op - Ocmpd);
+		*pk = Kd;
 	}
 	else
 		return 0;
-	if (pk)
-		*pk = k;
-	if (pc)
-		*pc = c;
 	return 1;
 }
 
@@ -197,21 +191,28 @@ seladdr(Ref *r, ANum *an, Fn *fn)
 	}
 }
 
-static void
+static int
 selcmp(Ref arg[2], int k, Fn *fn)
 {
+	int swap;
 	Ref r, *iarg;
 
-	if (rtype(arg[0]) == RCon) {
+	swap = rtype(arg[0]) == RCon;
+	if (swap) {
 		r = arg[1];
 		arg[1] = arg[0];
 		arg[0] = r;
 	}
-	assert(rtype(arg[0]) != RCon);
 	emit(Oxcmp, k, R, arg[1], arg[0]);
-	iarg = curi->arg; /* fixarg() can change curi */
+	iarg = curi->arg;
+	if (rtype(arg[0]) == RCon) {
+		assert(k == Kl);
+		iarg[1] = newtmp("isel", k, fn);
+		emit(Ocopy, k, iarg[1], arg[0], R);
+	}
 	fixarg(&iarg[0], k, 0, fn);
 	fixarg(&iarg[1], k, 0, fn);
+	return swap;
 }
 
 static void
@@ -220,7 +221,7 @@ sel(Ins i, ANum *an, Fn *fn)
 	Ref r0, r1, *iarg;
 	int x, k, kc;
 	int64_t sz;
-	Ins *i0;
+	Ins *i0, *i1;
 
 	if (rtype(i.to) == RTmp)
 	if (!isreg(i.to) && !isreg(i.arg[0]) && !isreg(i.arg[1]))
@@ -349,10 +350,10 @@ Emit:
 		if (isload(i.op))
 			goto case_Oload;
 		if (iscmp(i.op, &kc, &x)) {
-			if (rtype(i.arg[0]) == RCon)
-				x = icmpop(x);
 			emit(Oxset+x, k, i.to, R, R);
-			selcmp(i.arg, kc, fn);
+			i1 = curi;
+			if (selcmp(i.arg, kc, fn))
+				i1->op = Oxset + icmpop(x);
 			break;
 		}
 		die("unknown instruction %s", opdesc[i.op].name);
@@ -400,30 +401,31 @@ seljmp(Blk *b, Fn *fn)
 		return;
 	}
 	fi = flagi(b->ins, &b->ins[b->nins]);
-	if (fi && req(fi->to, r)) {
-		if (iscmp(fi->op, &k, &c)) {
-			if (rtype(fi->arg[0]) == RCon)
+	if (!fi || !req(fi->to, r)) {
+		selcmp((Ref[2]){r, CON_Z}, Kw, fn); /* todo, long jnz */
+		b->jmp.type = Jxjc + ICne;
+	}
+	else if (iscmp(fi->op, &k, &c)) {
+		if (t->nuse == 1) {
+			if (selcmp(fi->arg, k, fn))
 				c = icmpop(c);
-			b->jmp.type = Jxjc + c;
-			if (t->nuse == 1) {
-				selcmp(fi->arg, k, fn);
-				*fi = (Ins){.op = Onop};
-			}
-			return;
+			*fi = (Ins){.op = Onop};
 		}
-		if (fi->op == Oand && t->nuse == 1
-		&& (rtype(fi->arg[0]) == RTmp ||
-		    rtype(fi->arg[1]) == RTmp)) {
-			fi->op = Oxtest;
-			fi->to = R;
-			b->jmp.type = Jxjc + ICne;
-			if (rtype(fi->arg[1]) == RCon) {
-				r = fi->arg[1];
-				fi->arg[1] = fi->arg[0];
-				fi->arg[0] = r;
-			}
-			return;
+		b->jmp.type = Jxjc + c;
+	}
+	else if (fi->op == Oand && t->nuse == 1
+	     && (rtype(fi->arg[0]) == RTmp ||
+	         rtype(fi->arg[1]) == RTmp)) {
+		fi->op = Oxtest;
+		fi->to = R;
+		b->jmp.type = Jxjc + ICne;
+		if (rtype(fi->arg[1]) == RCon) {
+			r = fi->arg[1];
+			fi->arg[1] = fi->arg[0];
+			fi->arg[0] = r;
 		}
+	}
+	else {
 		/* since flags are not tracked in liveness,
 		 * the result of the flag-setting instruction
 		 * has to be marked as live
@@ -431,10 +433,7 @@ seljmp(Blk *b, Fn *fn)
 		if (t->nuse == 1)
 			emit(Ocopy, Kw, R, r, R);
 		b->jmp.type = Jxjc + ICne;
-		return;
 	}
-	selcmp((Ref[2]){r, CON_Z}, Kw, fn); /* todo, add long branch if non-zero */
-	b->jmp.type = Jxjc + ICne;
 }
 
 static int
