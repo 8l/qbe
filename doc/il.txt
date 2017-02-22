@@ -805,36 +805,112 @@ instructions unless you know exactly what you are doing.
 - 7. Instructions Index
 -----------------------
 
-<@ Arithmetic and Bits >:
-  `add`, `sub`, `div`, `mul`, `udiv`, `rem`, `urem`, `or`,
-  `xor`, `and`, `sar`, `shr`, `shl`
+  * <@ Arithmetic and Bits >:
 
-<@ Memory >:
-  `storeb`, `storeh`, `storew`, `storel`, `stores`, `stored`,
-  `loadd`, `loads`, `loadl`, `loadw`, `loadsw`, `loaduw`,
-  `loadsh`, `loaduh`, `loadsb`, `loadub`, `alloc4`, `alloc8`,
-  `alloc16`
+      * `add`
+      * `and`
+      * `div`
+      * `mul`
+      * `or`
+      * `rem`
+      * `sar`
+      * `shl`
+      * `shr`
+      * `sub`
+      * `udiv`
+      * `urem`
+      * `xor`
 
-<@ Comparisons >:
-  `ceqw`, `ceql`, `cnew`, `cnel`, `cslew`, `cslel`, `csltw`,
-  `csltl`, `csgew`, `csgel`, `csgtw`, `csgtl`, `culew`,
-  `culel`, `cultw`, `cultl`, `cugew`, `cugel`, `cugtw`,
-  `cugtl`, `ceqs`, `ceqd`, `cnes`, `cned`, `cles`, `cled`,
-  `clts`, `cltd`, `cges`, `cged`, `cgts`, `cgtd`, `cos`,
-  `cod`, `cuos`, `cuod`
+  * <@ Memory >:
 
-<@ Conversions >:
-  `extsw`, `extsh`, `extsb`, `exts`, `extuw`, `extuh`,
-  `extub`, `truncd`, `stosi`, `dtosi`, `swtof`, `sltof`
+      * `alloc16`
+      * `alloc4`
+      * `alloc8`
+      * `loadd`
+      * `loadl`
+      * `loads`
+      * `loadsb`
+      * `loadsh`
+      * `loadsw`
+      * `loadub`
+      * `loaduh`
+      * `loaduw`
+      * `loadw`
+      * `storeb`
+      * `stored`
+      * `storeh`
+      * `storel`
+      * `stores`
+      * `storew`
 
-<@ Cast >:
-  `cast`
+  * <@ Comparisons >:
 
-<@ Call >:
-  `call`
+      * `ceqd`
+      * `ceql`
+      * `ceqs`
+      * `ceqw`
+      * `cged`
+      * `cges`
+      * `cgtd`
+      * `cgts`
+      * `cled`
+      * `cles`
+      * `cltd`
+      * `clts`
+      * `cned`
+      * `cnel`
+      * `cnes`
+      * `cnew`
+      * `cod`
+      * `cos`
+      * `csgel`
+      * `csgew`
+      * `csgtl`
+      * `csgtw`
+      * `cslel`
+      * `cslew`
+      * `csltl`
+      * `csltw`
+      * `cugel`
+      * `cugew`
+      * `cugtl`
+      * `cugtw`
+      * `culel`
+      * `culew`
+      * `cultl`
+      * `cultw`
+      * `cuod`
+      * `cuos`
 
-<@ Phi >:
-  `phi`
+  * <@ Conversions >:
 
-<@ Jumps >:
-  `jmp`, `jnz`, `ret`
+      * `dtosi`
+      * `exts`
+      * `extsb`
+      * `extsh`
+      * `extsw`
+      * `extub`
+      * `extuh`
+      * `extuw`
+      * `sltof`
+      * `stosi`
+      * `swtof`
+      * `truncd`
+
+  * <@ Cast > :
+
+      * `cast`
+
+  * <@ Call >:
+
+      * `call`
+
+  * <@ Phi >:
+
+      * `phi`
+
+  * <@ Jumps >:
+
+      * `jmp`
+      * `jnz`
+      * `ret`
