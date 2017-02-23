@@ -130,6 +130,10 @@ fillalias(Fn *fn)
 				a->base = i->to;
 				a->offset = 0;
 			}
+			if (i->op == Ocopy) {
+				assert(a);
+				getalias(a, i->arg[0], fn);
+			}
 			if (i->op == Oadd) {
 				getalias(&a0, i->arg[0], fn);
 				getalias(&a1, i->arg[1], fn);
