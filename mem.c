@@ -86,15 +86,18 @@ memopt(Fn *fn)
 				/* try to turn loads into copies so we
 				 * can eliminate them later */
 				switch(l->op) {
-				case Oload:
 				case Oloadsw:
 				case Oloaduw:
+					if (k == Kl)
+						goto Extend;
+				case Oload:
 					if (KBASE(k) != KBASE(l->cls))
 						l->op = Ocast;
 					else
 						l->op = Ocopy;
 					break;
 				default:
+				Extend:
 					l->op = Oextsb + (l->op - Oloadsb);
 					break;
 				}
