@@ -391,6 +391,7 @@ struct Alias {
 	Ref base;
 	char label[NString];
 	int64_t offset;
+	Alias *slot;
 };
 
 struct Tmp {

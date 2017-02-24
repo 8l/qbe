@@ -10,6 +10,7 @@ getalias(Alias *a, Ref r, Fn *fn)
 		die("unreachable");
 	case RTmp:
 		*a = fn->tmp[r.val].alias;
+		a->type = a->slot->type;
 		assert(a->type != ABot);
 		break;
 	case RCon:
@@ -20,6 +21,7 @@ getalias(Alias *a, Ref r, Fn *fn)
 		} else
 			a->type = ACon;
 		a->offset = c->bits.i;
+		a->slot = a;
 		break;
 	}
 }
@@ -79,9 +81,12 @@ alias(Ref p, int sp, Ref q, int sq, int *delta, Fn *fn)
 int
 escapes(Ref r, Fn *fn)
 {
+	Alias *a;
+
 	if (rtype(r) != RTmp)
 		return 1;
-	return fn->tmp[r.val].alias.type != ALoc;
+	a = &fn->tmp[r.val].alias;
+	return !(a->type & 1) || a->slot->type == AEsc;
 }
 
 static void
@@ -92,9 +97,8 @@ esc(Ref r, Fn *fn)
 	assert(rtype(r) <= RType);
 	if (rtype(r) == RTmp) {
 		a = &fn->tmp[r.val].alias;
-		assert(a->type != ABot);
-		if (a->type == ALoc)
-			a->type = AEsc;
+		if (a->slot->type == ALoc)
+			a->slot->type = AEsc;
 	}
 }
 
@@ -116,6 +120,7 @@ fillalias(Fn *fn)
 			a->type = AUnk;
 			a->base = p->to;
 			a->offset = 0;
+			a->slot = a;
 		}
 		for (i=b->ins; i<&b->ins[b->nins]; ++i) {
 			a = 0;
@@ -129,6 +134,7 @@ fillalias(Fn *fn)
 					a->type = AUnk;
 				a->base = i->to;
 				a->offset = 0;
+				a->slot = a;
 			}
 			if (i->op == Ocopy) {
 				assert(a);
