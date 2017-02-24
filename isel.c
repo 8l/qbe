@@ -3,11 +3,10 @@
 
 /* For x86_64, do the following:
  *
- * - lower calls
  * - check that constants are used only in
  *   places allowed
  * - ensure immediates always fit in 32b
- * - explicit machine register contraints
+ * - expose machine register contraints
  *   on instructions like division.
  * - implement fast locals (the streak of
  *   constant allocX in the first basic block)
