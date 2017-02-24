@@ -1,30 +1,5 @@
 #include "all.h"
 
-static int
-loadsz(Ins *l)
-{
-	switch (l->op) {
-	case Oloadsb: case Oloadub: return 1;
-	case Oloadsh: case Oloaduh: return 2;
-	case Oloadsw: case Oloaduw: return 4;
-	case Oload: return KWIDE(l->cls) ? 8 : 4;
-	}
-	die("unreachable");
-}
-
-static int
-storesz(Ins *s)
-{
-	switch (s->op) {
-	case Ostoreb: return 1;
-	case Ostoreh: return 2;
-	case Ostorew: case Ostores: return 4;
-	case Ostorel: case Ostored: return 8;
-	}
-	die("unreachable");
-}
-
-
 /* require use, maintains use counts */
 void
 memopt(Fn *fn)

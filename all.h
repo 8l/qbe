@@ -576,6 +576,8 @@ int alias(Ref, int, Ref, int, int *, Fn *);
 int escapes(Ref, Fn *);
 
 /* load.c */
+int loadsz(Ins *);
+int storesz(Ins *);
 void loadopt(Fn *);
 
 /* ssa.c */

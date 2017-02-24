@@ -42,7 +42,7 @@ static uint inum;    /* current insertion number */
 static Insert *ilog; /* global insertion log */
 static uint nlog;    /* number of entries in the log */
 
-static int
+int
 loadsz(Ins *l)
 {
 	switch (l->op) {
@@ -54,7 +54,7 @@ loadsz(Ins *l)
 	die("unreachable");
 }
 
-static int
+int
 storesz(Ins *s)
 {
 	switch (s->op) {
