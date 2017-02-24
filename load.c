@@ -172,8 +172,14 @@ killsl(Ref r, Slice sl)
 	if (rtype(sl.ref) != RTmp)
 		return 0;
 	a = &curf->tmp[sl.ref.val].alias;
-	assert(a->type==ALoc || a->type==AEsc || a->type==AUnk);
-	return req(a->base, r);
+	switch (a->type) {
+	default:   die("unreachable");
+	case ALoc:
+	case AEsc:
+	case AUnk: return req(a->base, r);
+	case ACon:
+	case ASym: return 0;
+	}
 }
 
 /* returns a ref containing the contents of the slice
