@@ -588,6 +588,9 @@ void fillrpo(Fn *);
 void ssa(Fn *);
 void ssacheck(Fn *);
 
+/* simpl.c */
+void simpl(Fn *);
+
 /* copy.c */
 void copy(Fn *);
 
