@@ -113,8 +113,9 @@ mask(int cls, Ref *r, bits msk, Loc *l)
 static Ref
 load(Slice sl, bits msk, Loc *l)
 {
-	Ref r;
-	int ld, cls, all;
+	Alias *a;
+	Ref r, r1;
+	int ld, cls, all, c;
 
 	ld = (int[]){
 		[1] = Oloadub,
@@ -127,10 +128,52 @@ load(Slice sl, bits msk, Loc *l)
 		cls = sl.cls;
 	else
 		cls = sl.sz > 4 ? Kl : Kw;
-	r = iins(cls, ld, sl.ref, R, l);
+	r = sl.ref;
+	/* sl.ref might not be live here,
+	 * but its alias base ref will be
+	 * (see killsl() below) */
+	if (rtype(r) == RTmp) {
+		a = &curf->tmp[r.val].alias;
+		switch (a->type) {
+		default:
+			die("unreachable");
+		case ALoc:
+		case AEsc:
+		case AUnk:
+			r = a->base;
+			if (!a->offset)
+				break;
+			r1 = getcon(a->offset, curf);
+			r = iins(Kl, Oadd, r, r1, l);
+			break;
+		case ACon:
+		case ASym:
+			c = curf->ncon++;
+			vgrow(&curf->con, curf->ncon);
+			curf->con[c].type = CAddr;
+			strcpy(curf->con[c].label, a->label);
+			curf->con[c].bits.i = a->offset;
+			curf->con[c].local = 0;
+			r = CON(c);
+			break;
+		}
+	}
+	r = iins(cls, ld, r, R, l);
 	if (!all)
 		mask(cls, &r, msk, l);
 	return r;
+}
+
+static int
+killsl(Ref r, Slice sl)
+{
+	Alias *a;
+
+	if (rtype(sl.ref) != RTmp)
+		return 0;
+	a = &curf->tmp[sl.ref.val].alias;
+	assert(a->type==ALoc || a->type==AEsc || a->type==AUnk);
+	return req(a->base, r);
 }
 
 /* returns a ref containing the contents of the slice
@@ -181,7 +224,7 @@ def(Slice sl, bits msk, Blk *b, Ins *i, Loc *il)
 
 	while (i > b->ins) {
 		--i;
-		if (req(i->to, sl.ref)
+		if (killsl(i->to, sl)
 		|| (i->op == Ocall && escapes(sl.ref, curf)))
 			goto Load;
 		ld = isload(i->op);
@@ -251,7 +294,7 @@ def(Slice sl, bits msk, Blk *b, Ins *i, Loc *il)
 		}
 
 	for (p=b->phi; p; p=p->link)
-		if (req(p->to, sl.ref))
+		if (killsl(p->to, sl))
 			/* scanning predecessors in that
 			 * case would be unsafe */
 			goto Load;
