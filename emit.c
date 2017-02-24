@@ -52,7 +52,7 @@ static struct {
 	{ Oshr,    Ki, "-shr%k %B1, %=" },
 	{ Oshl,    Ki, "-shl%k %B1, %=" },
 	{ Omul,    Ki, "+imul%k %1, %=" },
-	{ Omul,    Ks, "+mulss %1, %=" }, /* fixme */
+	{ Omul,    Ks, "+mulss %1, %=" },
 	{ Omul,    Kd, "+mulsd %1, %=" },
 	{ Odiv,    Ka, "-div%k %1, %=" },
 	{ Ostorel, Ka, "movq %L0, %M1" },
@@ -76,7 +76,7 @@ static struct {
 	{ Oextsb,  Ki, "movsb%k %B0, %=" },
 	{ Oextub,  Ki, "movzb%k %B0, %=" },
 
-	{ Oexts,   Kd, "cvtss2sd %0, %=" },  /* see if factorization is possible */
+	{ Oexts,   Kd, "cvtss2sd %0, %=" },
 	{ Otruncd, Ks, "cvttsd2ss %0, %=" },
 	{ Ostosi,  Ki, "cvttss2si%k %0, %=" },
 	{ Odtosi,  Ki, "cvttsd2si%k %0, %=" },
@@ -91,7 +91,7 @@ static struct {
 	{ Osign,   Kw, "cltd" },
 	{ Oxdiv,   Ki, "div%k %0" },
 	{ Oxidiv,  Ki, "idiv%k %0" },
-	{ Oxcmp,   Ks, "comiss %S0, %S1" },  /* fixme, Kf */
+	{ Oxcmp,   Ks, "comiss %S0, %S1" },
 	{ Oxcmp,   Kd, "comisd %D0, %D1" },
 	{ Oxcmp,   Ki, "cmp%k %0, %1" },
 	{ Oxtest,  Ki, "test%k %0, %1" },
@@ -533,7 +533,8 @@ emitfn(Fn *fn, FILE *f)
 		}
 
 	for (b=fn->start; b; b=b->link) {
-		fprintf(f, "%sbb%d: /* %s */\n", locprefix, id0+b->id, b->name);
+		fprintf(f, "%sbb%d:\n", locprefix, id0+b->id);
+		fprintf(f, "/* @%s */\n", b->name);
 		for (i=b->ins; i!=&b->ins[b->nins]; i++)
 			emitins(*i, fn, f);
 		switch (b->jmp.type) {
@@ -551,8 +552,8 @@ emitfn(Fn *fn, FILE *f)
 		case Jjmp:
 		Jmp:
 			if (b->s1 != b->link)
-				fprintf(f, "\tjmp %sbb%d /* %s */\n",
-					locprefix, id0+b->s1->id, b->s1->name);
+				fprintf(f, "\tjmp %sbb%d\n",
+					locprefix, id0+b->s1->id);
 			break;
 		default:
 			c = b->jmp.type - Jxjc;
@@ -563,8 +564,8 @@ emitfn(Fn *fn, FILE *f)
 					b->s2 = s;
 				} else
 					c = cneg(c);
-				fprintf(f, "\tj%s %sbb%d /* %s */\n", ctoa[c],
-					locprefix, id0+b->s2->id, b->s2->name);
+				fprintf(f, "\tj%s %sbb%d\n", ctoa[c],
+					locprefix, id0+b->s2->id);
 				goto Jmp;
 			}
 			die("unhandled jump %d", b->jmp.type);
