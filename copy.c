@@ -51,13 +51,51 @@ visitphi(Phi *p, Ref *cp, RList ***pw)
 	update(p->to, r, cp, pw);
 }
 
+static int
+iscopy(Ins *i, Ref r, Fn *fn)
+{
+	static bits extcpy[] = {
+		[WFull] = 0,
+		[Wsb] = BIT(Wsb) | BIT(Wsh) | BIT(Wsw),
+		[Wub] = BIT(Wub) | BIT(Wuh) | BIT(Wuw),
+		[Wsh] = BIT(Wsh) | BIT(Wsw),
+		[Wuh] = BIT(Wuh) | BIT(Wuw),
+		[Wsw] = BIT(Wsw),
+		[Wuw] = BIT(Wuw),
+	};
+	int k, w;
+	Tmp *t;
+
+	if (i->op == Ocopy)
+		return 1;
+	if (!isext(i->op))
+		return 0;
+	if (i->op == Oextsw || i->op == Oextuw)
+	if (i->cls == Kw)
+		return 1;
+	if (rtype(r) == RTmp) {
+		t = &fn->tmp[r.val];
+		w = t->width;
+		k = t->cls;
+		assert(k == Kw || k == Kl);
+	} else {
+		assert(rtype(r) == RCon);
+		w = WFull;
+		k = Kl;
+	}
+	if (i->cls == Kl && k == Kw)
+		/* not enough bits in r */
+		return 0;
+	return (BIT(Wsb + (i->op - Oextsb)) & extcpy[w]) != 0;
+}
+
 static void
-visitins(Ins *i, Ref *cp, RList ***pw)
+visitins(Ins *i, Ref *cp, RList ***pw, Fn *fn)
 {
 	Ref r;
 
-	if (i->op == Ocopy) {
-		r = copyof(i->arg[0], cp);
+	r = copyof(i->arg[0], cp);
+	if (iscopy(i, r, fn)) {
 		update(i->to, r, cp, pw);
 	} else if (!req(i->to, R)) {
 		assert(rtype(i->to) == RTmp);
@@ -91,7 +129,7 @@ copy(Fn *fn)
 		for (p=b->phi; p; p=p->link)
 			visitphi(p, cp, &pw);
 		for (i=b->ins; i-b->ins < b->nins; i++)
-			visitins(i, cp, &pw);
+			visitins(i, cp, &pw, fn);
 	}
 	while ((w1=w)) {
 		t = w->t;
@@ -103,7 +141,7 @@ copy(Fn *fn)
 				visitphi(u->u.phi, cp, &pw);
 				break;
 			case UIns:
-				visitins(u->u.ins, cp, &pw);
+				visitins(u->u.ins, cp, &pw, fn);
 				break;
 			case UJmp:
 				break;

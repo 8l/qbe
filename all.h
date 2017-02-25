@@ -228,7 +228,7 @@ enum Op {
 	Ostores,
 	Ostored,
 #define isstore(o) (Ostoreb <= o && o <= Ostored)
-	Oloadsb,  /* needs to match OExt (mem.c) */
+	Oloadsb,  /* must match Oext and Tmp.width */
 	Oloadub,
 	Oloadsh,
 	Oloaduh,
@@ -407,6 +407,15 @@ struct Tmp {
 	} hint;
 	int phi;
 	Alias alias;
+	enum {
+		WFull,
+		Wsb, /* must match Oload/Oext order */
+		Wub,
+		Wsh,
+		Wuh,
+		Wsw,
+		Wuw
+	} width;
 	int visit;
 };
 

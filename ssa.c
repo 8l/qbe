@@ -31,7 +31,7 @@ adduse(Tmp *tmp, int ty, Blk *b, ...)
 	va_end(ap);
 }
 
-/* fill usage, phi, and class information
+/* fill usage, width, phi, and class information
  * must not change .visit fields
  */
 void
@@ -40,7 +40,7 @@ filluse(Fn *fn)
 	Blk *b;
 	Phi *p;
 	Ins *i;
-	int m, t;
+	int m, t, w;
 	uint a;
 	Tmp *tmp;
 
@@ -51,6 +51,7 @@ filluse(Fn *fn)
 		tmp[t].nuse = 0;
 		tmp[t].phi = 0;
 		tmp[t].cls = 0;
+		tmp[t].width = WFull;
 		if (tmp[t].use == 0)
 			tmp[t].use = vnew(0, sizeof(Use), Pfn);
 	}
@@ -72,7 +73,16 @@ filluse(Fn *fn)
 		for (i=b->ins; i-b->ins < b->nins; i++) {
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
+				w = WFull;
+				if (isload(i->op) && i->op != Oload)
+					w = Wsb + (i->op - Oloadsb);
+				if (isext(i->op))
+					w = Wsb + (i->op - Oextsb);
+				if (w == Wsw || w == Wuw)
+				if (i->cls == Kw)
+					w = WFull;
 				t = i->to.val;
+				tmp[t].width = w;
 				tmp[t].ndef++;
 				tmp[t].cls = i->cls;
 			}

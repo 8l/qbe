@@ -59,7 +59,6 @@ func(Fn *fn)
 	loadopt(fn);
 	filluse(fn);
 	ssacheck(fn);
-	simpl(fn);
 	copy(fn);
 	filluse(fn);
 	fold(fn);
