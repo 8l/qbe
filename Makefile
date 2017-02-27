@@ -56,4 +56,4 @@ check: $(OBJDIR)/$(BIN)
 		}" < $$F;                          \
 	done
 
-.PHONY: clean clean-gen check 80 syndoc
+.PHONY: clean clean-gen check 80 install uninstall
