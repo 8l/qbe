@@ -278,3 +278,47 @@ fillloop(Fn *fn)
 		b->loop = 1;
 	loopiter(fn, multloop);
 }
+
+static void
+uffind(Blk **pb, Blk **uf, Fn *fn)
+{
+	Blk **pb1;
+
+	pb1 = &uf[(*pb)->id];
+	if (*pb1 != *pb)
+		uffind(pb1, uf, fn);
+	*pb = *pb1;
+}
+
+/* requires rpo and no phis, breaks cfg */
+void
+simpljmp(Fn *fn)
+{
+
+	Blk **uf; /* union-find */
+	Blk *b;
+	uint n;
+	int c;
+
+	uf = alloc(fn->nblk * sizeof uf[0]);
+	for (n=0; n<fn->nblk; n++)
+		uf[n] = fn->rpo[n];
+	for (b=fn->start; b; b=b->link) {
+		assert(!b->phi);
+		if (b->nins == 0)
+		if (b->jmp.type == Jjmp)
+			uf[b->id] = b->s1;
+	}
+	for (b=fn->start; b; b=b->link) {
+		if (b->s1)
+			uffind(&b->s1, uf, fn);
+		if (b->s2)
+			uffind(&b->s2, uf, fn);
+		c = b->jmp.type - Jxjc;
+		if (0 <= c && c <= NXICmp)
+		if (b->s1 == b->s2) {
+			b->jmp.type = Jjmp;
+			b->s2 = 0;
+		}
+	}
+}

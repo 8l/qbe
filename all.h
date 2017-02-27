@@ -576,6 +576,7 @@ int dom(Blk *, Blk *);
 void fillfron(Fn *);
 void loopiter(Fn *, void (*)(Blk *, Blk *));
 void fillloop(Fn *);
+void simpljmp(Fn *);
 
 /* mem.c */
 void memopt(Fn *);

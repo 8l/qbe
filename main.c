@@ -72,6 +72,9 @@ func(Fn *fn)
 	spill(fn);
 	rega(fn);
 	fillrpo(fn);
+	simpljmp(fn);
+	fillpreds(fn);
+	fillrpo(fn);
 	assert(fn->rpo[0] == fn->start);
 	for (n=0;; n++)
 		if (n == fn->nblk-1) {

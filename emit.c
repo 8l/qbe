@@ -505,7 +505,7 @@ emitfn(Fn *fn, FILE *f)
 	static int id0;
 	Blk *b, *s;
 	Ins *i, itmp;
-	int *r, c, fs, o, n;
+	int *r, c, fs, o, n, lbl;
 
 	fprintf(f, ".text\n");
 	if (fn->export)
@@ -532,11 +532,12 @@ emitfn(Fn *fn, FILE *f)
 			emitf("pushq %L0", &itmp, fn, f);
 		}
 
-	for (b=fn->start; b; b=b->link) {
-		fprintf(f, "%sbb%d:\n", locprefix, id0+b->id);
-		fprintf(f, "/* @%s */\n", b->name);
+	for (lbl=0, b=fn->start; b; b=b->link) {
+		if (lbl || b->npred > 1)
+			fprintf(f, "%sbb%d:\n", locprefix, id0+b->id);
 		for (i=b->ins; i!=&b->ins[b->nins]; i++)
 			emitins(*i, fn, f);
+		lbl = 1;
 		switch (b->jmp.type) {
 		case Jret0:
 			for (r=&rclob[NRClob]; r>rclob;)
@@ -554,6 +555,8 @@ emitfn(Fn *fn, FILE *f)
 			if (b->s1 != b->link)
 				fprintf(f, "\tjmp %sbb%d\n",
 					locprefix, id0+b->s1->id);
+			else
+				lbl = 0;
 			break;
 		default:
 			c = b->jmp.type - Jxjc;
