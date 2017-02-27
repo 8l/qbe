@@ -254,6 +254,29 @@ lexinit()
 	done = 1;
 }
 
+static int64_t
+getint()
+{
+	uint64_t n;
+	int c, m;
+
+	n = 0;
+	c = fgetc(inf);
+	m = 0;
+	switch (c) {
+	case '-': m = 1;
+	case '+': c = fgetc(inf);
+	}
+	do {
+		n = 10*n + (c - '0');
+		c = fgetc(inf);
+	} while ('0' <= c && c <= '9');
+	ungetc(c, inf);
+	if (m)
+		n = 1 + ~n;
+	return *(int64_t *)&n;
+}
+
 static int
 lex()
 {
@@ -312,8 +335,7 @@ lex()
 	}
 	if (isdigit(c) || c == '-' || c == '+') {
 		ungetc(c, inf);
-		if (fscanf(inf, "%"SCNd64, &tokval.num) != 1)
-			err("invalid integer literal");
+		tokval.num = getint();
 		return Tint;
 	}
 	if (c == '"') {
