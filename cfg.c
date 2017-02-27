@@ -285,9 +285,10 @@ uffind(Blk **pb, Blk **uf, Fn *fn)
 	Blk **pb1;
 
 	pb1 = &uf[(*pb)->id];
-	if (*pb1 != *pb)
+	if (*pb1) {
 		uffind(pb1, uf, fn);
-	*pb = *pb1;
+		*pb = *pb1;
+	}
 }
 
 /* requires rpo and no phis, breaks cfg */
@@ -297,12 +298,9 @@ simpljmp(Fn *fn)
 
 	Blk **uf; /* union-find */
 	Blk *b;
-	uint n;
 	int c;
 
-	uf = alloc(fn->nblk * sizeof uf[0]);
-	for (n=0; n<fn->nblk; n++)
-		uf[n] = fn->rpo[n];
+	uf = emalloc(fn->nblk * sizeof uf[0]);
 	for (b=fn->start; b; b=b->link) {
 		assert(!b->phi);
 		if (b->nins == 0)
@@ -321,4 +319,5 @@ simpljmp(Fn *fn)
 			b->s2 = 0;
 		}
 	}
+	free(uf);
 }
