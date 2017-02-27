@@ -280,13 +280,13 @@ fillloop(Fn *fn)
 }
 
 static void
-uffind(Blk **pb, Blk **uf, Fn *fn)
+uffind(Blk **pb, Blk **uf)
 {
 	Blk **pb1;
 
 	pb1 = &uf[(*pb)->id];
 	if (*pb1) {
-		uffind(pb1, uf, fn);
+		uffind(pb1, uf);
 		*pb = *pb1;
 	}
 }
@@ -309,9 +309,9 @@ simpljmp(Fn *fn)
 	}
 	for (b=fn->start; b; b=b->link) {
 		if (b->s1)
-			uffind(&b->s1, uf, fn);
+			uffind(&b->s1, uf);
 		if (b->s2)
-			uffind(&b->s2, uf, fn);
+			uffind(&b->s2, uf);
 		c = b->jmp.type - Jxjc;
 		if (0 <= c && c <= NXICmp)
 		if (b->s1 == b->s2) {
