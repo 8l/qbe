@@ -30,6 +30,13 @@ config.h:
 	*)         echo "#define Defaultasm Gaself" ;;   \
 	esac > $@
 
+install: $(OBJDIR)/$(BIN)
+	mkdir -p "$(DESTDIR)/$(PREFIX)/bin/"
+	cp $< "$(DESTDIR)/$(PREFIX)/bin/"
+
+uninstall:
+	rm -f "$(DESTDIR)/$(PREFIX)/bin/$(BIN)"
+
 clean:
 	rm -fr $(OBJDIR)
 
