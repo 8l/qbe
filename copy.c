@@ -63,30 +63,23 @@ iscopy(Ins *i, Ref r, Fn *fn)
 		[Wsw] = BIT(Wsw),
 		[Wuw] = BIT(Wuw),
 	};
-	int k, w;
+	bits b;
 	Tmp *t;
 
 	if (i->op == Ocopy)
 		return 1;
-	if (!isext(i->op))
+	if (!isext(i->op) || rtype(r) != RTmp)
 		return 0;
 	if (i->op == Oextsw || i->op == Oextuw)
 	if (i->cls == Kw)
 		return 1;
-	if (rtype(r) == RTmp) {
-		t = &fn->tmp[r.val];
-		w = t->width;
-		k = t->cls;
-		assert(k == Kw || k == Kl);
-	} else {
-		assert(rtype(r) == RCon);
-		w = WFull;
-		k = Kl;
-	}
-	if (i->cls == Kl && k == Kw)
-		/* not enough bits in r */
+
+	t = &fn->tmp[r.val];
+	assert(KBASE(t->cls) == 0);
+	if (i->cls == Kl && t->cls == Kw)
 		return 0;
-	return (BIT(Wsb + (i->op - Oextsb)) & extcpy[w]) != 0;
+	b = extcpy[t->width];
+	return (BIT(Wsb + (i->op-Oextsb)) & b) != 0;
 }
 
 static void
