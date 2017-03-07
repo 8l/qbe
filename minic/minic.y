@@ -137,7 +137,8 @@ varadd(char *v, int glo, unsigned ctyp)
 		}
 		if (strcmp(varh[h].v, v) == 0)
 			die("double definition");
-	} while(++h != h0);
+		h = (h+1) % NVar;
+	} while(h != h0);
 	die("too many variables");
 }
 
@@ -161,7 +162,8 @@ varget(char *v)
 			s.ctyp = varh[h].ctyp;
 			return &s;
 		}
-	} while (++h != h0 && varh[h].v[0] != 0);
+		h = (h+1) % NVar;
+	} while (h != h0 && varh[h].v[0] != 0);
 	return 0;
 }
 
@@ -288,18 +290,12 @@ call(Node *n, Symb *sr)
 	fprintf(of, "\t");
 	psymb(*sr);
 	fprintf(of, " =%c call $%s(", irtyp(sr->ctyp), f);
-	a = n->r;
-	if (a)
-		for (;;) {
-			fprintf(of, "%c ", irtyp(a->u.s.ctyp));
-			psymb(a->u.s);
-			a = a->r;
-			if (a)
-				fprintf(of, ", ");
-			else
-				break;
-		}
-	fprintf(of, ")\n");
+	for (a=n->r; a; a=a->r) {
+		fprintf(of, "%c ", irtyp(a->u.s.ctyp));
+		psymb(a->u.s);
+		fprintf(of, ", ");
+	}
+	fprintf(of, "...)\n");
 }
 
 Symb

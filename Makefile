@@ -4,7 +4,7 @@ ABI = sysv
 V = @
 OBJDIR = obj
 
-SRC = main.c util.c parse.c mem.c ssa.c copy.c fold.c live.c $(ABI).c isel.c spill.c rega.c emit.c
+SRC = main.c util.c parse.c cfg.c mem.c ssa.c alias.c load.c copy.c fold.c live.c $(ABI).c isel.c spill.c rega.c emit.c
 OBJ = $(SRC:%.c=$(OBJDIR)/%.o)
 
 CFLAGS += -Wall -Wextra -std=c99 -g -pedantic
@@ -30,6 +30,13 @@ config.h:
 	*)         echo "#define Defaultasm Gaself" ;;   \
 	esac > $@
 
+install: $(OBJDIR)/$(BIN)
+	mkdir -p "$(DESTDIR)/$(PREFIX)/bin/"
+	cp $< "$(DESTDIR)/$(PREFIX)/bin/"
+
+uninstall:
+	rm -f "$(DESTDIR)/$(PREFIX)/bin/$(BIN)"
+
 clean:
 	rm -fr $(OBJDIR)
 
@@ -49,4 +56,4 @@ check: $(OBJDIR)/$(BIN)
 		}" < $$F;                          \
 	done
 
-.PHONY: clean clean-gen check 80 syndoc
+.PHONY: clean clean-gen check 80 install uninstall

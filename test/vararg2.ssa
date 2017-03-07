@@ -1,0 +1,596 @@
+export function $qbeprint0(l %fmt, ...) {
+@start
+	%fmtdbl =l alloc4 4
+	%fmtint =l alloc4 4
+	%emptys =l alloc4 4
+	storew 2122789, %fmtint
+	storew 2123557, %fmtdbl
+	storew 0, %emptys
+	%vp =l alloc8 24
+	%fmt1 =l add 1, %fmt
+	vastart %vp
+@loop
+	%p =l phi @start %fmt1, @casef %p1, @cased %p1
+	%c =w loadsb %p
+	%p1 =l add 3, %p
+	jnz %c, @loop1, @end
+@loop1
+	%isg =w ceqw %c, 103
+	jnz %isg, @casef, @cased
+@casef
+	%dbl =d vaarg %vp
+	call $printf(l %fmtdbl, d %dbl, ...)
+	jmp @loop
+@cased
+	%int =w vaarg %vp
+	call $printf(l %fmtint, w %int, ...)
+	jmp @loop
+@end
+	call $puts(l %emptys)
+	ret
+}
+
+export function $qbecall0(l %fmt, ...) {
+@start
+	%vp =l alloc8 24
+	vastart %vp
+	call $vprintf(l %fmt, l %vp)
+	ret
+}
+
+export function $qbeprint1(w %argw0, l %fmt, ...) {
+@start
+	%fmtdbl =l alloc4 4
+	%fmtint =l alloc4 4
+	%emptys =l alloc4 4
+	storew 2122789, %fmtint
+	storew 2123557, %fmtdbl
+	storew 0, %emptys
+	%vp =l alloc8 24
+	%fmt1 =l add 1, %fmt
+	vastart %vp
+@loop
+	%p =l phi @start %fmt1, @casef %p1, @cased %p1
+	%c =w loadsb %p
+	%p1 =l add 3, %p
+	jnz %c, @loop1, @end
+@loop1
+	%isg =w ceqw %c, 103
+	jnz %isg, @casef, @cased
+@casef
+	%dbl =d vaarg %vp
+	call $printf(l %fmtdbl, d %dbl, ...)
+	jmp @loop
+@cased
+	%int =w vaarg %vp
+	call $printf(l %fmtint, w %int, ...)
+	jmp @loop
+@end
+	call $puts(l %emptys)
+	ret
+}
+
+export function $qbecall1(w %argw0, l %fmt, ...) {
+@start
+	%vp =l alloc8 24
+	vastart %vp
+	call $vprintf(l %fmt, l %vp)
+	ret
+}
+
+export function $qbeprint2(d %argd0, l %fmt, ...) {
+@start
+	%fmtdbl =l alloc4 4
+	%fmtint =l alloc4 4
+	%emptys =l alloc4 4
+	storew 2122789, %fmtint
+	storew 2123557, %fmtdbl
+	storew 0, %emptys
+	%vp =l alloc8 24
+	%fmt1 =l add 1, %fmt
+	vastart %vp
+@loop
+	%p =l phi @start %fmt1, @casef %p1, @cased %p1
+	%c =w loadsb %p
+	%p1 =l add 3, %p
+	jnz %c, @loop1, @end
+@loop1
+	%isg =w ceqw %c, 103
+	jnz %isg, @casef, @cased
+@casef
+	%dbl =d vaarg %vp
+	call $printf(l %fmtdbl, d %dbl, ...)
+	jmp @loop
+@cased
+	%int =w vaarg %vp
+	call $printf(l %fmtint, w %int, ...)
+	jmp @loop
+@end
+	call $puts(l %emptys)
+	ret
+}
+
+export function $qbecall2(d %argd0, l %fmt, ...) {
+@start
+	%vp =l alloc8 24
+	vastart %vp
+	call $vprintf(l %fmt, l %vp)
+	ret
+}
+
+export function $qbeprint3(w %argw0, w %argw1, w %argw2, w %argw3, l %fmt, ...) {
+@start
+	%fmtdbl =l alloc4 4
+	%fmtint =l alloc4 4
+	%emptys =l alloc4 4
+	storew 2122789, %fmtint
+	storew 2123557, %fmtdbl
+	storew 0, %emptys
+	%vp =l alloc8 24
+	%fmt1 =l add 1, %fmt
+	vastart %vp
+@loop
+	%p =l phi @start %fmt1, @casef %p1, @cased %p1
+	%c =w loadsb %p
+	%p1 =l add 3, %p
+	jnz %c, @loop1, @end
+@loop1
+	%isg =w ceqw %c, 103
+	jnz %isg, @casef, @cased
+@casef
+	%dbl =d vaarg %vp
+	call $printf(l %fmtdbl, d %dbl, ...)
+	jmp @loop
+@cased
+	%int =w vaarg %vp
+	call $printf(l %fmtint, w %int, ...)
+	jmp @loop
+@end
+	call $puts(l %emptys)
+	ret
+}
+
+export function $qbecall3(w %argw0, w %argw1, w %argw2, w %argw3, l %fmt, ...) {
+@start
+	%vp =l alloc8 24
+	vastart %vp
+	call $vprintf(l %fmt, l %vp)
+	ret
+}
+
+export function $qbeprint4(d %argd0, d %argd1, d %argd2, d %argd3, d %argd4, d %argd5, l %fmt, ...) {
+@start
+	%fmtdbl =l alloc4 4
+	%fmtint =l alloc4 4
+	%emptys =l alloc4 4
+	storew 2122789, %fmtint
+	storew 2123557, %fmtdbl
+	storew 0, %emptys
+	%vp =l alloc8 24
+	%fmt1 =l add 1, %fmt
+	vastart %vp
+@loop
+	%p =l phi @start %fmt1, @casef %p1, @cased %p1
+	%c =w loadsb %p
+	%p1 =l add 3, %p
+	jnz %c, @loop1, @end
+@loop1
+	%isg =w ceqw %c, 103
+	jnz %isg, @casef, @cased
+@casef
+	%dbl =d vaarg %vp
+	call $printf(l %fmtdbl, d %dbl, ...)
+	jmp @loop
+@cased
+	%int =w vaarg %vp
+	call $printf(l %fmtint, w %int, ...)
+	jmp @loop
+@end
+	call $puts(l %emptys)
+	ret
+}
+
+export function $qbecall4(d %argd0, d %argd1, d %argd2, d %argd3, d %argd4, d %argd5, l %fmt, ...) {
+@start
+	%vp =l alloc8 24
+	vastart %vp
+	call $vprintf(l %fmt, l %vp)
+	ret
+}
+
+export function $qbeprint5(w %argw0, w %argw1, w %argw2, w %argw3, w %argw4, d %argd0, d %argd1, d %argd2, d %argd3, d %argd4, d %argd5, d %argd6, l %fmt, ...) {
+@start
+	%fmtdbl =l alloc4 4
+	%fmtint =l alloc4 4
+	%emptys =l alloc4 4
+	storew 2122789, %fmtint
+	storew 2123557, %fmtdbl
+	storew 0, %emptys
+	%vp =l alloc8 24
+	%fmt1 =l add 1, %fmt
+	vastart %vp
+@loop
+	%p =l phi @start %fmt1, @casef %p1, @cased %p1
+	%c =w loadsb %p
+	%p1 =l add 3, %p
+	jnz %c, @loop1, @end
+@loop1
+	%isg =w ceqw %c, 103
+	jnz %isg, @casef, @cased
+@casef
+	%dbl =d vaarg %vp
+	call $printf(l %fmtdbl, d %dbl, ...)
+	jmp @loop
+@cased
+	%int =w vaarg %vp
+	call $printf(l %fmtint, w %int, ...)
+	jmp @loop
+@end
+	call $puts(l %emptys)
+	ret
+}
+
+export function $qbecall5(w %argw0, w %argw1, w %argw2, w %argw3, w %argw4, d %argd0, d %argd1, d %argd2, d %argd3, d %argd4, d %argd5, d %argd6, l %fmt, ...) {
+@start
+	%vp =l alloc8 24
+	vastart %vp
+	call $vprintf(l %fmt, l %vp)
+	ret
+}
+
+export function $qbeprint6(w %argw0, w %argw1, w %argw2, w %argw3, w %argw4, w %argw5, w %argw6, w %argw7, w %argw8, w %argw9, d %argd0, d %argd1, d %argd2, d %argd3, d %argd4, d %argd5, d %argd6, d %argd7, d %argd8, d %argd9, l %fmt, ...) {
+@start
+	%fmtdbl =l alloc4 4
+	%fmtint =l alloc4 4
+	%emptys =l alloc4 4
+	storew 2122789, %fmtint
+	storew 2123557, %fmtdbl
+	storew 0, %emptys
+	%vp =l alloc8 24
+	%fmt1 =l add 1, %fmt
+	vastart %vp
+@loop
+	%p =l phi @start %fmt1, @casef %p1, @cased %p1
+	%c =w loadsb %p
+	%p1 =l add 3, %p
+	jnz %c, @loop1, @end
+@loop1
+	%isg =w ceqw %c, 103
+	jnz %isg, @casef, @cased
+@casef
+	%dbl =d vaarg %vp
+	call $printf(l %fmtdbl, d %dbl, ...)
+	jmp @loop
+@cased
+	%int =w vaarg %vp
+	call $printf(l %fmtint, w %int, ...)
+	jmp @loop
+@end
+	call $puts(l %emptys)
+	ret
+}
+
+export function $qbecall6(w %argw0, w %argw1, w %argw2, w %argw3, w %argw4, w %argw5, w %argw6, w %argw7, w %argw8, w %argw9, d %argd0, d %argd1, d %argd2, d %argd3, d %argd4, d %argd5, d %argd6, d %argd7, d %argd8, d %argd9, l %fmt, ...) {
+@start
+	%vp =l alloc8 24
+	vastart %vp
+	call $vprintf(l %fmt, l %vp)
+	ret
+}
+
+# >>> driver
+# #include <stdio.h>
+# extern void qbeprint0(char *, ...);
+# extern void qbecall0(char *, ...);
+# extern void qbeprint1(int argw0, char *, ...);
+# extern void qbecall1(int argw0, char *, ...);
+# extern void qbeprint2(double argd0, char *, ...);
+# extern void qbecall2(double argd0, char *, ...);
+# extern void qbeprint3(int argw0, int argw1, int argw2, int argw3, char *, ...);
+# extern void qbecall3(int argw0, int argw1, int argw2, int argw3, char *, ...);
+# extern void qbeprint4(double argd0, double argd1, double argd2, double argd3, double argd4, double argd5, char *, ...);
+# extern void qbecall4(double argd0, double argd1, double argd2, double argd3, double argd4, double argd5, char *, ...);
+# extern void qbeprint5(int argw0, int argw1, int argw2, int argw3, int argw4, double argd0, double argd1, double argd2, double argd3, double argd4, double argd5, double argd6, char *, ...);
+# extern void qbecall5(int argw0, int argw1, int argw2, int argw3, int argw4, double argd0, double argd1, double argd2, double argd3, double argd4, double argd5, double argd6, char *, ...);
+# extern void qbeprint6(int argw0, int argw1, int argw2, int argw3, int argw4, int argw5, int argw6, int argw7, int argw8, int argw9, double argd0, double argd1, double argd2, double argd3, double argd4, double argd5, double argd6, double argd7, double argd8, double argd9, char *, ...);
+# extern void qbecall6(int argw0, int argw1, int argw2, int argw3, int argw4, int argw5, int argw6, int argw7, int argw8, int argw9, double argd0, double argd1, double argd2, double argd3, double argd4, double argd5, double argd6, double argd7, double argd8, double argd9, char *, ...);
+# int main() {
+# 	puts("# (0 int, 0 double)");
+# 	qbeprint0("%d \n", 3);
+# 	qbecall0("%d \n", 3);
+# 	qbeprint0("%g \n", -9.5);
+# 	qbecall0("%g \n", -9.5);
+# 	qbeprint0("%d %g \n", -5, -5.536);
+# 	qbecall0("%d %g \n", -5, -5.536);
+# 	qbeprint0("%g %g \n", 4.729, 3.534);
+# 	qbecall0("%g %g \n", 4.729, 3.534);
+# 	qbeprint0("%d %d %d %d \n", 8, -9, -2, -10);
+# 	qbecall0("%d %d %d %d \n", 8, -9, -2, -10);
+# 	qbeprint0("%g %g %g %g \n", -5.627, 0.1071, -9.469, -6.023);
+# 	qbecall0("%g %g %g %g \n", -5.627, 0.1071, -9.469, -6.023);
+# 	qbeprint0("%d %g %d %g \n", 3, 0.8988, -6, 1.785);
+# 	qbecall0("%d %g %d %g \n", 3, 0.8988, -6, 1.785);
+# 	qbeprint0("%g %g %d %d \n", 6.189, -9.87, 6, 4);
+# 	qbecall0("%g %g %d %d \n", 6.189, -9.87, 6, 4);
+# 	qbeprint0("%d %d %g %g \n", -3, -7, 9.144, -3.268);
+# 	qbecall0("%d %d %g %g \n", -3, -7, 9.144, -3.268);
+# 	qbeprint0("\n");
+# 	qbecall0("\n");
+# 	puts("# (1 int, 0 double)");
+# 	qbeprint1(0, "%d \n", -9);
+# 	qbecall1(0, "%d \n", -9);
+# 	qbeprint1(0, "%g \n", -8.066);
+# 	qbecall1(0, "%g \n", -8.066);
+# 	qbeprint1(0, "%d %g \n", 7, 2.075);
+# 	qbecall1(0, "%d %g \n", 7, 2.075);
+# 	qbeprint1(0, "%g %g \n", 6.143, 4.595);
+# 	qbecall1(0, "%g %g \n", 6.143, 4.595);
+# 	qbeprint1(0, "%d %d %d %d \n", 1, 10, -3, 1);
+# 	qbecall1(0, "%d %d %d %d \n", 1, 10, -3, 1);
+# 	qbeprint1(0, "%g %g %g %g \n", 6.588, 2.37, 7.234, 1.547);
+# 	qbecall1(0, "%g %g %g %g \n", 6.588, 2.37, 7.234, 1.547);
+# 	qbeprint1(0, "%d %g %d %g \n", 4, -9.084, -6, -4.212);
+# 	qbecall1(0, "%d %g %d %g \n", 4, -9.084, -6, -4.212);
+# 	qbeprint1(0, "%g %g %d %d \n", -8.404, -5.344, -8, -5);
+# 	qbecall1(0, "%g %g %d %d \n", -8.404, -5.344, -8, -5);
+# 	qbeprint1(0, "%d %d %g %g \n", 3, -3, -2.596, -5.81);
+# 	qbecall1(0, "%d %d %g %g \n", 3, -3, -2.596, -5.81);
+# 	qbeprint1(0, "\n");
+# 	qbecall1(0, "\n");
+# 	puts("# (0 int, 1 double)");
+# 	qbeprint2(0, "%d \n", -5);
+# 	qbecall2(0, "%d \n", -5);
+# 	qbeprint2(0, "%g \n", 8.733);
+# 	qbecall2(0, "%g \n", 8.733);
+# 	qbeprint2(0, "%d %g \n", 3, 2.183);
+# 	qbecall2(0, "%d %g \n", 3, 2.183);
+# 	qbeprint2(0, "%g %g \n", -6.577, 4.583);
+# 	qbecall2(0, "%g %g \n", -6.577, 4.583);
+# 	qbeprint2(0, "%d %d %d %d \n", -7, -3, 10, 3);
+# 	qbecall2(0, "%d %d %d %d \n", -7, -3, 10, 3);
+# 	qbeprint2(0, "%g %g %g %g \n", 1.139, 3.692, 6.857, 5.52);
+# 	qbecall2(0, "%g %g %g %g \n", 1.139, 3.692, 6.857, 5.52);
+# 	qbeprint2(0, "%d %g %d %g \n", -6, -9.358, -4, -4.645);
+# 	qbecall2(0, "%d %g %d %g \n", -6, -9.358, -4, -4.645);
+# 	qbeprint2(0, "%g %g %d %d \n", -5.78, 8.858, 8, -4);
+# 	qbecall2(0, "%g %g %d %d \n", -5.78, 8.858, 8, -4);
+# 	qbeprint2(0, "%d %d %g %g \n", 3, -2, 8.291, -0.823);
+# 	qbecall2(0, "%d %d %g %g \n", 3, -2, 8.291, -0.823);
+# 	qbeprint2(0, "\n");
+# 	qbecall2(0, "\n");
+# 	puts("# (4 int, 0 double)");
+# 	qbeprint3(0, 0, 0, 0, "%d \n", -5);
+# 	qbecall3(0, 0, 0, 0, "%d \n", -5);
+# 	qbeprint3(0, 0, 0, 0, "%g \n", -5.067);
+# 	qbecall3(0, 0, 0, 0, "%g \n", -5.067);
+# 	qbeprint3(0, 0, 0, 0, "%d %g \n", 1, -4.745);
+# 	qbecall3(0, 0, 0, 0, "%d %g \n", 1, -4.745);
+# 	qbeprint3(0, 0, 0, 0, "%g %g \n", 1.692, 7.956);
+# 	qbecall3(0, 0, 0, 0, "%g %g \n", 1.692, 7.956);
+# 	qbeprint3(0, 0, 0, 0, "%d %d %d %d \n", -2, -6, 10, 0);
+# 	qbecall3(0, 0, 0, 0, "%d %d %d %d \n", -2, -6, 10, 0);
+# 	qbeprint3(0, 0, 0, 0, "%g %g %g %g \n", -8.182, -9.058, -7.807, 2.549);
+# 	qbecall3(0, 0, 0, 0, "%g %g %g %g \n", -8.182, -9.058, -7.807, 2.549);
+# 	qbeprint3(0, 0, 0, 0, "%d %g %d %g \n", 6, -1.557, -9, -2.368);
+# 	qbecall3(0, 0, 0, 0, "%d %g %d %g \n", 6, -1.557, -9, -2.368);
+# 	qbeprint3(0, 0, 0, 0, "%g %g %d %d \n", 9.922, 0.5823, 10, 8);
+# 	qbecall3(0, 0, 0, 0, "%g %g %d %d \n", 9.922, 0.5823, 10, 8);
+# 	qbeprint3(0, 0, 0, 0, "%d %d %g %g \n", -10, 5, 3.634, 0.7394);
+# 	qbecall3(0, 0, 0, 0, "%d %d %g %g \n", -10, 5, 3.634, 0.7394);
+# 	qbeprint3(0, 0, 0, 0, "\n");
+# 	qbecall3(0, 0, 0, 0, "\n");
+# 	puts("# (0 int, 6 double)");
+# 	qbeprint4(0, 0, 0, 0, 0, 0, "%d \n", -5);
+# 	qbecall4(0, 0, 0, 0, 0, 0, "%d \n", -5);
+# 	qbeprint4(0, 0, 0, 0, 0, 0, "%g \n", 2.819);
+# 	qbecall4(0, 0, 0, 0, 0, 0, "%g \n", 2.819);
+# 	qbeprint4(0, 0, 0, 0, 0, 0, "%d %g \n", -8, -1.305);
+# 	qbecall4(0, 0, 0, 0, 0, 0, "%d %g \n", -8, -1.305);
+# 	qbeprint4(0, 0, 0, 0, 0, 0, "%g %g \n", -0.9255, 9.076);
+# 	qbecall4(0, 0, 0, 0, 0, 0, "%g %g \n", -0.9255, 9.076);
+# 	qbeprint4(0, 0, 0, 0, 0, 0, "%d %d %d %d \n", 8, -5, 0, -7);
+# 	qbecall4(0, 0, 0, 0, 0, 0, "%d %d %d %d \n", 8, -5, 0, -7);
+# 	qbeprint4(0, 0, 0, 0, 0, 0, "%g %g %g %g \n", 8.253, 7.41, -4.031, 2.779);
+# 	qbecall4(0, 0, 0, 0, 0, 0, "%g %g %g %g \n", 8.253, 7.41, -4.031, 2.779);
+# 	qbeprint4(0, 0, 0, 0, 0, 0, "%d %g %d %g \n", 2, -6.943, 6, 0.7876);
+# 	qbecall4(0, 0, 0, 0, 0, 0, "%d %g %d %g \n", 2, -6.943, 6, 0.7876);
+# 	qbeprint4(0, 0, 0, 0, 0, 0, "%g %g %d %d \n", 5.573, 0.6071, -10, -4);
+# 	qbecall4(0, 0, 0, 0, 0, 0, "%g %g %d %d \n", 5.573, 0.6071, -10, -4);
+# 	qbeprint4(0, 0, 0, 0, 0, 0, "%d %d %g %g \n", -10, 9, 7.574, 6.633);
+# 	qbecall4(0, 0, 0, 0, 0, 0, "%d %d %g %g \n", -10, 9, 7.574, 6.633);
+# 	qbeprint4(0, 0, 0, 0, 0, 0, "\n");
+# 	qbecall4(0, 0, 0, 0, 0, 0, "\n");
+# 	puts("# (5 int, 7 double)");
+# 	qbeprint5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d \n", -4);
+# 	qbecall5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d \n", -4);
+# 	qbeprint5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%g \n", -8.841);
+# 	qbecall5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%g \n", -8.841);
+# 	qbeprint5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d %g \n", 8, 8.939);
+# 	qbecall5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d %g \n", 8, 8.939);
+# 	qbeprint5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%g %g \n", -8.287, -0.2802);
+# 	qbecall5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%g %g \n", -8.287, -0.2802);
+# 	qbeprint5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d %d %d %d \n", -9, 5, 6, -8);
+# 	qbecall5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d %d %d %d \n", -9, 5, 6, -8);
+# 	qbeprint5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%g %g %g %g \n", -0.4944, 0.9961, -4.699, 7.449);
+# 	qbecall5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%g %g %g %g \n", -0.4944, 0.9961, -4.699, 7.449);
+# 	qbeprint5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d %g %d %g \n", -2, -5.764, 1, 4.599);
+# 	qbecall5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d %g %d %g \n", -2, -5.764, 1, 4.599);
+# 	qbeprint5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%g %g %d %d \n", -5.977, -3.766, 10, 3);
+# 	qbecall5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%g %g %d %d \n", -5.977, -3.766, 10, 3);
+# 	qbeprint5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d %d %g %g \n", -1, 0, -7.58, -5.506);
+# 	qbecall5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d %d %g %g \n", -1, 0, -7.58, -5.506);
+# 	qbeprint5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "\n");
+# 	qbecall5(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "\n");
+# 	puts("# (10 int, 10 double)");
+# 	qbeprint6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d \n", -3);
+# 	qbecall6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d \n", -3);
+# 	qbeprint6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%g \n", 1.766);
+# 	qbecall6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%g \n", 1.766);
+# 	qbeprint6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d %g \n", -6, -5.596);
+# 	qbecall6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d %g \n", -6, -5.596);
+# 	qbeprint6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%g %g \n", -8.58, 2.622);
+# 	qbecall6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%g %g \n", -8.58, 2.622);
+# 	qbeprint6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d %d %d %d \n", -6, 9, 8, -9);
+# 	qbecall6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d %d %d %d \n", -6, 9, 8, -9);
+# 	qbeprint6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%g %g %g %g \n", -5.24, 3.38, -5.715, -7.354);
+# 	qbecall6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%g %g %g %g \n", -5.24, 3.38, -5.715, -7.354);
+# 	qbeprint6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d %g %d %g \n", 9, 1.421, -1, 5.692);
+# 	qbecall6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d %g %d %g \n", 9, 1.421, -1, 5.692);
+# 	qbeprint6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%g %g %d %d \n", 6.15, -6.192, -8, -1);
+# 	qbecall6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%g %g %d %d \n", 6.15, -6.192, -8, -1);
+# 	qbeprint6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d %d %g %g \n", -2, -1, 4.582, 3.467);
+# 	qbecall6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "%d %d %g %g \n", -2, -1, 4.582, 3.467);
+# 	qbeprint6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "\n");
+# 	qbecall6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "\n");
+# }
+# <<<
+
+# >>> output
+# # (0 int, 0 double)
+# 3 
+# 3 
+# -9.5 
+# -9.5 
+# -5 -5.536 
+# -5 -5.536 
+# 4.729 3.534 
+# 4.729 3.534 
+# 8 -9 -2 -10 
+# 8 -9 -2 -10 
+# -5.627 0.1071 -9.469 -6.023 
+# -5.627 0.1071 -9.469 -6.023 
+# 3 0.8988 -6 1.785 
+# 3 0.8988 -6 1.785 
+# 6.189 -9.87 6 4 
+# 6.189 -9.87 6 4 
+# -3 -7 9.144 -3.268 
+# -3 -7 9.144 -3.268 
+# 
+# 
+# # (1 int, 0 double)
+# -9 
+# -9 
+# -8.066 
+# -8.066 
+# 7 2.075 
+# 7 2.075 
+# 6.143 4.595 
+# 6.143 4.595 
+# 1 10 -3 1 
+# 1 10 -3 1 
+# 6.588 2.37 7.234 1.547 
+# 6.588 2.37 7.234 1.547 
+# 4 -9.084 -6 -4.212 
+# 4 -9.084 -6 -4.212 
+# -8.404 -5.344 -8 -5 
+# -8.404 -5.344 -8 -5 
+# 3 -3 -2.596 -5.81 
+# 3 -3 -2.596 -5.81 
+# 
+# 
+# # (0 int, 1 double)
+# -5 
+# -5 
+# 8.733 
+# 8.733 
+# 3 2.183 
+# 3 2.183 
+# -6.577 4.583 
+# -6.577 4.583 
+# -7 -3 10 3 
+# -7 -3 10 3 
+# 1.139 3.692 6.857 5.52 
+# 1.139 3.692 6.857 5.52 
+# -6 -9.358 -4 -4.645 
+# -6 -9.358 -4 -4.645 
+# -5.78 8.858 8 -4 
+# -5.78 8.858 8 -4 
+# 3 -2 8.291 -0.823 
+# 3 -2 8.291 -0.823 
+# 
+# 
+# # (4 int, 0 double)
+# -5 
+# -5 
+# -5.067 
+# -5.067 
+# 1 -4.745 
+# 1 -4.745 
+# 1.692 7.956 
+# 1.692 7.956 
+# -2 -6 10 0 
+# -2 -6 10 0 
+# -8.182 -9.058 -7.807 2.549 
+# -8.182 -9.058 -7.807 2.549 
+# 6 -1.557 -9 -2.368 
+# 6 -1.557 -9 -2.368 
+# 9.922 0.5823 10 8 
+# 9.922 0.5823 10 8 
+# -10 5 3.634 0.7394 
+# -10 5 3.634 0.7394 
+# 
+# 
+# # (0 int, 6 double)
+# -5 
+# -5 
+# 2.819 
+# 2.819 
+# -8 -1.305 
+# -8 -1.305 
+# -0.9255 9.076 
+# -0.9255 9.076 
+# 8 -5 0 -7 
+# 8 -5 0 -7 
+# 8.253 7.41 -4.031 2.779 
+# 8.253 7.41 -4.031 2.779 
+# 2 -6.943 6 0.7876 
+# 2 -6.943 6 0.7876 
+# 5.573 0.6071 -10 -4 
+# 5.573 0.6071 -10 -4 
+# -10 9 7.574 6.633 
+# -10 9 7.574 6.633 
+# 
+# 
+# # (5 int, 7 double)
+# -4 
+# -4 
+# -8.841 
+# -8.841 
+# 8 8.939 
+# 8 8.939 
+# -8.287 -0.2802 
+# -8.287 -0.2802 
+# -9 5 6 -8 
+# -9 5 6 -8 
+# -0.4944 0.9961 -4.699 7.449 
+# -0.4944 0.9961 -4.699 7.449 
+# -2 -5.764 1 4.599 
+# -2 -5.764 1 4.599 
+# -5.977 -3.766 10 3 
+# -5.977 -3.766 10 3 
+# -1 0 -7.58 -5.506 
+# -1 0 -7.58 -5.506 
+# 
+# 
+# # (10 int, 10 double)
+# -3 
+# -3 
+# 1.766 
+# 1.766 
+# -6 -5.596 
+# -6 -5.596 
+# -8.58 2.622 
+# -8.58 2.622 
+# -6 9 8 -9 
+# -6 9 8 -9 
+# -5.24 3.38 -5.715 -7.354 
+# -5.24 3.38 -5.715 -7.354 
+# 9 1.421 -1 5.692 
+# 9 1.421 -1 5.692 
+# 6.15 -6.192 -8 -1 
+# 6.15 -6.192 -8 -1 
+# -2 -1 4.582 3.467 
+# -2 -1 4.582 3.467 
+# 
+# 
+# <<<

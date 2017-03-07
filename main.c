@@ -3,6 +3,11 @@
 #include <ctype.h>
 #include <getopt.h>
 
+enum Asm {
+	Gasmacho,
+	Gaself,
+};
+
 char debug['Z'+1] = {
 	['P'] = 0, /* parsing */
 	['A'] = 0, /* abi lowering */
@@ -34,7 +39,7 @@ data(Dat *d)
 static void
 func(Fn *fn)
 {
-	int n;
+	uint n;
 
 	if (dbg)
 		fprintf(stderr, "**** Function %s ****", fn->name);
@@ -49,10 +54,16 @@ func(Fn *fn)
 	ssa(fn);
 	filluse(fn);
 	ssacheck(fn);
+	fillloop(fn);
+	fillalias(fn);
+	loadopt(fn);
+	filluse(fn);
+	ssacheck(fn);
 	copy(fn);
 	filluse(fn);
 	fold(fn);
 	abi(fn);
+	fillpreds(fn);
 	filluse(fn);
 	isel(fn);
 	fillrpo(fn);
@@ -60,6 +71,9 @@ func(Fn *fn)
 	fillcost(fn);
 	spill(fn);
 	rega(fn);
+	fillrpo(fn);
+	simpljmp(fn);
+	fillpreds(fn);
 	fillrpo(fn);
 	assert(fn->rpo[0] == fn->start);
 	for (n=0;; n++)

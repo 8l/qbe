@@ -188,15 +188,15 @@ fold(Fn *fn)
 	Blk *b, **pb;
 	Phi *p, **pp;
 	Ins *i;
-	int n, d;
-	uint a;
+	int t, d;
+	uint n, a;
 
 	val = emalloc(fn->ntmp * sizeof val[0]);
 	edge = emalloc(fn->nblk * sizeof edge[0]);
-	usewrk = vnew(0, sizeof usewrk[0], emalloc);
+	usewrk = vnew(0, sizeof usewrk[0], Pheap);
 
-	for (n=0; n<fn->ntmp; n++)
-		val[n] = Top;
+	for (t=0; t<fn->ntmp; t++)
+		val[t] = Top;
 	for (n=0; n<fn->nblk; n++) {
 		b = fn->rpo[n];
 		b->visit = 0;
@@ -256,14 +256,14 @@ fold(Fn *fn)
 
 	if (debug['F']) {
 		fprintf(stderr, "\n> SCCP findings:");
-		for (n=Tmp0; n<fn->ntmp; n++) {
-			if (val[n] == Bot)
+		for (t=Tmp0; t<fn->ntmp; t++) {
+			if (val[t] == Bot)
 				continue;
-			fprintf(stderr, "\n%10s: ", fn->tmp[n].name);
-			if (val[n] == Top)
+			fprintf(stderr, "\n%10s: ", fn->tmp[t].name);
+			if (val[t] == Top)
 				fprintf(stderr, "Top");
 			else
-				printref(CON(val[n]), fn, stderr);
+				printref(CON(val[t]), fn, stderr);
 		}
 		fprintf(stderr, "\n dead code: ");
 	}
@@ -275,7 +275,8 @@ fold(Fn *fn)
 			d = 1;
 			if (debug['F'])
 				fprintf(stderr, "%s ", b->name);
-			blkdel(b);
+			edgedel(b, &b->s1);
+			edgedel(b, &b->s2);
 			*pb = b->link;
 			continue;
 		}
@@ -296,11 +297,14 @@ fold(Fn *fn)
 					renref(&i->arg[n]);
 		renref(&b->jmp.arg);
 		if (b->jmp.type == Jjnz && rtype(b->jmp.arg) == RCon) {
-				b->jmp.type = Jjmp;
-				if (czero(&fn->con[b->jmp.arg.val], 0))
+				if (czero(&fn->con[b->jmp.arg.val], 0)) {
+					edgedel(b, &b->s1);
 					b->s1 = b->s2;
+					b->s2 = 0;
+				} else
+					edgedel(b, &b->s2);
+				b->jmp.type = Jjmp;
 				b->jmp.arg = R;
-				b->s2 = 0;
 		}
 		pb = &b->link;
 	}
@@ -319,7 +323,7 @@ fold(Fn *fn)
 
 /* boring folding code */
 
-static void
+static int
 foldint(Con *res, int op, int w, Con *cl, Con *cr)
 {
 	union {
@@ -353,8 +357,11 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 		else if (cr->type == CAddr)
 			err("undefined substraction (num - addr)");
 	}
-	else if (cl->type == CAddr || cr->type == CAddr)
+	else if (cl->type == CAddr || cr->type == CAddr) {
+		if (Ocmpl <= op && op <= Ocmpl1)
+			return 1;
 		err("invalid address operand for '%s'", opdesc[op].name);
+	}
 	switch (op) {
 	case Oadd:  x = l.u + r.u; break;
 	case Osub:  x = l.u - r.u; break;
@@ -385,8 +392,8 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 	default:
 		if (Ocmpw <= op && op <= Ocmpl1) {
 			if (op <= Ocmpw1) {
-				l.u = (uint32_t)l.u;
-				r.u = (uint32_t)r.u;
+				l.u = (int32_t)l.u;
+				r.u = (int32_t)r.u;
 			} else
 				op -= Ocmpl - Ocmpw;
 			switch (op - Ocmpw) {
@@ -436,6 +443,7 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 	res->bits.i = x;
 	if (lab)
 		strcpy(res->label, lab);
+	return 0;
 }
 
 static void
@@ -488,9 +496,10 @@ opfold(int op, int cls, Con *cl, Con *cr, Fn *fn)
 	if ((op == Odiv || op == Oudiv
 	|| op == Orem || op == Ourem) && czero(cr, KWIDE(cls)))
 		err("null divisor in '%s'", opdesc[op].name);
-	if (cls == Kw || cls == Kl)
-		foldint(&c, op, cls == Kl, cl, cr);
-	else
+	if (cls == Kw || cls == Kl) {
+		if (foldint(&c, op, cls == Kl, cl, cr))
+			return Bot;
+	} else
 		foldflt(&c, op, cls == Kd, cl, cr);
 	if (c.type == CBits)
 		nc = getcon(c.bits.i, fn).val;

@@ -1,0 +1,21 @@
+# loads must not be unsafely hoisted
+
+export
+function w $f(w %n, l %p) {
+@start
+	%r =w copy 0
+@loop
+	%n =w sub %n, 1
+	%c =w csgew %n, 0
+	jnz %c, @loop1, @end
+@loop1
+	%r =w loadw %p
+	jmp @loop
+@end
+	ret %r
+}
+
+# >>> driver
+# extern int f(int, int *);
+# int main() { return f(0, 0); }
+# <<<

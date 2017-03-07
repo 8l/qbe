@@ -154,9 +154,10 @@ mdump(RMap *m)
 	int i;
 
 	for (i=0; i<m->n; i++)
-		fprintf(stderr, " (%s, R%d)",
-			tmp[m->t[i]].name,
-			m->r[i]);
+		if (m->t[i] >= Tmp0)
+			fprintf(stderr, " (%s, R%d)",
+				tmp[m->t[i]].name,
+				m->r[i]);
 	fprintf(stderr, "\n");
 }
 
@@ -360,15 +361,10 @@ doblk(Blk *b, RMap *cur)
 	Mem *m;
 	Ref *ra[4];
 
+	for (r=0; bsiter(b->out, &r) && r<Tmp0; r++)
+		radd(cur, r, r);
 	if (rtype(b->jmp.arg) == RTmp)
 		b->jmp.arg = ralloc(cur, b->jmp.arg.val);
-	else if (rtype(b->jmp.arg) == RCall) {
-		/* add return registers */
-		rs = retregs(b->jmp.arg, 0);
-		for (r=0; rs; rs/=2, r++)
-			if (rs & 1)
-				radd(cur, r, r);
-	}
 	for (i=&b->ins[b->nins]; i!=b->ins;) {
 		switch ((--i)->op) {
 		case Ocall:
@@ -423,12 +419,12 @@ doblk(Blk *b, RMap *cur)
 void
 rega(Fn *fn)
 {
-	int j, t, n, r, r1, x, rl[Tmp0];
+	int j, t, r, r1, x, rl[Tmp0];
 	Blk *b, *b1, *s, ***ps, *blist;
 	RMap *end, *beg, cur, old;
 	Ins *i;
 	Phi *p;
-	uint u;
+	uint u, n;
 	Ref src, dst;
 
 	/* 1. setup */
@@ -444,8 +440,8 @@ rega(Fn *fn)
 	bsinit(cur.b, fn->ntmp);
 	bsinit(old.b, fn->ntmp);
 
-	for (t=Tmp0; t<fn->ntmp; t++)
-		*hint(t) = -1;
+	for (t=0; t<fn->ntmp; t++)
+		*hint(t) = t < Tmp0 ? t : -1;
 	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
 		if (i->op != Ocopy || !isreg(i->arg[0]))
 			break;
@@ -455,7 +451,7 @@ rega(Fn *fn)
 		}
 
 	/* 2. assign registers following post-order */
-	for (n=fn->nblk-1; n>=0; n--) {
+	for (n=fn->nblk-1; n!=-1u; n--) {
 		b = fn->rpo[n];
 		cur.n = 0;
 		bszero(cur.b);

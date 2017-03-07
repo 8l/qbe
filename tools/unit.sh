@@ -24,8 +24,7 @@ extract() {
 			next
 		}
 		/^# <<</ {
-			if (p)
-				p = 0
+			p = 0
 		}
 		p
 	" $FILE \
@@ -42,7 +41,7 @@ once() {
 		exit 1
 	fi
 
-	echo "$(basename $T)..."
+	printf "%-45s" "$(basename $T)..."
 
 	if ! $QBE -o $ASM $T
 	then
@@ -60,7 +59,7 @@ once() {
 		LNK="$ASM"
 	fi
 
-	if ! cc -g -o $BIN $LNK
+	if ! cc $PIE -g -o $BIN $LNK
 	then
 		echo "[cc fail]"
 		return 1
@@ -83,7 +82,7 @@ once() {
 		return 1
 	fi
 
-	printf "\033[1A\033[45C[ok]\n"
+	echo "[ok]"
 }
 
 
@@ -94,6 +93,15 @@ then
 	echo "usage: tools/unit.sh {all, SSAFILE}" 2>&1
 	exit 1
 fi
+
+for wtf in -nopie -no-pie
+do
+	if echo "int main() { return 0; }" |
+	   cc $wtf -x c -o /dev/null - >/dev/null 2>&1
+	then
+		PIE=$wtf
+	fi
+done
 
 case $1 in
 	"all")
@@ -111,6 +119,7 @@ case $1 in
 			echo
 			echo "All is fine!"
 		fi
+		exit $F
 		;;
 	*)
 		once $1

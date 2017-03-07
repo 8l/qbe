@@ -30,6 +30,7 @@
       * <@ Cast >
       * <@ Call >
       * <@ Phi >
+  7. <@ Instructions Index >
 
 - 1. Basic Concepts
 -------------------
@@ -109,7 +110,7 @@ starting with the sigil `?`.
 
     `bnf
     BASETY := 'w' | 'l' | 's' | 'd'  # Base types
-    EXTTY  := BASETY    | 'h' | 'b'  # Extended types
+    EXTTY  := BASETY    | 'b' | 'h'  # Extended types
 
 The IL makes very minimal use of types.  By design, the types
 used are restricted to what is necessary for unambiguous
@@ -125,8 +126,8 @@ by an integer type sufficiently wide to represent all memory
 addresses (e.g. `l` on x64).  Temporaries in the IL can only
 have a basic type.
 
-Extended types contain base types and add `h` (half word)
-and `b` (byte), respectively for 16 bits and 8 bits integers.
+Extended types contain base types plus `b` (byte) and `h`
+(half word), respectively for 8 bits and 16 bits integers.
 They are used in <@ Aggregate Types> and <@ Data> definitions.
 
 For C interfacing, the IL also provides user-defined aggregate
@@ -433,7 +434,7 @@ the following list.
     a return type, no return value can be used.
 
 - 6. Instructions
--------------------------
+-----------------
 
 Instructions are the smallest piece of code in the IL, they
 form the body of <@ Blocks >.  The IL uses a three-address
@@ -761,7 +762,7 @@ will be correctly compiled by QBE.
     @end
             ret %s
 
-Now, if you want to know what a phi instruction is and how
+Now, if you want to know what phi instructions are and how
 to use them in QBE, you can read the following.
 
 Phi instructions are specific to SSA form.  In SSA form
@@ -791,12 +792,125 @@ translate it in SSA form is to insert a phi instruction.
             %y =w phi @ift 1, @iff 2
             ret %y
 
-The phi in the example expresses a choice depending on
-which block the control came from.  When the `@ift` block
-is taken, the phi instruction defining `%y` selects 1;
-if `@iff` is taken, 2 is selected.
+Phi instructions return one of their arguments depending
+on where the control came from.  In the example, `%y` is
+set to 1 if the `@ift` branch is taken, and it is set to
+2 otherwise.
 
 An important remark about phi instructions is that QBE
 assumes that if a variable is defined by a phi it respects
 all the SSA invariants.  So it is critical to not use phi
 instructions unless you know exactly what you are doing.
+
+- 7. Instructions Index
+-----------------------
+
+  * <@ Arithmetic and Bits >:
+
+      * `add`
+      * `and`
+      * `div`
+      * `mul`
+      * `or`
+      * `rem`
+      * `sar`
+      * `shl`
+      * `shr`
+      * `sub`
+      * `udiv`
+      * `urem`
+      * `xor`
+
+  * <@ Memory >:
+
+      * `alloc16`
+      * `alloc4`
+      * `alloc8`
+      * `loadd`
+      * `loadl`
+      * `loads`
+      * `loadsb`
+      * `loadsh`
+      * `loadsw`
+      * `loadub`
+      * `loaduh`
+      * `loaduw`
+      * `loadw`
+      * `storeb`
+      * `stored`
+      * `storeh`
+      * `storel`
+      * `stores`
+      * `storew`
+
+  * <@ Comparisons >:
+
+      * `ceqd`
+      * `ceql`
+      * `ceqs`
+      * `ceqw`
+      * `cged`
+      * `cges`
+      * `cgtd`
+      * `cgts`
+      * `cled`
+      * `cles`
+      * `cltd`
+      * `clts`
+      * `cned`
+      * `cnel`
+      * `cnes`
+      * `cnew`
+      * `cod`
+      * `cos`
+      * `csgel`
+      * `csgew`
+      * `csgtl`
+      * `csgtw`
+      * `cslel`
+      * `cslew`
+      * `csltl`
+      * `csltw`
+      * `cugel`
+      * `cugew`
+      * `cugtl`
+      * `cugtw`
+      * `culel`
+      * `culew`
+      * `cultl`
+      * `cultw`
+      * `cuod`
+      * `cuos`
+
+  * <@ Conversions >:
+
+      * `dtosi`
+      * `exts`
+      * `extsb`
+      * `extsh`
+      * `extsw`
+      * `extub`
+      * `extuh`
+      * `extuw`
+      * `sltof`
+      * `stosi`
+      * `swtof`
+      * `truncd`
+
+  * <@ Cast > :
+
+      * `cast`
+
+  * <@ Call >:
+
+      * `call`
+
+  * <@ Phi >:
+
+      * `phi`
+
+  * <@ Jumps >:
+
+      * `jmp`
+      * `jnz`
+      * `ret`

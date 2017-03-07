@@ -13,8 +13,10 @@ liveon(BSet *v, Blk *b, Blk *s)
 	for (p=s->phi; p; p=p->link)
 		for (a=0; a<p->narg; a++)
 			if (p->blk[a] == b)
-			if (rtype(p->arg[a]) == RTmp)
+			if (rtype(p->arg[a]) == RTmp) {
 				bsset(v, p->arg[a].val);
+				bsset(b->gen, p->arg[a].val);
+			}
 }
 
 static int
@@ -102,13 +104,14 @@ Again:
 
 		memset(phi, 0, f->ntmp * sizeof phi[0]);
 		memset(nlv, 0, sizeof nlv);
+		b->out->t[0] |= RGLOB;
 		bscopy(b->in, b->out);
 		for (t=0; bsiter(b->in, &t); t++) {
 			phifix(t, phi, f->tmp);
 			nlv[KBASE(f->tmp[t].cls)]++;
 		}
 		if (rtype(b->jmp.arg) == RCall) {
-			assert(bscount(b->in) == 0 && nlv[0] == 0 && nlv[1] == 0);
+			assert(bscount(b->in) == NRGlob && nlv[0] == NRGlob && nlv[1] == 0);
 			b->in->t[0] |= retregs(b->jmp.arg, nlv);
 		} else
 			bset(b->jmp.arg, b, nlv, phi, f->tmp);

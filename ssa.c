@@ -31,7 +31,7 @@ adduse(Tmp *tmp, int ty, Blk *b, ...)
 	va_end(ap);
 }
 
-/* fill usage, phi, and class information
+/* fill usage, width, phi, and class information
  * must not change .visit fields
  */
 void
@@ -40,7 +40,7 @@ filluse(Fn *fn)
 	Blk *b;
 	Phi *p;
 	Ins *i;
-	int m, t;
+	int m, t, w;
 	uint a;
 	Tmp *tmp;
 
@@ -51,8 +51,9 @@ filluse(Fn *fn)
 		tmp[t].nuse = 0;
 		tmp[t].phi = 0;
 		tmp[t].cls = 0;
+		tmp[t].width = WFull;
 		if (tmp[t].use == 0)
-			tmp[t].use = vnew(0, sizeof(Use), alloc);
+			tmp[t].use = vnew(0, sizeof(Use), Pfn);
 	}
 	for (b=fn->start; b; b=b->link) {
 		for (p=b->phi; p; p=p->link) {
@@ -72,7 +73,16 @@ filluse(Fn *fn)
 		for (i=b->ins; i-b->ins < b->nins; i++) {
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
+				w = WFull;
+				if (isload(i->op) && i->op != Oload)
+					w = Wsb + (i->op - Oloadsb);
+				if (isext(i->op))
+					w = Wsb + (i->op - Oextsb);
+				if (w == Wsw || w == Wuw)
+				if (i->cls == Kw)
+					w = WFull;
 				t = i->to.val;
+				tmp[t].width = w;
 				tmp[t].ndef++;
 				tmp[t].cls = i->cls;
 			}
@@ -84,193 +94,6 @@ filluse(Fn *fn)
 		}
 		if (rtype(b->jmp.arg) == RTmp)
 			adduse(&tmp[b->jmp.arg.val], UJmp, b);
-	}
-}
-
-static void
-addpred(Blk *bp, Blk *bc)
-{
-	if (!bc->pred) {
-		bc->pred = alloc(bc->npred * sizeof bc->pred[0]);
-		bc->visit = 0;
-	}
-	bc->pred[bc->visit++] = bp;
-}
-
-/* fill predecessors information in blocks */
-void
-fillpreds(Fn *f)
-{
-	Blk *b;
-
-	for (b=f->start; b; b=b->link) {
-		b->npred = 0;
-		b->pred = 0;
-	}
-	for (b=f->start; b; b=b->link) {
-		if (b->s1)
-			b->s1->npred++;
-		if (b->s2 && b->s2 != b->s1)
-			b->s2->npred++;
-	}
-	for (b=f->start; b; b=b->link) {
-		if (b->s1)
-			addpred(b, b->s1);
-		if (b->s2 && b->s2 != b->s1)
-			addpred(b, b->s2);
-	}
-}
-
-static int
-rporec(Blk *b, int x)
-{
-	Blk *s1, *s2;
-
-	if (!b || b->id >= 0)
-		return x;
-	b->id = 1;
-	s1 = b->s1;
-	s2 = b->s2;
-	if (s1 && s2 && s1->loop > s2->loop) {
-		s1 = b->s2;
-		s2 = b->s1;
-	}
-	x = rporec(s1, x);
-	x = rporec(s2, x);
-	b->id = x;
-	assert(x >= 0);
-	return x - 1;
-}
-
-/* fill the rpo information */
-void
-fillrpo(Fn *f)
-{
-	int n;
-	Blk *b, **p;
-
-	for (b=f->start; b; b=b->link)
-		b->id = -1;
-	n = 1 + rporec(f->start, f->nblk-1);
-	f->nblk -= n;
-	f->rpo = alloc(f->nblk * sizeof f->rpo[0]);
-	for (p=&f->start; (b=*p);) {
-		if (b->id == -1) {
-			blkdel(b);
-			*p = b->link;
-		} else {
-			b->id -= n;
-			f->rpo[b->id] = b;
-			p = &b->link;
-		}
-	}
-}
-
-/* for dominators computation, read
- * "A Simple, Fast Dominance Algorithm"
- * by K. Cooper, T. Harvey, and K. Kennedy.
- */
-
-static Blk *
-inter(Blk *b1, Blk *b2)
-{
-	Blk *bt;
-
-	if (b1 == 0)
-		return b2;
-	while (b1 != b2) {
-		if (b1->id < b2->id) {
-			bt = b1;
-			b1 = b2;
-			b2 = bt;
-		}
-		while (b1->id > b2->id) {
-			b1 = b1->idom;
-			assert(b1);
-		}
-	}
-	return b1;
-}
-
-static void
-filldom(Fn *fn)
-{
-	Blk *b, *d;
-	int ch, n;
-	uint p;
-
-	for (b=fn->start; b; b=b->link) {
-		b->idom = 0;
-		b->dom = 0;
-		b->dlink = 0;
-	}
-	do {
-		ch = 0;
-		for (n=1; n<fn->nblk; n++) {
-			b = fn->rpo[n];
-			d = 0;
-			for (p=0; p<b->npred; p++)
-				if (b->pred[p]->idom
-				||  b->pred[p] == fn->start)
-					d = inter(d, b->pred[p]);
-			if (d != b->idom) {
-				ch++;
-				b->idom = d;
-			}
-		}
-	} while (ch);
-	for (b=fn->start; b; b=b->link)
-		if ((d=b->idom)) {
-			assert(d != b);
-			b->dlink = d->dom;
-			d->dom = b;
-		}
-}
-
-static int
-sdom(Blk *b1, Blk *b2)
-{
-	assert(b1 && b2);
-	if (b1 == b2)
-		return 0;
-	while (b2->id > b1->id)
-		b2 = b2->idom;
-	return b1 == b2;
-}
-
-static int
-dom(Blk *b1, Blk *b2)
-{
-	return b1 == b2 || sdom(b1, b2);
-}
-
-static void
-addfron(Blk *a, Blk *b)
-{
-	int n;
-
-	for (n=0; n<a->nfron; n++)
-		if (a->fron[n] == b)
-			return;
-	if (!a->nfron)
-		a->fron = vnew(++a->nfron, sizeof a->fron[0], alloc);
-	else
-		vgrow(&a->fron, ++a->nfron);
-	a->fron[a->nfron-1] = b;
-}
-
-static void
-fillfron(Fn *fn)
-{
-	Blk *a, *b;
-
-	for (b=fn->start; b; b=b->link) {
-		if (b->s1)
-			for (a=b; !sdom(a, b->s1); a=a->idom)
-				addfron(a, b->s1);
-		if (b->s2)
-			for (a=b; !sdom(a, b->s2); a=a->idom)
-				addfron(a, b->s2);
 	}
 }
 
@@ -288,7 +111,8 @@ phiins(Fn *fn)
 	Ins *i;
 	Phi *p;
 	Ref r;
-	int t, n, nt;
+	int t, nt;
+	uint n;
 	short k;
 
 	bsinit(u, fn->nblk);

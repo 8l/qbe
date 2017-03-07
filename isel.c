@@ -3,11 +3,10 @@
 
 /* For x86_64, do the following:
  *
- * - lower calls
  * - check that constants are used only in
  *   places allowed
  * - ensure immediates always fit in 32b
- * - explicit machine register contraints
+ * - expose machine register contraints
  *   on instructions like division.
  * - implement fast locals (the streak of
  *   constant allocX in the first basic block)
@@ -24,7 +23,6 @@ typedef struct ANum ANum;
 struct ANum {
 	char n, l, r;
 	Ins *i;
-	Ref mem;
 };
 
 static void amatch(Addr *, Ref, ANum *, Fn *, int);
@@ -48,30 +46,24 @@ fcmptoi(int fc)
 static int
 iscmp(int op, int *pk, int *pc)
 {
-	int k, c;
-
 	if (Ocmpw <= op && op <= Ocmpw1) {
-		c = op - Ocmpw;
-		k = Kw;
+		*pc = op - Ocmpw;
+		*pk = Kw;
 	}
 	else if (Ocmpl <= op && op <= Ocmpl1) {
-		c = op - Ocmpl;
-		k = Kl;
+		*pc = op - Ocmpl;
+		*pk = Kl;
 	}
 	else if (Ocmps <= op && op <= Ocmps1) {
-		c = fcmptoi(op - Ocmps);
-		k = Ks;
+		*pc = fcmptoi(op - Ocmps);
+		*pk = Ks;
 	}
 	else if (Ocmpd <= op && op <= Ocmpd1) {
-		c = fcmptoi(op - Ocmpd);
-		k = Kd;
+		*pc = fcmptoi(op - Ocmpd);
+		*pk = Kd;
 	}
 	else
 		return 0;
-	if (pk)
-		*pk = k;
-	if (pc)
-		*pc = c;
 	return 1;
 }
 
@@ -115,7 +107,7 @@ argcls(Ins *i, int n)
 static void
 fixarg(Ref *r, int k, int phi, Fn *fn)
 {
-	Addr a;
+	Addr a, *m;
 	Ref r0, r1;
 	int s, n;
 
@@ -151,6 +143,19 @@ fixarg(Ref *r, int k, int phi, Fn *fn)
 		r1 = newtmp("isel", Kl, fn);
 		emit(Oaddr, Kl, r1, SLOT(s), R);
 	}
+	else if (rtype(r0) == RMem) {
+		/* apple asm fix */
+		m = &fn->mem[r0.val];
+		if (req(m->base, R)) {
+			n = fn->ncon;
+			vgrow(&fn->con, ++fn->ncon);
+			fn->con[n] = m->offset;
+			m->offset.type = CUndef;
+			r0 = newtmp("isel", Kl, fn);
+			emit(Oaddr, Kl, r0, CON(n), R);
+			m->base = r0;
+		}
+	}
 	*r = r1;
 }
 
@@ -158,42 +163,55 @@ static void
 seladdr(Ref *r, ANum *an, Fn *fn)
 {
 	Addr a;
-	Ref r0, r1;
+	Ref r0;
 
 	r0 = *r;
 	if (rtype(r0) == RTmp) {
-		chuse(r0, -1, fn);
-		r1 = an[r0.val].mem;
-		if (req(r1, R)) {
-			amatch(&a, r0, an, fn, 1);
-			vgrow(&fn->mem, ++fn->nmem);
-			fn->mem[fn->nmem-1] = a;
-			r1 = MEM(fn->nmem-1);
-			chuse(a.base, +1, fn);
-			chuse(a.index, +1, fn);
-			if (rtype(a.base) != RTmp)
-			if (rtype(a.index) != RTmp)
-				an[r0.val].mem = r1;
+		amatch(&a, r0, an, fn, 1);
+		if (req(a.base, r0))
+			return;
+		if (a.offset.type == CAddr)
+		if (!req(a.base, R)) {
+			/* apple asm fix */
+			if (!req(a.index, R))
+				return;
+			else {
+				a.index = a.base;
+				a.scale = 1;
+				a.base = R;
+			}
 		}
-		*r = r1;
+		chuse(r0, -1, fn);
+		vgrow(&fn->mem, ++fn->nmem);
+		fn->mem[fn->nmem-1] = a;
+		chuse(a.base, +1, fn);
+		chuse(a.index, +1, fn);
+		*r = MEM(fn->nmem-1);
 	}
 }
 
-static void
+static int
 selcmp(Ref arg[2], int k, Fn *fn)
 {
+	int swap;
 	Ref r, *iarg;
 
-	if (rtype(arg[0]) == RCon) {
+	swap = rtype(arg[0]) == RCon;
+	if (swap) {
 		r = arg[1];
 		arg[1] = arg[0];
 		arg[0] = r;
 	}
-	assert(rtype(arg[0]) != RCon);
 	emit(Oxcmp, k, R, arg[1], arg[0]);
 	iarg = curi->arg;
+	if (rtype(arg[0]) == RCon) {
+		assert(k == Kl);
+		iarg[1] = newtmp("isel", k, fn);
+		emit(Ocopy, k, iarg[1], arg[0], R);
+	}
 	fixarg(&iarg[0], k, 0, fn);
 	fixarg(&iarg[1], k, 0, fn);
+	return swap;
 }
 
 static void
@@ -202,7 +220,7 @@ sel(Ins i, ANum *an, Fn *fn)
 	Ref r0, r1, *iarg;
 	int x, k, kc;
 	int64_t sz;
-	Ins *i0;
+	Ins *i0, *i1;
 
 	if (rtype(i.to) == RTmp)
 	if (!isreg(i.to) && !isreg(i.arg[0]) && !isreg(i.arg[1]))
@@ -296,7 +314,7 @@ sel(Ins i, ANum *an, Fn *fn)
 	case_OExt:
 Emit:
 		emiti(i);
-		iarg = curi->arg;
+		iarg = curi->arg; /* fixarg() can change curi */
 		fixarg(&iarg[0], argcls(&i, 0), 0, fn);
 		fixarg(&iarg[1], argcls(&i, 1), 0, fn);
 		break;
@@ -331,10 +349,10 @@ Emit:
 		if (isload(i.op))
 			goto case_Oload;
 		if (iscmp(i.op, &kc, &x)) {
-			if (rtype(i.arg[0]) == RCon)
-				x = icmpop(x);
 			emit(Oxset+x, k, i.to, R, R);
-			selcmp(i.arg, kc, fn);
+			i1 = curi;
+			if (selcmp(i.arg, kc, fn))
+				i1->op = Oxset + icmpop(x);
 			break;
 		}
 		die("unknown instruction %s", opdesc[i.op].name);
@@ -382,30 +400,31 @@ seljmp(Blk *b, Fn *fn)
 		return;
 	}
 	fi = flagi(b->ins, &b->ins[b->nins]);
-	if (fi && req(fi->to, r)) {
-		if (iscmp(fi->op, &k, &c)) {
-			if (rtype(fi->arg[0]) == RCon)
+	if (!fi || !req(fi->to, r)) {
+		selcmp((Ref[2]){r, CON_Z}, Kw, fn); /* todo, long jnz */
+		b->jmp.type = Jxjc + ICne;
+	}
+	else if (iscmp(fi->op, &k, &c)) {
+		if (t->nuse == 1) {
+			if (selcmp(fi->arg, k, fn))
 				c = icmpop(c);
-			b->jmp.type = Jxjc + c;
-			if (t->nuse == 1) {
-				selcmp(fi->arg, k, fn);
-				*fi = (Ins){.op = Onop};
-			}
-			return;
+			*fi = (Ins){.op = Onop};
 		}
-		if (fi->op == Oand && t->nuse == 1
-		&& (rtype(fi->arg[0]) == RTmp ||
-		    rtype(fi->arg[1]) == RTmp)) {
-			fi->op = Oxtest;
-			fi->to = R;
-			b->jmp.type = Jxjc + ICne;
-			if (rtype(fi->arg[1]) == RCon) {
-				r = fi->arg[1];
-				fi->arg[1] = fi->arg[0];
-				fi->arg[0] = r;
-			}
-			return;
+		b->jmp.type = Jxjc + c;
+	}
+	else if (fi->op == Oand && t->nuse == 1
+	     && (rtype(fi->arg[0]) == RTmp ||
+	         rtype(fi->arg[1]) == RTmp)) {
+		fi->op = Oxtest;
+		fi->to = R;
+		b->jmp.type = Jxjc + ICne;
+		if (rtype(fi->arg[1]) == RCon) {
+			r = fi->arg[1];
+			fi->arg[1] = fi->arg[0];
+			fi->arg[0] = r;
 		}
+	}
+	else {
 		/* since flags are not tracked in liveness,
 		 * the result of the flag-setting instruction
 		 * has to be marked as live
@@ -413,10 +432,7 @@ seljmp(Blk *b, Fn *fn)
 		if (t->nuse == 1)
 			emit(Ocopy, Kw, R, r, R);
 		b->jmp.type = Jxjc + ICne;
-		return;
 	}
-	selcmp((Ref[2]){r, CON_Z}, Kw, fn); /* todo, add long branch if non-zero */
-	b->jmp.type = Jxjc + ICne;
 }
 
 static int

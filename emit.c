@@ -52,7 +52,7 @@ static struct {
 	{ Oshr,    Ki, "-shr%k %B1, %=" },
 	{ Oshl,    Ki, "-shl%k %B1, %=" },
 	{ Omul,    Ki, "+imul%k %1, %=" },
-	{ Omul,    Ks, "+mulss %1, %=" }, /* fixme */
+	{ Omul,    Ks, "+mulss %1, %=" },
 	{ Omul,    Kd, "+mulsd %1, %=" },
 	{ Odiv,    Ka, "-div%k %1, %=" },
 	{ Ostorel, Ka, "movq %L0, %M1" },
@@ -76,7 +76,7 @@ static struct {
 	{ Oextsb,  Ki, "movsb%k %B0, %=" },
 	{ Oextub,  Ki, "movzb%k %B0, %=" },
 
-	{ Oexts,   Kd, "cvtss2sd %0, %=" },  /* see if factorization is possible */
+	{ Oexts,   Kd, "cvtss2sd %0, %=" },
 	{ Otruncd, Ks, "cvttsd2ss %0, %=" },
 	{ Ostosi,  Ki, "cvttss2si%k %0, %=" },
 	{ Odtosi,  Ki, "cvttsd2si%k %0, %=" },
@@ -91,7 +91,7 @@ static struct {
 	{ Osign,   Kw, "cltd" },
 	{ Oxdiv,   Ki, "div%k %0" },
 	{ Oxidiv,  Ki, "idiv%k %0" },
-	{ Oxcmp,   Ks, "comiss %S0, %S1" },  /* fixme, Kf */
+	{ Oxcmp,   Ks, "comiss %S0, %S1" },
 	{ Oxcmp,   Kd, "comisd %D0, %D1" },
 	{ Oxcmp,   Ki, "cmp%k %0, %1" },
 	{ Oxtest,  Ki, "test%k %0, %1" },
@@ -137,13 +137,14 @@ slot(int s, Fn *fn)
 
 	/* sign extend s using a bitfield */
 	x.i = s;
+	assert(x.i <= fn->slot);
 	/* specific to NAlign == 3 */
 	if (x.i < 0)
 		return -4 * x.i;
-	else {
-		assert(fn->slot >= x.i);
+	else if (fn->vararg)
+		return -176 + -4 * (fn->slot - x.i);
+	else
 		return -4 * (fn->slot - x.i);
-	}
 }
 
 static void
@@ -481,7 +482,7 @@ framesz(Fn *fn)
 		o ^= 1 & (fn->reg >> rclob[i]);
 	f = fn->slot;
 	f = (f + 3) & -4;
-	return 4*f + 8*o;
+	return 4*f + 8*o + 176*fn->vararg;
 }
 
 void
@@ -504,30 +505,39 @@ emitfn(Fn *fn, FILE *f)
 	static int id0;
 	Blk *b, *s;
 	Ins *i, itmp;
-	int *r, c, fs;
+	int *r, c, fs, o, n, lbl;
 
 	fprintf(f, ".text\n");
 	if (fn->export)
 		fprintf(f, ".globl %s%s\n", symprefix, fn->name);
 	fprintf(f,
 		"%s%s:\n"
-		"\tpush %%rbp\n"
-		"\tmov %%rsp, %%rbp\n",
+		"\tpushq %%rbp\n"
+		"\tmovq %%rsp, %%rbp\n",
 		symprefix, fn->name
 	);
 	fs = framesz(fn);
 	if (fs)
 		fprintf(f, "\tsub $%d, %%rsp\n", fs);
+	if (fn->vararg) {
+		o = -176;
+		for (r=rsave; r-rsave<6; ++r, o+=8)
+			fprintf(f, "\tmovq %%%s, %d(%%rbp)\n", rname[*r][0], o);
+		for (n=0; n<8; ++n, o+=16)
+			fprintf(f, "\tmovaps %%xmm%d, %d(%%rbp)\n", n, o);
+	}
 	for (r=rclob; r-rclob < NRClob; r++)
 		if (fn->reg & BIT(*r)) {
 			itmp.arg[0] = TMP(*r);
 			emitf("pushq %L0", &itmp, fn, f);
 		}
 
-	for (b=fn->start; b; b=b->link) {
-		fprintf(f, "%sbb%d: /* %s */\n", locprefix, id0+b->id, b->name);
+	for (lbl=0, b=fn->start; b; b=b->link) {
+		if (lbl || b->npred > 1)
+			fprintf(f, "%sbb%d:\n", locprefix, id0+b->id);
 		for (i=b->ins; i!=&b->ins[b->nins]; i++)
 			emitins(*i, fn, f);
+		lbl = 1;
 		switch (b->jmp.type) {
 		case Jret0:
 			for (r=&rclob[NRClob]; r>rclob;)
@@ -543,8 +553,10 @@ emitfn(Fn *fn, FILE *f)
 		case Jjmp:
 		Jmp:
 			if (b->s1 != b->link)
-				fprintf(f, "\tjmp %sbb%d /* %s */\n",
-					locprefix, id0+b->s1->id, b->s1->name);
+				fprintf(f, "\tjmp %sbb%d\n",
+					locprefix, id0+b->s1->id);
+			else
+				lbl = 0;
 			break;
 		default:
 			c = b->jmp.type - Jxjc;
@@ -555,8 +567,8 @@ emitfn(Fn *fn, FILE *f)
 					b->s2 = s;
 				} else
 					c = cneg(c);
-				fprintf(f, "\tj%s %sbb%d /* %s */\n", ctoa[c],
-					locprefix, id0+b->s2->id, b->s2->name);
+				fprintf(f, "\tj%s %sbb%d\n", ctoa[c],
+					locprefix, id0+b->s2->id);
 				goto Jmp;
 			}
 			die("unhandled jump %d", b->jmp.type);

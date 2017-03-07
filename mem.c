@@ -1,30 +1,5 @@
 #include "all.h"
 
-static int
-loadsz(Ins *l)
-{
-	switch (l->op) {
-	case Oloadsb: case Oloadub: return 1;
-	case Oloadsh: case Oloaduh: return 2;
-	case Oloadsw: case Oloaduw: return 4;
-	case Oload: return KWIDE(l->cls) ? 8 : 4;
-	}
-	die("unreachable");
-}
-
-static int
-storesz(Ins *s)
-{
-	switch (s->op) {
-	case Ostoreb: return 1;
-	case Ostoreh: return 2;
-	case Ostorew: case Ostores: return 4;
-	case Ostorel: case Ostored: return 8;
-	}
-	die("unreachable");
-}
-
-
 /* require use, maintains use counts */
 void
 memopt(Fn *fn)
@@ -86,15 +61,18 @@ memopt(Fn *fn)
 				/* try to turn loads into copies so we
 				 * can eliminate them later */
 				switch(l->op) {
-				case Oload:
 				case Oloadsw:
 				case Oloaduw:
+					if (k == Kl)
+						goto Extend;
+				case Oload:
 					if (KBASE(k) != KBASE(l->cls))
 						l->op = Ocast;
 					else
 						l->op = Ocopy;
 					break;
 				default:
+				Extend:
 					l->op = Oextsb + (l->op - Oloadsb);
 					break;
 				}

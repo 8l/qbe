@@ -9,7 +9,6 @@
 #define die(...) die_(__FILE__, __VA_ARGS__)
 
 typedef unsigned int uint;
-typedef unsigned short ushort;
 typedef unsigned long ulong;
 typedef unsigned long long bits;
 
@@ -20,6 +19,7 @@ typedef struct Ins Ins;
 typedef struct Phi Phi;
 typedef struct Blk Blk;
 typedef struct Use Use;
+typedef struct Alias Alias;
 typedef struct Tmp Tmp;
 typedef struct Con Con;
 typedef struct Addr Mem;
@@ -27,6 +27,18 @@ typedef struct Fn Fn;
 typedef struct Typ Typ;
 typedef struct Seg Seg;
 typedef struct Dat Dat;
+
+enum {
+	NString = 32,
+	NPred   = 63,
+	NIns    = 8192,
+	NAlign  = 3,
+	NSeg    = 32,
+	NTyp    = 128,
+	NBit    = CHAR_BIT * sizeof(bits),
+};
+
+#define BIT(n) ((bits)1 << (n))
 
 enum Reg {
 	RXX,
@@ -47,8 +59,9 @@ enum Reg {
 	R14,
 	R15,
 
-	RBP, /* reserved */
+	RBP, /* globally live */
 	RSP,
+#define RGLOB (BIT(RBP)|BIT(RSP))
 
 	XMM0, /* sse */
 	XMM1,
@@ -69,7 +82,8 @@ enum Reg {
 
 	Tmp0, /* first non-reg temporary */
 
-	NIReg = R15 - RAX + 1,
+	NRGlob = 2,
+	NIReg = R15 - RAX + 1 + NRGlob,
 	NFReg = XMM14 - XMM0 + 1, /* XMM15 is reserved */
 	NISave = R11 - RAX + 1,
 	NFSave = NFReg,
@@ -77,19 +91,8 @@ enum Reg {
 	NRClob = R15 - RBX + 1,
 };
 
-enum {
-	NString = 32,
-	NPred   = 63,
-	NIns    = 8192,
-	NAlign  = 3,
-	NSeg    = 32,
-	NTyp    = 128,
-	NBit    = CHAR_BIT * sizeof(bits),
-};
-
 MAKESURE(NBit_is_enough, NBit >= (int)Tmp0);
 
-#define BIT(n) ((bits)1 << (n))
 
 struct BSet {
 	uint nt;
@@ -97,15 +100,15 @@ struct BSet {
 };
 
 struct Ref {
-	uint32_t type:3;
-	uint32_t val:29;
+	uint type:3;
+	uint val:29;
 };
 
 enum {
 	RTmp,
 	RCon,
-	RSlot,
 	RType,
+	RSlot,
 	RCall,
 	RMem,
 };
@@ -225,7 +228,7 @@ enum Op {
 	Ostores,
 	Ostored,
 #define isstore(o) (Ostoreb <= o && o <= Ostored)
-	Oloadsb,  /* needs to match OExt (mem.c) */
+	Oloadsb,  /* must match Oext and Tmp.width */
 	Oloadub,
 	Oloadsh,
 	Oloaduh,
@@ -252,15 +255,23 @@ enum Op {
 	Oalloc,
 	Oalloc1 = Oalloc + NAlign-1,
 
+	Ovastart,
+	Ovaarg,
+
 	Ocopy,
 	NPubOp,
 
 	/* function instructions */
 	Opar = NPubOp,
 	Oparc,
+	Opare,
+#define ispar(o) (Opar <= o && o <= Opare)
 	Oarg,
 	Oargc,
+	Oarge,
+#define isarg(o) (Oarg <= o && o <= Oarge)
 	Ocall,
+	Ovacall,
 
 	/* reserved instructions */
 	Onop,
@@ -332,13 +343,13 @@ struct Blk {
 	Blk *s2;
 	Blk *link;
 
-	int id;
-	int visit;
+	uint id;
+	uint visit;
 
 	Blk *idom;
 	Blk *dom, *dlink;
 	Blk **fron;
-	int nfron;
+	uint nfron;
 
 	Blk **pred;
 	uint npred;
@@ -362,18 +373,49 @@ struct Use {
 	} u;
 };
 
+enum {
+	NoAlias,
+	MayAlias,
+	MustAlias
+};
+
+struct Alias {
+	enum {
+		ABot = 0,
+		ALoc = 1, /* stack local */
+		ACon = 2,
+		AEsc = 3, /* stack escaping */
+		ASym = 4,
+		AUnk = 6,
+	} type;
+	Ref base;
+	char label[NString];
+	int64_t offset;
+	Alias *slot;
+};
+
 struct Tmp {
 	char name[NString];
 	Use *use;
 	uint ndef, nuse;
 	uint cost;
-	short slot;
+	short slot; /* -1 for unset */
 	short cls;
 	struct {
 		int r;
 		bits m;
 	} hint;
 	int phi;
+	Alias alias;
+	enum {
+		WFull,
+		Wsb, /* must match Oload/Oext order */
+		Wub,
+		Wsh,
+		Wuh,
+		Wsw,
+		Wuw
+	} width;
 	int visit;
 };
 
@@ -410,13 +452,14 @@ struct Fn {
 	int ntmp;
 	int ncon;
 	int nmem;
-	int nblk;
+	uint nblk;
 	int retty; /* index in typ[], -1 if no aggregate return */
 	Ref retr;
 	Blk **rpo;
 	bits reg;
 	int slot;
 	char export;
+	char vararg;
 	char name[NString];
 };
 
@@ -426,14 +469,13 @@ struct Typ {
 	int align;
 	size_t size;
 	int nunion;
-
 	struct Seg {
 		enum {
-			Send,
-			Spad,
-			Sint,
-			Sflt,
-			Styp,
+			SEnd,
+			SPad,
+			SInt,
+			SFlt,
+			STyp,
 		} type;
 		uint len; /* index in typ[] for Styp */
 	} (*seg)[NSeg+1];
@@ -468,26 +510,25 @@ struct Dat {
 
 
 /* main.c */
-enum Asm {
-	Gasmacho,
-	Gaself,
-};
 extern char debug['Z'+1];
 
 /* util.c */
+typedef enum {
+	Pheap, /* free() necessary */
+	Pfn, /* discarded after processing the function */
+} Pool;
+
 extern Typ typ[NTyp];
 extern Ins insb[NIns], *curi;
 void die_(char *, char *, ...) __attribute__((noreturn));
 void *emalloc(size_t);
 void *alloc(size_t);
 void freeall(void);
-Blk *blknew(void);
-void blkdel(Blk *);
 void emit(int, int, Ref, Ref, Ref);
 void emiti(Ins);
 void idup(Ins **, Ins *, ulong);
 Ins *icpy(Ins *, Ins *, ulong);
-void *vnew(ulong, size_t, void *(size_t));
+void *vnew(ulong, size_t, Pool);
 void vfree(void *);
 void vgrow(void *, ulong);
 int clsmerge(short *, short);
@@ -510,7 +551,8 @@ void bsdiff(BSet *, BSet *);
 int bsequal(BSet *, BSet *);
 int bsiter(BSet *, int *);
 
-static inline int bshas(BSet *bs, uint elt)
+static inline int
+bshas(BSet *bs, uint elt)
 {
 	assert(elt < bs->nt * NBit);
 	return (bs->t[elt/NBit] & BIT(elt%NBit)) != 0;
@@ -523,8 +565,31 @@ void printfn(Fn *, FILE *);
 void printref(Ref, Fn *, FILE *);
 void err(char *, ...) __attribute__((noreturn));
 
+/* cfg.c */
+Blk *blknew(void);
+void edgedel(Blk *, Blk **);
+void fillpreds(Fn *);
+void fillrpo(Fn *);
+void filldom(Fn *);
+int sdom(Blk *, Blk *);
+int dom(Blk *, Blk *);
+void fillfron(Fn *);
+void loopiter(Fn *, void (*)(Blk *, Blk *));
+void fillloop(Fn *);
+void simpljmp(Fn *);
+
 /* mem.c */
 void memopt(Fn *);
+
+/* alias.c */
+void fillalias(Fn *);
+int alias(Ref, int, Ref, int, int *, Fn *);
+int escapes(Ref, Fn *);
+
+/* load.c */
+int loadsz(Ins *);
+int storesz(Ins *);
+void loadopt(Fn *);
 
 /* ssa.c */
 void filluse(Fn *);
@@ -532,6 +597,9 @@ void fillpreds(Fn *);
 void fillrpo(Fn *);
 void ssa(Fn *);
 void ssacheck(Fn *);
+
+/* simpl.c */
+void simpl(Fn *);
 
 /* copy.c */
 void copy(Fn *);

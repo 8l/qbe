@@ -6,7 +6,7 @@ typedef struct Vec Vec;
 
 struct Vec {
 	ulong mag;
-	void *(*alloc)();
+	Pool pool;
 	size_t esz;
 	ulong cap;
 	union {
@@ -87,47 +87,6 @@ freeall()
 	nptr = 1;
 }
 
-Blk *
-blknew()
-{
-	static Blk z;
-	Blk *b;
-
-	b = alloc(sizeof *b);
-	*b = z;
-	return b;
-}
-
-void
-blkdel(Blk *b)
-{
-	Blk *s, **ps, *succ[3];
-	Phi *p;
-	uint a;
-
-	succ[0] = b->s1;
-	succ[1] = b->s2 == b->s1 ? 0 : b->s2;
-	succ[2] = 0;
-	for (ps=succ; (s=*ps); ps++) {
-		for (p=s->phi; p; p=p->link) {
-			for (a=0; p->blk[a]!=b; a++)
-				assert(a+1<p->narg);
-			p->narg--;
-			memmove(&p->blk[a], &p->blk[a+1],
-				sizeof p->blk[0] * (p->narg-a));
-			memmove(&p->arg[a], &p->arg[a+1],
-				sizeof p->arg[0] * (p->narg-a));
-		}
-		if (s->npred != 0) {
-			for (a=0; s->pred[a]!=b; a++)
-				assert(a+1<s->npred);
-			s->npred--;
-			memmove(&s->pred[a], &s->pred[a+1],
-				sizeof s->pred[0] * (s->npred-a));
-		}
-	}
-}
-
 void
 emit(int op, int k, Ref to, Ref arg0, Ref arg1)
 {
@@ -160,18 +119,20 @@ icpy(Ins *d, Ins *s, ulong n)
 }
 
 void *
-vnew(ulong len, size_t esz, void *alloc(size_t))
+vnew(ulong len, size_t esz, Pool pool)
 {
+	void *(*f)(size_t);
 	ulong cap;
 	Vec *v;
 
 	for (cap=VMin; cap<len; cap*=2)
 		;
-	v = alloc(cap * esz + sizeof(Vec));
+	f = pool == Pheap ? emalloc : alloc;
+	v = f(cap * esz + sizeof(Vec));
 	v->mag = VMag;
 	v->cap = cap;
 	v->esz = esz;
-	v->alloc = alloc;
+	v->pool = pool;
 	return v + 1;
 }
 
@@ -182,7 +143,7 @@ vfree(void *p)
 
 	v = (Vec *)p - 1;
 	assert(v->mag == VMag);
-	if (v->alloc == emalloc) {
+	if (v->pool == Pheap) {
 		v->mag = 0;
 		free(v);
 	}
@@ -198,7 +159,7 @@ vgrow(void *vp, ulong len)
 	assert(v+1 && v->mag == VMag);
 	if (v->cap >= len)
 		return;
-	v1 = vnew(len, v->esz, v->alloc);
+	v1 = vnew(len, v->esz, v->pool);
 	memcpy(v1, v+1, v->cap * v->esz);
 	vfree(v+1);
 	*(Vec **)vp = v1;
@@ -250,6 +211,7 @@ newtmp(char *prfx, int k,  Fn *fn)
 
 	t = fn->ntmp++;
 	vgrow(&fn->tmp, fn->ntmp);
+	memset(&fn->tmp[t], 0, sizeof(Tmp));
 	if (prfx)
 		sprintf(fn->tmp[t].name, "%s.%d", prfx, ++n);
 	fn->tmp[t].cls = k;
@@ -313,6 +275,32 @@ popcnt(bits b)
 	b += (b>>16);
 	b += (b>>32);
 	return b & 0xff;
+}
+
+inline static int
+firstbit(bits b)
+{
+	int n;
+
+	n = 0;
+	if (!(b & 0xffffffff)) {
+		n += 32;
+		b >>= 32;
+	}
+	if (!(b & 0xffff)) {
+		n += 16;
+		b >>= 16;
+	}
+	if (!(b & 0xff)) {
+		n += 8;
+		b >>= 8;
+	}
+	if (!(b & 0xf)) {
+		n += 4;
+		b >>= 4;
+	}
+	n += (char[16]){4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0}[b & 0xf];
+	return n;
 }
 
 uint
@@ -389,18 +377,23 @@ bszero(BSet *bs)
 int
 bsiter(BSet *bs, int *elt)
 {
-	uint i;
+	bits b;
+	uint t, i;
 
-	for (i=*elt;; i++) {
-		while (i < bsmax(bs) && !bs->t[i/NBit])
-			i = (i + NBit) & -NBit;
-		if (i >= bsmax(bs))
+	i = *elt;
+	t = i/NBit;
+	if (t >= bs->nt)
+		return 0;
+	b = bs->t[t];
+	b &= ~(BIT(i%NBit) - 1);
+	while (!b) {
+		++t;
+		if (t >= bs->nt)
 			return 0;
-		if (bshas(bs, i)) {
-			*elt = i;
-			return 1;
-		}
+		b = bs->t[t];
 	}
+	*elt = NBit*t + firstbit(b);
+	return 1;
 }
 
 void
