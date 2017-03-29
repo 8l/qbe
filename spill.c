@@ -298,7 +298,8 @@ void
 spill(Fn *fn)
 {
 	Blk *b, *s1, *s2, *hd, **bp;
-	int j, n, l, t, k, lvarg[2];
+	int j, l, t, k, lvarg[2];
+	uint n;
 	BSet u[1], v[1], w[1];
 	Ins *i;
 	Phi *p;
@@ -340,7 +341,6 @@ spill(Fn *fn)
 		if (s2 && s2->id <= b->id)
 		if (!hd || s2->id >= hd->id)
 			hd = s2;
-		r = 0;
 		if (hd) {
 			/* back-edge */
 			bszero(v);
@@ -352,8 +352,8 @@ spill(Fn *fn)
 				bscopy(w, u);
 				bsinter(u, hd->gen);
 				bsdiff(w, hd->gen);
-				if ((int)bscount(u) < n) { /* fixme */
-					j = bscount(w);   /* live through */
+				if (bscount(u) < n) {
+					j = bscount(w); /* live through */
 					l = hd->nlive[k];
 					limit(w, n - (l - j), 0);
 					bsunion(u, w);
@@ -370,14 +370,18 @@ spill(Fn *fn)
 				bsunion(v, u);
 			}
 			limit2(v, 0, 0, w);
-		} else
+		} else {
 			bscopy(v, b->out);
+			if (rtype(b->jmp.arg) == RCall)
+				v->t[0] |= retregs(b->jmp.arg, 0);
+		}
 		for (t=Tmp0; bsiter(b->out, &t); t++)
 			if (!bshas(v, t))
 				slot(t);
 		bscopy(b->out, v);
 
 		/* 2. process the block instructions */
+		r = v->t[0] & (BIT(Tmp0)-1);
 		curi = &insb[NIns];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			i--;
@@ -449,7 +453,7 @@ spill(Fn *fn)
 			if (r)
 				sethint(v, r);
 		}
-		assert(!(r & ~RGLOB) || b==fn->start);
+		assert(r == RGLOB || b == fn->start);
 
 		for (p=b->phi; p; p=p->link) {
 			assert(rtype(p->to) == RTmp);

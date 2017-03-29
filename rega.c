@@ -135,6 +135,7 @@ rfree(RMap *m, int t)
 {
 	int i, r;
 
+	assert(t >= Tmp0 || !(BIT(t) & RGLOB));
 	if (!bshas(m->b, t))
 		return -1;
 	for (i=0; m->t[i] != t; i++)
@@ -145,6 +146,7 @@ rfree(RMap *m, int t)
 	m->n--;
 	memmove(&m->t[i], &m->t[i+1], (m->n-i) * sizeof m->t[0]);
 	memmove(&m->r[i], &m->r[i+1], (m->n-i) * sizeof m->r[0]);
+	assert(t >= Tmp0 || t == r);
 	return r;
 }
 
@@ -385,13 +387,15 @@ doblk(Blk *b, RMap *cur)
 		default:
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
-				r = rfree(cur, i->to.val);
-				if (r == -1 && !isreg(i->to)) {
+				r = i->to.val;
+				if (r >= Tmp0 || !(BIT(r) & RGLOB))
+					r = rfree(cur, r);
+				if (r == -1) {
+					assert(!isreg(i->to));
 					*i = (Ins){.op = Onop};
 					continue;
 				}
-				if (i->to.val >= Tmp0)
-					i->to = TMP(r);
+				i->to = TMP(r);
 			}
 			break;
 		}
