@@ -35,6 +35,9 @@ init() {
 		;;
 	"")
 		case `uname` in
+		*Darwin*)
+			cc="cc -Wl,-no_pie"
+			;;
 		*OpenBSD*)
 			cc="cc -nopie"
 			;;

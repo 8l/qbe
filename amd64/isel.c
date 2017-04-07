@@ -59,14 +59,16 @@ rslot(Ref r, Fn *fn)
 }
 
 static void
-fixarg(Ref *r, int k, int cpy, Fn *fn)
+fixarg(Ref *r, int k, int op, Fn *fn)
 {
 	Addr a, *m;
 	Ref r0, r1;
-	int s, n;
+	int s, n, cpy, mem;
 
 	r1 = r0 = *r;
 	s = rslot(r0, fn);
+	cpy = op == Ocopy || op == -1;
+	mem = isstore(op) || isload(op) || op == Ocall;
 	if (KBASE(k) == 1 && rtype(r0) == RCon) {
 		/* load floating points from memory
 		 * slots, they can't be used as
@@ -96,6 +98,12 @@ fixarg(Ref *r, int k, int cpy, Fn *fn)
 		 */
 		r1 = newtmp("isel", Kl, fn);
 		emit(Oaddr, Kl, r1, SLOT(s), R);
+	}
+	else if (!mem && rtype(r0) == RCon
+	&& fn->con[r0.val].type == CAddr) {
+		/* apple asm fix */
+		r1 = newtmp("isel", Kl, fn);
+		emit(Oaddr, Kl, r1, r0, R);
 	}
 	else if (rtype(r0) == RMem) {
 		/* apple asm fix */
@@ -163,8 +171,8 @@ selcmp(Ref arg[2], int k, Fn *fn)
 		iarg[1] = newtmp("isel", k, fn);
 		emit(Ocopy, k, iarg[1], arg[0], R);
 	}
-	fixarg(&iarg[0], k, 0, fn);
-	fixarg(&iarg[1], k, 0, fn);
+	fixarg(&iarg[0], k, Oxcmp, fn);
+	fixarg(&iarg[1], k, Oxcmp, fn);
 	return swap;
 }
 
@@ -214,7 +222,7 @@ sel(Ins i, ANum *an, Fn *fn)
 			emit(Ocopy, k, TMP(RDX), CON_Z, R);
 		}
 		emit(Ocopy, k, TMP(RAX), i.arg[0], R);
-		fixarg(&curi->arg[0], k, 0, fn);
+		fixarg(&curi->arg[0], k, Ocopy, fn);
 		if (rtype(i.arg[1]) == RCon)
 			emit(Ocopy, k, r0, i.arg[1], R);
 		break;
@@ -269,8 +277,8 @@ sel(Ins i, ANum *an, Fn *fn)
 Emit:
 		emiti(i);
 		iarg = curi->arg; /* fixarg() can change curi */
-		fixarg(&iarg[0], argcls(&i, 0), 0, fn);
-		fixarg(&iarg[1], argcls(&i, 1), 0, fn);
+		fixarg(&iarg[0], argcls(&i, 0), i.op, fn);
+		fixarg(&iarg[1], argcls(&i, 1), i.op, fn);
 		break;
 	case Oalloc:
 	case Oalloc+1:
@@ -584,7 +592,7 @@ amd64_isel(Fn *fn)
 			for (p=(*sb)->phi; p; p=p->link) {
 				for (a=0; p->blk[a] != b; a++)
 					assert(a+1 < p->narg);
-				fixarg(&p->arg[a], p->cls, 1, fn);
+				fixarg(&p->arg[a], p->cls, -1, fn);
 			}
 		memset(ainfo, 0, n * sizeof ainfo[0]);
 		anumber(ainfo, b, fn->con);

@@ -86,7 +86,7 @@ enum {
 #define TMP(x)   (Ref){RTmp, x}
 #define CON(x)   (Ref){RCon, x}
 #define CON_Z    CON(0)          /* reserved zero constant */
-#define SLOT(x)  (Ref){RSlot, x}
+#define SLOT(x)  (Ref){RSlot, (x)&0x1fffffff}
 #define TYPE(x)  (Ref){RType, x}
 #define CALL(x)  (Ref){RCall, x}
 #define MEM(x)   (Ref){RMem, x}
