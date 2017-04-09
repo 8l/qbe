@@ -67,7 +67,7 @@ clean-gen: clean
 	rm -f config.h
 
 check: $(OBJDIR)/$(BIN)
-	tools/unit.sh all
+	tools/test.sh all
 
 80:
 	@for F in $(SRCALL);                       \
