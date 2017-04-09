@@ -1,0 +1,38 @@
+# test arm64's hfa
+
+data $dfmt = { b "double: %g\n", b 0 }
+
+type :hfa3 = { s, s, s }
+
+export
+function $f(:hfa3 %h1, :hfa3 %h2, d %d1, :hfa3 %h3, d %d2) {
+        # the first three parameters should be in 7 registers
+        # the last two should be on the stack
+@start
+
+        call $phfa3(:hfa3 %h1)
+        call $phfa3(:hfa3 %h2)
+        call $phfa3(:hfa3 %h3)
+        call $printf(l $dfmt, d %d1)
+        call $printf(l $dfmt, d %d2)
+        ret
+}
+
+# >>> driver
+# #include <stdio.h>
+# typedef struct { float f1, f2, f3; } hfa3;
+# void f(hfa3, hfa3, double, hfa3, double);
+# void phfa3(hfa3 h) { printf("{ %g, %g, %g }\n", h.f1, h.f2, h.f3); }
+# int main() {
+#       hfa3 h1={1,2,3}, h2={2,3,4}, h3={3,4,5};
+#       f(h1, h2, 1, h3, 2);
+# }
+# <<<
+
+# >>> output
+# { 1, 2, 3 }
+# { 2, 3, 4 }
+# { 3, 4, 5 }
+# double: 1
+# double: 2
+# <<<
