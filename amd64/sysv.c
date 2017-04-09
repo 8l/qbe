@@ -90,25 +90,6 @@ typclass(AClass *a, Typ *t)
 	classify(a, t, &n, &e);
 }
 
-static void
-blit(Ref rstk, uint soff, Ref rsrc, uint sz, Fn *fn)
-{
-	Ref r, r1;
-	uint boff;
-
-	/* it's an impolite blit, we might go across the end
-	 * of the source object a little bit... */
-	for (boff=0; sz>0; sz-=8, soff+=8, boff+=8) {
-		r = newtmp("abi", Kl, fn);
-		r1 = newtmp("abi", Kl, fn);
-		emit(Ostorel, 0, R, r, r1);
-		emit(Oadd, Kl, r1, rstk, getcon(soff, fn));
-		r1 = newtmp("abi", Kl, fn);
-		emit(Oload, Kl, r, r1, R);
-		emit(Oadd, Kl, r1, rsrc, getcon(boff, fn));
-	}
-}
-
 static int
 retr(Ref reg[2], AClass *aret)
 {
@@ -226,15 +207,17 @@ argsclass(Ins *i0, Ins *i1, AClass *ac, int op, AClass *aret, Ref *env)
 	return ((6-nint) << 4) | ((8-nsse) << 8);
 }
 
-int rsave[] = {
+int amd64_sysv_rsave[] = {
 	RDI, RSI, RDX, RCX, R8, R9, R10, R11, RAX,
 	XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7,
-	XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14
+	XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, -1
 };
-int rclob[] = {RBX, R12, R13, R14, R15};
+int amd64_sysv_rclob[] = {RBX, R12, R13, R14, R15, -1};
 
-MAKESURE(rsave_has_correct_size, sizeof rsave == NRSave * sizeof(int));
-MAKESURE(rclob_has_correct_size, sizeof rclob == NRClob * sizeof(int));
+MAKESURE(sysv_arrays_ok,
+	sizeof amd64_sysv_rsave == (NGPS+NFPS+1) * sizeof(int) &&
+	sizeof amd64_sysv_rclob == (NCLR+1) * sizeof(int)
+);
 
 /* layout of call's second argument (RCall)
  *
@@ -248,7 +231,7 @@ MAKESURE(rclob_has_correct_size, sizeof rclob == NRClob * sizeof(int));
  */
 
 bits
-retregs(Ref r, int p[2])
+amd64_sysv_retregs(Ref r, int p[2])
 {
 	bits b;
 	int ni, nf;
@@ -273,7 +256,7 @@ retregs(Ref r, int p[2])
 }
 
 bits
-argregs(Ref r, int p[2])
+amd64_sysv_argregs(Ref r, int p[2])
 {
 	bits b;
 	int j, ni, nf, ra;
@@ -284,7 +267,7 @@ argregs(Ref r, int p[2])
 	nf = (r.val >> 8) & 15;
 	ra = (r.val >> 12) & 1;
 	for (j=0; j<ni; j++)
-		b |= BIT(rsave[j]);
+		b |= BIT(amd64_sysv_rsave[j]);
 	for (j=0; j<nf; j++)
 		b |= BIT(XMM0+j);
 	if (p) {
@@ -298,7 +281,7 @@ static Ref
 rarg(int ty, int *ni, int *ns)
 {
 	if (KBASE(ty) == 0)
-		return TMP(rsave[(*ni)++]);
+		return TMP(amd64_sysv_rsave[(*ni)++]);
 	else
 		return TMP(XMM0 + (*ns)++);
 }
@@ -531,7 +514,7 @@ chpred(Blk *b, Blk *bp, Blk *bp1)
 	}
 }
 
-void
+static void
 selvaarg(Fn *fn, Blk *b, Ins *i)
 {
 	Ref loc, lreg, lstk, nr, r0, r1, c4, c8, c16, c, ap;
@@ -618,12 +601,12 @@ selvaarg(Fn *fn, Blk *b, Ins *i)
 	b->s1 = breg;
 	b->s2 = bstk;
 	c = getcon(isint ? 48 : 176, fn);
-	emit(Ocmpw+ICult, Kw, r1, nr, c);
+	emit(Ocmpw+Ciult, Kw, r1, nr, c);
 	emit(Oloadsw, Kl, nr, r0, R);
 	emit(Oadd, Kl, r0, ap, isint ? CON_Z : c4);
 }
 
-void
+static void
 selvastart(Fn *fn, int fa, Ref ap)
 {
 	Ref r0, r1;
@@ -649,7 +632,7 @@ selvastart(Fn *fn, int fa, Ref ap)
 }
 
 void
-abi(Fn *fn)
+amd64_sysv_abi(Fn *fn)
 {
 	Blk *b;
 	Ins *i, *i0, *ip;

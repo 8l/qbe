@@ -312,8 +312,8 @@ simpljmp(Fn *fn)
 			uffind(&b->s1, uf);
 		if (b->s2)
 			uffind(&b->s2, uf);
-		c = b->jmp.type - Jxjc;
-		if (0 <= c && c <= NXICmp)
+		c = b->jmp.type - Jjf;
+		if (0 <= c && c <= NCmp)
 		if (b->s1 == b->s2) {
 			b->jmp.type = Jjmp;
 			b->s2 = 0;

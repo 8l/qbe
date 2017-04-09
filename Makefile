@@ -1,11 +1,15 @@
 BIN = qbe
-ABI = sysv
 
 V = @
 OBJDIR = obj
 
-SRC = main.c util.c parse.c cfg.c mem.c ssa.c alias.c load.c copy.c fold.c live.c $(ABI).c isel.c spill.c rega.c emit.c
-OBJ = $(SRC:%.c=$(OBJDIR)/%.o)
+SRC      = main.c util.c parse.c cfg.c mem.c ssa.c alias.c load.c copy.c \
+           fold.c live.c spill.c rega.c gas.c
+AMD64SRC = amd64/targ.c amd64/sysv.c amd64/isel.c amd64/emit.c
+SRCALL   = $(SRC) $(AMD64SRC)
+
+AMD64OBJ = $(AMD64SRC:%.c=$(OBJDIR)/%.o)
+OBJ      = $(SRC:%.c=$(OBJDIR)/%.o) $(AMD64OBJ)
 
 CFLAGS += -Wall -Wextra -std=c99 -g -pedantic
 
@@ -19,15 +23,23 @@ $(OBJDIR)/%.o: %.c $(OBJDIR)/timestamp
 
 $(OBJDIR)/timestamp:
 	@mkdir -p $(OBJDIR)
+	@mkdir -p $(OBJDIR)/amd64
 	@touch $@
 
-$(OBJ): all.h
+$(OBJ): all.h ops.h
+$(AMD64OBJ): amd64/all.h
 obj/main.o: config.h
 
 config.h:
-	@case `uname` in                                 \
-	*Darwin*)  echo "#define Defaultasm Gasmacho" ;; \
-	*)         echo "#define Defaultasm Gaself" ;;   \
+	@case `uname` in                               \
+	*Darwin*)                                      \
+		echo "#define Defasm Gasmacho";        \
+		echo "#define Deftgt T_amd64_sysv";    \
+		;;                                     \
+	*)                                             \
+		echo "#define Defasm Gaself";          \
+		echo "#define Deftgt T_amd64_sysv";    \
+		;;                                     \
 	esac > $@
 
 install: $(OBJDIR)/$(BIN)
@@ -47,7 +59,7 @@ check: $(OBJDIR)/$(BIN)
 	tools/unit.sh all
 
 80:
-	@for F in $(SRC);                          \
+	@for F in $(SRCALL);                       \
 	do                                         \
 		awk "{                             \
 			gsub(/\\t/, \"        \"); \

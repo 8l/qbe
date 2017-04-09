@@ -8,13 +8,14 @@
 #define MAKESURE(what, x) typedef char make_sure_##what[(x)?1:-1]
 #define die(...) die_(__FILE__, __VA_ARGS__)
 
+typedef unsigned char uchar;
 typedef unsigned int uint;
 typedef unsigned long ulong;
 typedef unsigned long long bits;
 
 typedef struct BSet BSet;
 typedef struct Ref Ref;
-typedef struct OpDesc OpDesc;
+typedef struct Op Op;
 typedef struct Ins Ins;
 typedef struct Phi Phi;
 typedef struct Blk Blk;
@@ -27,6 +28,7 @@ typedef struct Fn Fn;
 typedef struct Typ Typ;
 typedef struct Seg Seg;
 typedef struct Dat Dat;
+typedef struct Target Target;
 
 enum {
 	NString = 32,
@@ -38,61 +40,29 @@ enum {
 	NBit    = CHAR_BIT * sizeof(bits),
 };
 
-#define BIT(n) ((bits)1 << (n))
-
-enum Reg {
-	RXX,
-
-	RAX, /* caller-save */
-	RCX,
-	RDX,
-	RSI,
-	RDI,
-	R8,
-	R9,
-	R10,
-	R11,
-
-	RBX, /* callee-save */
-	R12,
-	R13,
-	R14,
-	R15,
-
-	RBP, /* globally live */
-	RSP,
-#define RGLOB (BIT(RBP)|BIT(RSP))
-
-	XMM0, /* sse */
-	XMM1,
-	XMM2,
-	XMM3,
-	XMM4,
-	XMM5,
-	XMM6,
-	XMM7,
-	XMM8,
-	XMM9,
-	XMM10,
-	XMM11,
-	XMM12,
-	XMM13,
-	XMM14,
-	XMM15,
-
-	Tmp0, /* first non-reg temporary */
-
-	NRGlob = 2,
-	NIReg = R15 - RAX + 1 + NRGlob,
-	NFReg = XMM14 - XMM0 + 1, /* XMM15 is reserved */
-	NISave = R11 - RAX + 1,
-	NFSave = NFReg,
-	NRSave = NISave + NFSave,
-	NRClob = R15 - RBX + 1,
+struct Target {
+	int gpr0;   /* first general purpose reg */
+	int ngpr;
+	int fpr0;   /* first floating point reg */
+	int nfpr;
+	bits rglob; /* globally live regs (e.g., sp, fp) */
+	int nrglob;
+	int *rsave; /* caller-save */
+	int nrsave[2];
+	bits (*retregs)(Ref, int[2]);
+	bits (*argregs)(Ref, int[2]);
+	int (*memargs)(int);
+	void (*abi)(Fn *);
+	void (*isel)(Fn *);
+	void (*emitfn)(Fn *, FILE *);
 };
 
-MAKESURE(NBit_is_enough, NBit >= (int)Tmp0);
+#define BIT(n) ((bits)1 << (n))
 
+enum {
+	RXX = 0,
+	Tmp0 = NBit, /* first non-reg temporary */
+};
 
 struct BSet {
 	uint nt;
@@ -139,50 +109,80 @@ static inline int isreg(Ref r)
 	return rtype(r) == RTmp && r.val < Tmp0;
 }
 
-enum ICmp {
-#define ICMPS(X) \
-	X(ule)   \
-	X(ult)   \
-	X(sle)   \
-	X(slt)   \
-	X(sgt)   \
-	X(sge)   \
-	X(ugt)   \
-	X(uge)   \
-	X(eq)    \
-	X(ne) /* make sure icmpop() below works! */
-
-#define X(c) IC##c,
-	ICMPS(X)
-#undef X
-	NICmp,
-
-	ICxnp = NICmp, /* x64 specific */
-	ICxp,
-	NXICmp
+enum CmpI {
+	Cieq,
+	Cine,
+	Cisge,
+	Cisgt,
+	Cisle,
+	Cislt,
+	Ciuge,
+	Ciugt,
+	Ciule,
+	Ciult,
+	NCmpI,
 };
 
-static inline int icmpop(int c)
-{
-	return c >= ICeq ? c : ICuge - c;
-}
-
-enum FCmp {
-#define FCMPS(X) \
-	X(le)    \
-	X(lt)    \
-	X(gt)    \
-	X(ge)    \
-	X(ne)    \
-	X(eq)    \
-	X(o)     \
-	X(uo)
-
-#define X(c) FC##c,
-	FCMPS(X)
-#undef X
-	NFCmp
+enum CmpF {
+	Cfeq,
+	Cfge,
+	Cfgt,
+	Cfle,
+	Cflt,
+	Cfne,
+	Cfo,
+	Cfuo,
+	NCmpF,
+	NCmp = NCmpI + NCmpF,
 };
+
+enum O {
+	Oxxx,
+#define O(op, x, y) O##op,
+	#include "ops.h"
+	NOp,
+};
+
+enum J {
+	Jxxx,
+#define JMPS(X)                                 \
+	X(ret0)   X(retw)   X(retl)   X(rets)   \
+	X(retd)   X(retc)   X(jmp)    X(jnz)    \
+	X(jfieq)  X(jfine)  X(jfisge) X(jfisgt) \
+	X(jfisle) X(jfislt) X(jfiuge) X(jfiugt) \
+	X(jfiule) X(jfiult) X(jffeq)  X(jffge)  \
+	X(jffgt)  X(jffle)  X(jfflt)  X(jffne)  \
+	X(jffo)   X(jffuo)
+#define X(j) J##j,
+	JMPS(X)
+#undef X
+	NJmp
+};
+
+enum {
+	Ocmpw = Oceqw,
+	Ocmpw1 = Ocultw,
+	Ocmpl = Oceql,
+	Ocmpl1 = Ocultl,
+	Ocmps = Oceqs,
+	Ocmps1 = Ocuos,
+	Ocmpd = Oceqd,
+	Ocmpd1 = Ocuod,
+	Oalloc = Oalloc4,
+	Oalloc1 = Oalloc16,
+	Oflag = Oflagieq,
+	Oflag1 = Oflagfuo,
+	NPubOp = Onop,
+	Jjf = Jjfieq,
+	Jjf1 = Jjffuo,
+};
+
+#define isstore(o) (Ostoreb <= o && o <= Ostored)
+#define isload(o) (Oloadsb <= o && o <= Oload)
+#define isext(o) (Oextsb <= o && o <= Oextuw)
+#define ispar(o) (Opar <= o && o <= Opare)
+#define isarg(o) (Oarg <= o && o <= Oarge)
+#define isret(j) (Jret0 <= j && j <= Jretc)
 
 enum Class {
 	Kx = -1, /* "top" class (see usecheck() and clsmerge()) */
@@ -195,124 +195,10 @@ enum Class {
 #define KWIDE(k) ((k)&1)
 #define KBASE(k) ((k)>>1)
 
-enum Op {
-	Oxxx,
-
-	/* public instructions */
-	Oadd,
-	Osub,
-	Odiv,
-	Orem,
-	Oudiv,
-	Ourem,
-	Omul,
-	Oand,
-	Oor,
-	Oxor,
-	Osar,
-	Oshr,
-	Oshl,
-	Ocmpw,
-	Ocmpw1 = Ocmpw + NICmp-1,
-	Ocmpl,
-	Ocmpl1 = Ocmpl + NICmp-1,
-	Ocmps,
-	Ocmps1 = Ocmps + NFCmp-1,
-	Ocmpd,
-	Ocmpd1 = Ocmpd + NFCmp-1,
-
-	Ostoreb,
-	Ostoreh,
-	Ostorew,
-	Ostorel,
-	Ostores,
-	Ostored,
-#define isstore(o) (Ostoreb <= o && o <= Ostored)
-	Oloadsb,  /* must match Oext and Tmp.width */
-	Oloadub,
-	Oloadsh,
-	Oloaduh,
-	Oloadsw,
-	Oloaduw,
-	Oload,
-#define isload(o) (Oloadsb <= o && o <= Oload)
-	Oextsb,
-	Oextub,
-	Oextsh,
-	Oextuh,
-	Oextsw,
-	Oextuw,
-#define isext(o) (Oextsb <= o && o <= Oextuw)
-
-	Oexts,
-	Otruncd,
-	Ostosi,
-	Odtosi,
-	Oswtof,
-	Osltof,
-	Ocast,
-
-	Oalloc,
-	Oalloc1 = Oalloc + NAlign-1,
-
-	Ovastart,
-	Ovaarg,
-
-	Ocopy,
-	NPubOp,
-
-	/* function instructions */
-	Opar = NPubOp,
-	Oparc,
-	Opare,
-#define ispar(o) (Opar <= o && o <= Opare)
-	Oarg,
-	Oargc,
-	Oarge,
-#define isarg(o) (Oarg <= o && o <= Oarge)
-	Ocall,
-	Ovacall,
-
-	/* reserved instructions */
-	Onop,
-	Oaddr,
-	Oswap,
-	Osign,
-	Osalloc,
-	Oxidiv,
-	Oxdiv,
-	Oxcmp,
-	Oxset,
-	Oxsetnp = Oxset + ICxnp,
-	Oxsetp  = Oxset + ICxp,
-	Oxtest,
-	NOp
-};
-
-enum Jmp {
-	Jxxx,
-	Jret0,
-	Jretw,
-	Jretl,
-	Jrets,
-	Jretd,
-	Jretc,
-#define isret(j) (Jret0 <= j && j <= Jretc)
-	Jjmp,
-	Jjnz,
-	Jxjc,
-	Jxjnp = Jxjc + ICxnp,
-	Jxjp  = Jxjc + ICxp,
-	NJmp
-};
-
-struct OpDesc {
+struct Op {
 	char *name;
-	int nmem;
 	short argcls[2][4];
-	uint sflag:1; /* sets the zero flag */
-	uint lflag:1; /* leaves flags */
-	uint cfold:1; /* can fold */
+	int canfold;
 };
 
 struct Ins {
@@ -437,7 +323,7 @@ struct Con {
 
 typedef struct Addr Addr;
 
-struct Addr { /* x64 addressing */
+struct Addr { /* amd64 addressing */
 	Con offset;
 	Ref base;
 	Ref index;
@@ -508,8 +394,8 @@ struct Dat {
 	char export;
 };
 
-
 /* main.c */
+extern Target T;
 extern char debug['Z'+1];
 
 /* util.c */
@@ -524,6 +410,8 @@ void die_(char *, char *, ...) __attribute__((noreturn));
 void *emalloc(size_t);
 void *alloc(size_t);
 void freeall(void);
+int argcls(Ins *, int);
+int iscmp(int, int *, int *);
 void emit(int, int, Ref, Ref, Ref);
 void emiti(Ins);
 void idup(Ins **, Ins *, ulong);
@@ -531,12 +419,15 @@ Ins *icpy(Ins *, Ins *, ulong);
 void *vnew(ulong, size_t, Pool);
 void vfree(void *);
 void vgrow(void *, ulong);
+int cmpop(int);
+int cmpneg(int);
 int clsmerge(short *, short);
 int phicls(int, Tmp *);
 Ref newtmp(char *, int, Fn *);
 void chuse(Ref, int, Fn *);
 Ref getcon(int64_t, Fn *);
 void addcon(Con *, Con *);
+void blit(Ref, uint, Ref, uint, Fn *);
 void dumpts(BSet *, Tmp *, FILE *);
 
 void bsinit(BSet *, uint);
@@ -559,7 +450,7 @@ bshas(BSet *bs, uint elt)
 }
 
 /* parse.c */
-extern OpDesc opdesc[NOp];
+extern Op optab[NOp];
 void parse(FILE *, char *, void (Dat *), void (Fn *));
 void printfn(Fn *, FILE *);
 void printref(Ref, Fn *, FILE *);
@@ -611,16 +502,6 @@ void fold(Fn *);
 void liveon(BSet *, Blk *, Blk *);
 void filllive(Fn *);
 
-/* abi: sysv.c */
-extern int rsave[/* NRSave */];
-extern int rclob[/* NRClob */];
-bits retregs(Ref, int[2]);
-bits argregs(Ref, int[2]);
-void abi(Fn *);
-
-/* isel.c */
-void isel(Fn *);
-
 /* spill.c */
 void fillcost(Fn *);
 void spill(Fn *);
@@ -628,10 +509,9 @@ void spill(Fn *);
 /* rega.c */
 void rega(Fn *);
 
-/* emit.c */
-extern char *locprefix;
-extern char *symprefix;
-void emitfn(Fn *, FILE *);
-void emitdat(Dat *, FILE *);
-int stashfp(int64_t, int);
-void emitfin(FILE *);
+/* gas.c */
+extern char *gasloc;
+extern char *gassym;
+void gasemitdat(Dat *, FILE *);
+int gasstashfp(int64_t, int);
+void gasemitfin(FILE *);

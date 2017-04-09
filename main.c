@@ -3,6 +3,18 @@
 #include <ctype.h>
 #include <getopt.h>
 
+Target T;
+
+extern Target T_amd64_sysv;
+
+static struct TMap {
+	char *name;
+	Target *T;
+} tmap[] = {
+	{ "amd64_sysv", &T_amd64_sysv },
+	{ 0, 0 }
+};
+
 enum Asm {
 	Gasmacho,
 	Gaself,
@@ -33,7 +45,7 @@ data(Dat *d)
 		fputs("/* end data */\n\n", outf);
 		freeall();
 	}
-	emitdat(d, outf);
+	gasemitdat(d, outf);
 }
 
 static void
@@ -62,10 +74,10 @@ func(Fn *fn)
 	copy(fn);
 	filluse(fn);
 	fold(fn);
-	abi(fn);
+	T.abi(fn);
 	fillpreds(fn);
 	filluse(fn);
-	isel(fn);
+	T.isel(fn);
 	fillrpo(fn);
 	filllive(fn);
 	fillcost(fn);
@@ -83,7 +95,7 @@ func(Fn *fn)
 		} else
 			fn->rpo[n]->link = fn->rpo[n+1];
 	if (!dbg) {
-		emitfn(fn, outf);
+		T.emitfn(fn, outf);
 		fprintf(outf, "/* end function %s */\n\n", fn->name);
 	} else
 		fprintf(stderr, "\n");
@@ -93,13 +105,15 @@ func(Fn *fn)
 int
 main(int ac, char *av[])
 {
-	FILE *inf;
-	char *f;
+	struct TMap *tm;
+	FILE *inf, *hf;
+	char *f, *sep;
 	int c, asm;
 
-	asm = Defaultasm;
+	asm = Defasm;
+	T = Deftgt;
 	outf = stdout;
-	while ((c = getopt(ac, av, "hd:o:G:")) != -1)
+	while ((c = getopt(ac, av, "hd:o:G:t:")) != -1)
 		switch (c) {
 		case 'd':
 			for (; *optarg; optarg++)
@@ -111,6 +125,18 @@ main(int ac, char *av[])
 		case 'o':
 			if (strcmp(optarg, "-") != 0)
 				outf = fopen(optarg, "w");
+			break;
+		case 't':
+			for (tm=tmap;; tm++) {
+				if (!tm->name) {
+					fprintf(stderr, "unknown target '%s'\n", optarg);
+					exit(1);
+				}
+				if (strcmp(optarg, tm->name) == 0) {
+					T = *tm->T;
+					break;
+				}
+			}
 			break;
 		case 'G':
 			if (strcmp(optarg, "e") == 0)
@@ -124,22 +150,28 @@ main(int ac, char *av[])
 			break;
 		case 'h':
 		default:
-			fprintf(stderr, "%s [OPTIONS] {file.ssa, -}\n", av[0]);
-			fprintf(stderr, "\t%-10s prints this help\n", "-h");
-			fprintf(stderr, "\t%-10s output to file\n", "-o file");
-			fprintf(stderr, "\t%-10s generate gas (e) or osx (m) asm\n", "-G {e,m}");
-			fprintf(stderr, "\t%-10s dump debug information\n", "-d <flags>");
+			hf = c != 'h' ? stderr : stdout;
+			fprintf(hf, "%s [OPTIONS] {file.ssa, -}\n", av[0]);
+			fprintf(hf, "\t%-11s prints this help\n", "-h");
+			fprintf(hf, "\t%-11s output to file\n", "-o file");
+			fprintf(hf, "\t%-11s generate for a target among:\n", "-t <target>");
+			fprintf(hf, "\t%-11s ", "");
+			for (tm=tmap, sep=""; tm->name; tm++, sep=", ")
+				fprintf(hf, "%s%s", sep, tm->name);
+			fprintf(hf, "\n");
+			fprintf(hf, "\t%-11s generate gas (e) or osx (m) asm\n", "-G {e,m}");
+			fprintf(hf, "\t%-11s dump debug information\n", "-d <flags>");
 			exit(c != 'h');
 		}
 
 	switch (asm) {
 	case Gaself:
-		locprefix = ".L";
-		symprefix = "";
+		gasloc = ".L";
+		gassym = "";
 		break;
 	case Gasmacho:
-		locprefix = "L";
-		symprefix = "_";
+		gasloc = "L";
+		gassym = "_";
 		break;
 	}
 
@@ -159,7 +191,7 @@ main(int ac, char *av[])
 	} while (++optind < ac);
 
 	if (!dbg)
-		emitfin(outf);
+		gasemitfin(outf);
 
 	exit(0);
 }

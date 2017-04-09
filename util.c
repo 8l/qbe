@@ -87,6 +87,36 @@ freeall()
 	nptr = 1;
 }
 
+int
+iscmp(int op, int *pk, int *pc)
+{
+	if (Ocmpw <= op && op <= Ocmpw1) {
+		*pc = op - Ocmpw;
+		*pk = Kw;
+	}
+	else if (Ocmpl <= op && op <= Ocmpl1) {
+		*pc = op - Ocmpl;
+		*pk = Kl;
+	}
+	else if (Ocmps <= op && op <= Ocmps1) {
+		*pc = NCmpI + op - Ocmps;
+		*pk = Ks;
+	}
+	else if (Ocmpd <= op && op <= Ocmpd1) {
+		*pc = NCmpI + op - Ocmpd;
+		*pk = Kd;
+	}
+	else
+		return 0;
+	return 1;
+}
+
+int
+argcls(Ins *i, int n)
+{
+	return optab[i->op].argcls[n][i->cls];
+}
+
 void
 emit(int op, int k, Ref to, Ref arg0, Ref arg1)
 {
@@ -163,6 +193,42 @@ vgrow(void *vp, ulong len)
 	memcpy(v1, v+1, v->cap * v->esz);
 	vfree(v+1);
 	*(Vec **)vp = v1;
+}
+
+static int cmptab[][2] ={
+	             /* negation    swap */
+	[Ciule]      = {Ciugt,      Ciuge},
+	[Ciult]      = {Ciuge,      Ciugt},
+	[Ciugt]      = {Ciule,      Ciult},
+	[Ciuge]      = {Ciult,      Ciule},
+	[Cisle]      = {Cisgt,      Cisge},
+	[Cislt]      = {Cisge,      Cisgt},
+	[Cisgt]      = {Cisle,      Cislt},
+	[Cisge]      = {Cislt,      Cisle},
+	[Cieq]       = {Cine,       Cieq},
+	[Cine]       = {Cieq,       Cine},
+	[NCmpI+Cfle] = {NCmpI+Cfgt, NCmpI+Cfge},
+	[NCmpI+Cflt] = {NCmpI+Cfge, NCmpI+Cfgt},
+	[NCmpI+Cfgt] = {NCmpI+Cfle, NCmpI+Cflt},
+	[NCmpI+Cfge] = {NCmpI+Cflt, NCmpI+Cfle},
+	[NCmpI+Cfeq] = {NCmpI+Cfne, NCmpI+Cfeq},
+	[NCmpI+Cfne] = {NCmpI+Cfeq, NCmpI+Cfne},
+	[NCmpI+Cfo]  = {NCmpI+Cfuo, NCmpI+Cfo},
+	[NCmpI+Cfuo] = {NCmpI+Cfo,  NCmpI+Cfuo},
+};
+
+int
+cmpneg(int c)
+{
+	assert(0 <= c && c < NCmp);
+	return cmptab[c][0];
+}
+
+int
+cmpop(int c)
+{
+	assert(0 <= c && c < NCmp);
+	return cmptab[c][1];
 }
 
 int
@@ -254,6 +320,30 @@ addcon(Con *c0, Con *c1)
 		}
 		c0->bits.i += c1->bits.i;
 	}
+}
+
+void
+blit(Ref rdst, uint doff, Ref rsrc, uint sz, Fn *fn)
+{
+	struct { int st, ld, cls, size; } *p, tbl[] = {
+		{ Ostorel, Oload,   Kl, 8 },
+		{ Ostorew, Oload,   Kw, 8 },
+		{ Ostoreh, Oloaduh, Kw, 2 },
+		{ Ostoreb, Oloadub, Kw, 1 }
+	};
+	Ref r, r1;
+	uint boff, s;
+
+	for (boff=0, p=tbl; sz; p++)
+		for (s=p->size; sz>=s; sz-=s, doff+=s, boff+=s) {
+			r = newtmp("blt", Kl, fn);
+			r1 = newtmp("blt", Kl, fn);
+			emit(p->st, 0, R, r, r1);
+			emit(Oadd, Kl, r1, rdst, getcon(doff, fn));
+			r1 = newtmp("blt", Kl, fn);
+			emit(p->ld, p->cls, r, r1, R);
+			emit(Oadd, Kl, r1, rsrc, getcon(boff, fn));
+		}
 }
 
 void

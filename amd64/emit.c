@@ -1,6 +1,25 @@
 #include "all.h"
 
-char *locprefix, *symprefix;
+
+#define CMP(X) \
+	X(Ciule,      "be") \
+	X(Ciult,      "b")  \
+	X(Cisle,      "le") \
+	X(Cislt,      "l")  \
+	X(Cisgt,      "g")  \
+	X(Cisge,      "ge") \
+	X(Ciugt,      "a")  \
+	X(Ciuge,      "ae") \
+	X(Cieq,       "z")  \
+	X(Cine,       "nz") \
+	X(NCmpI+Cfle, "be") \
+	X(NCmpI+Cflt, "b")  \
+	X(NCmpI+Cfgt, "a")  \
+	X(NCmpI+Cfge, "ae") \
+	X(NCmpI+Cfeq, "z")  \
+	X(NCmpI+Cfne, "nz") \
+	X(NCmpI+Cfo,  "np") \
+	X(NCmpI+Cfuo, "p")
 
 enum {
 	SLong = 0,
@@ -95,18 +114,10 @@ static struct {
 	{ Oxcmp,   Kd, "comisd %D0, %D1" },
 	{ Oxcmp,   Ki, "cmp%k %0, %1" },
 	{ Oxtest,  Ki, "test%k %0, %1" },
-	{ Oxset+ICule, Ki, "setbe %B=\n\tmovzb%k %B=, %=" },
-	{ Oxset+ICult, Ki, "setb %B=\n\tmovzb%k %B=, %=" },
-	{ Oxset+ICsle, Ki, "setle %B=\n\tmovzb%k %B=, %=" },
-	{ Oxset+ICslt, Ki, "setl %B=\n\tmovzb%k %B=, %=" },
-	{ Oxset+ICsgt, Ki, "setg %B=\n\tmovzb%k %B=, %=" },
-	{ Oxset+ICsge, Ki, "setge %B=\n\tmovzb%k %B=, %=" },
-	{ Oxset+ICugt, Ki, "seta %B=\n\tmovzb%k %B=, %=" },
-	{ Oxset+ICuge, Ki, "setae %B=\n\tmovzb%k %B=, %=" },
-	{ Oxset+ICeq,  Ki, "setz %B=\n\tmovzb%k %B=, %=" },
-	{ Oxset+ICne,  Ki, "setnz %B=\n\tmovzb%k %B=, %=" },
-	{ Oxset+ICxnp, Ki, "setnp %B=\n\tmovsb%k %B=, %=" },
-	{ Oxset+ICxp,  Ki, "setp %B=\n\tmovsb%k %B=, %=" },
+#define X(c, s) \
+	{ Oflag+c, Ki, "set" s " %B=\n\tmovzb%k %B=, %=" },
+	CMP(X)
+#undef X
 	{ NOp, 0, 0 }
 };
 
@@ -153,9 +164,9 @@ emitcon(Con *con, FILE *f)
 	switch (con->type) {
 	case CAddr:
 		if (con->local)
-			fprintf(f, "%s%s", locprefix, con->label);
+			fprintf(f, "%s%s", gasloc, con->label);
 		else
-			fprintf(f, "%s%s", symprefix, con->label);
+			fprintf(f, "%s%s", gassym, con->label);
 		if (con->bits.i)
 			fprintf(f, "%+"PRId64, con->bits.i);
 		break;
@@ -356,7 +367,8 @@ emitins(Ins i, Fn *fn, FILE *f)
 			/* this linear search should really be a binary
 			 * search */
 			if (omap[o].op == NOp)
-				die("no match for %s(%d)", opdesc[i.op].name, i.cls);
+				die("no match for %s(%d)",
+					optab[i.op].name, "wlsd"[i.cls]);
 			if (omap[o].op == i.op)
 			if (omap[o].cls == i.cls
 			|| (omap[o].cls == Ki && KBASE(i.cls) == 0)
@@ -453,54 +465,25 @@ emitins(Ins i, Fn *fn, FILE *f)
 }
 
 static int
-cneg(int cmp)
-{
-	switch (cmp) {
-	default:    die("invalid int comparison %d", cmp);
-	case ICule: return ICugt;
-	case ICult: return ICuge;
-	case ICsle: return ICsgt;
-	case ICslt: return ICsge;
-	case ICsgt: return ICsle;
-	case ICsge: return ICslt;
-	case ICugt: return ICule;
-	case ICuge: return ICult;
-	case ICeq:  return ICne;
-	case ICne:  return ICeq;
-	case ICxnp: return ICxp;
-	case ICxp:  return ICxnp;
-	}
-}
-
-static int
 framesz(Fn *fn)
 {
 	int i, o, f;
 
 	/* specific to NAlign == 3 */
-	for (i=0, o=0; i<NRClob; i++)
-		o ^= 1 & (fn->reg >> rclob[i]);
+	for (i=0, o=0; i<NCLR; i++)
+		o ^= 1 & (fn->reg >> amd64_sysv_rclob[i]);
 	f = fn->slot;
 	f = (f + 3) & -4;
 	return 4*f + 8*o + 176*fn->vararg;
 }
 
 void
-emitfn(Fn *fn, FILE *f)
+amd64_emitfn(Fn *fn, FILE *f)
 {
 	static char *ctoa[] = {
-		[ICeq]  = "z",
-		[ICule] = "be",
-		[ICult] = "b",
-		[ICsle] = "le",
-		[ICslt] = "l",
-		[ICsgt] = "g",
-		[ICsge] = "ge",
-		[ICugt] = "a",
-		[ICuge] = "ae",
-		[ICne]  = "nz",
-		[ICxnp] = "np",
-		[ICxp]  = "p"
+	#define X(c, s) [c] = s,
+		CMP(X)
+	#undef X
 	};
 	static int id0;
 	Blk *b, *s;
@@ -509,24 +492,24 @@ emitfn(Fn *fn, FILE *f)
 
 	fprintf(f, ".text\n");
 	if (fn->export)
-		fprintf(f, ".globl %s%s\n", symprefix, fn->name);
+		fprintf(f, ".globl %s%s\n", gassym, fn->name);
 	fprintf(f,
 		"%s%s:\n"
 		"\tpushq %%rbp\n"
 		"\tmovq %%rsp, %%rbp\n",
-		symprefix, fn->name
+		gassym, fn->name
 	);
 	fs = framesz(fn);
 	if (fs)
 		fprintf(f, "\tsub $%d, %%rsp\n", fs);
 	if (fn->vararg) {
 		o = -176;
-		for (r=rsave; r-rsave<6; ++r, o+=8)
+		for (r=amd64_sysv_rsave; r<&amd64_sysv_rsave[6]; r++, o+=8)
 			fprintf(f, "\tmovq %%%s, %d(%%rbp)\n", rname[*r][0], o);
 		for (n=0; n<8; ++n, o+=16)
 			fprintf(f, "\tmovaps %%xmm%d, %d(%%rbp)\n", n, o);
 	}
-	for (r=rclob; r-rclob < NRClob; r++)
+	for (r=amd64_sysv_rclob; r<&amd64_sysv_rclob[NCLR]; r++)
 		if (fn->reg & BIT(*r)) {
 			itmp.arg[0] = TMP(*r);
 			emitf("pushq %L0", &itmp, fn, f);
@@ -534,13 +517,13 @@ emitfn(Fn *fn, FILE *f)
 
 	for (lbl=0, b=fn->start; b; b=b->link) {
 		if (lbl || b->npred > 1)
-			fprintf(f, "%sbb%d:\n", locprefix, id0+b->id);
+			fprintf(f, "%sbb%d:\n", gasloc, id0+b->id);
 		for (i=b->ins; i!=&b->ins[b->nins]; i++)
 			emitins(*i, fn, f);
 		lbl = 1;
 		switch (b->jmp.type) {
 		case Jret0:
-			for (r=&rclob[NRClob]; r>rclob;)
+			for (r=&amd64_sysv_rclob[NCLR]; r>amd64_sysv_rclob;)
 				if (fn->reg & BIT(*--r)) {
 					itmp.arg[0] = TMP(*r);
 					emitf("popq %L0", &itmp, fn, f);
@@ -554,143 +537,25 @@ emitfn(Fn *fn, FILE *f)
 		Jmp:
 			if (b->s1 != b->link)
 				fprintf(f, "\tjmp %sbb%d\n",
-					locprefix, id0+b->s1->id);
+					gasloc, id0+b->s1->id);
 			else
 				lbl = 0;
 			break;
 		default:
-			c = b->jmp.type - Jxjc;
-			if (0 <= c && c <= NXICmp) {
+			c = b->jmp.type - Jjf;
+			if (0 <= c && c <= NCmp) {
 				if (b->link == b->s2) {
 					s = b->s1;
 					b->s1 = b->s2;
 					b->s2 = s;
 				} else
-					c = cneg(c);
+					c = cmpneg(c);
 				fprintf(f, "\tj%s %sbb%d\n", ctoa[c],
-					locprefix, id0+b->s2->id);
+					gasloc, id0+b->s2->id);
 				goto Jmp;
 			}
 			die("unhandled jump %d", b->jmp.type);
 		}
 	}
 	id0 += fn->nblk;
-}
-
-void
-emitdat(Dat *d, FILE *f)
-{
-	static int align;
-	static char *dtoa[] = {
-		[DAlign] = ".align",
-		[DB] = "\t.byte",
-		[DH] = "\t.value",
-		[DW] = "\t.long",
-		[DL] = "\t.quad"
-	};
-
-	switch (d->type) {
-	case DStart:
-		align = 0;
-		fprintf(f, ".data\n");
-		break;
-	case DEnd:
-		break;
-	case DName:
-		if (!align)
-			fprintf(f, ".align 8\n");
-		if (d->export)
-			fprintf(f, ".globl %s%s\n", symprefix, d->u.str);
-		fprintf(f, "%s%s:\n", symprefix, d->u.str);
-		break;
-	case DZ:
-		fprintf(f, "\t.fill %"PRId64",1,0\n", d->u.num);
-		break;
-	default:
-		if (d->type == DAlign)
-			align = 1;
-
-		if (d->isstr) {
-			if (d->type != DB)
-				err("strings only supported for 'b' currently");
-			fprintf(f, "\t.ascii \"%s\"\n", d->u.str);
-		}
-		else if (d->isref) {
-			fprintf(f, "%s %s%+"PRId64"\n",
-				dtoa[d->type], d->u.ref.nam,
-				d->u.ref.off);
-		}
-		else {
-			fprintf(f, "%s %"PRId64"\n",
-				dtoa[d->type], d->u.num);
-		}
-		break;
-	}
-}
-
-typedef struct FBits FBits;
-
-struct FBits {
-	union {
-		int64_t n;
-		float f;
-		double d;
-	} bits;
-	int wide;
-	FBits *link;
-};
-
-static FBits *stash;
-
-int
-stashfp(int64_t n, int w)
-{
-	FBits **pb, *b;
-	int i;
-
-	/* does a dumb de-dup of fp constants
-	 * this should be the linker's job */
-	for (pb=&stash, i=0; (b=*pb); pb=&b->link, i++)
-		if (n == b->bits.n && w == b->wide)
-			return i;
-	b = emalloc(sizeof *b);
-	b->bits.n = n;
-	b->wide = w;
-	b->link = 0;
-	*pb = b;
-	return i;
-}
-
-void
-emitfin(FILE *f)
-{
-	FBits *b;
-	int i;
-
-	if (!stash)
-		return;
-	fprintf(f, "/* floating point constants */\n");
-	fprintf(f, ".data\n.align 8\n");
-	for (b=stash, i=0; b; b=b->link, i++)
-		if (b->wide)
-			fprintf(f,
-				"%sfp%d:\n"
-				"\t.quad %"PRId64
-				" /* %f */\n",
-				locprefix, i, b->bits.n,
-				b->bits.d
-			);
-	for (b=stash, i=0; b; b=b->link, i++)
-		if (!b->wide)
-			fprintf(f,
-				"%sfp%d:\n"
-				"\t.long %"PRId64
-				" /* %lf */\n",
-				locprefix, i, b->bits.n & 0xffffffff,
-				b->bits.f
-			);
-	while ((b=stash)) {
-		stash = b->link;
-		free(b);
-	}
 }

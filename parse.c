@@ -4,91 +4,13 @@
 
 enum {
 	Ke = -2, /* Erroneous mode */
-	Km = Kl, /* Memory pointer (for x64) */
+	Km = Kl, /* Memory pointer */
 };
 
-OpDesc opdesc[NOp] = {
-#define A(a,b,c,d) {[Kw]=K##a, [Kl]=K##b, [Ks]=K##c, [Kd]=K##d}
-
-	/*            NAME       NM      ARGCLS0     ARGCLS1  SF LF FLD*/
-	[Oadd]    = { "add",      2, {A(w,l,s,d), A(w,l,s,d)}, 1, 0, 1 },
-	[Osub]    = { "sub",      2, {A(w,l,s,d), A(w,l,s,d)}, 1, 0, 1 },
-	[Odiv]    = { "div",      2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0, 1 },
-	[Orem]    = { "rem",      2, {A(w,l,e,e), A(w,l,e,e)}, 0, 0, 1 },
-	[Oudiv]   = { "udiv",     2, {A(w,l,e,e), A(w,l,e,e)}, 0, 0, 1 },
-	[Ourem]   = { "urem",     2, {A(w,l,e,e), A(w,l,e,e)}, 0, 0, 1 },
-	[Omul]    = { "mul",      2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0, 1 },
-	[Oand]    = { "and",      2, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 1 },
-	[Oor]     = { "or",       2, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 1 },
-	[Oxor]    = { "xor",      2, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 1 },
-	[Osar]    = { "sar",      1, {A(w,l,e,e), A(w,w,e,e)}, 1, 0, 1 },
-	[Oshr]    = { "shr",      1, {A(w,l,e,e), A(w,w,e,e)}, 1, 0, 1 },
-	[Oshl]    = { "shl",      1, {A(w,l,e,e), A(w,w,e,e)}, 1, 0, 1 },
-	[Ostored] = { "stored",   0, {A(d,e,e,e), A(m,e,e,e)}, 0, 1, 0 },
-	[Ostores] = { "stores",   0, {A(s,e,e,e), A(m,e,e,e)}, 0, 1, 0 },
-	[Ostorel] = { "storel",   0, {A(l,e,e,e), A(m,e,e,e)}, 0, 1, 0 },
-	[Ostorew] = { "storew",   0, {A(w,e,e,e), A(m,e,e,e)}, 0, 1, 0 },
-	[Ostoreh] = { "storeh",   0, {A(w,e,e,e), A(m,e,e,e)}, 0, 1, 0 },
-	[Ostoreb] = { "storeb",   0, {A(w,e,e,e), A(m,e,e,e)}, 0, 1, 0 },
-	[Oload]   = { "load",     0, {A(m,m,m,m), A(x,x,x,x)}, 0, 1, 0 },
-	[Oloadsw] = { "loadsw",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
-	[Oloaduw] = { "loaduw",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
-	[Oloadsh] = { "loadsh",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
-	[Oloaduh] = { "loaduh",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
-	[Oloadsb] = { "loadsb",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
-	[Oloadub] = { "loadub",   0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
-	[Oextsw]  = { "extsw",    0, {A(e,w,e,e), A(e,x,e,e)}, 0, 1, 1 },
-	[Oextuw]  = { "extuw",    0, {A(e,w,e,e), A(e,x,e,e)}, 0, 1, 1 },
-	[Oextsh]  = { "extsh",    0, {A(w,w,e,e), A(x,x,e,e)}, 0, 1, 1 },
-	[Oextuh]  = { "extuh",    0, {A(w,w,e,e), A(x,x,e,e)}, 0, 1, 1 },
-	[Oextsb]  = { "extsb",    0, {A(w,w,e,e), A(x,x,e,e)}, 0, 1, 1 },
-	[Oextub]  = { "extub",    0, {A(w,w,e,e), A(x,x,e,e)}, 0, 1, 1 },
-	[Oexts]   = { "exts",     0, {A(e,e,e,s), A(e,e,e,x)}, 0, 1, 1 },
-	[Otruncd] = { "truncd",   0, {A(e,e,d,e), A(e,e,x,e)}, 0, 1, 1 },
-	[Ostosi]  = { "stosi",    0, {A(s,s,e,e), A(x,x,e,e)}, 0, 1, 1 },
-	[Odtosi]  = { "dtosi",    0, {A(d,d,e,e), A(x,x,e,e)}, 0, 1, 1 },
-	[Oswtof]  = { "swtof",    0, {A(e,e,w,w), A(e,e,x,x)}, 0, 1, 1 },
-	[Osltof]  = { "sltof",    0, {A(e,e,l,l), A(e,e,x,x)}, 0, 1, 1 },
-	[Ocast]   = { "cast",     0, {A(s,d,w,l), A(x,x,x,x)}, 0, 1, 1 },
-	[Ocopy]   = { "copy",     1, {A(w,l,s,d), A(x,x,x,x)}, 0, 1, 0 },
-	[Onop]    = { "nop",      0, {A(x,x,x,x), A(x,x,x,x)}, 0, 1, 0 },
-	[Oswap]   = { "swap",     2, {A(w,l,s,d), A(w,l,s,d)}, 0, 0, 0 },
-	[Osign]   = { "sign",     0, {A(w,l,e,e), A(x,x,e,e)}, 0, 0, 0 },
-	[Osalloc] = { "salloc",   0, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
-	[Oxidiv]  = { "xidiv",    1, {A(w,l,e,e), A(x,x,e,e)}, 0, 0, 0 },
-	[Oxdiv]   = { "xdiv",     1, {A(w,l,e,e), A(x,x,e,e)}, 0, 0, 0 },
-	[Oxcmp]   = { "xcmp",     1, {A(w,l,s,d), A(w,l,s,d)}, 1, 0, 0 },
-	[Oxtest]  = { "xtest",    1, {A(w,l,e,e), A(w,l,e,e)}, 1, 0, 0 },
-	[Oaddr]   = { "addr",     0, {A(m,m,e,e), A(x,x,e,e)}, 0, 1, 0 },
-	[Opar]    = { "par",      0, {A(x,x,x,x), A(x,x,x,x)}, 0, 0, 0 },
-	[Opare]   = { "pare",     0, {A(x,x,x,x), A(x,x,x,x)}, 0, 0, 0 },
-	[Oparc]   = { "parc",     0, {A(e,x,e,e), A(e,x,e,e)}, 0, 0, 0 },
-	[Oarg]    = { "arg",      0, {A(w,l,s,d), A(x,x,x,x)}, 0, 0, 0 },
-	[Oarge]   = { "arge",     0, {A(w,l,s,d), A(x,x,x,x)}, 0, 0, 0 },
-	[Oargc]   = { "argc",     0, {A(e,x,e,e), A(e,l,e,e)}, 0, 0, 0 },
-	[Ocall]   = { "call",     0, {A(m,m,m,m), A(x,x,x,x)}, 0, 0, 0 },
-	[Ovacall] = { "vacall",   0, {A(m,m,m,m), A(x,x,x,x)}, 0, 0, 0 },
-	[Oxsetnp] = { "xsetnp",   0, {A(x,x,e,e), A(x,x,e,e)}, 0, 0, 0 },
-	[Oxsetp]  = { "xsetp",    0, {A(x,x,e,e), A(x,x,e,e)}, 0, 0, 0 },
-	[Oalloc]   = { "alloc4",  1, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
-	[Oalloc+1] = { "alloc8",  1, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
-	[Oalloc+2] = { "alloc16", 1, {A(e,l,e,e), A(e,x,e,e)}, 0, 0, 0 },
-	[Ovaarg]   = { "vaarg",   0, {A(m,m,m,m), A(x,x,x,x)}, 0, 0, 0 },
-	[Ovastart] = { "vastart", 0, {A(m,e,e,e), A(x,e,e,e)}, 0, 0, 0 },
-#define X(c) \
-	[Ocmpw+IC##c] = { "c"    #c "w", 0, {A(w,w,e,e), A(w,w,e,e)}, 1, 0, 1 }, \
-	[Ocmpl+IC##c] = { "c"    #c "l", 0, {A(l,l,e,e), A(l,l,e,e)}, 1, 0, 1 }, \
-	[Oxset+IC##c] = { "xset" #c,     0, {A(x,x,e,e), A(x,x,e,e)}, 0, 1, 0 },
-	ICMPS(X)
-#undef X
-#define X(c) \
-	[Ocmps+FC##c] = { "c"    #c "s", 0, {A(s,s,e,e), A(s,s,e,e)}, 1, 0, 1 }, \
-	[Ocmpd+FC##c] = { "c"    #c "d", 0, {A(d,d,e,e), A(d,d,e,e)}, 1, 0, 1 },
-	FCMPS(X)
-#undef X
-
+Op optab[NOp] = {
+#define O(op, t, cf) [O##op]={#op, t, cf},
+	#include "ops.h"
 };
-#undef A
 
 typedef enum {
 	PXXX,
@@ -242,8 +164,8 @@ lexinit()
 	if (done)
 		return;
 	for (i=0; i<NPubOp; ++i)
-		if (opdesc[i].name)
-			kwmap[i] = opdesc[i].name;
+		if (optab[i].name)
+			kwmap[i] = optab[i].name;
 	assert(Ntok <= CHAR_MAX);
 	for (i=0; i<Ntok; ++i)
 		if (kwmap[i]) {
@@ -810,26 +732,26 @@ typecheck(Fn *fn)
 		}
 		for (i=b->ins; i-b->ins < b->nins; i++)
 			for (n=0; n<2; n++) {
-				k = opdesc[i->op].argcls[n][i->cls];
+				k = optab[i->op].argcls[n][i->cls];
 				r = i->arg[n];
 				t = &fn->tmp[r.val];
 				if (k == Ke)
 					err("invalid instruction type in %s",
-						opdesc[i->op].name);
+						optab[i->op].name);
 				if (rtype(r) == RType)
 					continue;
 				if (rtype(r) != -1 && k == Kx)
 					err("no %s operand expected in %s",
 						n == 1 ? "second" : "first",
-						opdesc[i->op].name);
+						optab[i->op].name);
 				if (rtype(r) == -1 && k != Kx)
 					err("missing %s operand in %s",
 						n == 1 ? "second" : "first",
-						opdesc[i->op].name);
+						optab[i->op].name);
 				if (!usecheck(r, k, fn))
 					err("invalid type for %s operand %%%s in %s",
 						n == 1 ? "second" : "first",
-						t->name, opdesc[i->op].name);
+						t->name, optab[i->op].name);
 			}
 		r = b->jmp.arg;
 		if (isret(b->jmp.type)) {
@@ -866,7 +788,10 @@ parsefn(int export)
 	curf->tmp = vnew(curf->ntmp, sizeof curf->tmp[0], Pfn);
 	curf->con = vnew(curf->ncon, sizeof curf->con[0], Pfn);
 	for (i=0; i<Tmp0; ++i)
-		newtmp(0, i < XMM0 ? Kl : Kd, curf);
+		if (T.fpr0 <= i && i < T.fpr0 + T.nfpr)
+			newtmp(0, Kd, curf);
+		else
+			newtmp(0, Kl, curf);
 	curf->con[0].type = CBits;
 	curf->export = export;
 	blink = &curf->start;
@@ -1228,29 +1153,12 @@ printref(Ref r, Fn *fn, FILE *f)
 void
 printfn(Fn *fn, FILE *f)
 {
+	static char ktoc[] = "wlsd";
 	static char *jtoa[NJmp] = {
-		[Jret0]     = "ret",
-		[Jretw]     = "retw",
-		[Jretl]     = "retl",
-		[Jretc]     = "retc",
-		[Jrets]     = "rets",
-		[Jretd]     = "retd",
-		[Jjnz]      = "jnz",
-		[Jxjnp]     = "xjnp",
-		[Jxjp]      = "xjp",
-	#define X(c) [Jxjc+IC##c] = "xj" #c,
-		ICMPS(X)
+	#define X(j) [J##j] = #j,
+		JMPS(X)
 	#undef X
 	};
-	static char prcls[NOp] = {
-		[Oarg] = 1,
-		[Oswap] = 1,
-		[Oxcmp] = 1,
-		[Oxtest] = 1,
-		[Oxdiv] = 1,
-		[Oxidiv] = 1,
-	};
-	static char ktoc[] = "wlsd";
 	Blk *b;
 	Phi *p;
 	Ins *i;
@@ -1282,10 +1190,18 @@ printfn(Fn *fn, FILE *f)
 				printref(i->to, fn, f);
 				fprintf(f, " =%c ", ktoc[i->cls]);
 			}
-			assert(opdesc[i->op].name);
-			fprintf(f, "%s", opdesc[i->op].name);
-			if (req(i->to, R) && prcls[i->op])
-				fputc(ktoc[i->cls], f);
+			assert(optab[i->op].name);
+			fprintf(f, "%s", optab[i->op].name);
+			if (req(i->to, R))
+				switch (i->op) {
+				case Oarg:
+				case Oswap:
+				case Oxcmp:
+				case Oxtest:
+				case Oxdiv:
+				case Oxidiv:
+					fputc(ktoc[i->cls], f);
+				}
 			if (!req(i->arg[0], R)) {
 				fprintf(f, " ");
 				printref(i->arg[0], fn, f);

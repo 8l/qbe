@@ -104,31 +104,39 @@ Again:
 
 		memset(phi, 0, f->ntmp * sizeof phi[0]);
 		memset(nlv, 0, sizeof nlv);
-		b->out->t[0] |= RGLOB;
+		b->out->t[0] |= T.rglob;
 		bscopy(b->in, b->out);
 		for (t=0; bsiter(b->in, &t); t++) {
 			phifix(t, phi, f->tmp);
 			nlv[KBASE(f->tmp[t].cls)]++;
 		}
 		if (rtype(b->jmp.arg) == RCall) {
-			assert(bscount(b->in) == NRGlob && nlv[0] == NRGlob && nlv[1] == 0);
-			b->in->t[0] |= retregs(b->jmp.arg, nlv);
+			assert((int)bscount(b->in) == T.nrglob &&
+				nlv[0] == T.nrglob &&
+				nlv[1] == 0);
+			b->in->t[0] |= T.retregs(b->jmp.arg, nlv);
 		} else
 			bset(b->jmp.arg, b, nlv, phi, f->tmp);
 		for (k=0; k<2; k++)
 			b->nlive[k] = nlv[k];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			if ((--i)->op == Ocall && rtype(i->arg[1]) == RCall) {
-				b->in->t[0] &= ~retregs(i->arg[1], m);
-				for (k=0; k<2; k++)
+				b->in->t[0] &= ~T.retregs(i->arg[1], m);
+				for (k=0; k<2; k++) {
 					nlv[k] -= m[k];
-				if (nlv[0] + NISave > b->nlive[0])
-					b->nlive[0] = nlv[0] + NISave;
-				if (nlv[1] + NFSave > b->nlive[1])
-					b->nlive[1] = nlv[1] + NFSave;
-				b->in->t[0] |= argregs(i->arg[1], m);
-				for (k=0; k<2; k++)
+					/* caller-save registers are used
+					 * by the callee, in that sense,
+					 * right in the middle of the call,
+					 * they are live: */
+					nlv[k] += T.nrsave[k];
+					if (nlv[k] > b->nlive[k])
+						b->nlive[k] = nlv[k];
+				}
+				b->in->t[0] |= T.argregs(i->arg[1], m);
+				for (k=0; k<2; k++) {
+					nlv[k] -= T.nrsave[k];
 					nlv[k] += m[k];
+				}
 			}
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);

@@ -28,46 +28,6 @@ struct ANum {
 static void amatch(Addr *, Ref, ANum *, Fn *, int);
 
 static int
-fcmptoi(int fc)
-{
-	switch (fc) {
-	default:   die("invalid fp comparison %d", fc);
-	case FCle: return ICule;
-	case FClt: return ICult;
-	case FCgt: return ICugt;
-	case FCge: return ICuge;
-	case FCne: return ICne;
-	case FCeq: return ICeq;
-	case FCo:  return ICxnp;
-	case FCuo: return ICxp;
-	}
-}
-
-static int
-iscmp(int op, int *pk, int *pc)
-{
-	if (Ocmpw <= op && op <= Ocmpw1) {
-		*pc = op - Ocmpw;
-		*pk = Kw;
-	}
-	else if (Ocmpl <= op && op <= Ocmpl1) {
-		*pc = op - Ocmpl;
-		*pk = Kl;
-	}
-	else if (Ocmps <= op && op <= Ocmps1) {
-		*pc = fcmptoi(op - Ocmps);
-		*pk = Ks;
-	}
-	else if (Ocmpd <= op && op <= Ocmpd1) {
-		*pc = fcmptoi(op - Ocmpd);
-		*pk = Kd;
-	}
-	else
-		return 0;
-	return 1;
-}
-
-static int
 noimm(Ref r, Fn *fn)
 {
 	int64_t val;
@@ -98,14 +58,8 @@ rslot(Ref r, Fn *fn)
 	return fn->tmp[r.val].slot;
 }
 
-static int
-argcls(Ins *i, int n)
-{
-	return opdesc[i->op].argcls[n][i->cls];
-}
-
 static void
-fixarg(Ref *r, int k, int phi, Fn *fn)
+fixarg(Ref *r, int k, int cpy, Fn *fn)
 {
 	Addr a, *m;
 	Ref r0, r1;
@@ -123,11 +77,11 @@ fixarg(Ref *r, int k, int phi, Fn *fn)
 		memset(&a, 0, sizeof a);
 		a.offset.type = CAddr;
 		a.offset.local = 1;
-		n = stashfp(fn->con[r0.val].bits.i, KWIDE(k));
+		n = gasstashfp(fn->con[r0.val].bits.i, KWIDE(k));
 		sprintf(a.offset.label, "fp%d", n);
 		fn->mem[fn->nmem-1] = a;
 	}
-	else if (!phi && k == Kl && noimm(r0, fn)) {
+	else if (!cpy && k == Kl && noimm(r0, fn)) {
 		/* load constants that do not fit in
 		 * a 32bit signed integer into a
 		 * long temporary
@@ -251,7 +205,7 @@ sel(Ins i, ANum *an, Fn *fn)
 			r0 = i.arg[1];
 		if (fn->tmp[r0.val].slot != -1)
 			err("unlikely argument %%%s in %s",
-				fn->tmp[r0.val].name, opdesc[i.op].name);
+				fn->tmp[r0.val].name, optab[i.op].name);
 		if (i.op == Odiv || i.op == Orem) {
 			emit(Oxidiv, k, R, r0, R);
 			emit(Osign, k, TMP(RDX), TMP(RAX), R);
@@ -340,7 +294,7 @@ Emit:
 			emit(Oadd, Kl, r1, i.arg[0], getcon(15, fn));
 			if (fn->tmp[i.arg[0].val].slot != -1)
 				err("unlikely argument %%%s in %s",
-					fn->tmp[i.arg[0].val].name, opdesc[i.op].name);
+					fn->tmp[i.arg[0].val].name, optab[i.op].name);
 		}
 		break;
 	default:
@@ -349,13 +303,13 @@ Emit:
 		if (isload(i.op))
 			goto case_Oload;
 		if (iscmp(i.op, &kc, &x)) {
-			emit(Oxset+x, k, i.to, R, R);
+			emit(Oflag+x, k, i.to, R, R);
 			i1 = curi;
 			if (selcmp(i.arg, kc, fn))
-				i1->op = Oxset + icmpop(x);
+				i1->op = Oflag + cmpop(x);
 			break;
 		}
-		die("unknown instruction %s", opdesc[i.op].name);
+		die("unknown instruction %s", optab[i.op].name);
 	}
 
 	while (i0 > curi && --i0) {
@@ -369,9 +323,9 @@ flagi(Ins *i0, Ins *i)
 {
 	while (i>i0) {
 		i--;
-		if (opdesc[i->op].sflag)
+		if (amd64_op[i->op].zflag)
 			return i;
-		if (opdesc[i->op].lflag)
+		if (amd64_op[i->op].lflag)
 			continue;
 		return 0;
 	}
@@ -402,22 +356,22 @@ seljmp(Blk *b, Fn *fn)
 	fi = flagi(b->ins, &b->ins[b->nins]);
 	if (!fi || !req(fi->to, r)) {
 		selcmp((Ref[2]){r, CON_Z}, Kw, fn); /* todo, long jnz */
-		b->jmp.type = Jxjc + ICne;
+		b->jmp.type = Jjf + Cine;
 	}
 	else if (iscmp(fi->op, &k, &c)) {
 		if (t->nuse == 1) {
 			if (selcmp(fi->arg, k, fn))
-				c = icmpop(c);
+				c = cmpop(c);
 			*fi = (Ins){.op = Onop};
 		}
-		b->jmp.type = Jxjc + c;
+		b->jmp.type = Jjf + c;
 	}
 	else if (fi->op == Oand && t->nuse == 1
 	     && (rtype(fi->arg[0]) == RTmp ||
 	         rtype(fi->arg[1]) == RTmp)) {
 		fi->op = Oxtest;
 		fi->to = R;
-		b->jmp.type = Jxjc + ICne;
+		b->jmp.type = Jjf + Cine;
 		if (rtype(fi->arg[1]) == RCon) {
 			r = fi->arg[1];
 			fi->arg[1] = fi->arg[0];
@@ -431,7 +385,7 @@ seljmp(Blk *b, Fn *fn)
 		 */
 		if (t->nuse == 1)
 			emit(Ocopy, Kw, R, r, R);
-		b->jmp.type = Jxjc + ICne;
+		b->jmp.type = Jjf + Cine;
 	}
 }
 
@@ -593,7 +547,7 @@ amatch(Addr *a, Ref r, ANum *ai, Fn *fn, int top)
  * requires use counts (as given by parsing)
  */
 void
-isel(Fn *fn)
+amd64_isel(Fn *fn)
 {
 	Blk *b, **sb;
 	Ins *i;

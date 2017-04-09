@@ -8,8 +8,8 @@
 typedef struct RMap RMap;
 
 struct RMap {
-	int t[NIReg+NFReg];
-	int r[NIReg+NFReg];
+	int t[Tmp0];
+	int r[Tmp0];
 	BSet b[1];
 	int n;
 };
@@ -78,10 +78,12 @@ static void
 radd(RMap *m, int t, int r)
 {
 	assert((t >= Tmp0 || t == r) && "invalid temporary");
-	assert(((RAX <= r && r < RAX + NIReg) || (XMM0 <= r && r < XMM0 + NFReg)) && "invalid register");
+	assert(((T.gpr0 <= r && r < T.gpr0 + T.ngpr)
+		|| (T.fpr0 <= r && r < T.fpr0 + T.nfpr))
+		&& "invalid register");
 	assert(!bshas(m->b, t) && "temporary has mapping");
 	assert(!bshas(m->b, r) && "register already allocated");
-	assert(m->n <= NIReg+NFReg && "too many mappings");
+	assert(m->n <= T.ngpr+T.nfpr && "too many mappings");
 	bsset(m->b, t);
 	bsset(m->b, r);
 	m->t[m->n] = t;
@@ -110,11 +112,11 @@ ralloc(RMap *m, int t)
 		regs = tmp[phicls(t, tmp)].hint.m;
 		regs |= m->b->t[0];
 		if (KBASE(tmp[t].cls) == 0) {
-			r0 = RAX;
-			r1 = RAX + NIReg;
+			r0 = T.gpr0;
+			r1 = r0 + T.ngpr;
 		} else {
-			r0 = XMM0;
-			r1 = XMM0 + NFReg;
+			r0 = T.fpr0;
+			r1 = r0 + T.nfpr;
 		}
 		for (r=r0; r<r1; r++)
 			if (!(regs & BIT(r)))
@@ -135,7 +137,7 @@ rfree(RMap *m, int t)
 {
 	int i, r;
 
-	assert(t >= Tmp0 || !(BIT(t) & RGLOB));
+	assert(t >= Tmp0 || !(BIT(t) & T.rglob));
 	if (!bshas(m->b, t))
 		return -1;
 	for (i=0; m->t[i] != t; i++)
@@ -295,10 +297,10 @@ dopm(Blk *b, Ins *i, RMap *m)
 	} while (i != b->ins && regcpy(i-1));
 	assert(m0.n <= m->n);
 	if (i != b->ins && (i-1)->op == Ocall) {
-		def = retregs((i-1)->arg[1], 0);
-		for (r=0; r<NRSave; r++)
-			if (!(BIT(rsave[r]) & def))
-				move(rsave[r], R, m);
+		def = T.retregs((i-1)->arg[1], 0) | T.rglob;
+		for (r=0; T.rsave[r]>=0; r++)
+			if (!(BIT(T.rsave[r]) & def))
+				move(T.rsave[r], R, m);
 	}
 	for (npm=0, n=0; n<m->n; n++) {
 		t = m->t[n];
@@ -370,10 +372,10 @@ doblk(Blk *b, RMap *cur)
 	for (i=&b->ins[b->nins]; i!=b->ins;) {
 		switch ((--i)->op) {
 		case Ocall:
-			rs = argregs(i->arg[1], 0);
-			for (r=0; r<NRSave; r++)
-				if (!(BIT(rsave[r]) & rs))
-					rfree(cur, rsave[r]);
+			rs = T.argregs(i->arg[1], 0) | T.rglob;
+			for (r=0; T.rsave[r]>=0; r++)
+				if (!(BIT(T.rsave[r]) & rs))
+					rfree(cur, T.rsave[r]);
 			break;
 		case Ocopy:
 			if (isreg(i->arg[0])) {
@@ -388,7 +390,7 @@ doblk(Blk *b, RMap *cur)
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
 				r = i->to.val;
-				if (r >= Tmp0 || !(BIT(r) & RGLOB))
+				if (r >= Tmp0 || !(BIT(r) & T.rglob))
 					r = rfree(cur, r);
 				if (r == -1) {
 					assert(!isreg(i->to));
