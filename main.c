@@ -6,12 +6,14 @@
 Target T;
 
 extern Target T_amd64_sysv;
+extern Target T_arm64;
 
 static struct TMap {
 	char *name;
 	Target *T;
 } tmap[] = {
 	{ "amd64_sysv", &T_amd64_sysv },
+	{ "arm64", &T_arm64 },
 	{ 0, 0 }
 };
 
