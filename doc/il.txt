@@ -50,7 +50,7 @@ Usually, one file is generated per each compilation unit of
 the frontend input language.  An IL file is a sequence of
 <@ Definitions > for data, functions, and types.  Once
 processed by QBE, the resulting file can be assembled and
-linked using a standard toolchain (e.g. GNU binutils).
+linked using a standard toolchain (e.g., GNU binutils).
 
 Here is a complete "Hello World" IL file, it defines a
 function that prints to the screen.  Since the string is
@@ -123,11 +123,11 @@ and `d` (double), they stand respectively for 32-bit and
 64-bit integers, and 32-bit and 64-bit floating-point numbers.
 There are no pointer types available; pointers are typed
 by an integer type sufficiently wide to represent all memory
-addresses (e.g. `l` on x64).  Temporaries in the IL can only
-have a basic type.
+addresses (e.g., `l` on 64-bit architectures).  Temporaries
+in the IL can only have a basic type.
 
 Extended types contain base types plus `b` (byte) and `h`
-(half word), respectively for 8 bits and 16 bits integers.
+(half word), respectively for 8-bit and 16-bit integers.
 They are used in <@ Aggregate Types> and <@ Data> definitions.
 
 For C interfacing, the IL also provides user-defined aggregate
@@ -175,7 +175,7 @@ They are always parsed as 64-bit blobs.  Depending on
 the context surrounding a constant, only some of its
 bits are used.  For example, in the program below, the
 two variables defined have the same value since the first
-operand of the substraction is a word (32 bits) context.
+operand of the substraction is a word (32-bit) context.
 
     %x =w sub -1, 0
     %y =w sub 4294967295, 0
@@ -290,14 +290,14 @@ or zero-initialize big arrays.
 
 Here are various examples of data definitions.
 
-    # Three 32 bits values 1, 2, and 3
+    # Three 32-bit values 1, 2, and 3
     # followed by a 0 byte.
     data $a = { w 1 2 3, b 0 }
 
     # A thousand bytes 0 initialized.
     data $b = { z 1000 }
 
-    # An object containing two 64 bits
+    # An object containing two 64-bit
     # fields, one with all bits sets and the
     # other containing a pointer to the
     # object itself.
@@ -482,7 +482,7 @@ The following abbreviations are used.
   * `I` stands for `wl`
   * `F` stands for `sd`
   * `m` stands for the type of pointers on the target, on
-    x64 it is the same as `l`
+    64-bit architectures it is the same as `l`
 
 For example, consider the type string `wl(F)`, it mentions
 that the instruction has only one argument and that if the
@@ -654,7 +654,7 @@ returns 1 when the first argument is smaller than the second one.
 Conversion operations allow to change the representation of
 a value, possibly modifying it if the target type cannot hold
 the value of the source type.  Conversions can extend the
-precision of a temporary (e.g. from signed 8 bits to 32 bits),
+precision of a temporary (e.g., from signed 8-bit to 32-bit),
 or convert a floating point into an integer and vice versa.
 
   * `extsw`, `extuw` -- `l(w)`
@@ -720,7 +720,7 @@ The call instruction is special in many ways.  It is not
 a three-address instruction and requires the type of all
 its arguments to be given.  Also, the return type can be
 either a base type or an aggregate type.  These specificities
-are required to compile calls with C compatibility (i.e.
+are required to compile calls with C compatibility (i.e.,
 to respect the ABI).
 
 When an aggregate type is used as argument type or return
