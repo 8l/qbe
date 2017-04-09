@@ -69,6 +69,9 @@ clean-gen: clean
 check: $(OBJDIR)/$(BIN)
 	tools/test.sh all
 
+check-arm64: $(OBJDIR)/$(BIN)
+	TARGET=arm64 tools/test.sh all
+
 80:
 	@for F in $(SRCALL);                       \
 	do                                         \
@@ -79,4 +82,4 @@ check: $(OBJDIR)/$(BIN)
 		}" < $$F;                          \
 	done
 
-.PHONY: clean clean-gen check 80 install uninstall
+.PHONY: clean clean-gen check check-arm64 80 install uninstall

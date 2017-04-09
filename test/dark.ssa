@@ -1,3 +1,4 @@
+# skip arm64
 # a hack example,
 # we use a dark type to get
 # a pointer to the stack.

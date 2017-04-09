@@ -6,7 +6,7 @@ export function $qbeprint0(l %fmt, ...) {
 	storew 2122789, %fmtint
 	storew 2123557, %fmtdbl
 	storew 0, %emptys
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	%fmt1 =l add 1, %fmt
 	vastart %vp
 @loop
@@ -32,7 +32,7 @@ export function $qbeprint0(l %fmt, ...) {
 
 export function $qbecall0(l %fmt, ...) {
 @start
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	vastart %vp
 	call $vprintf(l %fmt, l %vp)
 	ret
@@ -46,7 +46,7 @@ export function $qbeprint1(w %argw0, l %fmt, ...) {
 	storew 2122789, %fmtint
 	storew 2123557, %fmtdbl
 	storew 0, %emptys
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	%fmt1 =l add 1, %fmt
 	vastart %vp
 @loop
@@ -72,7 +72,7 @@ export function $qbeprint1(w %argw0, l %fmt, ...) {
 
 export function $qbecall1(w %argw0, l %fmt, ...) {
 @start
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	vastart %vp
 	call $vprintf(l %fmt, l %vp)
 	ret
@@ -86,7 +86,7 @@ export function $qbeprint2(d %argd0, l %fmt, ...) {
 	storew 2122789, %fmtint
 	storew 2123557, %fmtdbl
 	storew 0, %emptys
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	%fmt1 =l add 1, %fmt
 	vastart %vp
 @loop
@@ -112,7 +112,7 @@ export function $qbeprint2(d %argd0, l %fmt, ...) {
 
 export function $qbecall2(d %argd0, l %fmt, ...) {
 @start
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	vastart %vp
 	call $vprintf(l %fmt, l %vp)
 	ret
@@ -126,7 +126,7 @@ export function $qbeprint3(w %argw0, w %argw1, w %argw2, w %argw3, l %fmt, ...) 
 	storew 2122789, %fmtint
 	storew 2123557, %fmtdbl
 	storew 0, %emptys
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	%fmt1 =l add 1, %fmt
 	vastart %vp
 @loop
@@ -152,7 +152,7 @@ export function $qbeprint3(w %argw0, w %argw1, w %argw2, w %argw3, l %fmt, ...) 
 
 export function $qbecall3(w %argw0, w %argw1, w %argw2, w %argw3, l %fmt, ...) {
 @start
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	vastart %vp
 	call $vprintf(l %fmt, l %vp)
 	ret
@@ -166,7 +166,7 @@ export function $qbeprint4(d %argd0, d %argd1, d %argd2, d %argd3, d %argd4, d %
 	storew 2122789, %fmtint
 	storew 2123557, %fmtdbl
 	storew 0, %emptys
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	%fmt1 =l add 1, %fmt
 	vastart %vp
 @loop
@@ -192,7 +192,7 @@ export function $qbeprint4(d %argd0, d %argd1, d %argd2, d %argd3, d %argd4, d %
 
 export function $qbecall4(d %argd0, d %argd1, d %argd2, d %argd3, d %argd4, d %argd5, l %fmt, ...) {
 @start
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	vastart %vp
 	call $vprintf(l %fmt, l %vp)
 	ret
@@ -206,7 +206,7 @@ export function $qbeprint5(w %argw0, w %argw1, w %argw2, w %argw3, w %argw4, d %
 	storew 2122789, %fmtint
 	storew 2123557, %fmtdbl
 	storew 0, %emptys
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	%fmt1 =l add 1, %fmt
 	vastart %vp
 @loop
@@ -232,7 +232,7 @@ export function $qbeprint5(w %argw0, w %argw1, w %argw2, w %argw3, w %argw4, d %
 
 export function $qbecall5(w %argw0, w %argw1, w %argw2, w %argw3, w %argw4, d %argd0, d %argd1, d %argd2, d %argd3, d %argd4, d %argd5, d %argd6, l %fmt, ...) {
 @start
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	vastart %vp
 	call $vprintf(l %fmt, l %vp)
 	ret
@@ -246,7 +246,7 @@ export function $qbeprint6(w %argw0, w %argw1, w %argw2, w %argw3, w %argw4, w %
 	storew 2122789, %fmtint
 	storew 2123557, %fmtdbl
 	storew 0, %emptys
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	%fmt1 =l add 1, %fmt
 	vastart %vp
 @loop
@@ -272,7 +272,7 @@ export function $qbeprint6(w %argw0, w %argw1, w %argw2, w %argw3, w %argw4, w %
 
 export function $qbecall6(w %argw0, w %argw1, w %argw2, w %argw3, w %argw4, w %argw5, w %argw6, w %argw7, w %argw8, w %argw9, d %argd0, d %argd1, d %argd2, d %argd3, d %argd4, d %argd5, d %argd6, d %argd7, d %argd8, d %argd9, l %fmt, ...) {
 @start
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	vastart %vp
 	call $vprintf(l %fmt, l %vp)
 	ret
