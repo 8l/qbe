@@ -42,7 +42,7 @@ init() {
 			cc="cc -nopie"
 			;;
 		*)
-			cc="cc"
+			cc="cc -no-pie"
 			;;
 		esac
 		;;
