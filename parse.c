@@ -960,9 +960,9 @@ parseseg(Seg *seg, Typ *ty, int t)
 		err(", or } expected");
 	seg[n].type = SEnd;
 	a = 1 << al;
-	sz = (sz + a - 1) & -a;
-	if (sz >= ty->size)
-		ty->size = sz;
+	if (sz < ty->size)
+		sz = ty->size;
+	ty->size = (sz + a - 1) & -a;
 	ty->align = al;
 }
 
