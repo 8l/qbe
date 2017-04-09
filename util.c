@@ -22,7 +22,7 @@ enum {
 	NPtr = 256,
 };
 
-Typ typ[NTyp];
+Typ *typ;
 Ins insb[NIns], *curi;
 
 static void *ptr[NPtr];

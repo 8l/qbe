@@ -128,7 +128,7 @@ static Blk **blink;
 static Blk *blkh[BMask+1];
 static int nblk;
 static int rcls;
-static int ntyp;
+static uint ntyp;
 
 void
 err(char *s, ...)
@@ -827,27 +827,27 @@ parsefn(int export)
 }
 
 static void
-parseseg(Seg *seg, Typ *ty, int t)
+parsefields(Field *fld, Typ *ty, int t)
 {
 	Typ *ty1;
 	int n, c, a, al, type;
-	size_t sz, s;
+	uint64_t sz, s;
 
 	n = 0;
 	sz = 0;
 	al = ty->align;
 	while (t != Trbrace) {
-		type = SInt;
+		ty1 = 0;
 		switch (t) {
 		default: err("invalid type member specifier");
-		case Td: type = SFlt;
-		case Tl: s = 8; a = 3; break;
-		case Ts: type = SFlt;
-		case Tw: s = 4; a = 2; break;
-		case Th: s = 2; a = 1; break;
-		case Tb: s = 1; a = 0; break;
+		case Td: type = Fd; s = 8; a = 3; break;
+		case Tl: type = Fl; s = 8; a = 3; break;
+		case Ts: type = Fs; s = 4; a = 2; break;
+		case Tw: type = Fw; s = 4; a = 2; break;
+		case Th: type = Fh; s = 2; a = 1; break;
+		case Tb: type = Fb; s = 1; a = 0; break;
 		case Ttyp:
-			type = STyp;
+			type = FTyp;
 			ty1 = &typ[findtyp(ntyp-1)];
 			s = ty1->size;
 			a = ty1->align;
@@ -855,12 +855,13 @@ parseseg(Seg *seg, Typ *ty, int t)
 		}
 		if (a > al)
 			al = a;
-		if ((a = sz & (s-1))) {
+		a = sz & (s-1);
+		if (a) {
 			a = s - a;
-			if (n < NSeg) {
-				/* padding segment */
-				seg[n].type = SPad;
-				seg[n].len = a;
+			if (n < NField) {
+				/* padding */
+				fld[n].type = FPad;
+				fld[n].len = a;
 				n++;
 			}
 		}
@@ -871,11 +872,11 @@ parseseg(Seg *seg, Typ *ty, int t)
 		} else
 			c = 1;
 		sz += a + c*s;
-		if (type == STyp)
+		if (type == FTyp)
 			s = ty1 - typ;
-		for (; c>0 && n<NSeg; c--, n++) {
-			seg[n].type = type;
-			seg[n].len = s;
+		for (; c>0 && n<NField; c--, n++) {
+			fld[n].type = type;
+			fld[n].len = s;
 		}
 		if (t != Tcomma)
 			break;
@@ -883,7 +884,7 @@ parseseg(Seg *seg, Typ *ty, int t)
 	}
 	if (t != Trbrace)
 		err(", or } expected");
-	seg[n].type = SEnd;
+	fld[n].type = FEnd;
 	a = 1 << al;
 	if (sz < ty->size)
 		sz = ty->size;
@@ -895,10 +896,14 @@ static void
 parsetyp()
 {
 	Typ *ty;
-	int t, n, al;
+	int t, al;
+	uint n;
 
-	if (ntyp >= NTyp)
-		err("too many type definitions");
+	/* be careful if extending the syntax
+	 * to handle nested types, any pointer
+	 * held to typ[] might be invalidated!
+	 */
+	vgrow(&typ, ntyp+1);
 	ty = &typ[ntyp++];
 	ty->dark = 0;
 	ty->align = -1;
@@ -928,17 +933,17 @@ parsetyp()
 		return;
 	}
 	n = 0;
-	ty->seg = vnew(1, sizeof ty->seg[0], Pheap);
+	ty->fields = vnew(1, sizeof ty->fields[0], Pheap);
 	if (t == Tlbrace)
 		do {
 			if (t != Tlbrace)
 				err("invalid union member");
-			vgrow(&ty->seg, n+1);
-			parseseg(ty->seg[n++], ty, nextnl());
+			vgrow(&ty->fields, n+1);
+			parsefields(ty->fields[n++], ty, nextnl());
 			t = nextnl();
 		} while (t != Trbrace);
 	else
-		parseseg(ty->seg[n++], ty, t);
+		parsefields(ty->fields[n++], ty, t);
 	ty->nunion = n;
 }
 
@@ -1049,6 +1054,7 @@ parse(FILE *f, char *path, void data(Dat *), void func(Fn *))
 	lnum = 1;
 	thead = Txxx;
 	ntyp = 0;
+	typ = vnew(0, sizeof typ[0], Pheap);
 	for (;;) {
 		export = 0;
 		switch (nextnl()) {

@@ -26,7 +26,7 @@ typedef struct Con Con;
 typedef struct Addr Mem;
 typedef struct Fn Fn;
 typedef struct Typ Typ;
-typedef struct Seg Seg;
+typedef struct Field Field;
 typedef struct Dat Dat;
 typedef struct Target Target;
 
@@ -35,8 +35,7 @@ enum {
 	NPred   = 63,
 	NIns    = 8192,
 	NAlign  = 3,
-	NSeg    = 32,
-	NTyp    = 128,
+	NField  = 32,
 	NBit    = CHAR_BIT * sizeof(bits),
 };
 
@@ -353,18 +352,22 @@ struct Typ {
 	char name[NString];
 	int dark;
 	int align;
-	size_t size;
-	int nunion;
-	struct Seg {
+	uint64_t size;
+	uint nunion;
+	struct Field {
 		enum {
-			SEnd,
-			SPad,
-			SInt,
-			SFlt,
-			STyp,
+			FEnd,
+			Fb,
+			Fh,
+			Fw,
+			Fl,
+			Fs,
+			Fd,
+			FPad,
+			FTyp,
 		} type;
-		uint len; /* index in typ[] for Styp */
-	} (*seg)[NSeg+1];
+		uint len; /* or index in typ[] for FTyp */
+	} (*fields)[NField+1];
 };
 
 struct Dat {
@@ -404,7 +407,7 @@ typedef enum {
 	Pfn, /* discarded after processing the function */
 } Pool;
 
-extern Typ typ[NTyp];
+extern Typ *typ;
 extern Ins insb[NIns], *curi;
 void die_(char *, char *, ...) __attribute__((noreturn));
 void *emalloc(size_t);

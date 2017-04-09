@@ -19,32 +19,37 @@ struct RAlloc {
 static void
 classify(AClass *a, Typ *t, int *pn, int *pe)
 {
-	Seg *seg;
-	int n, s, *cls;
+	Field *fld;
+	int s, *cls;
+	uint n;
 
 	for (n=0; n<t->nunion; n++) {
-		seg = t->seg[n];
+		fld = t->fields[n];
 		for (s=0; *pe<2; (*pe)++) {
 			cls = &a->cls[*pe];
 			for (; *pn<8; s++) {
-				switch (seg[s].type) {
-				case SEnd:
+				switch (fld[s].type) {
+				case FEnd:
 					goto Done;
-				case SPad:
+				case FPad:
 					/* don't change anything */
 					break;
-				case SFlt:
+				case Fs:
+				case Fd:
 					if (*cls == Kx)
 						*cls = Kd;
 					break;
-				case SInt:
+				case Fb:
+				case Fh:
+				case Fw:
+				case Fl:
 					*cls = Kl;
 					break;
-				case STyp:
-					classify(a, &typ[seg[s].len], pn, pe);
+				case FTyp:
+					classify(a, &typ[fld[s].len], pn, pe);
 					continue;
 				}
-				*pn += seg[s].len;
+				*pn += fld[s].len;
 			}
 		Done:
 			assert(*pn <= 8);
