@@ -10,7 +10,8 @@ getalias(Alias *a, Ref r, Fn *fn)
 		die("unreachable");
 	case RTmp:
 		*a = fn->tmp[r.val].alias;
-		a->type = a->slot->type;
+		if (astack(a->type))
+			a->type = a->slot->type;
 		assert(a->type != ABot);
 		break;
 	case RCon:
@@ -21,7 +22,7 @@ getalias(Alias *a, Ref r, Fn *fn)
 		} else
 			a->type = ACon;
 		a->offset = c->bits.i;
-		a->slot = a;
+		a->slot = 0;
 		break;
 	}
 }
@@ -37,7 +38,7 @@ alias(Ref p, int sp, Ref q, int sq, int *delta, Fn *fn)
 	*delta = ap.offset - aq.offset;
 	ovlap = ap.offset < aq.offset + sq && aq.offset < ap.offset + sp;
 
-	if (ap.type & aq.type & 1) {
+	if (astack(ap.type) && astack(aq.type)) {
 		/* if both are offsets of the same
 		 * stack slot, they alias iif they
 		 * overlap */
@@ -86,7 +87,7 @@ escapes(Ref r, Fn *fn)
 	if (rtype(r) != RTmp)
 		return 1;
 	a = &fn->tmp[r.val].alias;
-	return !(a->type & 1) || a->slot->type == AEsc;
+	return !astack(a->type) || a->slot->type == AEsc;
 }
 
 static void
@@ -97,7 +98,7 @@ esc(Ref r, Fn *fn)
 	assert(rtype(r) <= RType);
 	if (rtype(r) == RTmp) {
 		a = &fn->tmp[r.val].alias;
-		if (a->slot->type == ALoc)
+		if (astack(a->type))
 			a->slot->type = AEsc;
 	}
 }
@@ -120,7 +121,7 @@ fillalias(Fn *fn)
 			a->type = AUnk;
 			a->base = p->to;
 			a->offset = 0;
-			a->slot = a;
+			a->slot = 0;
 		}
 		for (i=b->ins; i<&b->ins[b->nins]; ++i) {
 			a = 0;
@@ -128,13 +129,15 @@ fillalias(Fn *fn)
 				assert(rtype(i->to) == RTmp);
 				a = &fn->tmp[i->to.val].alias;
 				assert(a->type == ABot);
-				if (Oalloc <= i->op && i->op <= Oalloc1)
+				if (Oalloc <= i->op && i->op <= Oalloc1) {
 					a->type = ALoc;
-				else
+					a->slot = a;
+				} else {
 					a->type = AUnk;
+					a->slot = 0;
+				}
 				a->base = i->to;
 				a->offset = 0;
-				a->slot = a;
 			}
 			if (i->op == Ocopy) {
 				assert(a);

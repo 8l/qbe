@@ -272,6 +272,7 @@ struct Alias {
 		AEsc = 3, /* stack escaping */
 		ASym = 4,
 		AUnk = 6,
+	#define astack(t) ((t) & 1)
 	} type;
 	Ref base;
 	char label[NString];
