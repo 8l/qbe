@@ -33,7 +33,7 @@ typedef struct Target Target;
 enum {
 	NString = 32,
 	NPred   = 63,
-	NIns    = 8192,
+	NIns    = 1 << 20,
 	NAlign  = 3,
 	NField  = 32,
 	NBit    = CHAR_BIT * sizeof(bits),
