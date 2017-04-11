@@ -17,51 +17,47 @@ struct RAlloc {
 };
 
 static void
-classify(AClass *a, Typ *t, int *pn, int *pe)
+classify(AClass *a, Typ *t, uint s)
 {
-	Field *fld;
-	int s, *cls;
-	uint n;
+	Field *f;
+	int *cls;
+	uint n, s1;
 
-	for (n=0; n<t->nunion; n++) {
-		fld = t->fields[n];
-		for (s=0; *pe<2; (*pe)++) {
-			cls = &a->cls[*pe];
-			for (; *pn<8; s++) {
-				switch (fld[s].type) {
-				case FEnd:
-					goto Done;
-				case FPad:
-					/* don't change anything */
-					break;
-				case Fs:
-				case Fd:
-					if (*cls == Kx)
-						*cls = Kd;
-					break;
-				case Fb:
-				case Fh:
-				case Fw:
-				case Fl:
-					*cls = Kl;
-					break;
-				case FTyp:
-					classify(a, &typ[fld[s].len], pn, pe);
-					continue;
-				}
-				*pn += fld[s].len;
+	for (n=0, s1=s; n<t->nunion; n++, s=s1)
+		for (f=t->fields[n]; f->type!=FEnd; f++) {
+			assert(s <= 16);
+			cls = &a->cls[s/8];
+			switch (f->type) {
+			case FEnd:
+				die("unreachable");
+			case FPad:
+				/* don't change anything */
+				s += f->len;
+				break;
+			case Fs:
+			case Fd:
+				if (*cls == Kx)
+					*cls = Kd;
+				s += f->len;
+				break;
+			case Fb:
+			case Fh:
+			case Fw:
+			case Fl:
+				*cls = Kl;
+				s += f->len;
+				break;
+			case FTyp:
+				classify(a, &typ[f->len], s);
+				s += typ[f->len].size;
+				break;
 			}
-		Done:
-			assert(*pn <= 8);
-			*pn = 0;
 		}
-	}
 }
 
 static void
 typclass(AClass *a, Typ *t)
 {
-	int e, n;
 	uint sz, al;
 
 	sz = t->size;
@@ -90,9 +86,7 @@ typclass(AClass *a, Typ *t)
 	a->cls[0] = Kx;
 	a->cls[1] = Kx;
 	a->inmem = 0;
-	n = 0;
-	e = 0;
-	classify(a, t, &n, &e);
+	classify(a, t, 0);
 }
 
 static int
