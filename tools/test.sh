@@ -41,6 +41,9 @@ init() {
 		*OpenBSD*)
 			cc="cc -nopie"
 			;;
+		*FreeBSD*)
+			cc="cc"
+			;;
 		*)
 			cc="cc -no-pie"
 			;;
