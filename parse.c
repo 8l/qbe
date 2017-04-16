@@ -450,16 +450,16 @@ parserefl(int arg)
 		if (curi - insb >= NIns)
 			err("too many instructions (1)");
 		env = peek() == Tenv;
-		if (env)
+		if (env) {
 			next();
-		k = parsecls(&ty);
+			k = Kl;
+		} else
+			k = parsecls(&ty);
 		r = parseref();
 		if (req(r, R))
 			err("invalid argument");
 		if (hasenv && env)
 			err("only one environment allowed");
-		if (env && k != Kl)
-			err("environment must be of type l");
 		if (!arg && rtype(r) != RTmp)
 			err("invalid function parameter");
 		if (k == 4)
