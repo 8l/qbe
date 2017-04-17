@@ -27,8 +27,9 @@
       * <@ Memory >
       * <@ Comparisons >
       * <@ Conversions >
-      * <@ Cast >
+      * <@ Cast and Copy >
       * <@ Call >
+      * <@ Variadic >
       * <@ Phi >
   7. <@ Instructions Index >
 
@@ -55,7 +56,8 @@ linked using a standard toolchain (e.g., GNU binutils).
 Here is a complete "Hello World" IL file, it defines a
 function that prints to the screen.  Since the string is
 not a first class object (only the pointer is) it is
-defined outside the function's body.
+defined outside the function's body.  Comments start with
+a # character and run until the end of the line.
 
     # Define the string constant.
     data $str = { b "hello world", b 0 }
@@ -175,7 +177,7 @@ They are always parsed as 64-bit blobs.  Depending on
 the context surrounding a constant, only some of its
 bits are used.  For example, in the program below, the
 two variables defined have the same value since the first
-operand of the substraction is a word (32-bit) context.
+operand of the subtraction is a word (32-bit) context.
 
     %x =w sub -1, 0
     %y =w sub 4294967295, 0
@@ -211,9 +213,9 @@ using the `export` keyword.
     `bnf
     TYPEDEF :=
         # Regular type
-        'type' :IDENT '=' [ 'align' NUMBER ]
+        'type' :IDENT '=' ['align' NUMBER]
         '{'
-            ( EXTTY [ NUMBER ] ),
+            ( EXTTY [NUMBER] ),
         '}'
       | # Opaque type
         'type' :IDENT '=' 'align' NUMBER '{' NUMBER '}'
@@ -258,9 +260,9 @@ their size between curly braces.
         '}'
 
     DATAITEM :=
-        $IDENT [ '+' NUMBER ]  # Symbol and offset
-      |  '"' ... '"'           # String
-      |  CONST                 # Constant
+        $IDENT ['+' NUMBER]  # Symbol and offset
+      |  '"' ... '"'         # String
+      |  CONST               # Constant
 
 Data definitions define objects that will be emitted in the
 compiled file.  They can be local to the file or exported
@@ -308,12 +310,17 @@ Here are various examples of data definitions.
 
     `bnf
     FUNCDEF :=
-        ['export'] 'function' [BASETY | :IDENT] $IDENT PARAMS
+        ['export'] 'function' [ABITY] $IDENT '(' (PARAM), ')'
         '{'
            BLOCK+
         '}'
 
-    PARAMS := '(' ( (BASETY | :IDENT) %IDENT ), ')'
+    PARAM :=
+        ABITY %IDENT  # Regular parameter
+      | 'env' %IDENT  # Environment parameter (first)
+      | '...'         # Variadic marker (last)
+
+    ABITY := BASETY | :IDENT
 
 Function definitions contain the actual code to emit in
 the compiled file.  They define a global symbol that
@@ -341,6 +348,31 @@ member of the struct.
             %val =w loadw %p
             ret %val
     }
+
+If the parameter list ends with `...`, the function is
+a variadic function: It can accept a variable number of
+arguments.  To access the extra arguments provided by
+the caller, use the `vastart` and `vaarg` instructions
+described in the <@ Variadic > section.
+
+Optionally, the parameter list can start with an
+environment parameter `env %e`.  This special parameter is
+a 64-bit integer temporary (i.e., of type `l`).  If the
+function does not use its environment parameter, callers
+can safely omit it.  This parameter is invisible to a C
+caller: for example, the function
+
+    export function w $add(env %e, w %a, w %b) {
+    @start
+            %c =w add %a, %b
+            ret %c
+    }
+
+must be given the C prototype `int add(int, int)`.
+The intended use of this feature is to pass the
+environment pointer of closures while retaining a
+very good compatibility with C.  The <@ Call > section
+explains how to pass an environment parameter.
 
 Since global symbols are defined mutually recursive,
 there is no need for function declarations: A function
@@ -405,7 +437,7 @@ to the loop block.
     JUMP :=
         'jmp' @IDENT               # Unconditional
       | 'jnz' VAL, @IDENT, @IDENT  # Conditional
-      | 'ret' [ VAL ]              # Return
+      | 'ret' [VAL]                # Return
 
 A jump instruction ends every block and transfers the
 control to another program location.  The target of
@@ -691,15 +723,17 @@ unsigned types are not yet supported.
 Because of <@ Subtyping >, there is no need to have an
 instruction to lower the precision of an integer temporary.
 
-~ Cast
-~~~~~~
+~ Cast and Copy
+~~~~~~~~~~~~~~~
 
-The `cast` instruction reinterprets the bits of a value of
-a given type into another type of the same width.
+The `cast` and `copy` instructions return the bits of their
+argument verbatim.  A `cast` will however change an integer
+into a floating point of the same width and vice versa.
 
   * `cast` -- `wlsd(sdwl)`
+  * `copy` -- `T(T)`
 
-It can be used to make bitwise operations on the
+Casts can be used to make bitwise operations on the
 representation of floating point numbers.  For example
 the following program will compute the opposite of the
 single-precision floating point number `%f` into `%rs`.
@@ -712,26 +746,88 @@ single-precision floating point number `%f` into `%rs`.
 ~~~~~~
 
     `bnf
-    CALL := [ %IDENT '=' ( BASETY | :IDENT ) ] 'call' VAL PARAMS
+    CALL := [%IDENT '=' ABITY] 'call' VAL '(' (ARG), ')'
 
-    PARAMS := '(' ( (BASETY | :IDENT) %IDENT ), ')'
+    ARG :=
+        ABITY %IDENT  # Regular argument
+      | 'env' VAL     # Environment argument (first)
+      | '...'         # Variadic marker (last)
+
+    ABITY := BASETY | :IDENT
 
 The call instruction is special in many ways.  It is not
 a three-address instruction and requires the type of all
 its arguments to be given.  Also, the return type can be
-either a base type or an aggregate type.  These specificities
+either a base type or an aggregate type.  These specifics
 are required to compile calls with C compatibility (i.e.,
 to respect the ABI).
 
 When an aggregate type is used as argument type or return
-type, the value repectively passed or returned needs to be
+type, the value respectively passed or returned needs to be
 a pointer to a memory location holding the value.  This is
 because aggregate types are not first-class citizens of
 the IL.
 
-Call instructions are currently required to define a return
-temporary, even for functions returning no values.  The
-temporary can very well be ignored (not used) when necessary.
+Unless the called function does not return a value, a
+return temporary must be specified, even if it is never
+used afterwards.
+
+An environment parameter can be passed as first argument
+using the `env` keyword.  The passed value must be a 64-bit
+integer.  If the called function does not expect an environment
+parameter, it will be safely discarded.  See the <@ Functions >
+section for more information about environment parameters.
+
+When the called function is variadic, the last argument
+must be `...`.
+
+~ Variadic
+~~~~~~~~~~
+
+The `vastart` and `vaarg` instructions provide a portable
+way to access the extra parameters of a variadic function.
+
+  * `vastart` -- `(m)`
+  * `vaarg` -- `T(mmmm)`
+
+The `vastart` instruction initializes a *variable argument
+list* used to access the extra parameters of the enclosing
+variadic function.  It is safe to call it multiple times.
+
+The `vaarg` instruction fetches the next argument from
+a variable argument list.  It is currently limited to
+fetching arguments that have a base type.  This instruction
+is essentially effectful: calling it twice in a row will
+return two consecutive arguments from the argument list.
+
+Both instructions take a pointer to a variable argument
+list as only argument.  The size and alignment of variable
+argument lists depend on the target used.  However, it
+is possible to conservatively use the maximum size and
+alignment required by all the targets.
+
+    type :valist = align 8 { 24 }  # For amd64_sysv
+    type :valist = align 8 { 32 }  # For arm64
+
+The following example defines a variadic function adding
+its first three arguments.
+
+    function s $add3(s %a, ...) {
+    @start
+            %ap =l alloc8 32
+            vastart %ap
+            %r =s call $vadd(s %a, l %ap)
+            ret %r
+    }
+
+    function s $vadd(s %a, l %ap) {
+    @start
+            %b =s vaarg %ap
+            %c =s vaarg %ap
+            %d =s add %a, %b
+            %e =s add %d, %c
+            ret %e
+    }
 
 ~ Phi
 ~~~~~
@@ -897,13 +993,19 @@ instructions unless you know exactly what you are doing.
       * `swtof`
       * `truncd`
 
-  * <@ Cast > :
+  * <@ Cast and Copy > :
 
       * `cast`
+      * `copy`
 
   * <@ Call >:
 
       * `call`
+
+  * <@ Variadic >:
+
+      * `vastart`
+      * `vaarg`
 
   * <@ Phi >:
 
