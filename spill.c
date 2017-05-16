@@ -68,13 +68,11 @@ fillcost(Fn *fn)
 	}
 	for (b=fn->start; b; b=b->link) {
 		for (p=b->phi; p; p=p->link) {
-			/* todo, the cost computation
-			 * for p->to is not great... */
+			t = &fn->tmp[p->to.val];
 			tmpuse(p->to, 0, 0, fn);
 			for (a=0; a<p->narg; a++) {
 				n = p->blk[a]->loop;
-				assert(b->npred==p->narg && "wrong cfg");
-				n /= b->npred;
+				t->cost += n;
 				tmpuse(p->arg[a], 1, n, fn);
 			}
 		}
