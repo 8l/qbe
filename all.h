@@ -288,8 +288,9 @@ struct Tmp {
 	short slot; /* -1 for unset */
 	short cls;
 	struct {
-		int r;
-		bits m;
+		int r;  /* register or -1 */
+		int w;  /* weight */
+		bits m; /* avoid these registers */
 	} hint;
 	int phi;
 	Alias alias;
