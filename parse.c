@@ -1068,6 +1068,7 @@ parse(FILE *f, char *path, void data(Dat *), void func(Fn *))
 			parsetyp();
 			break;
 		case Teof:
+			vfree(typ);
 			return;
 		}
 	}
