@@ -143,17 +143,6 @@ err(char *s, ...)
 	exit(1);
 }
 
-static inline uint32_t
-hash(char *s)
-{
-	uint32_t h;
-
-	h = 0;
-	for (; *s; ++s)
-		h = *s + 17*h;
-	return h;
-}
-
 static void
 lexinit()
 {
@@ -394,12 +383,12 @@ parseref()
 		goto Look;
 	case Tglo:
 		c.type = CAddr;
-		strcpy(c.label, tokval.str);
+		c.label = intern(tokval.str);
 	Look:
 		for (i=0; i<curf->ncon; i++)
 			if (curf->con[i].type == c.type
 			&& curf->con[i].bits.i == c.bits.i
-			&& strcmp(curf->con[i].label, c.label) == 0)
+			&& curf->con[i].label == c.label)
 				return CON(i);
 		vgrow(&curf->con, ++curf->ncon);
 		curf->con[i] = c;
@@ -1091,7 +1080,7 @@ printcon(Con *c, FILE *f)
 	case CUndef:
 		break;
 	case CAddr:
-		fprintf(f, "$%s", c->label);
+		fprintf(f, "$%s", str(c->label));
 		if (c->bits.i)
 			fprintf(f, "%+"PRIi64, c->bits.i);
 		break;

@@ -151,7 +151,7 @@ load(Slice sl, bits msk, Loc *l)
 			c = curf->ncon++;
 			vgrow(&curf->con, curf->ncon);
 			curf->con[c].type = CAddr;
-			strcpy(curf->con[c].label, a->label);
+			curf->con[c].label = a->label;
 			curf->con[c].bits.i = a->offset;
 			curf->con[c].local = 0;
 			r = CON(c);

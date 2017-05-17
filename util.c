@@ -3,6 +3,7 @@
 
 typedef struct Bitset Bitset;
 typedef struct Vec Vec;
+typedef struct Bucket Bucket;
 
 struct Vec {
 	ulong mag;
@@ -16,10 +17,17 @@ struct Vec {
 	} align[];
 };
 
+struct Bucket {
+	uint nstr;
+	char **str;
+};
+
 enum {
 	VMin = 2,
 	VMag = 0xcabba9e,
 	NPtr = 256,
+	IBits = 12,
+	IMask = (1<<IBits) - 1,
 };
 
 Typ *typ;
@@ -28,6 +36,18 @@ Ins insb[NIns], *curi;
 static void *ptr[NPtr];
 static void **pool = ptr;
 static int nptr = 1;
+
+static Bucket itbl[IMask+1]; /* string interning table */
+
+uint32_t
+hash(char *s)
+{
+	uint32_t h;
+
+	for (h=0; *s; ++s)
+		h = *s + 17*h;
+	return h;
+}
 
 void
 die_(char *file, char *s, ...)
@@ -85,6 +105,88 @@ freeall()
 		nptr = NPtr;
 	}
 	nptr = 1;
+}
+
+void *
+vnew(ulong len, size_t esz, Pool pool)
+{
+	void *(*f)(size_t);
+	ulong cap;
+	Vec *v;
+
+	for (cap=VMin; cap<len; cap*=2)
+		;
+	f = pool == Pheap ? emalloc : alloc;
+	v = f(cap * esz + sizeof(Vec));
+	v->mag = VMag;
+	v->cap = cap;
+	v->esz = esz;
+	v->pool = pool;
+	return v + 1;
+}
+
+void
+vfree(void *p)
+{
+	Vec *v;
+
+	v = (Vec *)p - 1;
+	assert(v->mag == VMag);
+	if (v->pool == Pheap) {
+		v->mag = 0;
+		free(v);
+	}
+}
+
+void
+vgrow(void *vp, ulong len)
+{
+	Vec *v;
+	void *v1;
+
+	v = *(Vec **)vp - 1;
+	assert(v+1 && v->mag == VMag);
+	if (v->cap >= len)
+		return;
+	v1 = vnew(len, v->esz, v->pool);
+	memcpy(v1, v+1, v->cap * v->esz);
+	vfree(v+1);
+	*(Vec **)vp = v1;
+}
+
+uint32_t
+intern(char *s)
+{
+	Bucket *b;
+	uint32_t h;
+	uint i, n;
+
+	h = hash(s) & IMask;
+	b = &itbl[h];
+	n = b->nstr;
+
+	for (i=0; i<n; i++)
+		if (strcmp(s, b->str[i]) == 0)
+			return h + (i<<IBits);
+
+	if (n == 1<<(32-IBits))
+		die("interning table overflow");
+	if (n == 0)
+		b->str = vnew(1, sizeof b->str[0], Pheap);
+	else if ((n & (n-1)) == 0)
+		vgrow(&b->str, n+n);
+
+	b->str[n] = emalloc(strlen(s)+1);
+	b->nstr = n + 1;
+	strcpy(b->str[n], s);
+	return h + (n<<IBits);
+}
+
+char *
+str(uint32_t id)
+{
+	assert(id>>IBits < itbl[id&IMask].nstr);
+	return itbl[id&IMask].str[id>>IBits];
 }
 
 int
@@ -146,53 +248,6 @@ icpy(Ins *d, Ins *s, ulong n)
 {
 	memcpy(d, s, n * sizeof(Ins));
 	return d + n;
-}
-
-void *
-vnew(ulong len, size_t esz, Pool pool)
-{
-	void *(*f)(size_t);
-	ulong cap;
-	Vec *v;
-
-	for (cap=VMin; cap<len; cap*=2)
-		;
-	f = pool == Pheap ? emalloc : alloc;
-	v = f(cap * esz + sizeof(Vec));
-	v->mag = VMag;
-	v->cap = cap;
-	v->esz = esz;
-	v->pool = pool;
-	return v + 1;
-}
-
-void
-vfree(void *p)
-{
-	Vec *v;
-
-	v = (Vec *)p - 1;
-	assert(v->mag == VMag);
-	if (v->pool == Pheap) {
-		v->mag = 0;
-		free(v);
-	}
-}
-
-void
-vgrow(void *vp, ulong len)
-{
-	Vec *v;
-	void *v1;
-
-	v = *(Vec **)vp - 1;
-	assert(v+1 && v->mag == VMag);
-	if (v->cap >= len)
-		return;
-	v1 = vnew(len, v->esz, v->pool);
-	memcpy(v1, v+1, v->cap * v->esz);
-	vfree(v+1);
-	*(Vec **)vp = v1;
 }
 
 static int cmptab[][2] ={
@@ -308,7 +363,7 @@ addcon(Con *c0, Con *c1)
 		if (c1->type == CAddr) {
 			assert(c0->type != CAddr && "adding two addresses");
 			c0->type = CAddr;
-			strcpy(c0->label, c1->label);
+			c0->label = c1->label;
 		}
 		c0->bits.i += c1->bits.i;
 	}

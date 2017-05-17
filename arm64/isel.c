@@ -69,6 +69,7 @@ Check:
 static void
 fixarg(Ref *pr, int k, int phi, Fn *fn)
 {
+	char buf[32];
 	Ref r0, r1, r2;
 	int s, n;
 	Con *c;
@@ -86,8 +87,9 @@ fixarg(Ref *pr, int k, int phi, Fn *fn)
 			n = gasstashfp(c->bits.i, KWIDE(k));
 			vgrow(&fn->con, ++fn->ncon);
 			c = &fn->con[fn->ncon-1];
+			sprintf(buf, "fp%d", n);
 			*c = (Con){.type = CAddr, .local = 1};
-			sprintf(c->label, "fp%d", n);
+			c->label = intern(buf);
 			r2 = newtmp("isel", Kl, fn);
 			emit(Oload, k, r1, r2, R);
 			emit(Ocopy, Kl, r2, CON(c-fn->con), R);

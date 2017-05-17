@@ -275,7 +275,7 @@ struct Alias {
 	#define astack(t) ((t) & 1)
 	} type;
 	Ref base;
-	char label[NString];
+	uint32_t label;
 	int64_t offset;
 	Alias *slot;
 };
@@ -312,7 +312,7 @@ struct Con {
 		CBits,
 		CAddr,
 	} type;
-	char label[NString];
+	uint32_t label;
 	union {
 		int64_t i;
 		double d;
@@ -411,19 +411,22 @@ typedef enum {
 
 extern Typ *typ;
 extern Ins insb[NIns], *curi;
+uint32_t hash(char *);
 void die_(char *, char *, ...) __attribute__((noreturn));
 void *emalloc(size_t);
 void *alloc(size_t);
 void freeall(void);
+void *vnew(ulong, size_t, Pool);
+void vfree(void *);
+void vgrow(void *, ulong);
+uint32_t intern(char *);
+char *str(uint32_t);
 int argcls(Ins *, int);
 int iscmp(int, int *, int *);
 void emit(int, int, Ref, Ref, Ref);
 void emiti(Ins);
 void idup(Ins **, Ins *, ulong);
 Ins *icpy(Ins *, Ins *, ulong);
-void *vnew(ulong, size_t, Pool);
-void vfree(void *);
-void vgrow(void *, ulong);
 int cmpop(int);
 int cmpneg(int);
 int clsmerge(short *, short);

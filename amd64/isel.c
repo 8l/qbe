@@ -61,6 +61,7 @@ rslot(Ref r, Fn *fn)
 static void
 fixarg(Ref *r, int k, int op, Fn *fn)
 {
+	char buf[32];
 	Addr a, *m;
 	Ref r0, r1;
 	int s, n, cpy, mem;
@@ -80,7 +81,8 @@ fixarg(Ref *r, int k, int op, Fn *fn)
 		a.offset.type = CAddr;
 		a.offset.local = 1;
 		n = gasstashfp(fn->con[r0.val].bits.i, KWIDE(k));
-		sprintf(a.offset.label, "fp%d", n);
+		sprintf(buf, "fp%d", n);
+		a.offset.label = intern(buf);
 		fn->mem[fn->nmem-1] = a;
 	}
 	else if (!cpy && k == Kl && noimm(r0, fn)) {

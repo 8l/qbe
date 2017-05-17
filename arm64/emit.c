@@ -244,9 +244,9 @@ loadcon(Con *c, int r, int k, FILE *f)
 			off[0] = 0;
 		p = c->local ? ".L" : "";
 		fprintf(f, "\tadrp\t%s, %s%s%s\n",
-			rn, p, c->label, off);
+			rn, p, str(c->label), off);
 		fprintf(f, "\tadd\t%s, %s, #:lo12:%s%s%s\n",
-			rn, rn, p, c->label, off);
+			rn, rn, p, str(c->label), off);
 		return;
 	}
 	assert(c->type == CBits);

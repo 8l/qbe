@@ -161,12 +161,12 @@ slot(int s, Fn *fn)
 static void
 emitcon(Con *con, FILE *f)
 {
+	char *p;
+
 	switch (con->type) {
 	case CAddr:
-		if (con->local)
-			fprintf(f, "%s%s", gasloc, con->label);
-		else
-			fprintf(f, "%s%s", gassym, con->label);
+		p = con->local ? gasloc : gassym;
+		fprintf(f, "%s%s", p, str(con->label));
 		if (con->bits.i)
 			fprintf(f, "%+"PRId64, con->bits.i);
 		break;

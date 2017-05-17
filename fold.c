@@ -333,8 +333,10 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 		double fd;
 	} l, r;
 	uint64_t x;
-	char *lab;
+	uint32_t lab;
+	int typ;
 
+	typ = CBits;
 	lab = 0;
 	l.s = cl->bits.i;
 	r.s = cr->bits.i;
@@ -343,15 +345,19 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 			if (cr->type == CAddr)
 				err("undefined addition (addr + addr)");
 			lab = cl->label;
+			typ = CAddr;
 		}
-		else if (cr->type == CAddr)
+		else if (cr->type == CAddr) {
 			lab = cr->label;
+			typ = CAddr;
+		}
 	}
 	else if (op == Osub) {
 		if (cl->type == CAddr) {
-			if (cr->type != CAddr)
+			if (cr->type != CAddr) {
 				lab = cl->label;
-			else if (strcmp(cl->label, cr->label) != 0)
+				typ = CAddr;
+			} else if (cl->label != cr->label)
 				err("undefined substraction (addr1 - addr2)");
 		}
 		else if (cr->type == CAddr)
@@ -386,8 +392,10 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 	case Odtosi: x = w ? (int64_t)cl->bits.d : (int32_t)cl->bits.d; break;
 	case Ocast:
 		x = l.u;
-		if (cl->type == CAddr)
+		if (cl->type == CAddr) {
 			lab = cl->label;
+			typ = CAddr;
+		}
 		break;
 	default:
 		if (Ocmpw <= op && op <= Ocmpl1) {
@@ -439,10 +447,7 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 		else
 			die("unreachable");
 	}
-	*res = (Con){lab ? CAddr : CBits, .bits={.i=x}};
-	res->bits.i = x;
-	if (lab)
-		strcpy(res->label, lab);
+	*res = (Con){.type=typ, .label=lab, .bits={.i=x}};
 	return 0;
 }
 
