@@ -54,34 +54,30 @@ gasemitdat(Dat *d, FILE *f)
 	}
 }
 
-typedef struct FBits FBits;
+typedef struct Asmbits Asmbits;
 
-struct FBits {
-	union {
-		int64_t n;
-		float f;
-		double d;
-	} bits;
-	int wide;
-	FBits *link;
+struct Asmbits {
+	char bits[16];
+	int size;
+	Asmbits *link;
 };
 
-static FBits *stash;
+static Asmbits *stash;
 
 int
-gasstashfp(int64_t n, int w)
+gasstash(void *bits, int size)
 {
-	FBits **pb, *b;
+	Asmbits **pb, *b;
 	int i;
 
-	/* does a dumb de-dup of fp constants
-	 * this should be the linker's job */
+	assert(size == 4 || size == 8 || size == 16);
 	for (pb=&stash, i=0; (b=*pb); pb=&b->link, i++)
-		if (n == b->bits.n && w == b->wide)
+		if (size <= b->size)
+		if (memcmp(bits, b->bits, size) == 0)
 			return i;
 	b = emalloc(sizeof *b);
-	b->bits.n = n;
-	b->wide = w;
+	memcpy(b->bits, bits, size);
+	b->size = size;
 	b->link = 0;
 	*pb = b;
 	return i;
@@ -90,31 +86,35 @@ gasstashfp(int64_t n, int w)
 void
 gasemitfin(FILE *f)
 {
-	FBits *b;
-	int i;
+	Asmbits *b;
+	char *p;
+	int sz, i;
+	double d;
 
 	if (!stash)
 		return;
-	fprintf(f, "/* floating point constants */\n");
-	fprintf(f, ".data\n.align 8\n");
-	for (b=stash, i=0; b; b=b->link, i++)
-		if (b->wide)
-			fprintf(f,
-				"%sfp%d:\n"
-				"\t.quad %"PRId64
-				" /* %f */\n",
-				gasloc, i, b->bits.n,
-				b->bits.d
-			);
-	for (b=stash, i=0; b; b=b->link, i++)
-		if (!b->wide)
-			fprintf(f,
-				"%sfp%d:\n"
-				"\t.long %"PRId64
-				" /* %lf */\n",
-				gasloc, i, b->bits.n & 0xffffffff,
-				b->bits.f
-			);
+	fprintf(f, "/* floating point constants */\n.data\n");
+	for (sz=16; sz>=4; sz/=2)
+		for (b=stash, i=0; b; b=b->link, i++) {
+			if (b->size == sz) {
+				fprintf(f,
+					".align %d\n"
+					"%sfp%d:",
+					sz, gasloc, i
+				);
+				for (p=b->bits; p<&b->bits[sz]; p+=4)
+					fprintf(f, "\n\t.int %"PRId32,
+						*(int32_t *)p);
+				if (sz <= 8) {
+					if (sz == 4)
+						d = *(float *)b->bits;
+					else
+						d = *(double *)b->bits;
+					fprintf(f, " /* %f */\n", d);
+				} else
+					fprintf(f, "\n");
+			}
+		}
 	while ((b=stash)) {
 		stash = b->link;
 		free(b);

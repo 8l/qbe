@@ -84,7 +84,7 @@ fixarg(Ref *pr, int k, int phi, Fn *fn)
 			emit(Ocopy, k, r1, r0, R);
 		} else {
 			c = &fn->con[r0.val];
-			n = gasstashfp(c->bits.i, KWIDE(k));
+			n = gasstash(&c->bits, KWIDE(k) ? 8 : 4);
 			vgrow(&fn->con, ++fn->ncon);
 			c = &fn->con[fn->ncon-1];
 			sprintf(buf, "fp%d", n);

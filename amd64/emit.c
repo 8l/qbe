@@ -350,6 +350,11 @@ Next:
 	goto Next;
 }
 
+static void *negmask[4] = {
+	[Ks] = (uint32_t[4]){ 0x80000000 },
+	[Kd] = (uint64_t[2]){ 0x8000000000000000 },
+};
+
 static void
 emitins(Ins i, Fn *fn, FILE *f)
 {
@@ -398,16 +403,25 @@ emitins(Ins i, Fn *fn, FILE *f)
 		goto Table;
 	case Osub:
 		/* we have to use the negation trick to handle
-		 * some 3-address substractions */
+		 * some 3-address subtractions */
 		if (req(i.to, i.arg[1])) {
-			emitf("neg%k %=", &i, fn, f);
+			if (KBASE(i.cls) == 0)
+				emitf("neg%k %=", &i, fn, f);
+			else
+				fprintf(f,
+					"\txorp%c %sfp%d(%%rip), %%%s\n",
+					"xxsd"[i.cls],
+					gasloc,
+					gasstash(negmask[i.cls], 16),
+					regtoa(i.to.val, SLong)
+				);
 			emitf("add%k %0, %=", &i, fn, f);
 			break;
 		}
 		goto Table;
 	case Odiv:
-		/* adjust the instruction when the conversion to
-		 * a 2-address division is impossible */
+		/* use xmm15 to adjust the instruction when the
+		 * conversion to 2-address in emitf() would fail */
 		if (req(i.to, i.arg[1])) {
 			i.arg[1] = TMP(XMM0+15);
 			emitf("mov%k %=, %1", &i, fn, f);

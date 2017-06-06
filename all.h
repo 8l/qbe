@@ -517,5 +517,5 @@ void rega(Fn *);
 extern char *gasloc;
 extern char *gassym;
 void gasemitdat(Dat *, FILE *);
-int gasstashfp(int64_t, int);
+int gasstash(void *, int);
 void gasemitfin(FILE *);
