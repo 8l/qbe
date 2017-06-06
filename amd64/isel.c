@@ -200,6 +200,8 @@ sel(Ins i, ANum *an, Fn *fn)
 	case Orem:
 	case Oudiv:
 	case Ourem:
+		if (KBASE(k) == 1)
+			goto Emit;
 		if (i.op == Odiv || i.op == Oudiv)
 			r0 = TMP(RAX), r1 = TMP(RDX);
 		else

@@ -405,6 +405,16 @@ emitins(Ins i, Fn *fn, FILE *f)
 			break;
 		}
 		goto Table;
+	case Odiv:
+		/* adjust the instruction when the conversion to
+		 * a 2-address division is impossible */
+		if (req(i.to, i.arg[1])) {
+			i.arg[1] = TMP(XMM0+15);
+			emitf("mov%k %=, %1", &i, fn, f);
+			emitf("mov%k %0, %=", &i, fn, f);
+			i.arg[0] = i.to;
+		}
+		goto Table;
 	case Ocopy:
 		/* make sure we don't emit useless copies,
 		 * also, we can use a trick to load 64-bits
