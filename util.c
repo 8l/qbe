@@ -190,6 +190,12 @@ str(uint32_t id)
 }
 
 int
+isreg(Ref r)
+{
+	return rtype(r) == RTmp && r.val < Tmp0;
+}
+
+int
 iscmp(int op, int *pk, int *pc)
 {
 	if (Ocmpw <= op && op <= Ocmpw1) {

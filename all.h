@@ -103,11 +103,6 @@ static inline int rtype(Ref r)
 	return r.type;
 }
 
-static inline int isreg(Ref r)
-{
-	return rtype(r) == RTmp && r.val < Tmp0;
-}
-
 enum CmpI {
 	Cieq,
 	Cine,
@@ -422,6 +417,7 @@ void vgrow(void *, ulong);
 uint32_t intern(char *);
 char *str(uint32_t);
 int argcls(Ins *, int);
+int isreg(Ref);
 int iscmp(int, int *, int *);
 void emit(int, int, Ref, Ref, Ref);
 void emiti(Ins);
