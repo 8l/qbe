@@ -3,6 +3,7 @@
 
 typedef struct Bitset Bitset;
 typedef struct Vec Vec;
+typedef struct Bucket Bucket;
 
 struct Vec {
 	ulong mag;
@@ -16,18 +17,37 @@ struct Vec {
 	} align[];
 };
 
+struct Bucket {
+	uint nstr;
+	char **str;
+};
+
 enum {
 	VMin = 2,
 	VMag = 0xcabba9e,
 	NPtr = 256,
+	IBits = 12,
+	IMask = (1<<IBits) - 1,
 };
 
-Typ typ[NTyp];
+Typ *typ;
 Ins insb[NIns], *curi;
 
 static void *ptr[NPtr];
 static void **pool = ptr;
 static int nptr = 1;
+
+static Bucket itbl[IMask+1]; /* string interning table */
+
+uint32_t
+hash(char *s)
+{
+	uint32_t h;
+
+	for (h=0; *s; ++s)
+		h = *s + 17*h;
+	return h;
+}
 
 void
 die_(char *file, char *s, ...)
@@ -87,37 +107,6 @@ freeall()
 	nptr = 1;
 }
 
-void
-emit(int op, int k, Ref to, Ref arg0, Ref arg1)
-{
-	if (curi == insb)
-		die("emit, too many instructions");
-	*--curi = (Ins){
-		.op = op, .cls = k,
-		.to = to, .arg = {arg0, arg1}
-	};
-}
-
-void
-emiti(Ins i)
-{
-	emit(i.op, i.cls, i.to, i.arg[0], i.arg[1]);
-}
-
-void
-idup(Ins **pd, Ins *s, ulong n)
-{
-	*pd = alloc(n * sizeof(Ins));
-	memcpy(*pd, s, n * sizeof(Ins));
-}
-
-Ins *
-icpy(Ins *d, Ins *s, ulong n)
-{
-	memcpy(d, s, n * sizeof(Ins));
-	return d + n;
-}
-
 void *
 vnew(ulong len, size_t esz, Pool pool)
 {
@@ -165,6 +154,144 @@ vgrow(void *vp, ulong len)
 	*(Vec **)vp = v1;
 }
 
+uint32_t
+intern(char *s)
+{
+	Bucket *b;
+	uint32_t h;
+	uint i, n;
+
+	h = hash(s) & IMask;
+	b = &itbl[h];
+	n = b->nstr;
+
+	for (i=0; i<n; i++)
+		if (strcmp(s, b->str[i]) == 0)
+			return h + (i<<IBits);
+
+	if (n == 1<<(32-IBits))
+		die("interning table overflow");
+	if (n == 0)
+		b->str = vnew(1, sizeof b->str[0], Pheap);
+	else if ((n & (n-1)) == 0)
+		vgrow(&b->str, n+n);
+
+	b->str[n] = emalloc(strlen(s)+1);
+	b->nstr = n + 1;
+	strcpy(b->str[n], s);
+	return h + (n<<IBits);
+}
+
+char *
+str(uint32_t id)
+{
+	assert(id>>IBits < itbl[id&IMask].nstr);
+	return itbl[id&IMask].str[id>>IBits];
+}
+
+int
+isreg(Ref r)
+{
+	return rtype(r) == RTmp && r.val < Tmp0;
+}
+
+int
+iscmp(int op, int *pk, int *pc)
+{
+	if (Ocmpw <= op && op <= Ocmpw1) {
+		*pc = op - Ocmpw;
+		*pk = Kw;
+	}
+	else if (Ocmpl <= op && op <= Ocmpl1) {
+		*pc = op - Ocmpl;
+		*pk = Kl;
+	}
+	else if (Ocmps <= op && op <= Ocmps1) {
+		*pc = NCmpI + op - Ocmps;
+		*pk = Ks;
+	}
+	else if (Ocmpd <= op && op <= Ocmpd1) {
+		*pc = NCmpI + op - Ocmpd;
+		*pk = Kd;
+	}
+	else
+		return 0;
+	return 1;
+}
+
+int
+argcls(Ins *i, int n)
+{
+	return optab[i->op].argcls[n][i->cls];
+}
+
+void
+emit(int op, int k, Ref to, Ref arg0, Ref arg1)
+{
+	if (curi == insb)
+		die("emit, too many instructions");
+	*--curi = (Ins){
+		.op = op, .cls = k,
+		.to = to, .arg = {arg0, arg1}
+	};
+}
+
+void
+emiti(Ins i)
+{
+	emit(i.op, i.cls, i.to, i.arg[0], i.arg[1]);
+}
+
+void
+idup(Ins **pd, Ins *s, ulong n)
+{
+	*pd = alloc(n * sizeof(Ins));
+	memcpy(*pd, s, n * sizeof(Ins));
+}
+
+Ins *
+icpy(Ins *d, Ins *s, ulong n)
+{
+	memcpy(d, s, n * sizeof(Ins));
+	return d + n;
+}
+
+static int cmptab[][2] ={
+	             /* negation    swap */
+	[Ciule]      = {Ciugt,      Ciuge},
+	[Ciult]      = {Ciuge,      Ciugt},
+	[Ciugt]      = {Ciule,      Ciult},
+	[Ciuge]      = {Ciult,      Ciule},
+	[Cisle]      = {Cisgt,      Cisge},
+	[Cislt]      = {Cisge,      Cisgt},
+	[Cisgt]      = {Cisle,      Cislt},
+	[Cisge]      = {Cislt,      Cisle},
+	[Cieq]       = {Cine,       Cieq},
+	[Cine]       = {Cieq,       Cine},
+	[NCmpI+Cfle] = {NCmpI+Cfgt, NCmpI+Cfge},
+	[NCmpI+Cflt] = {NCmpI+Cfge, NCmpI+Cfgt},
+	[NCmpI+Cfgt] = {NCmpI+Cfle, NCmpI+Cflt},
+	[NCmpI+Cfge] = {NCmpI+Cflt, NCmpI+Cfle},
+	[NCmpI+Cfeq] = {NCmpI+Cfne, NCmpI+Cfeq},
+	[NCmpI+Cfne] = {NCmpI+Cfeq, NCmpI+Cfne},
+	[NCmpI+Cfo]  = {NCmpI+Cfuo, NCmpI+Cfo},
+	[NCmpI+Cfuo] = {NCmpI+Cfo,  NCmpI+Cfuo},
+};
+
+int
+cmpneg(int c)
+{
+	assert(0 <= c && c < NCmp);
+	return cmptab[c][0];
+}
+
+int
+cmpop(int c)
+{
+	assert(0 <= c && c < NCmp);
+	return cmptab[c][1];
+}
+
 int
 clsmerge(short *pk, short k)
 {
@@ -183,24 +310,16 @@ clsmerge(short *pk, short k)
 }
 
 int
-phicls(int t, Tmp *tmp /*, int c*/)
+phicls(int t, Tmp *tmp)
 {
-	if (tmp[t].phi)
-		return tmp[t].phi;
-	return t;
-#if 0
 	int t1;
 
 	t1 = tmp[t].phi;
 	if (!t1)
-		t1 = t;
-	if (t != t1) {
-		t1 = phitmp(t1, tmp, c);
-		if (c)
-			tmp[t].phi = t1;
-	}
+		return t;
+	t1 = phicls(t1, tmp);
+	tmp[t].phi = t1;
 	return t1;
-#endif
 }
 
 Ref
@@ -250,10 +369,34 @@ addcon(Con *c0, Con *c1)
 		if (c1->type == CAddr) {
 			assert(c0->type != CAddr && "adding two addresses");
 			c0->type = CAddr;
-			strcpy(c0->label, c1->label);
+			c0->label = c1->label;
 		}
 		c0->bits.i += c1->bits.i;
 	}
+}
+
+void
+blit(Ref rdst, uint doff, Ref rsrc, uint sz, Fn *fn)
+{
+	struct { int st, ld, cls, size; } *p, tbl[] = {
+		{ Ostorel, Oload,   Kl, 8 },
+		{ Ostorew, Oload,   Kw, 8 },
+		{ Ostoreh, Oloaduh, Kw, 2 },
+		{ Ostoreb, Oloadub, Kw, 1 }
+	};
+	Ref r, r1;
+	uint boff, s;
+
+	for (boff=0, p=tbl; sz; p++)
+		for (s=p->size; sz>=s; sz-=s, doff+=s, boff+=s) {
+			r = newtmp("blt", Kl, fn);
+			r1 = newtmp("blt", Kl, fn);
+			emit(p->st, 0, R, r, r1);
+			emit(Oadd, Kl, r1, rdst, getcon(doff, fn));
+			r1 = newtmp("blt", Kl, fn);
+			emit(p->ld, p->cls, r, r1, R);
+			emit(Oadd, Kl, r1, rsrc, getcon(boff, fn));
+		}
 }
 
 void

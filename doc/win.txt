@@ -1,0 +1,23 @@
+                ===================
+                Windows Quick Start
+                ===================
+
+Only 64-bit versions of windows are supported.  To compile
+this software you will need to get a normal UNIX toolchain.
+There are several ways to get one, but I will only describe
+how I did it.
+
+ 1. Download and install [@1 MSYS2] (the x86_64 version).
+ 2. In an MSYS2 terminal, run the following command.
+
+        pacman -S git make mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb
+
+ 3. Restart the MSYS2 terminal.
+ 4. In the new terminal, clone QBE.
+
+        git clone git://c9x.me/qbe.git
+
+ 5. Compile using `make`.
+
+
+[1] http://www.msys2.org

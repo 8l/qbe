@@ -1,7 +1,7 @@
 export
 function d $f(l %x, ...) {
 @start
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	vastart %vp
 	%i =l vaarg %vp
 	%n =d vaarg %vp
@@ -11,7 +11,7 @@ function d $f(l %x, ...) {
 export
 function w $g(l %fmt, ...) {
 @start
-	%vp =l alloc8 24
+	%vp =l alloc8 32
 	vastart %vp
 	%r =w call $vprintf(l %fmt, l %vp)
 	ret %r

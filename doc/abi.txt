@@ -1,9 +1,9 @@
-                  ================
-                  System V ABI x64
-                  ================
+                 ==================
+                 System V ABI AMD64
+                 ==================
 
 
-This document describes concisely the subset of the x64
+This document describes concisely the subset of the amd64
 ABI as it is implemented in QBE.  The subset can handle
 correctly arbitrary standard C-like structs containing
 float and integer types.  Structs that have unaligned

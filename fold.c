@@ -100,7 +100,7 @@ visitins(Ins *i, Fn *fn)
 
 	if (rtype(i->to) != RTmp)
 		return;
-	if (opdesc[i->op].cfold) {
+	if (optab[i->op].canfold) {
 		l = latval(i->arg[0]);
 		if (!req(i->arg[1], R))
 			r = latval(i->arg[1]);
@@ -114,7 +114,7 @@ visitins(Ins *i, Fn *fn)
 			v = opfold(i->op, i->cls, &fn->con[l], &fn->con[r], fn);
 	} else
 		v = Bot;
-	/* fprintf(stderr, "\nvisiting %s (%p)", opdesc[i->op].name, (void *)i); */
+	/* fprintf(stderr, "\nvisiting %s (%p)", optab[i->op].name, (void *)i); */
 	update(i->to.val, v, fn);
 }
 
@@ -333,8 +333,10 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 		double fd;
 	} l, r;
 	uint64_t x;
-	char *lab;
+	uint32_t lab;
+	int typ;
 
+	typ = CBits;
 	lab = 0;
 	l.s = cl->bits.i;
 	r.s = cr->bits.i;
@@ -343,15 +345,19 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 			if (cr->type == CAddr)
 				err("undefined addition (addr + addr)");
 			lab = cl->label;
+			typ = CAddr;
 		}
-		else if (cr->type == CAddr)
+		else if (cr->type == CAddr) {
 			lab = cr->label;
+			typ = CAddr;
+		}
 	}
 	else if (op == Osub) {
 		if (cl->type == CAddr) {
-			if (cr->type != CAddr)
+			if (cr->type != CAddr) {
 				lab = cl->label;
-			else if (strcmp(cl->label, cr->label) != 0)
+				typ = CAddr;
+			} else if (cl->label != cr->label)
 				err("undefined substraction (addr1 - addr2)");
 		}
 		else if (cr->type == CAddr)
@@ -360,7 +366,7 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 	else if (cl->type == CAddr || cr->type == CAddr) {
 		if (Ocmpl <= op && op <= Ocmpl1)
 			return 1;
-		err("invalid address operand for '%s'", opdesc[op].name);
+		err("invalid address operand for '%s'", optab[op].name);
 	}
 	switch (op) {
 	case Oadd:  x = l.u + r.u; break;
@@ -386,8 +392,10 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 	case Odtosi: x = w ? (int64_t)cl->bits.d : (int32_t)cl->bits.d; break;
 	case Ocast:
 		x = l.u;
-		if (cl->type == CAddr)
+		if (cl->type == CAddr) {
 			lab = cl->label;
+			typ = CAddr;
+		}
 		break;
 	default:
 		if (Ocmpw <= op && op <= Ocmpl1) {
@@ -397,52 +405,49 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 			} else
 				op -= Ocmpl - Ocmpw;
 			switch (op - Ocmpw) {
-			case ICule: x = l.u <= r.u; break;
-			case ICult: x = l.u < r.u;  break;
-			case ICsle: x = l.s <= r.s; break;
-			case ICslt: x = l.s < r.s;  break;
-			case ICsgt: x = l.s > r.s;  break;
-			case ICsge: x = l.s >= r.s; break;
-			case ICugt: x = l.u > r.u;  break;
-			case ICuge: x = l.u >= r.u; break;
-			case ICeq:  x = l.u == r.u; break;
-			case ICne:  x = l.u != r.u; break;
+			case Ciule: x = l.u <= r.u; break;
+			case Ciult: x = l.u < r.u;  break;
+			case Cisle: x = l.s <= r.s; break;
+			case Cislt: x = l.s < r.s;  break;
+			case Cisgt: x = l.s > r.s;  break;
+			case Cisge: x = l.s >= r.s; break;
+			case Ciugt: x = l.u > r.u;  break;
+			case Ciuge: x = l.u >= r.u; break;
+			case Cieq:  x = l.u == r.u; break;
+			case Cine:  x = l.u != r.u; break;
 			default: die("unreachable");
 			}
 		}
 		else if (Ocmps <= op && op <= Ocmps1) {
 			switch (op - Ocmps) {
-			case FCle: x = l.fs <= r.fs; break;
-			case FClt: x = l.fs < r.fs;  break;
-			case FCgt: x = l.fs > r.fs;  break;
-			case FCge: x = l.fs >= r.fs; break;
-			case FCne: x = l.fs != r.fs; break;
-			case FCeq: x = l.fs == r.fs; break;
-			case FCo: x = l.fs < r.fs || l.fs >= r.fs; break;
-			case FCuo: x = !(l.fs < r.fs || l.fs >= r.fs); break;
+			case Cfle: x = l.fs <= r.fs; break;
+			case Cflt: x = l.fs < r.fs;  break;
+			case Cfgt: x = l.fs > r.fs;  break;
+			case Cfge: x = l.fs >= r.fs; break;
+			case Cfne: x = l.fs != r.fs; break;
+			case Cfeq: x = l.fs == r.fs; break;
+			case Cfo: x = l.fs < r.fs || l.fs >= r.fs; break;
+			case Cfuo: x = !(l.fs < r.fs || l.fs >= r.fs); break;
 			default: die("unreachable");
 			}
 		}
 		else if (Ocmpd <= op && op <= Ocmpd1) {
 			switch (op - Ocmpd) {
-			case FCle: x = l.fd <= r.fd; break;
-			case FClt: x = l.fd < r.fd;  break;
-			case FCgt: x = l.fd > r.fd;  break;
-			case FCge: x = l.fd >= r.fd; break;
-			case FCne: x = l.fd != r.fd; break;
-			case FCeq: x = l.fd == r.fd; break;
-			case FCo: x = l.fd < r.fd || l.fd >= r.fd; break;
-			case FCuo: x = !(l.fd < r.fd || l.fd >= r.fd); break;
+			case Cfle: x = l.fd <= r.fd; break;
+			case Cflt: x = l.fd < r.fd;  break;
+			case Cfgt: x = l.fd > r.fd;  break;
+			case Cfge: x = l.fd >= r.fd; break;
+			case Cfne: x = l.fd != r.fd; break;
+			case Cfeq: x = l.fd == r.fd; break;
+			case Cfo: x = l.fd < r.fd || l.fd >= r.fd; break;
+			case Cfuo: x = !(l.fd < r.fd || l.fd >= r.fd); break;
 			default: die("unreachable");
 			}
 		}
 		else
 			die("unreachable");
 	}
-	*res = (Con){lab ? CAddr : CBits, .bits={.i=x}};
-	res->bits.i = x;
-	if (lab)
-		strcpy(res->label, lab);
+	*res = (Con){.type=typ, .label=lab, .bits={.i=x}};
 	return 0;
 }
 
@@ -453,7 +458,7 @@ foldflt(Con *res, int op, int w, Con *cl, Con *cr)
 	double xd, ld, rd;
 
 	if (cl->type != CBits || cr->type != CBits)
-		err("invalid address operand for '%s'", opdesc[op].name);
+		err("invalid address operand for '%s'", optab[op].name);
 	if (w)  {
 		ld = cl->bits.d;
 		rd = cr->bits.d;
@@ -495,7 +500,7 @@ opfold(int op, int cls, Con *cl, Con *cr, Fn *fn)
 
 	if ((op == Odiv || op == Oudiv
 	|| op == Orem || op == Ourem) && czero(cr, KWIDE(cls)))
-		err("null divisor in '%s'", opdesc[op].name);
+		err("null divisor in '%s'", optab[op].name);
 	if (cls == Kw || cls == Kl) {
 		if (foldint(&c, op, cls == Kl, cl, cr))
 			return Bot;

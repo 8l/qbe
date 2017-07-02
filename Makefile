@@ -1,13 +1,19 @@
 BIN = qbe
-ABI = sysv
 
 V = @
 OBJDIR = obj
 
-SRC = main.c util.c parse.c cfg.c mem.c ssa.c alias.c load.c copy.c fold.c live.c $(ABI).c isel.c spill.c rega.c emit.c
-OBJ = $(SRC:%.c=$(OBJDIR)/%.o)
+SRC      = main.c util.c parse.c cfg.c mem.c ssa.c alias.c load.c copy.c \
+           fold.c live.c spill.c rega.c gas.c
+AMD64SRC = amd64/targ.c amd64/sysv.c amd64/isel.c amd64/emit.c
+ARM64SRC = arm64/targ.c arm64/abi.c arm64/isel.c arm64/emit.c
+SRCALL   = $(SRC) $(AMD64SRC) $(ARM64SRC)
 
-CFLAGS += -Wall -Wextra -std=c99 -g -pedantic
+AMD64OBJ = $(AMD64SRC:%.c=$(OBJDIR)/%.o)
+ARM64OBJ = $(ARM64SRC:%.c=$(OBJDIR)/%.o)
+OBJ      = $(SRC:%.c=$(OBJDIR)/%.o) $(AMD64OBJ) $(ARM64OBJ)
+
+CFLAGS += -Wall -fPIC -Wextra -std=c99 -g -pedantic
 
 $(OBJDIR)/$(BIN): $(OBJ) $(OBJDIR)/timestamp
 	@test -z "$(V)" || echo "ld $@"
@@ -19,15 +25,32 @@ $(OBJDIR)/%.o: %.c $(OBJDIR)/timestamp
 
 $(OBJDIR)/timestamp:
 	@mkdir -p $(OBJDIR)
+	@mkdir -p $(OBJDIR)/amd64
+	@mkdir -p $(OBJDIR)/arm64
 	@touch $@
 
-$(OBJ): all.h
+$(OBJ): all.h ops.h
+$(AMD64OBJ): amd64/all.h
+$(ARM64OBJ): arm64/all.h
 obj/main.o: config.h
 
 config.h:
-	@case `uname` in                                 \
-	*Darwin*)  echo "#define Defaultasm Gasmacho" ;; \
-	*)         echo "#define Defaultasm Gaself" ;;   \
+	@case `uname` in                               \
+	*Darwin*)                                      \
+		echo "#define Defasm Gasmacho";        \
+		echo "#define Deftgt T_amd64_sysv";    \
+		;;                                     \
+	*)                                             \
+		echo "#define Defasm Gaself";          \
+		case `uname -m` in                     \
+		*aarch64*)                             \
+			echo "$define Deftgt T_arm64"; \
+			;;                             \
+		*)                                     \
+			echo "#define Deftgt T_amd64_sysv";\
+			;;                             \
+		esac                                   \
+		;;                                     \
 	esac > $@
 
 install: $(OBJDIR)/$(BIN)
@@ -44,10 +67,16 @@ clean-gen: clean
 	rm -f config.h
 
 check: $(OBJDIR)/$(BIN)
-	tools/unit.sh all
+	tools/test.sh all
+
+check-arm64: $(OBJDIR)/$(BIN)
+	TARGET=arm64 tools/test.sh all
+
+src:
+	@echo $(SRCALL)
 
 80:
-	@for F in $(SRC);                          \
+	@for F in $(SRCALL);                       \
 	do                                         \
 		awk "{                             \
 			gsub(/\\t/, \"        \"); \
@@ -56,4 +85,4 @@ check: $(OBJDIR)/$(BIN)
 		}" < $$F;                          \
 	done
 
-.PHONY: clean clean-gen check 80 install uninstall
+.PHONY: clean clean-gen check check-arm64 src 80 install uninstall

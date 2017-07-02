@@ -34,9 +34,9 @@ memopt(Fn *fn)
 			if (isstore(l->op))
 			if (req(i->to, l->arg[1]) && !req(i->to, l->arg[0]))
 			if (s == -1 || s == storesz(l))
-			if (k == -1 || k == opdesc[l->op].argcls[0][0]) {
+			if (k == -1 || k == optab[l->op].argcls[0][0]) {
 				s = storesz(l);
-				k = opdesc[l->op].argcls[0][0];
+				k = optab[l->op].argcls[0][0];
 				continue;
 			}
 			goto Skip;

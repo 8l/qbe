@@ -68,13 +68,11 @@ fillcost(Fn *fn)
 	}
 	for (b=fn->start; b; b=b->link) {
 		for (p=b->phi; p; p=p->link) {
-			/* todo, the cost computation
-			 * for p->to is not great... */
+			t = &fn->tmp[p->to.val];
 			tmpuse(p->to, 0, 0, fn);
 			for (a=0; a<p->narg; a++) {
 				n = p->blk[a]->loop;
-				assert(b->npred==p->narg && "wrong cfg");
-				n /= b->npred;
+				t->cost += n;
 				tmpuse(p->arg[a], 1, n, fn);
 			}
 		}
@@ -196,8 +194,8 @@ limit2(BSet *b1, int k1, int k2, BSet *fst)
 	bscopy(b2, b1);
 	bsinter(b1, mask[0]);
 	bsinter(b2, mask[1]);
-	limit(b1, NIReg - k1, fst);
-	limit(b2, NFReg - k2, fst);
+	limit(b1, T.ngpr - k1, fst);
+	limit(b2, T.nfpr - k2, fst);
 	bsunion(b1, b2);
 }
 
@@ -265,11 +263,11 @@ dopm(Blk *b, Ins *i, BSet *v)
 	} while (i != b->ins && regcpy(i-1));
 	bscopy(u, v);
 	if (i != b->ins && (i-1)->op == Ocall) {
-		v->t[0] &= ~retregs((i-1)->arg[1], 0);
-		limit2(v, NISave, NFSave, 0);
-		for (r=0, n=0; n<NRSave; n++)
-			r |= BIT(rsave[n]);
-		v->t[0] |= argregs((i-1)->arg[1], 0);
+		v->t[0] &= ~T.retregs((i-1)->arg[1], 0);
+		limit2(v, T.nrsave[0], T.nrsave[1], 0);
+		for (n=0, r=0; T.rsave[n]>=0; n++)
+			r |= BIT(T.rsave[n]);
+		v->t[0] |= T.argregs((i-1)->arg[1], 0);
 	} else {
 		limit2(v, 0, 0, 0);
 		r = v->t[0];
@@ -298,7 +296,8 @@ void
 spill(Fn *fn)
 {
 	Blk *b, *s1, *s2, *hd, **bp;
-	int j, n, l, t, k, lvarg[2];
+	int j, l, t, k, lvarg[2];
+	uint n;
 	BSet u[1], v[1], w[1];
 	Ins *i;
 	Phi *p;
@@ -317,9 +316,9 @@ spill(Fn *fn)
 	slot8 = 0;
 	for (t=0; t<ntmp; t++) {
 		k = 0;
-		if (t >= XMM0 && t < XMM0 + NFReg)
+		if (t >= T.fpr0 && t < T.fpr0 + T.nfpr)
 			k = 1;
-		else if (t >= Tmp0)
+		if (t >= Tmp0)
 			k = KBASE(tmp[t].cls);
 		bsset(mask[k], t);
 	}
@@ -340,20 +339,19 @@ spill(Fn *fn)
 		if (s2 && s2->id <= b->id)
 		if (!hd || s2->id >= hd->id)
 			hd = s2;
-		r = 0;
 		if (hd) {
 			/* back-edge */
 			bszero(v);
-			hd->gen->t[0] |= RGLOB; /* don't spill registers */
+			hd->gen->t[0] |= T.rglob; /* don't spill registers */
 			for (k=0; k<2; k++) {
-				n = k == 0 ? NIReg : NFReg;
+				n = k == 0 ? T.ngpr : T.nfpr;
 				bscopy(u, b->out);
 				bsinter(u, mask[k]);
 				bscopy(w, u);
 				bsinter(u, hd->gen);
 				bsdiff(w, hd->gen);
-				if ((int)bscount(u) < n) { /* fixme */
-					j = bscount(w);   /* live through */
+				if (bscount(u) < n) {
+					j = bscount(w); /* live through */
 					l = hd->nlive[k];
 					limit(w, n - (l - j), 0);
 					bsunion(u, w);
@@ -370,14 +368,18 @@ spill(Fn *fn)
 				bsunion(v, u);
 			}
 			limit2(v, 0, 0, w);
-		} else
+		} else {
 			bscopy(v, b->out);
+			if (rtype(b->jmp.arg) == RCall)
+				v->t[0] |= T.retregs(b->jmp.arg, 0);
+		}
 		for (t=Tmp0; bsiter(b->out, &t); t++)
 			if (!bshas(v, t))
 				slot(t);
 		bscopy(b->out, v);
 
 		/* 2. process the block instructions */
+		r = v->t[0];
 		curi = &insb[NIns];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			i--;
@@ -398,7 +400,7 @@ spill(Fn *fn)
 					bsset(w, t);
 				}
 			}
-			j = opdesc[i->op].nmem;
+			j = T.memargs(i->op);
 			for (n=0; n<2; n++)
 				if (rtype(i->arg[n]) == RMem)
 					j--;
@@ -445,11 +447,11 @@ spill(Fn *fn)
 				bsclr(v, t);
 			}
 			emiti(*i);
-			r = v->t[0] & (BIT(Tmp0)-1);
+			r = v->t[0]; /* Tmp0 is NBit */
 			if (r)
 				sethint(v, r);
 		}
-		assert(!(r & ~RGLOB) || b==fn->start);
+		assert(r == T.rglob || b == fn->start);
 
 		for (p=b->phi; p; p=p->link) {
 			assert(rtype(p->to) == RTmp);

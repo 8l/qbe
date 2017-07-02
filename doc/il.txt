@@ -27,8 +27,9 @@
       * <@ Memory >
       * <@ Comparisons >
       * <@ Conversions >
-      * <@ Cast >
+      * <@ Cast and Copy >
       * <@ Call >
+      * <@ Variadic >
       * <@ Phi >
   7. <@ Instructions Index >
 
@@ -45,17 +46,18 @@ to focus on language design issues.
 ~ Input Files
 ~~~~~~~~~~~~~
 
-The intermediate language is provided to QBE as text files.
-Usually, one file is generated per each compilation unit of
+The intermediate language is provided to QBE as text.
+Usually, one file is generated per each compilation unit from
 the frontend input language.  An IL file is a sequence of
 <@ Definitions > for data, functions, and types.  Once
 processed by QBE, the resulting file can be assembled and
-linked using a standard toolchain (e.g. GNU binutils).
+linked using a standard toolchain (e.g., GNU binutils).
 
-Here is a complete "Hello World" IL file, it defines a
+Here is a complete "Hello World" IL file which defines a
 function that prints to the screen.  Since the string is
 not a first class object (only the pointer is) it is
-defined outside the function's body.
+defined outside the function's body.  Comments start with
+a # character and finish with the end of the line.
 
     # Define the string constant.
     data $str = { b "hello world", b 0 }
@@ -68,7 +70,7 @@ defined outside the function's body.
     }
 
 If you have read the LLVM language reference, you might
-recognize the above example.  In comparison, QBE makes a
+recognize the example above.  In comparison, QBE makes a
 much lighter use of types and the syntax is terser.
 
 ~ BNF Notation
@@ -84,7 +86,7 @@ are listed below.
   * `( ... ),` designates a comma-separated list of the
     enclosed syntax;
   * `...*` and `...+` are used for arbitrary and
-    at-least-once repetition.
+    at-least-once repetition respectively.
 
 ~ Sigils
 ~~~~~~~~
@@ -92,14 +94,14 @@ are listed below.
 The intermediate language makes heavy use of sigils, all
 user-defined names are prefixed with a sigil.  This is
 to avoid keyword conflicts, and also to quickly spot the
-scope and kind of an identifier.
+scope and nature of identifiers.
 
  * `:` is for user-defined <@ Aggregate Types>
  * `$` is for globals (represented by a pointer)
  * `%` is for function-scope temporaries
  * `@` is for block labels
 
-In BNF syntax, we use `?IDENT` to designate an identifier
+In this BNF syntax, we use `?IDENT` to designate an identifier
 starting with the sigil `?`.
 
 - 2. Types
@@ -112,7 +114,7 @@ starting with the sigil `?`.
     BASETY := 'w' | 'l' | 's' | 'd'  # Base types
     EXTTY  := BASETY    | 'b' | 'h'  # Extended types
 
-The IL makes very minimal use of types.  By design, the types
+The IL makes minimal use of types.  By design, the types
 used are restricted to what is necessary for unambiguous
 compilation to machine code and C interfacing.  Unlike LLVM,
 QBE is not using types as a means to safety; they are only
@@ -123,11 +125,11 @@ and `d` (double), they stand respectively for 32-bit and
 64-bit integers, and 32-bit and 64-bit floating-point numbers.
 There are no pointer types available; pointers are typed
 by an integer type sufficiently wide to represent all memory
-addresses (e.g. `l` on x64).  Temporaries in the IL can only
-have a basic type.
+addresses (e.g., `l` on 64-bit architectures).  Temporaries
+in the IL can only have a basic type.
 
 Extended types contain base types plus `b` (byte) and `h`
-(half word), respectively for 8 bits and 16 bits integers.
+(half word), respectively for 8-bit and 16-bit integers.
 They are used in <@ Aggregate Types> and <@ Data> definitions.
 
 For C interfacing, the IL also provides user-defined aggregate
@@ -138,16 +140,16 @@ section.
 ~ Subtyping
 ~~~~~~~~~~~
 
-The IL has a minimal subtyping feature for integer types.
+The IL has a minimal subtyping feature, for integer types only.
 Any value of type `l` can be used in a `w` context.  In that
 case, only the 32 least significant bits of the word value
 are used.
 
-Make note that it is the inverse of the usual subtyping on
+Make note that it is the opposite of the usual subtyping on
 integers (in C, we can safely use an `int` where a `long`
 is expected).  A long value cannot be used in word context.
 The rationale is that a word can be signed or unsigned, so
-extending it to a long can be done in two ways, either
+extending it to a long could be done in two ways, either
 by zero-extension, or by sign-extension.
 
 - 3. Constants
@@ -175,16 +177,16 @@ They are always parsed as 64-bit blobs.  Depending on
 the context surrounding a constant, only some of its
 bits are used.  For example, in the program below, the
 two variables defined have the same value since the first
-operand of the substraction is a word (32 bits) context.
+operand of the subtraction is a word (32-bit) context.
 
     %x =w sub -1, 0
     %y =w sub 4294967295, 0
 
 Because specifying floating-point constants by their bits
 makes the code less readable, syntactic sugar is provided
-to express them.  Standard scientific notation is used with
-a prefix of `s_` for single and `d_` for double-precision
-numbers.  Once again, the following example defines twice
+to express them.  Standard scientific notation is prefixed
+with `s_` and `d_` for single and double precision numbers
+respectively. Once again, the following example defines twice
 the same double-precision constant.
 
     %x =d add d_0, d_-1
@@ -198,7 +200,7 @@ constants by the linker.
 ----------------
 
 Definitions are the essential components of an IL file.
-They can define three types of objects: Aggregate types,
+They can define three types of objects: aggregate types,
 data, and functions.  Aggregate types are never exported
 and do not compile to any code.  Data and function
 definitions have file scope and are mutually recursive
@@ -211,22 +213,22 @@ using the `export` keyword.
     `bnf
     TYPEDEF :=
         # Regular type
-        'type' :IDENT '=' [ 'align' NUMBER ]
+        'type' :IDENT '=' ['align' NUMBER]
         '{'
-            ( EXTTY [ NUMBER ] ),
+            ( EXTTY [NUMBER] ),
         '}'
       | # Opaque type
         'type' :IDENT '=' 'align' NUMBER '{' NUMBER '}'
 
 Aggregate type definitions start with the `type` keyword.
-They have file scope, but types must be defined before their
-first use.  The inner structure of a type is expressed by a
+They have file scope, but types must be defined before being
+referenced.  The inner structure of a type is expressed by a
 comma-separated list of <@ Simple Types> enclosed in curly
 braces.
 
     type :fourfloats = { s, s, d, d }
 
-For ease of generation, a trailing comma is tolerated by
+For ease of IL generation, a trailing comma is tolerated by
 the parser.  In case many items of the same type are
 sequenced (like in a C array), the shorter array syntax
 can be used.
@@ -241,7 +243,7 @@ explicitly specified by the programmer.
 
 Opaque types are used when the inner structure of an
 aggregate cannot be specified; the alignment for opaque
-types is mandatory.  They are defined by simply enclosing
+types is mandatory.  They are defined simply by enclosing
 their size between curly braces.
 
     type :opaque = align 16 { 32 }
@@ -258,11 +260,11 @@ their size between curly braces.
         '}'
 
     DATAITEM :=
-        $IDENT [ '+' NUMBER ]  # Symbol and offset
-      |  '"' ... '"'           # String
-      |  CONST                 # Constant
+        $IDENT ['+' NUMBER]  # Symbol and offset
+      |  '"' ... '"'         # String
+      |  CONST               # Constant
 
-Data definitions define objects that will be emitted in the
+Data definitions express objects that will be emitted in the
 compiled file.  They can be local to the file or exported
 with global visibility to the whole program.
 
@@ -280,24 +282,24 @@ initialize multiple fields of the same size.
 The members of a struct will be packed.  This means that
 padding has to be emitted by the frontend when necessary.
 Alignment of the whole data objects can be manually specified,
-and when no alignment is provided, the maximum alignment of
+and when no alignment is provided, the maximum alignment from
 the platform is used.
 
 When the `z` letter is used the number following indicates
-the size of the field, the contents of the field are zero
+the size of the field; the contents of the field are zero
 initialized.  It can be used to add padding between fields
 or zero-initialize big arrays.
 
 Here are various examples of data definitions.
 
-    # Three 32 bits values 1, 2, and 3
+    # Three 32-bit values 1, 2, and 3
     # followed by a 0 byte.
     data $a = { w 1 2 3, b 0 }
 
     # A thousand bytes 0 initialized.
     data $b = { z 1000 }
 
-    # An object containing two 64 bits
+    # An object containing two 64-bit
     # fields, one with all bits sets and the
     # other containing a pointer to the
     # object itself.
@@ -308,29 +310,33 @@ Here are various examples of data definitions.
 
     `bnf
     FUNCDEF :=
-        ['export'] 'function' [BASETY | :IDENT] $IDENT PARAMS
+        ['export'] 'function' [ABITY] $IDENT '(' (PARAM), ')'
         '{'
            BLOCK+
         '}'
 
-    PARAMS := '(' ( (BASETY | :IDENT) %IDENT ), ')'
+    PARAM :=
+        ABITY %IDENT  # Regular parameter
+      | 'env' %IDENT  # Environment parameter (first)
+      | '...'         # Variadic marker (last)
+
+    ABITY := BASETY | :IDENT
 
 Function definitions contain the actual code to emit in
 the compiled file.  They define a global symbol that
 contains a pointer to the function code.  This pointer
-can be used in call instructions or stored in memory.
+can be used in `call` instructions or stored in memory.
 
 The type given right before the function name is the
 return type of the function.  All return values of this
-function must have the return type.  If the return
+function must have this return type.  If the return
 type is missing, the function cannot return any value.
 
 The parameter list is a comma separated list of
 temporary names prefixed by types.  The types are used
 to correctly implement C compatibility.  When an argument
-has an aggregate type, is is set on entry of the
-function to a pointer to the aggregate passed by the
-caller.  In the example below, we have to use a load
+has an aggregate type, a pointer to the aggregate is passed
+by the caller.  In the example below, we have to use a load
 instruction to get the value of the first (and only)
 member of the struct.
 
@@ -342,11 +348,36 @@ member of the struct.
             ret %val
     }
 
+If the parameter list ends with `...`, the function is
+a variadic function: it can accept a variable number of
+arguments.  To access the extra arguments provided by
+the caller, use the `vastart` and `vaarg` instructions
+described in the <@ Variadic > section.
+
+Optionally, the parameter list can start with an
+environment parameter `env %e`.  This special parameter is
+a 64-bit integer temporary (i.e., of type `l`).  If the
+function does not use its environment parameter, callers
+can safely omit it.  This parameter is invisible to a C
+caller: for example, the function
+
+    export function w $add(env %e, w %a, w %b) {
+    @start
+            %c =w add %a, %b
+            ret %c
+    }
+
+must be given the C prototype `int add(int, int)`.
+The intended use of this feature is to pass the
+environment pointer of closures while retaining a
+very good compatibility with C.  The <@ Call > section
+explains how to pass an environment parameter.
+
 Since global symbols are defined mutually recursive,
-there is no need for function declarations: A function
+there is no need for function declarations: a function
 can be referenced before its definition.
 Similarly, functions from other modules can be used
-without previous declarations.  All the type information
+without previous declaration.  All the type information
 is provided in the call instructions.
 
 The syntax and semantics for the body of functions
@@ -357,8 +388,8 @@ are described in the <@ Control > section.
 
 The IL represents programs as textual transcriptions of
 control flow graphs.  The control flow is serialized as
-a sequence of blocks of straight-line code and connected
-using jump instructions.
+a sequence of blocks of straight-line code which are
+connected using jump instructions.
 
 ~ Blocks
 ~~~~~~~~
@@ -374,12 +405,12 @@ All blocks have a name that is specified by a label at
 their beginning.  Then follows a sequence of instructions
 that have "fall-through" flow.  Finally one jump terminates
 the block.  The jump can either transfer control to another
-block of the same function or return, they are described
+block of the same function or return; they are described
 further below.
 
 The first block in a function must not be the target of
-any jump in the program.  If this need is encountered,
-the frontend can always insert an empty prelude block
+any jump in the program.  If this is really needed,
+the frontend could insert an empty prelude block
 at the beginning of the function.
 
 When one block jumps to the next block in the IL file,
@@ -405,7 +436,7 @@ to the loop block.
     JUMP :=
         'jmp' @IDENT               # Unconditional
       | 'jnz' VAL, @IDENT, @IDENT  # Conditional
-      | 'ret' [ VAL ]              # Return
+      | 'ret' [VAL]                # Return
 
 A jump instruction ends every block and transfers the
 control to another program location.  The target of
@@ -421,7 +452,7 @@ the following list.
 
     When its word argument is non-zero, it jumps to its
     first label argument; otherwise it jumps to the other
-    label.  The argument must be of word type, because of
+    label.  The argument must be of word type; because of
     subtyping a long argument can be passed, but only its
     least significant 32 bits will be compared to 0.
 
@@ -429,7 +460,7 @@ the following list.
 
     Terminates the execution of the current function,
     optionally returning a value to the caller.  The value
-    returned must have the type given in the function
+    returned must be of the type given in the function
     prototype.  If the function prototype does not specify
     a return type, no return value can be used.
 
@@ -466,12 +497,12 @@ This is made explicit by the instruction suffix.
 The types of instructions are described below using a short
 type string.  A type string specifies all the valid return
 types an instruction can have, its arity, and the type of
-its arguments in function of its return type.
+its arguments depending on its return type.
 
 Type strings begin with acceptable return types, then
 follows, in parentheses, the possible types for the arguments.
-If the n-th return type of the type string is used for an
-instruction, the arguments must use the n-th type listed for
+If the N-th return type of the type string is used for an
+instruction, the arguments must use the N-th type listed for
 them in the type string.  When an instruction does not have a
 return type, the type string only contains the types of the
 arguments.
@@ -481,8 +512,8 @@ The following abbreviations are used.
   * `T` stands for `wlsd`
   * `I` stands for `wl`
   * `F` stands for `sd`
-  * `m` stands for the type of pointers on the target, on
-    x64 it is the same as `l`
+  * `m` stands for the type of pointers on the target; on
+    64-bit architectures it is the same as `l`
 
 For example, consider the type string `wl(F)`, it mentions
 that the instruction has only one argument and that if the
@@ -508,7 +539,7 @@ towards zero.
 The signed and unsigned remainder operations are available
 as `rem` and `urem`.  The sign of the remainder is the same
 as the one of the dividend.  Its magnitude is smaller than
-the divisor's.  These two instructions and `udiv` are only
+the divisor one.  These two instructions and `udiv` are only
 available with integer arguments and result.
 
 Bitwise OR, AND, and XOR operations are available for both
@@ -516,8 +547,8 @@ integer types.  Logical operations of typical programming
 languages can be implemented using <@ Comparisons > and
 <@ Jumps >.
 
-Shift instructions `sar`, `shr`, and `shl` shift right or
-left their first operand by the amount in the second
+Shift instructions `sar`, `shr`, and `shl`, shift right or
+left their first operand by the amount from the second
 operand.  The shifting amount is taken modulo the size of
 the result type.  Shifting right can either preserve the
 sign of the value (using `sar`), or fill the newly freed
@@ -559,8 +590,8 @@ towards zero.
       * `loadsb`, `loadub` -- `I(mm)`
 
     For types smaller than long, two variants of the load
-    instruction is available: one will sign extend the value
-    loaded, while the other will zero extend it.  Remark that
+    instruction are available: one will sign extend the loaded
+    value, while the other will zero extend it.  Note that
     all loads smaller than long can load to either a long or
     a word.
 
@@ -603,9 +634,9 @@ instructions.  Pointers are stored in long temporaries.
 ~~~~~~~~~~~~~
 
 Comparison instructions return an integer value (either a word
-or a long), and compare values of arbitrary types.  The value
-returned is 1 if the two operands satisfy the comparison
-relation, and 0 otherwise.  The names of comparisons respect
+or a long), and compare values of arbitrary types.  The returned
+value is 1 if the two operands satisfy the comparison
+relation, or 0 otherwise.  The names of comparisons respect
 a standard naming scheme in three parts.
 
  1. All comparisons start with the letter `c`.
@@ -644,7 +675,7 @@ a standard naming scheme in three parts.
 
 For example, `cod` (`I(dd,dd)`) compares two double-precision
 floating point numbers and returns 1 if the two floating points
-are not NaNs, and 0 otherwise.  The `csltw` (`I(ww,ww)`)
+are not NaNs, or 0 otherwise.  The `csltw` (`I(ww,ww)`)
 instruction compares two words representing signed numbers and
 returns 1 when the first argument is smaller than the second one.
 
@@ -654,7 +685,7 @@ returns 1 when the first argument is smaller than the second one.
 Conversion operations allow to change the representation of
 a value, possibly modifying it if the target type cannot hold
 the value of the source type.  Conversions can extend the
-precision of a temporary (e.g. from signed 8 bits to 32 bits),
+precision of a temporary (e.g., from signed 8-bit to 32-bit),
 or convert a floating point into an integer and vice versa.
 
   * `extsw`, `extuw` -- `l(w)`
@@ -691,15 +722,17 @@ unsigned types are not yet supported.
 Because of <@ Subtyping >, there is no need to have an
 instruction to lower the precision of an integer temporary.
 
-~ Cast
-~~~~~~
+~ Cast and Copy
+~~~~~~~~~~~~~~~
 
-The `cast` instruction reinterprets the bits of a value of
-a given type into another type of the same width.
+The `cast` and `copy` instructions return the bits of their
+argument verbatim.  However a `cast` will change an integer
+into a floating point of the same width and vice versa.
 
   * `cast` -- `wlsd(sdwl)`
+  * `copy` -- `T(T)`
 
-It can be used to make bitwise operations on the
+Casts can be used to make bitwise operations on the
 representation of floating point numbers.  For example
 the following program will compute the opposite of the
 single-precision floating point number `%f` into `%rs`.
@@ -712,26 +745,88 @@ single-precision floating point number `%f` into `%rs`.
 ~~~~~~
 
     `bnf
-    CALL := [ %IDENT '=' ( BASETY | :IDENT ) ] 'call' VAL PARAMS
+    CALL := [%IDENT '=' ABITY] 'call' VAL '(' (ARG), ')'
 
-    PARAMS := '(' ( (BASETY | :IDENT) %IDENT ), ')'
+    ARG :=
+        ABITY %IDENT  # Regular argument
+      | 'env' VAL     # Environment argument (first)
+      | '...'         # Variadic marker (last)
 
-The call instruction is special in many ways.  It is not
+    ABITY := BASETY | :IDENT
+
+The call instruction is special in several ways.  It is not
 a three-address instruction and requires the type of all
 its arguments to be given.  Also, the return type can be
-either a base type or an aggregate type.  These specificities
-are required to compile calls with C compatibility (i.e.
+either a base type or an aggregate type.  These specifics
+are required to compile calls with C compatibility (i.e.,
 to respect the ABI).
 
 When an aggregate type is used as argument type or return
-type, the value repectively passed or returned needs to be
+type, the value respectively passed or returned needs to be
 a pointer to a memory location holding the value.  This is
 because aggregate types are not first-class citizens of
 the IL.
 
-Call instructions are currently required to define a return
-temporary, even for functions returning no values.  The
-temporary can very well be ignored (not used) when necessary.
+Unless the called function does not return a value, a
+return temporary must be specified, even if it is never
+used afterwards.
+
+An environment parameter can be passed as first argument
+using the `env` keyword.  The passed value must be a 64-bit
+integer.  If the called function does not expect an environment
+parameter, it will be safely discarded.  See the <@ Functions >
+section for more information about environment parameters.
+
+When the called function is variadic, the last argument
+must be `...`.
+
+~ Variadic
+~~~~~~~~~~
+
+The `vastart` and `vaarg` instructions provide a portable
+way to access the extra parameters of a variadic function.
+
+  * `vastart` -- `(m)`
+  * `vaarg` -- `T(mmmm)`
+
+The `vastart` instruction initializes a *variable argument
+list* used to access the extra parameters of the enclosing
+variadic function.  It is safe to call it multiple times.
+
+The `vaarg` instruction fetches the next argument from
+a variable argument list.  It is currently limited to
+fetching arguments that have a base type.  This instruction
+is essentially effectful: calling it twice in a row will
+return two consecutive arguments from the argument list.
+
+Both instructions take a pointer to a variable argument
+list as sole argument.  The size and alignment of variable
+argument lists depend on the target used.  However, it
+is possible to conservatively use the maximum size and
+alignment required by all the targets.
+
+    type :valist = align 8 { 24 }  # For amd64_sysv
+    type :valist = align 8 { 32 }  # For arm64
+
+The following example defines a variadic function adding
+its first three arguments.
+
+    function s $add3(s %a, ...) {
+    @start
+            %ap =l alloc8 32
+            vastart %ap
+            %r =s call $vadd(s %a, l %ap)
+            ret %r
+    }
+
+    function s $vadd(s %a, l %ap) {
+    @start
+            %b =s vaarg %ap
+            %c =s vaarg %ap
+            %d =s add %a, %b
+            %e =s add %d, %c
+            ret %e
+    }
 
 ~ Phi
 ~~~~~
@@ -794,7 +889,7 @@ translate it in SSA form is to insert a phi instruction.
 
 Phi instructions return one of their arguments depending
 on where the control came from.  In the example, `%y` is
-set to 1 if the `@ift` branch is taken, and it is set to
+set to 1 if the `@ift` branch is taken, or it is set to
 2 otherwise.
 
 An important remark about phi instructions is that QBE
@@ -897,13 +992,19 @@ instructions unless you know exactly what you are doing.
       * `swtof`
       * `truncd`
 
-  * <@ Cast > :
+  * <@ Cast and Copy > :
 
       * `cast`
+      * `copy`
 
   * <@ Call >:
 
       * `call`
+
+  * <@ Variadic >:
+
+      * `vastart`
+      * `vaarg`
 
   * <@ Phi >:
 
