@@ -488,10 +488,10 @@ emitins(Ins i, Fn *fn, FILE *f)
 	}
 }
 
-static int
+static uint64_t
 framesz(Fn *fn)
 {
-	int i, o, f;
+	uint64_t i, o, f;
 
 	/* specific to NAlign == 3 */
 	for (i=0, o=0; i<NCLR; i++)
@@ -512,7 +512,8 @@ amd64_emitfn(Fn *fn, FILE *f)
 	static int id0;
 	Blk *b, *s;
 	Ins *i, itmp;
-	int *r, c, fs, o, n, lbl;
+	int *r, c, o, n, lbl;
+	uint64_t fs;
 
 	fprintf(f, ".text\n");
 	if (fn->export)
@@ -525,7 +526,7 @@ amd64_emitfn(Fn *fn, FILE *f)
 	);
 	fs = framesz(fn);
 	if (fs)
-		fprintf(f, "\tsub $%d, %%rsp\n", fs);
+		fprintf(f, "\tsub $%"PRIu64", %%rsp\n", fs);
 	if (fn->vararg) {
 		o = -176;
 		for (r=amd64_sysv_rsave; r<&amd64_sysv_rsave[6]; r++, o+=8)
@@ -537,6 +538,7 @@ amd64_emitfn(Fn *fn, FILE *f)
 		if (fn->reg & BIT(*r)) {
 			itmp.arg[0] = TMP(*r);
 			emitf("pushq %L0", &itmp, fn, f);
+			fs += 8;
 		}
 
 	for (lbl=0, b=fn->start; b; b=b->link) {
@@ -547,6 +549,12 @@ amd64_emitfn(Fn *fn, FILE *f)
 		lbl = 1;
 		switch (b->jmp.type) {
 		case Jret0:
+			if (fn->dynalloc)
+				fprintf(f,
+					"\tmovq %%rbp, %%rsp\n"
+					"\tsubq $%"PRIu64", %%rsp\n",
+					fs
+				);
 			for (r=&amd64_sysv_rclob[NCLR]; r>amd64_sysv_rclob;)
 				if (fn->reg & BIT(*--r)) {
 					itmp.arg[0] = TMP(*r);

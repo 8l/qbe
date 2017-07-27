@@ -1,0 +1,27 @@
+# make sure dynamic allocations
+# and caller-save regs interact
+# soundly
+
+function $g() {
+@start
+	ret
+}
+
+function w $f(w %arg) {
+@start
+	call $g()
+@alloc
+	%r =l alloc8 16
+	storel 180388626474, %r
+	%r8 =l add 8, %r
+	storel 180388626474, %r8
+	ret %arg
+}
+
+export
+function w $main() {
+@start
+	%a =w call $f(w 0)
+	%b =w call $f(w 0)
+	ret %a
+}

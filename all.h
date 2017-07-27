@@ -342,6 +342,7 @@ struct Fn {
 	int slot;
 	char export;
 	char vararg;
+	char dynalloc;
 	char name[NString];
 };
 

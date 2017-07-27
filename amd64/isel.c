@@ -291,6 +291,7 @@ Emit:
 		 * the stack remains aligned
 		 * (rsp = 0) mod 16
 		 */
+		fn->dynalloc = 1;
 		if (rtype(i.arg[0]) == RCon) {
 			sz = fn->con[i.arg[0].val].bits.i;
 			if (sz < 0 || sz >= INT_MAX-15)
