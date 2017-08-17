@@ -304,8 +304,11 @@ simpljmp(Fn *fn)
 	for (b=fn->start; b; b=b->link) {
 		assert(!b->phi);
 		if (b->nins == 0)
-		if (b->jmp.type == Jjmp)
-			uf[b->id] = b->s1;
+		if (b->jmp.type == Jjmp) {
+			uffind(&b->s1, uf);
+			if (b->s1 != b)
+				uf[b->id] = b->s1;
+		}
 	}
 	for (b=fn->start; b; b=b->link) {
 		if (b->s1)
