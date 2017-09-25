@@ -10,6 +10,11 @@ asm=$tmp.s
 exe=$tmp.exe
 out=$tmp.out
 
+testcc() {
+	echo "int main() { }" | $1 -x C -o /dev/null - >/dev/null 2>&1
+	return $?
+}
+
 init() {
 	case "$TARGET" in
 	arm64)
@@ -31,7 +36,7 @@ init() {
 			echo "Cannot find arm64 compiler or qemu."
 			exit 1
 		fi
-                bin="$bin -t arm64"
+		bin="$bin -t arm64"
 		;;
 	"")
 		case `uname` in
@@ -46,6 +51,7 @@ init() {
 			;;
 		*)
 			cc="cc -no-pie"
+			testcc $cc || cc="cc"
 			;;
 		esac
 		;;
