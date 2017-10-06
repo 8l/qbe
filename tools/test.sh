@@ -11,7 +11,7 @@ exe=$tmp.exe
 out=$tmp.out
 
 testcc() {
-	echo "int main() { }" | $1 -x C -o /dev/null - >/dev/null 2>&1
+	echo "int main() { }" | $1 -x c -o /dev/null - >/dev/null 2>&1
 	return $?
 }
 
@@ -51,7 +51,7 @@ init() {
 			;;
 		*)
 			cc="cc -no-pie"
-			testcc $cc || cc="cc"
+			testcc "$cc" || cc="cc"
 			;;
 		esac
 		;;
