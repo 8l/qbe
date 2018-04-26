@@ -72,6 +72,7 @@ isfloatv(Typ *t, char *cls)
 			case FTyp:
 				if (isfloatv(&typ[f->len], cls))
 					break;
+				/* fall through */
 			default:
 				return 0;
 			}

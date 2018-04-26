@@ -434,6 +434,7 @@ loadopt(Fn *fn)
 							i->op = ext;
 							break;
 						}
+						/* fall through */
 					case Oload:
 						i->op = Ocopy;
 						break;

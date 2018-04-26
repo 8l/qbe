@@ -65,6 +65,7 @@ memopt(Fn *fn)
 				case Oloaduw:
 					if (k == Kl)
 						goto Extend;
+					/* fall through */
 				case Oload:
 					if (KBASE(k) != KBASE(l->cls))
 						l->op = Ocast;

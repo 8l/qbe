@@ -538,6 +538,7 @@ amatch(Addr *a, Ref r, ANum *ai, Fn *fn, int top)
 			break;
 		}
 		r = al;
+		/* fall through */
 	case 0:
 		s = fn->tmp[r.val].slot;
 		if (s != -1)

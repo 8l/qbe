@@ -173,11 +173,9 @@ getint()
 
 	n = 0;
 	c = fgetc(inf);
-	m = 0;
-	switch (c) {
-	case '-': m = 1;
-	case '+': c = fgetc(inf);
-	}
+	m = (c == '-');
+	if (m || c == '+')
+		c = fgetc(inf);
 	do {
 		n = 10*n + (c - '0');
 		c = fgetc(inf);
@@ -240,6 +238,7 @@ lex()
 	case '#':
 		while ((c=fgetc(inf)) != '\n' && c != EOF)
 			;
+		/* fall through */
 	case '\n':
 		lnum++;
 		return Tnl;
