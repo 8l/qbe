@@ -77,7 +77,7 @@ fillcost(Fn *fn)
 			}
 		}
 		n = b->loop;
-		for (i=b->ins; i-b->ins < b->nins; i++) {
+		for (i=b->ins; i<&b->ins[b->nins]; i++) {
 			tmpuse(i->to, 0, n, fn);
 			tmpuse(i->arg[0], 1, n, fn);
 			tmpuse(i->arg[1], 1, n, fn);

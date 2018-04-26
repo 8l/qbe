@@ -506,7 +506,7 @@ rega(Fn *fn)
 	for (bp=blk, b=fn->start; b; b=b->link)
 		*bp++ = b;
 	qsort(blk, fn->nblk, sizeof blk[0], carve);
-	for (b=fn->start, i=b->ins; i-b->ins < b->nins; i++)
+	for (b=fn->start, i=b->ins; i<&b->ins[b->nins]; i++)
 		if (i->op != Ocopy || !isreg(i->arg[0]))
 			break;
 		else {

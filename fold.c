@@ -221,7 +221,7 @@ fold(Fn *fn)
 			for (p=b->phi; p; p=p->link)
 				visitphi(p, n, fn);
 			if (b->visit == 0) {
-				for (i=b->ins; i-b->ins < b->nins; i++)
+				for (i=b->ins; i<&b->ins[b->nins]; i++)
 					visitins(i, fn);
 				visitjmp(b, n, fn);
 			}
@@ -289,7 +289,7 @@ fold(Fn *fn)
 						renref(&p->arg[a]);
 				pp = &p->link;
 			}
-		for (i=b->ins; i-b->ins < b->nins; i++)
+		for (i=b->ins; i<&b->ins[b->nins]; i++)
 			if (renref(&i->to))
 				*i = (Ins){.op = Onop};
 			else

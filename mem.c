@@ -12,7 +12,7 @@ memopt(Fn *fn)
 
 	/* promote uniform stack slots to temporaries */
 	b = fn->start;
-	for (i=b->ins; i-b->ins < b->nins; i++) {
+	for (i=b->ins; i<&b->ins[b->nins]; i++) {
 		if (Oalloc > i->op || i->op > Oalloc1)
 			continue;
 		/* specific to NAlign == 3 */

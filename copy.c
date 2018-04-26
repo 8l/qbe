@@ -121,7 +121,7 @@ copy(Fn *fn)
 	for (b=fn->start; b; b=b->link) {
 		for (p=b->phi; p; p=p->link)
 			visitphi(p, cp, &pw);
-		for (i=b->ins; i-b->ins < b->nins; i++)
+		for (i=b->ins; i<&b->ins[b->nins]; i++)
 			visitins(i, cp, &pw, fn);
 	}
 	while ((w1=w)) {
@@ -155,7 +155,7 @@ copy(Fn *fn)
 				subst(&p->arg[a], cp);
 			pp=&p->link;
 		}
-		for (i=b->ins; i-b->ins < b->nins; i++) {
+		for (i=b->ins; i<&b->ins[b->nins]; i++) {
 			r = copyof(i->to, cp);
 			if (!req(r, i->to)) {
 				*i = (Ins){.op = Onop};

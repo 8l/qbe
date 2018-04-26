@@ -71,7 +71,7 @@ filluse(Fn *fn)
 						tmp[t].phi = tp;
 				}
 		}
-		for (i=b->ins; i-b->ins < b->nins; i++) {
+		for (i=b->ins; i<&b->ins[b->nins]; i++) {
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
 				w = WFull;
@@ -131,7 +131,7 @@ phiins(Fn *fn)
 		for (b=fn->start; b; b=b->link) {
 			b->visit = 0;
 			r = R;
-			for (i=b->ins; i-b->ins < b->nins; i++) {
+			for (i=b->ins; i<&b->ins[b->nins]; i++) {
 				if (!req(r, R)) {
 					if (req(i->arg[0], TMP(t)))
 						i->arg[0] = r;
@@ -263,7 +263,7 @@ renblk(Blk *b, Name **stk, Fn *fn)
 
 	for (p=b->phi; p; p=p->link)
 		rendef(&p->to, b, stk, fn);
-	for (i=b->ins; i-b->ins < b->nins; i++) {
+	for (i=b->ins; i<&b->ins[b->nins]; i++) {
 		for (m=0; m<2; m++) {
 			t = i->arg[m].val;
 			if (rtype(i->arg[m]) == RTmp)
@@ -374,7 +374,7 @@ ssacheck(Fn *fn)
 		for (p=b->phi; p; p=p->link) {
 			r = p->to;
 			t = &fn->tmp[r.val];
-			for (u=t->use; u-t->use < t->nuse; u++) {
+			for (u=t->use; u<&t->use[t->nuse]; u++) {
 				bu = fn->rpo[u->bid];
 				if (u->type == UPhi) {
 					if (phicheck(u->u.phi, b, r))
@@ -384,12 +384,12 @@ ssacheck(Fn *fn)
 						goto Err;
 			}
 		}
-		for (i=b->ins; i-b->ins < b->nins; i++) {
+		for (i=b->ins; i<&b->ins[b->nins]; i++) {
 			if (rtype(i->to) != RTmp)
 				continue;
 			r = i->to;
 			t = &fn->tmp[r.val];
-			for (u=t->use; u-t->use < t->nuse; u++) {
+			for (u=t->use; u<&t->use[t->nuse]; u++) {
 				bu = fn->rpo[u->bid];
 				if (u->type == UPhi) {
 					if (phicheck(u->u.phi, b, r))

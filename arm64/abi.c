@@ -645,7 +645,7 @@ arm64_abi(Fn *fn)
 		b->visit = 0;
 
 	/* lower parameters */
-	for (b=fn->start, i=b->ins; i-b->ins<b->nins; i++)
+	for (b=fn->start, i=b->ins; i<&b->ins[b->nins]; i++)
 		if (!ispar(i->op))
 			break;
 	p = selpar(fn, b->ins, i);

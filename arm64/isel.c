@@ -232,7 +232,7 @@ arm64_isel(Fn *fn)
 	b = fn->start;
 	/* specific to NAlign == 3 */ /* or change n=4 and sz /= 4 below */
 	for (al=Oalloc, n=4; al<=Oalloc1; al++, n*=2)
-		for (i=b->ins; i-b->ins < b->nins; i++)
+		for (i=b->ins; i<&b->ins[b->nins]; i++)
 			if (i->op == al) {
 				if (rtype(i->arg[0]) != RCon)
 					break;

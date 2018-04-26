@@ -458,7 +458,7 @@ anumber(ANum *ai, Blk *b, Con *con)
 	int a, a1, a2, n1, n2, t1, t2;
 	Ins *i;
 
-	for (i=b->ins; i-b->ins < b->nins; i++) {
+	for (i=b->ins; i<&b->ins[b->nins]; i++) {
 		if (rtype(i->to) == RTmp)
 			ai[i->to.val].i = i;
 		if (i->op != Oadd && i->op != Omul)
@@ -574,7 +574,7 @@ amd64_isel(Fn *fn)
 	b = fn->start;
 	/* specific to NAlign == 3 */ /* or change n=4 and sz /= 4 below */
 	for (al=Oalloc, n=4; al<=Oalloc1; al++, n*=2)
-		for (i=b->ins; i-b->ins < b->nins; i++)
+		for (i=b->ins; i<&b->ins[b->nins]; i++)
 			if (i->op == al) {
 				if (rtype(i->arg[0]) != RCon)
 					break;
