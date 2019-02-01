@@ -338,7 +338,7 @@ spill(Fn *fn)
 
 	for (bp=&fn->rpo[fn->nblk]; bp!=fn->rpo;) {
 		b = *--bp;
-		/* invariant: all bocks with bigger rpo got
+		/* invariant: all blocks with bigger rpo got
 		 * their in,out updated. */
 
 		/* 1. find temporaries in registers at
