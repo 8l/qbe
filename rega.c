@@ -50,8 +50,11 @@ sethint(int t, int r)
 static void
 rcopy(RMap *ma, RMap *mb)
 {
-	memcpy(ma, mb, sizeof *ma);
+	memcpy(ma->t, mb->t, sizeof ma->t);
+	memcpy(ma->r, mb->r, sizeof ma->r);
+	memcpy(ma->w, mb->w, sizeof ma->w);
 	bscopy(ma->b, mb->b);
+	ma->n = mb->n;
 }
 
 static int
