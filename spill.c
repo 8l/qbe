@@ -360,12 +360,17 @@ spill(Fn *fn)
 				bsunion(v, u);
 			}
 		} else if (s1) {
-			liveon(v, b, s1);
+			/* avoid reloading temporaries
+			 * in the middle of loops */
+			bszero(v);
+			liveon(w, b, s1);
+			if (s1->loop >= b->loop)
+				bsunion(v, w);
 			if (s2) {
 				liveon(u, b, s2);
-				bscopy(w, u);
-				bsinter(w, v);
-				bsunion(v, u);
+				if (s2->loop >= b->loop)
+					bsunion(v, u);
+				bsinter(w, u);
 			}
 			limit2(v, 0, 0, w);
 		} else {
