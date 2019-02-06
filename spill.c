@@ -280,6 +280,19 @@ dopm(Blk *b, Ins *i, BSet *v)
 	return i;
 }
 
+static void
+merge(BSet *u, Blk *bu, BSet *v, Blk *bv)
+{
+	int t;
+
+	if (bu->loop <= bv->loop)
+		bsunion(u, v);
+	else
+		for (t=0; bsiter(v, &t); t++)
+			if (tmp[t].slot == -1)
+				bsset(u, t);
+}
+
 /* spill code insertion
  * requires spill costs, rpo, liveness
  *
@@ -364,12 +377,10 @@ spill(Fn *fn)
 			 * in the middle of loops */
 			bszero(v);
 			liveon(w, b, s1);
-			if (s1->loop >= b->loop)
-				bsunion(v, w);
+			merge(v, b, w, s1);
 			if (s2) {
 				liveon(u, b, s2);
-				if (s2->loop >= b->loop)
-					bsunion(v, u);
+				merge(v, b, u, s2);
 				bsinter(w, u);
 			}
 			limit2(v, 0, 0, w);
