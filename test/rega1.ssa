@@ -1,0 +1,24 @@
+# tests that %b and %a0 do not end up in
+# the same register at the start of @loop
+
+export function l $f(l %a) {
+@start
+@loop
+	%b =l phi @start 42, @loop0 %a1, @loop1 %a1
+	%a0 =l phi @start %a, @loop0 %a1, @loop1 %a1
+	%a1 =l sub %a0, 1
+	jnz %b, @loop0, @loop1
+@loop0
+	jnz %a1, @loop, @end
+@loop1
+	jnz %a1, @loop, @end
+@end
+	ret %b
+}
+
+# >>> driver
+# extern long long f(long long);
+# int main() {
+# 	return !(f(1) == 42 && f(2) == 1 && f(42) == 1);
+# }
+# <<<

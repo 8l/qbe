@@ -571,7 +571,8 @@ rega(Fn *fn)
 				if (rtype(src) != RTmp)
 					continue;
 				x = rfind(&end[b->id], src.val);
-				assert(x != -1);
+				if (x == -1) /* spilled */
+					continue;
 				rl[r] = (!rl[r] || rl[r] == x) ? x : -1;
 			}
 			if (rl[r] == 0)
@@ -586,7 +587,8 @@ rega(Fn *fn)
 				continue;
 			for (bp=s->pred; bp<&s->pred[s->npred]; bp++) {
 				x = rfind(&end[(*bp)->id], t);
-				assert(x != -1);
+				if (x == -1) /* spilled */
+					continue;
 				rl[r] = (!rl[r] || rl[r] == x) ? x : -1;
 			}
 		}
@@ -597,7 +599,7 @@ rega(Fn *fn)
 			r = m->r[j];
 			x = rl[r];
 			assert(x != 0 || t < Tmp0 /* todo, ditto */);
-			if (x > 0) {
+			if (x > 0 && !bshas(m->b, x)) {
 				pmadd(TMP(x), TMP(r), tmp[t].cls);
 				m->r[j] = x;
 			}
