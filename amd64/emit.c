@@ -96,7 +96,7 @@ static struct {
 	{ Oextub,  Ki, "movzb%k %B0, %=" },
 
 	{ Oexts,   Kd, "cvtss2sd %0, %=" },
-	{ Otruncd, Ks, "cvttsd2ss %0, %=" },
+	{ Otruncd, Ks, "cvtsd2ss %0, %=" },
 	{ Ostosi,  Ki, "cvttss2si%k %0, %=" },
 	{ Odtosi,  Ki, "cvttsd2si%k %0, %=" },
 	{ Oswtof,  Ka, "cvtsi2%k %W0, %=" },
