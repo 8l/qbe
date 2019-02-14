@@ -462,19 +462,19 @@ parserefl(int arg)
 			err("invalid function parameter");
 		if (k == 4)
 			if (arg)
-				*curi = (Ins){Oargc, R, {TYPE(ty), r}, Kl};
+				*curi = (Ins){Oargc, Kl, R, {TYPE(ty), r}};
 			else
-				*curi = (Ins){Oparc, r, {TYPE(ty)}, Kl};
+				*curi = (Ins){Oparc, Kl, r, {TYPE(ty)}};
 		else if (env)
 			if (arg)
-				*curi = (Ins){Oarge, R, {r}, k};
+				*curi = (Ins){Oarge, k, R, {r}};
 			else
-				*curi = (Ins){Opare, r, {R}, k};
+				*curi = (Ins){Opare, k, r, {R}};
 		else
 			if (arg)
-				*curi = (Ins){Oarg, R, {r}, k};
+				*curi = (Ins){Oarg, k, R, {r}};
 			else
-				*curi = (Ins){Opar, r, {R}, k};
+				*curi = (Ins){Opar, k, r, {R}};
 		curi++;
 		hasenv |= env;
 		if (peek() == Trparen)

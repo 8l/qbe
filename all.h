@@ -199,9 +199,9 @@ struct Op {
 
 struct Ins {
 	uint op:30;
+	uint cls:2;
 	Ref to;
 	Ref arg[2];
-	uint cls:2;
 };
 
 struct Phi {

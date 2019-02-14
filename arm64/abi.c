@@ -313,10 +313,7 @@ stkblob(Ref r, Class *c, Fn *fn, Insl **ilp)
 	al = c->t->align - 2; /* NAlign == 3 */
 	if (al < 0)
 		al = 0;
-	il->i = (Ins){
-		Oalloc + al, r,
-		{getcon(c->t->size, fn)}, Kl
-	};
+	il->i = (Ins){Oalloc+al, Kl, r, {getcon(c->t->size, fn)}};
 	il->link = *ilp;
 	*ilp = il;
 }

@@ -62,11 +62,11 @@ main()
 				break;
 			case 2:
 				/* in copy, not in reg */
-				*ip++ = (Ins){OCopy, TMP(Tmp0+t), {R, R}, Kw};
+				*ip++ = (Ins){OCopy, Kw, TMP(Tmp0+t), {R, R}};
 				break;
 			case 3:
 				/* in copy, in reg */
-				*ip++ = (Ins){OCopy, TMP(Tmp0+t), {R, R}, Kw};
+				*ip++ = (Ins){OCopy, Kw, TMP(Tmp0+t), {R, R}};
 				radd(&mbeg, Tmp0+t, t+1);
 				break;
 			}
