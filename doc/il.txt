@@ -253,7 +253,7 @@ their size between curly braces.
 
     `bnf
     DATADEF :=
-        ['export'] 'data' $IDENT '='
+        ['export'] 'data' $IDENT '=' ['align' NUMBER]
         '{'
             ( EXTTY DATAITEM+
             | 'z'   NUMBER ),
