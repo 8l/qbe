@@ -591,6 +591,8 @@ rega(Fn *fn)
 					continue;
 				rl[r] = (!rl[r] || rl[r] == x) ? x : -1;
 			}
+			if (rl[r] == 0)
+				rl[r] = -1;
 		}
 
 		npm = 0;
