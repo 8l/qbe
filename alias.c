@@ -106,7 +106,7 @@ esc(Ref r, Fn *fn)
 void
 fillalias(Fn *fn)
 {
-	uint n;
+	uint n, m;
 	Blk *b;
 	Phi *p;
 	Ins *i;
@@ -115,6 +115,8 @@ fillalias(Fn *fn)
 	for (n=0; n<fn->nblk; ++n) {
 		b = fn->rpo[n];
 		for (p=b->phi; p; p=p->link) {
+			for (m=0; m<p->narg; m++)
+				esc(p->arg[m], fn);
 			assert(rtype(p->to) == RTmp);
 			a = &fn->tmp[p->to.val].alias;
 			assert(a->type == ABot);
