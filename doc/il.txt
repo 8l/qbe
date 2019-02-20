@@ -215,16 +215,17 @@ using the `export` keyword.
         # Regular type
         'type' :IDENT '=' ['align' NUMBER]
         '{'
-            ( EXTTY [NUMBER] ),
+            ( SUBTY [NUMBER] ),
         '}'
       | # Opaque type
         'type' :IDENT '=' 'align' NUMBER '{' NUMBER '}'
 
+    SUBTY := EXTTY | :IDENT
+
 Aggregate type definitions start with the `type` keyword.
 They have file scope, but types must be defined before being
 referenced.  The inner structure of a type is expressed by a
-comma-separated list of <@ Simple Types> enclosed in curly
-braces.
+comma-separated list of types enclosed in curly braces.
 
     type :fourfloats = { s, s, d, d }
 
