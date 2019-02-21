@@ -1,58 +1,7 @@
 #include "all.h"
 
-typedef struct RList RList;
-struct RList {
-	int t;
-	RList *l;
-};
-
-static Ref
-copyof(Ref r, Ref *cp)
-{
-	if (rtype(r) == RTmp)
-		return cp[r.val];
-	else
-		return r;
-}
-
-static void
-update(Ref r, Ref rcp, Ref *cp, RList ***pw)
-{
-	RList *l;
-
-	if (!req(cp[r.val], rcp)) {
-		cp[r.val] = rcp;
-		l = emalloc(sizeof *l);
-		l->t = r.val;
-		l->l = 0;
-		**pw = l;
-		*pw = &l->l;
-	}
-}
-
-static void
-visitphi(Phi *p, Ref *cp, RList ***pw)
-{
-	uint a;
-	Ref r, r1;
-
-	r = R;
-	for (a=0; a<p->narg; a++) {
-		r1 = copyof(p->arg[a], cp);
-		if (req(r1, R) || req(r1, p->to))
-			continue;
-		if (req(r, R) || req(r, r1))
-			r = r1;
-		else {
-			r = p->to;
-			break;
-		}
-	}
-	update(p->to, r, cp, pw);
-}
-
 static int
-iscopy(Ins *i, Ref r, Fn *fn)
+iscopy(Ins *i, Ref r, Tmp *tmp)
 {
 	static bits extcpy[] = {
 		[WFull] = 0,
@@ -74,7 +23,7 @@ iscopy(Ins *i, Ref r, Fn *fn)
 	if (i->cls == Kw)
 		return 1;
 
-	t = &fn->tmp[r.val];
+	t = &tmp[r.val];
 	assert(KBASE(t->cls) == 0);
 	if (i->cls == Kl && t->cls == Kw)
 		return 0;
@@ -82,105 +31,160 @@ iscopy(Ins *i, Ref r, Fn *fn)
 	return (BIT(Wsb + (i->op-Oextsb)) & b) != 0;
 }
 
-static void
-visitins(Ins *i, Ref *cp, RList ***pw, Fn *fn)
+static Ref
+copyof(Ref r, Ref *cpy)
 {
-	Ref r;
+	if (rtype(r) == RTmp && !req(cpy[r.val], R))
+		return cpy[r.val];
+	return r;
+}
 
-	r = copyof(i->arg[0], cp);
-	if (iscopy(i, r, fn)) {
-		update(i->to, r, cp, pw);
-	} else if (!req(i->to, R)) {
-		assert(rtype(i->to) == RTmp);
-		update(i->to, i->to, cp, pw);
+/* detects a cluster of phis/copies redundant with 'r';
+ * the algorithm is inspired by Section 3.2 of "Simple
+ * and Efficient SSA Construction" by Braun M. et al.
+ */
+static void
+phisimpl(Phi *p, Ref r, Ref *cpy, Use ***pstk, BSet *ts, BSet *as, Tmp *tmp)
+{
+	Use **stk, *u, *u1;
+	uint nstk, a;
+	int t;
+	Ref r1;
+
+	bszero(ts);
+	bszero(as);
+	stk = *pstk;
+	nstk = 1;
+	stk[0] = &(Use){.type = UPhi, .u.phi = p};
+	while (nstk) {
+		u = stk[--nstk];
+		if (u->type == UIns && iscopy(u->u.ins, r, tmp)) {
+			p = &(Phi){.narg = 0};
+			t = u->u.ins->to.val;
+		}
+		else if (u->type == UPhi) {
+			p = u->u.phi;
+			t = p->to.val;
+		}
+		else
+			continue;
+		if (bshas(ts, t))
+			continue;
+		bsset(ts, t);
+		for (a=0; a<p->narg; a++) {
+			r1 = copyof(p->arg[a], cpy);
+			if (req(r1, r))
+				continue;
+			if (rtype(r1) != RTmp)
+				return;
+			bsset(as, r1.val);
+		}
+		u = tmp[t].use;
+		u1 = &u[tmp[t].nuse];
+		vgrow(pstk, nstk+(u1-u));
+		stk = *pstk;
+		for (; u<u1; u++)
+			stk[nstk++] = u;
 	}
+	bsdiff(as, ts);
+	if (!bscount(as))
+		for (t=0; bsiter(ts, &t); t++)
+			cpy[t] = r;
 }
 
 static void
-subst(Ref *r, Ref *cp)
+subst(Ref *pr, Ref *cpy)
 {
-	assert((rtype(*r) != RTmp || !req(copyof(*r, cp), R)) && "ssa invariant broken");
-	*r = copyof(*r, cp);
+	assert(rtype(*pr) != RTmp || !req(cpy[pr->val], R));
+	*pr = copyof(*pr, cpy);
 }
 
+/* requires use and rpo, breaks use */
 void
 copy(Fn *fn)
 {
-	Blk *b;
-	Ref *cp, r;
-	RList *w, *w1, **pw;
-	Use *u, *u1;
-	Ins *i;
+	BSet ts[1], as[1];
+	Use **stk;
 	Phi *p, **pp;
-	uint a;
+	Ins *i;
+	Blk *b;
+	uint n, a;
+	Ref *cpy, r;
 	int t;
 
-	w = 0;
-	pw = &w;
-	cp = emalloc(fn->ntmp * sizeof cp[0]);
-	for (b=fn->start; b; b=b->link) {
-		for (p=b->phi; p; p=p->link)
-			visitphi(p, cp, &pw);
-		for (i=b->ins; i<&b->ins[b->nins]; i++)
-			visitins(i, cp, &pw, fn);
+	bsinit(ts, fn->ntmp);
+	bsinit(as, fn->ntmp);
+	cpy = emalloc(fn->ntmp * sizeof cpy[0]);
+	stk = vnew(10, sizeof stk[0], Pheap);
+
+	/* 1. build the copy-of map */
+	for (n=0; n<fn->nblk; n++) {
+		b = fn->rpo[n];
+		for (p=b->phi; p; p=p->link) {
+			assert(rtype(p->to) == RTmp);
+			if (!req(cpy[p->to.val], R))
+				continue;
+			r = R;
+			for (a=0; a<p->narg; a++)
+				if (p->blk[a]->id < n)
+					r = copyof(p->arg[a], cpy);
+			assert(!req(r, R));
+			cpy[p->to.val] = p->to;
+			phisimpl(p, r, cpy, &stk, ts, as, fn->tmp);
+		}
+		for (i=b->ins; i<&b->ins[b->nins]; i++) {
+			assert(rtype(i->to) <= RTmp);
+			if (!req(cpy[i->to.val], R))
+				continue;
+			r = copyof(i->arg[0], cpy);
+			if (iscopy(i, r, fn->tmp))
+				cpy[i->to.val] = r;
+			else
+				cpy[i->to.val] = i->to;
+		}
 	}
-	while ((w1=w)) {
-		t = w->t;
-		u = fn->tmp[t].use;
-		u1 = u + fn->tmp[t].nuse;
-		for (; u<u1; u++)
-			switch (u->type) {
-			case UPhi:
-				visitphi(u->u.phi, cp, &pw);
-				break;
-			case UIns:
-				visitins(u->u.ins, cp, &pw, fn);
-				break;
-			case UJmp:
-				break;
-			default:
-				die("invalid use %d", u->type);
-			}
-		w = w->l;
-		free(w1);
-	}
+
+	/* 2. remove redundant phis/copies
+	 * and rewrite their uses */
 	for (b=fn->start; b; b=b->link) {
 		for (pp=&b->phi; (p=*pp);) {
-			r = cp[p->to.val];
+			r = cpy[p->to.val];
 			if (!req(r, p->to)) {
 				*pp = p->link;
 				continue;
 			}
 			for (a=0; a<p->narg; a++)
-				subst(&p->arg[a], cp);
+				subst(&p->arg[a], cpy);
 			pp=&p->link;
 		}
 		for (i=b->ins; i<&b->ins[b->nins]; i++) {
-			r = copyof(i->to, cp);
+			r = cpy[i->to.val];
 			if (!req(r, i->to)) {
 				*i = (Ins){.op = Onop};
 				continue;
 			}
-			for (a=0; a<2; a++)
-				subst(&i->arg[a], cp);
+			subst(&i->arg[0], cpy);
+			subst(&i->arg[1], cpy);
 		}
-		subst(&b->jmp.arg, cp);
+		subst(&b->jmp.arg, cpy);
 	}
+
 	if (debug['C']) {
 		fprintf(stderr, "\n> Copy information:");
 		for (t=Tmp0; t<fn->ntmp; t++) {
-			if (req(cp[t], R)) {
+			if (req(cpy[t], R)) {
 				fprintf(stderr, "\n%10s not seen!",
 					fn->tmp[t].name);
 			}
-			else if (!req(cp[t], TMP(t))) {
+			else if (!req(cpy[t], TMP(t))) {
 				fprintf(stderr, "\n%10s copy of ",
 					fn->tmp[t].name);
-				printref(cp[t], fn, stderr);
+				printref(cpy[t], fn, stderr);
 			}
 		}
 		fprintf(stderr, "\n\n> After copy elimination:\n");
 		printfn(fn, stderr);
 	}
-	free(cp);
+	vfree(stk);
+	free(cpy);
 }
