@@ -1,0 +1,24 @@
+# tests that the address matcher is not
+# confused by the two multiplications
+
+# note: the code handling apple asm fixes
+# ruins the good work of the matcher here,
+# I should revisit these fixes
+
+export function w $f(l %i, l %j) {
+@start
+	%off1 =l mul %i, 8
+	%a_i =l add $a, %off1
+	%off2 =l mul %j, 4
+	%a_ij =l add %a_i, %off2
+	%x =w loadsw %a_ij
+	ret %x
+}
+
+# >>> driver
+# int a[] = {1, 2, 3, 4};
+# extern int f(long long, long long);
+# int main() {
+# 	return !(f(0, 0) == 1 && f(0, 1) == 2 && f(1, 0) == 3 && f(1, 1) == 4);
+# }
+# <<<

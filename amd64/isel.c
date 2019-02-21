@@ -25,7 +25,7 @@ struct ANum {
 	Ins *i;
 };
 
-static void amatch(Addr *, Ref, ANum *, Fn *, int);
+static int amatch(Addr *, Ref, int, ANum *, Fn *);
 
 static int
 noimm(Ref r, Fn *fn)
@@ -131,8 +131,8 @@ seladdr(Ref *r, ANum *an, Fn *fn)
 
 	r0 = *r;
 	if (rtype(r0) == RTmp) {
-		amatch(&a, r0, an, fn, 1);
-		if (req(a.base, r0))
+		memset(&a, 0, sizeof a);
+		if (!amatch(&a, r0, an[r0.val].n, an, fn))
 			return;
 		if (a.offset.type == CAddr)
 		if (!req(a.base, R)) {
@@ -488,18 +488,16 @@ anumber(ANum *ai, Blk *b, Con *con)
 	}
 }
 
-static void
-amatch(Addr *a, Ref r, ANum *ai, Fn *fn, int top)
+static int
+amatch(Addr *a, Ref r, int n, ANum *ai, Fn *fn)
 {
 	Ins *i;
 	int nl, nr, t, s;
 	Ref al, ar;
 
-	if (top)
-		memset(a, 0, sizeof *a);
 	if (rtype(r) == RCon) {
 		addcon(&a->offset, &fn->con[r.val]);
-		return;
+		return 1;
 	}
 	assert(rtype(r) == RTmp);
 	i = ai[r.val].i;
@@ -515,14 +513,11 @@ amatch(Addr *a, Ref r, ANum *ai, Fn *fn, int top)
 			ar = i->arg[1];
 		}
 	}
-	switch (ai[r.val].n) {
+	switch (n) {
 	case 3: /* s * i */
-		if (!top) {
-			a->index = al;
-			a->scale = fn->con[ar.val].bits.i;
-		} else
-			a->base = r;
-		break;
+		a->index = al;
+		a->scale = fn->con[ar.val].bits.i;
+		return 0;
 	case 4: /* b + s * i */
 		switch (nr) {
 		case 0:
@@ -534,7 +529,7 @@ amatch(Addr *a, Ref r, ANum *ai, Fn *fn, int top)
 			a->scale = 1;
 			break;
 		case 3:
-			amatch(a, ar, ai, fn, 0);
+			amatch(a, ar, nr, ai, fn);
 			break;
 		}
 		r = al;
@@ -544,14 +539,14 @@ amatch(Addr *a, Ref r, ANum *ai, Fn *fn, int top)
 		if (s != -1)
 			r = SLOT(s);
 		a->base = r;
-		break;
+		return n || s != -1;
 	case 2: /* constants */
 	case 5: /* o + s * i */
 	case 6: /* o + b */
 	case 7: /* o + b + s * i */
-		amatch(a, ar, ai, fn, 0);
-		amatch(a, al, ai, fn, 0);
-		break;
+		amatch(a, ar, nr, ai, fn);
+		amatch(a, al, nl, ai, fn);
+		return 1;
 	default:
 		die("unreachable");
 	}
