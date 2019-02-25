@@ -443,17 +443,16 @@ anumber(ANum *ai, Blk *b, Con *con)
 	 */
 	static char add[10][10] = {
 		[2] [2] = 2,              /* folding */
-		[2] [5] = 5, [5] [2] = 5,
+		[2] [4] = 4, [4] [2] = 4,
 		[2] [6] = 6, [6] [2] = 6,
 		[2] [7] = 7, [7] [2] = 7,
-		[0] [0] = 4,              /* 4: b + s * i */
-		[0] [3] = 4, [3] [0] = 4,
-		[2] [3] = 5, [3] [2] = 5, /* 5: o + s * i */
-		[0] [2] = 6, [2] [0] = 6, /* 6: o + b */
-		[2] [4] = 7, [4] [2] = 7, /* 7: o + b + s * i */
-		[0] [5] = 7, [5] [0] = 7,
-		[6] [3] = 7, [3] [6] = 7,
-
+		[0] [2] = 4, [2] [0] = 4, /* 4: o + b */
+		[0] [0] = 5,              /* 5: b + s * i */
+		[0] [3] = 5, [3] [0] = 5,
+		[2] [3] = 6, [3] [2] = 6, /* 6: o + s * i */
+		[2] [5] = 7, [5] [2] = 7, /* 7: o + b + s * i */
+		[0] [6] = 7, [6] [0] = 7,
+		[4] [3] = 7, [3] [4] = 7,
 	};
 	int a, a1, a2, n1, n2, t1, t2;
 	Ins *i;
@@ -518,7 +517,7 @@ amatch(Addr *a, Ref r, int n, ANum *ai, Fn *fn)
 		a->index = al;
 		a->scale = fn->con[ar.val].bits.i;
 		return 0;
-	case 4: /* b + s * i */
+	case 5: /* b + s * i */
 		switch (nr) {
 		case 0:
 			if (fn->tmp[ar.val].slot != -1) {
@@ -541,8 +540,8 @@ amatch(Addr *a, Ref r, int n, ANum *ai, Fn *fn)
 		a->base = r;
 		return n || s != -1;
 	case 2: /* constants */
-	case 5: /* o + s * i */
-	case 6: /* o + b */
+	case 4: /* o + b */
+	case 6: /* o + s * i */
 	case 7: /* o + b + s * i */
 		amatch(a, ar, nr, ai, fn);
 		amatch(a, al, nl, ai, fn);
