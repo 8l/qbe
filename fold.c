@@ -500,7 +500,7 @@ opfold(int op, int cls, Con *cl, Con *cr, Fn *fn)
 
 	if ((op == Odiv || op == Oudiv
 	|| op == Orem || op == Ourem) && czero(cr, KWIDE(cls)))
-		err("null divisor in '%s'", optab[op].name);
+		return Bot;
 	if (cls == Kw || cls == Kl) {
 		if (foldint(&c, op, cls == Kl, cl, cr))
 			return Bot;
