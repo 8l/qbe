@@ -125,6 +125,8 @@ phiins(Fn *fn)
 		fn->tmp[t].visit = 0;
 		if (fn->tmp[t].phi != 0)
 			continue;
+		if (fn->tmp[t].ndef == 1)
+			continue;
 		bszero(u);
 		k = -1;
 		bp = be;
@@ -140,10 +142,7 @@ phiins(Fn *fn)
 				}
 				if (req(i->to, TMP(t))) {
 					if (!bshas(b->out, t)) {
-						if (fn->tmp[t].ndef == 1)
-							r = TMP(t);
-						else
-							r = refindex(t, fn);
+						r = refindex(t, fn);
 						i->to = r;
 					} else {
 						if (!bshas(u, b->id)) {
