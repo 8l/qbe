@@ -102,6 +102,7 @@ static char *kwmap[Ntok] = {
 };
 
 enum {
+	TMask = 16383, /* for temps hash */
 	BMask = 8191, /* for blocks hash */
 
 	K = 3233235, /* found using tools/lexh.c */
@@ -122,6 +123,7 @@ static struct {
 static int lnum;
 
 static Fn *curf;
+static int tmph[TMask+1];
 static Phi **plink;
 static Blk *curb;
 static Blk **blink;
@@ -346,11 +348,19 @@ expect(int t)
 static Ref
 tmpref(char *v)
 {
-	int t;
+	int t, *h;
 
-	for (t=Tmp0; t<curf->ntmp; t++)
-		if (strcmp(v, curf->tmp[t].name) == 0)
+	h = &tmph[hash(v) & TMask];
+	t = *h;
+	if (t) {
+		if (strcmp(curf->tmp[t].name, v) == 0)
 			return TMP(t);
+		for (t=curf->ntmp-1; t>=Tmp0; t--)
+			if (strcmp(curf->tmp[t].name, v) == 0)
+				return TMP(t);
+	}
+	t = curf->ntmp;
+	*h = t;
 	newtmp(0, Kx, curf);
 	strcpy(curf->tmp[t].name, v);
 	return TMP(t);
@@ -810,6 +820,7 @@ parsefn(int export)
 		b->dlink = 0; /* was trashed by findblk() */
 	for (i=0; i<BMask+1; ++i)
 		blkh[i] = 0;
+	memset(tmph, 0, sizeof tmph);
 	typecheck(curf);
 	return curf;
 }
