@@ -562,8 +562,8 @@ rega(Fn *fn)
 		 * predecessor, we have to find the
 		 * corresponding argument */
 		for (p=s->phi; p; p=p->link) {
-			r = rfind(m, p->to.val);
-			if (r == -1)
+			if (rtype(p->to) != RTmp
+			|| (r=rfind(m, p->to.val)) == -1)
 				continue;
 			for (u=0; u<p->narg; u++) {
 				b = p->blk[u];
