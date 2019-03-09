@@ -1,0 +1,68 @@
+export
+function w $f(w %n0) {
+@start
+@loop
+	%n1 =w phi @start %n0, @loop %n2
+
+	%p0 =w phi @start 0, @loop %p01
+	%p1 =w phi @start 0, @loop %p11
+	%p2 =w phi @start 0, @loop %p21
+	%p3 =w phi @start 0, @loop %p31
+	%p4 =w phi @start 0, @loop %p41
+	%p5 =w phi @start 0, @loop %p51
+	%p6 =w phi @start 0, @loop %p61
+	%p7 =w phi @start 0, @loop %p71
+	%p8 =w phi @start 0, @loop %p81
+	%p9 =w phi @start 0, @loop %p91
+	%pa =w phi @start 0, @loop %pa1
+	%pb =w phi @start 0, @loop %pb1
+	%pc =w phi @start 0, @loop %pc1
+	%pd =w phi @start 0, @loop %pd1
+	%pe =w phi @start 0, @loop %pe1
+	%pf =w phi @start 0, @loop %pf1
+
+	%p01 =w add 1, %p0
+	%p11 =w add 2, %p1
+	%p21 =w add 3, %p2
+	%p31 =w add 4, %p3
+	%p41 =w add 5, %p4
+	%p51 =w add 6, %p5
+	%p61 =w add 7, %p6
+	%p71 =w add 8, %p7
+	%p81 =w add 9, %p8
+	%p91 =w add 10, %p9
+	%pa1 =w add 11, %pa
+	%pb1 =w add 12, %pb
+	%pc1 =w add 13, %pc
+	%pd1 =w add 14, %pd
+	%pe1 =w add 15, %pe
+	%pf1 =w add 16, %pf
+
+	%n2 =w sub %n1, 1
+	jnz %n2, @loop, @end
+
+@end
+	%a =w sub 0, 0
+	%a =w add %p01, %a
+	%a =w add %p11, %a
+	%a =w add %p21, %a
+	%a =w add %p31, %a
+	%a =w add %p41, %a
+	%a =w add %p51, %a
+	%a =w add %p61, %a
+	%a =w add %p71, %a
+	%a =w add %p81, %a
+	%a =w add %p91, %a
+	%a =w add %pa1, %a
+	%a =w add %pb1, %a
+	%a =w add %pc1, %a
+	%a =w add %pd1, %a
+	%a =w add %pe1, %a
+	%a =w add %pf1, %a
+	ret %a
+}
+
+# >>> driver
+# extern int f(int);
+# int main() { return !(f(1) == 136); }
+# <<<
