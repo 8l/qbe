@@ -231,7 +231,7 @@ def(Slice sl, bits msk, Blk *b, Ins *i, Loc *il)
 	while (i > b->ins) {
 		--i;
 		if (killsl(i->to, sl)
-		|| ((i->op == Ocall || i->op == Ovacall) && escapes(sl.ref, curf)))
+		|| (iscall(i->op) && escapes(sl.ref, curf)))
 			goto Load;
 		ld = isload(i->op);
 		if (ld) {

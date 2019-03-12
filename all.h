@@ -171,12 +171,14 @@ enum {
 	Jjf1 = Jjffuo,
 };
 
-#define isstore(o) (Ostoreb <= o && o <= Ostored)
-#define isload(o) (Oloadsb <= o && o <= Oload)
-#define isext(o) (Oextsb <= o && o <= Oextuw)
-#define ispar(o) (Opar <= o && o <= Opare)
-#define isarg(o) (Oarg <= o && o <= Oarge)
-#define isret(j) (Jret0 <= j && j <= Jretc)
+#define INRANGE(x, l, u) ((unsigned)(x) - l <= u - l) /* linear in x */
+#define iscall(o) INRANGE(o, Ocall, Ovacall)
+#define isstore(o) INRANGE(o, Ostoreb, Ostored)
+#define isload(o) INRANGE(o, Oloadsb, Oload)
+#define isext(o) INRANGE(o, Oextsb, Oextuw)
+#define ispar(o) INRANGE(o, Opar, Opare)
+#define isarg(o) INRANGE(o, Oarg, Oarge)
+#define isret(j) INRANGE(j, Jret0, Jretc)
 
 enum Class {
 	Kx = -1, /* "top" class (see usecheck() and clsmerge()) */
