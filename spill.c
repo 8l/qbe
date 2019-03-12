@@ -309,7 +309,7 @@ void
 spill(Fn *fn)
 {
 	Blk *b, *s1, *s2, *hd, **bp;
-	int j, l, t, k, lvarg[2];
+	int j, l, t, k, s, lvarg[2];
 	uint n;
 	BSet u[1], v[1], w[1];
 	Ins *i;
@@ -407,6 +407,7 @@ spill(Fn *fn)
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
 				t = i->to.val;
+				s = tmp[t].slot;
 				if (bshas(v, t))
 					bsclr(v, t);
 				else {
@@ -440,6 +441,13 @@ spill(Fn *fn)
 					bsset(v, t);
 					if (j-- <= 0)
 						bsset(w, t);
+					else if (!lvarg[n]) {
+						/* recycle the slot of
+						 * i->to when possible
+						 */
+						if (tmp[t].slot == -1)
+							tmp[t].slot = s;
+					}
 					break;
 				}
 			bscopy(u, v);
@@ -447,9 +455,12 @@ spill(Fn *fn)
 			for (n=0; n<2; n++)
 				if (rtype(i->arg[n]) == RTmp) {
 					t = i->arg[n].val;
-					if (!bshas(v, t)) {
+					if (bshas(v, t)) {
+						if (tmp[t].slot == s)
+							tmp[t].slot = -1;
+					} else {
 						/* do not reload if the
-						 * the temporary was dead
+						 * argument is dead
 						 */
 						if (!lvarg[n])
 							bsclr(u, t);
