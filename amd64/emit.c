@@ -360,7 +360,7 @@ emitins(Ins i, Fn *fn, FILE *f)
 {
 	Ref r;
 	int64_t val;
-	int o;
+	int o, t0;
 
 	switch (i.op) {
 	default:
@@ -434,19 +434,27 @@ emitins(Ins i, Fn *fn, FILE *f)
 		 * also, we can use a trick to load 64-bits
 		 * registers, it's detailed in my note below
 		 * http://c9x.me/art/notes.html?09/19/2015 */
+		t0 = rtype(i.arg[0]);
 		if (req(i.to, R) || req(i.arg[0], R))
 			break;
 		if (isreg(i.to)
-		&& rtype(i.arg[0]) == RCon
+		&& t0 == RCon
 		&& i.cls == Kl
 		&& fn->con[i.arg[0].val].type == CBits
 		&& (val = fn->con[i.arg[0].val].bits.i) >= 0
 		&& val <= UINT32_MAX) {
 			emitf("movl %W0, %W=", &i, fn, f);
 		} else if (isreg(i.to)
-		&& rtype(i.arg[0]) == RCon
+		&& t0 == RCon
 		&& fn->con[i.arg[0].val].type == CAddr) {
 			emitf("lea%k %M0, %=", &i, fn, f);
+		} else if (rtype(i.to) == RSlot
+		&& (t0 == RSlot || t0 == RMem)) {
+			i.cls = KWIDE(i.cls) ? Kd : Ks;
+			i.arg[1] = TMP(XMM0+15);
+			emitf("mov%k %0, %1", &i, fn, f);
+			emitf("mov%k %1, %=", &i, fn, f);
+
 		} else if (!req(i.arg[0], i.to))
 			emitf("mov%k %0, %=", &i, fn, f);
 		break;
