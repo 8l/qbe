@@ -65,6 +65,7 @@ func(Fn *fn)
 	fillpreds(fn);
 	filluse(fn);
 	memopt(fn);
+	filluse(fn);
 	ssa(fn);
 	filluse(fn);
 	ssacheck(fn);

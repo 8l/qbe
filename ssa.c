@@ -47,6 +47,7 @@ filluse(Fn *fn)
 	/* todo, is this the correct file? */
 	tmp = fn->tmp;
 	for (t=Tmp0; t<fn->ntmp; t++) {
+		tmp[t].bid = -1u;
 		tmp[t].ndef = 0;
 		tmp[t].nuse = 0;
 		tmp[t].cls = 0;
@@ -59,6 +60,7 @@ filluse(Fn *fn)
 		for (p=b->phi; p; p=p->link) {
 			assert(rtype(p->to) == RTmp);
 			tp = p->to.val;
+			tmp[tp].bid = b->id;
 			tmp[tp].ndef++;
 			tmp[tp].cls = p->cls;
 			tp = phicls(tp, fn->tmp);
@@ -84,6 +86,7 @@ filluse(Fn *fn)
 					w = WFull;
 				t = i->to.val;
 				tmp[t].width = w;
+				tmp[t].bid = b->id;
 				tmp[t].ndef++;
 				tmp[t].cls = i->cls;
 			}
@@ -111,9 +114,10 @@ phiins(Fn *fn)
 	Blk *a, *b, **blist, **be, **bp;
 	Ins *i;
 	Phi *p;
+	Use *use;
 	Ref r;
-	int t, nt;
-	uint n;
+	int t, nt, ok;
+	uint n, defb;
 	short k;
 
 	bsinit(u, fn->nblk);
@@ -125,8 +129,15 @@ phiins(Fn *fn)
 		fn->tmp[t].visit = 0;
 		if (fn->tmp[t].phi != 0)
 			continue;
-		if (fn->tmp[t].ndef == 1)
-			continue;
+		if (fn->tmp[t].ndef == 1) {
+			ok = 1;
+			defb = fn->tmp[t].bid;
+			use = fn->tmp[t].use;
+			for (n=fn->tmp[t].nuse; n--; use++)
+				ok &= use->bid == defb;
+			if (ok || defb == fn->start->id)
+				continue;
+		}
 		bszero(u);
 		k = -1;
 		bp = be;
@@ -293,7 +304,7 @@ renblk(Blk *b, Name **stk, Fn *fn)
 		renblk(s, stk, fn);
 }
 
-/* require rpo and ndef */
+/* require rpo and use */
 void
 ssa(Fn *fn)
 {

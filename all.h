@@ -248,7 +248,7 @@ struct Use {
 		UIns,
 		UJmp,
 	} type;
-	int bid;
+	uint bid;
 	union {
 		Ins *ins;
 		Phi *phi;
@@ -279,6 +279,7 @@ struct Alias {
 
 struct Tmp {
 	char name[NString];
+	uint bid; /* id of a defining block */
 	Use *use;
 	uint ndef, nuse;
 	uint cost;
