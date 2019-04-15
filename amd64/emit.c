@@ -430,33 +430,48 @@ emitins(Ins i, Fn *fn, FILE *f)
 		}
 		goto Table;
 	case Ocopy:
-		/* make sure we don't emit useless copies,
-		 * also, we can use a trick to load 64-bits
-		 * registers, it's detailed in my note below
-		 * http://c9x.me/art/notes.html?09/19/2015 */
-		t0 = rtype(i.arg[0]);
+		/* copies are used for many things; see my note
+		 * to understand how to load big constants:
+		 * https://c9x.me/notes/2015-09-19.html */
+		assert(rtype(i.to) != RMem);
 		if (req(i.to, R) || req(i.arg[0], R))
 			break;
-		if (isreg(i.to)
+		if (req(i.to, i.arg[0]))
+			break;
+		t0 = rtype(i.arg[0]);
+		if (i.cls == Kl
 		&& t0 == RCon
-		&& i.cls == Kl
-		&& fn->con[i.arg[0].val].type == CBits
-		&& (val = fn->con[i.arg[0].val].bits.i) >= 0
-		&& val <= UINT32_MAX) {
-			emitf("movl %W0, %W=", &i, fn, f);
-		} else if (isreg(i.to)
+		&& fn->con[i.arg[0].val].type == CBits) {
+			val = fn->con[i.arg[0].val].bits.i;
+			if (isreg(i.to))
+			if (val >= 0 && val <= UINT32_MAX) {
+				emitf("movl %W0, %W=", &i, fn, f);
+				break;
+			}
+			if (rtype(i.to) == RSlot)
+			if (val < INT32_MIN || val > INT32_MAX) {
+				emitf("movl %0, %=", &i, fn, f);
+				emitf("movl %0>>32, 4+%=", &i, fn, f);
+				break;
+			}
+		}
+		if (isreg(i.to)
 		&& t0 == RCon
 		&& fn->con[i.arg[0].val].type == CAddr) {
 			emitf("lea%k %M0, %=", &i, fn, f);
-		} else if (rtype(i.to) == RSlot
+			break;
+		}
+		if (rtype(i.to) == RSlot
 		&& (t0 == RSlot || t0 == RMem)) {
 			i.cls = KWIDE(i.cls) ? Kd : Ks;
 			i.arg[1] = TMP(XMM0+15);
 			emitf("mov%k %0, %1", &i, fn, f);
 			emitf("mov%k %1, %=", &i, fn, f);
-
-		} else if (!req(i.arg[0], i.to))
-			emitf("mov%k %0, %=", &i, fn, f);
+			break;
+		}
+		/* conveniently, the assembler knows if it
+		 * should use movabsq when reading movq */
+		emitf("mov%k %0, %=", &i, fn, f);
 		break;
 	case Ocall:
 		/* calls simply have a weird syntax in AT&T
