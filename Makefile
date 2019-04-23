@@ -44,7 +44,7 @@ config.h:
 		echo "#define Defasm Gaself";          \
 		case `uname -m` in                     \
 		*aarch64*)                             \
-			echo "$define Deftgt T_arm64"; \
+			echo "#define Deftgt T_arm64"; \
 			;;                             \
 		*)                                     \
 			echo "#define Deftgt T_amd64_sysv";\
