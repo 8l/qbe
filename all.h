@@ -279,11 +279,11 @@ struct Alias {
 
 struct Tmp {
 	char name[NString];
-	uint bid; /* id of a defining block */
 	Use *use;
 	uint ndef, nuse;
+	uint bid; /* id of a defining block */
 	uint cost;
-	short slot; /* -1 for unset */
+	int slot; /* -1 for unset */
 	short cls;
 	struct {
 		int r;  /* register or -1 */
