@@ -588,6 +588,8 @@ amd64_isel(Fn *fn)
 					err("invalid alloc size %"PRId64, sz);
 				sz = (sz + n-1) & -n;
 				sz /= 4;
+				if (sz > INT_MAX - fn->slot)
+					die("alloc too large");
 				fn->tmp[i->to.val].slot = fn->slot;
 				fn->slot += sz;
 				*i = (Ins){.op = Onop};
