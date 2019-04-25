@@ -292,10 +292,10 @@ Next:
 			if (m->offset.type != CUndef)
 				emitcon(&m->offset, f);
 			fputc('(', f);
-			if (req(m->base, R))
-				fprintf(f, "%%rip");
-			else
+			if (!req(m->base, R))
 				fprintf(f, "%%%s", regtoa(m->base.val, SLong));
+			else if (m->offset.type == CAddr)
+				fprintf(f, "%%rip");
 			if (!req(m->index, R))
 				fprintf(f, ", %%%s, %d",
 					regtoa(m->index.val, SLong),
@@ -333,8 +333,10 @@ Next:
 			fprintf(f, "%d(%%rbp)", slot(ref.val, fn));
 			break;
 		case RCon:
-			emitcon(&fn->con[ref.val], f);
-			fprintf(f, "(%%rip)");
+			off = fn->con[ref.val];
+			emitcon(&off, f);
+			if (off.type == CAddr)
+				fprintf(f, "(%%rip)");
 			break;
 		case RTmp:
 			assert(isreg(ref));

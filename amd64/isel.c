@@ -62,7 +62,7 @@ static void
 fixarg(Ref *r, int k, int op, Fn *fn)
 {
 	char buf[32];
-	Addr a, *m;
+	Addr a;
 	Ref r0, r1;
 	int s, n, cpy, mem;
 
@@ -103,22 +103,12 @@ fixarg(Ref *r, int k, int op, Fn *fn)
 	}
 	else if (!mem && rtype(r0) == RCon
 	&& fn->con[r0.val].type == CAddr) {
-		/* apple asm fix */
+		/* apple as does not support 32-bit
+		 * absolute addressing, use a rip-
+		 * relative leaq instead
+		 */
 		r1 = newtmp("isel", Kl, fn);
 		emit(Oaddr, Kl, r1, r0, R);
-	}
-	else if (rtype(r0) == RMem) {
-		/* apple asm fix */
-		m = &fn->mem[r0.val];
-		if (req(m->base, R)) {
-			n = fn->ncon;
-			vgrow(&fn->con, ++fn->ncon);
-			fn->con[n] = m->offset;
-			m->offset.type = CUndef;
-			r0 = newtmp("isel", Kl, fn);
-			emit(Oaddr, Kl, r0, CON(n), R);
-			m->base = r0;
-		}
 	}
 	*r = r1;
 }
@@ -134,9 +124,13 @@ seladdr(Ref *r, ANum *an, Fn *fn)
 		memset(&a, 0, sizeof a);
 		if (!amatch(&a, r0, an[r0.val].n, an, fn))
 			return;
-		if (a.offset.type == CAddr)
-		if (!req(a.base, R)) {
-			/* apple asm fix */
+		if (!req(a.base, R))
+		if (a.offset.type == CAddr) {
+			/* apple as does not support
+			 * $foo(%r0, %r1, M); try to
+			 * rewrite it or bail out if
+			 * impossible
+			 */
 			if (!req(a.index, R))
 				return;
 			else {
