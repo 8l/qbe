@@ -45,21 +45,21 @@ function $writeto0() {
 # #include <stdlib.h>
 # #include <signal.h>
 # char a[] = "qbe rocks";
-# int ok = 1;
+# int ok;
 # extern unsigned f0(long), f1(long), f2(long, long);
 # extern char *f3(long);
 # extern void writeto0();
 # void h(int sig, siginfo_t *si, void *unused) {
-# 	ok &= si->si_addr == 0;
-# 	exit(!ok);
+# 	ok += si->si_addr == 0;
+# 	exit(!(ok == 5));
 # }
 # int main() {
 # 	struct sigaction sa = {.sa_flags=SA_SIGINFO, .sa_sigaction=h};
 # 	sigemptyset(&sa.sa_mask); sigaction(SIGSEGV, &sa, 0);
-# 	ok &= f0(2) == 'e';
-# 	ok &= f1((long)a-5) == 'o';
-# 	ok &= f2(4, 2) == 's';
-# 	ok &= *f3(0) == 'q';
+# 	ok += f0(2) == 'e';
+# 	ok += f1((long)a-5) == 'o';
+# 	ok += f2(4, 2) == 's';
+# 	ok += *f3(0) == 'q';
 # 	writeto0(); /* will segfault */
 # }
 # <<<
