@@ -1,0 +1,65 @@
+# test amd64 addressing modes
+
+export
+function w $f0(l %o) {
+@start
+	%addr =l add $a, %o
+	%char =w loadub %addr
+	ret %char
+}
+
+export
+function w $f1(l %o) {
+@start
+	%o1 =l mul %o, 1
+	%addr =l add 10, %o1
+	%char =w loadub %addr
+	ret %char
+}
+
+export
+function w $f2(l %o1, l %o2) {
+@start
+	%o22 =l mul %o2, 2
+	%o =l add %o1, %o22
+	%addr =l add $a, %o
+	%char =w loadub %addr
+	ret %char
+}
+
+export
+function l $f3(l %o) {
+@start
+	%addr =l add %o, $a
+	ret %addr
+}
+
+export
+function $writeto0() {
+@start
+	storel 0, 0
+	ret
+}
+
+# >>> driver
+# #include <stdlib.h>
+# #include <signal.h>
+# char a[] = "qbe rocks";
+# int ok = 1;
+# extern unsigned f0(long), f1(long), f2(long, long);
+# extern char *f3(long);
+# extern void writeto0();
+# void h(int sig, siginfo_t *si, void *unused) {
+# 	ok &= si->si_addr == 0;
+# 	exit(!ok);
+# }
+# int main() {
+# 	struct sigaction sa = {.sa_flags=SA_SIGINFO, .sa_sigaction=h};
+# 	sigemptyset(&sa.sa_mask); sigaction(SIGSEGV, &sa, 0);
+# 	ok &= f0(2) == 'e';
+# 	ok &= f1((long)a-5) == 'o';
+# 	ok &= f2(4, 2) == 's';
+# 	ok &= *f3(0) == 'q';
+# 	writeto0(); /* will segfault */
+# }
+# <<<

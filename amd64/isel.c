@@ -62,7 +62,7 @@ static void
 fixarg(Ref *r, int k, int op, Fn *fn)
 {
 	char buf[32];
-	Addr a;
+	Addr a, *m;
 	Ref r0, r1;
 	int s, n, cpy, mem;
 
@@ -109,6 +109,22 @@ fixarg(Ref *r, int k, int op, Fn *fn)
 		 */
 		r1 = newtmp("isel", Kl, fn);
 		emit(Oaddr, Kl, r1, r0, R);
+	}
+	else if (rtype(r0) == RMem) {
+		/* eliminate memory operands of
+		 * the form $foo(%rip, ...)
+		 */
+		m = &fn->mem[r0.val];
+		if (req(m->base, R))
+		if (m->offset.type == CAddr) {
+			n = fn->ncon;
+			vgrow(&fn->con, ++fn->ncon);
+			fn->con[n] = m->offset;
+			m->offset.type = CUndef;
+			r0 = newtmp("isel", Kl, fn);
+			emit(Oaddr, Kl, r0, CON(n), R);
+			m->base = r0;
+		}
 	}
 	*r = r1;
 }
