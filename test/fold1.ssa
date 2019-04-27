@@ -1,0 +1,25 @@
+export
+function w $f1() {
+@start
+	%x =w sar 2147483648, 31
+	ret %x
+}
+
+export
+function w $f2() {
+@start
+	%x =w div 4294967040, 8  # -256 / 8
+	ret %x
+}
+
+export
+function w $f3() {
+@start
+	%x =w rem 4294967284, 7  # -12 % 7
+	ret %x
+}
+
+# >>> driver
+# extern int f1(), f2(), f3();
+# int main() { return !(f1() == -1 && f2() == -32 && f3() == -5); }
+# <<<
