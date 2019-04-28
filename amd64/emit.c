@@ -110,8 +110,8 @@ static struct {
 	{ Osign,   Kw, "cltd" },
 	{ Oxdiv,   Ki, "div%k %0" },
 	{ Oxidiv,  Ki, "idiv%k %0" },
-	{ Oxcmp,   Ks, "comiss %S0, %S1" },
-	{ Oxcmp,   Kd, "comisd %D0, %D1" },
+	{ Oxcmp,   Ks, "ucomiss %S0, %S1" },
+	{ Oxcmp,   Kd, "ucomisd %D0, %D1" },
 	{ Oxcmp,   Ki, "cmp%k %0, %1" },
 	{ Oxtest,  Ki, "test%k %0, %1" },
 #define X(c, s) \
