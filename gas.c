@@ -42,8 +42,8 @@ gasemitdat(Dat *d, FILE *f)
 			fprintf(f, "\t.ascii \"%s\"\n", d->u.str);
 		}
 		else if (d->isref) {
-			fprintf(f, "%s %s%+"PRId64"\n",
-				dtoa[d->type], d->u.ref.nam,
+			fprintf(f, "%s %s%s%+"PRId64"\n",
+				dtoa[d->type], gassym, d->u.ref.nam,
 				d->u.ref.off);
 		}
 		else {
