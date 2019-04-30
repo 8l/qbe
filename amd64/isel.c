@@ -59,17 +59,16 @@ rslot(Ref r, Fn *fn)
 }
 
 static void
-fixarg(Ref *r, int k, int op, Fn *fn)
+fixarg(Ref *r, int k, Ins *i, Fn *fn)
 {
 	char buf[32];
 	Addr a, *m;
 	Ref r0, r1;
-	int s, n, cpy, mem;
+	int s, n, op;
 
 	r1 = r0 = *r;
 	s = rslot(r0, fn);
-	cpy = op == Ocopy || op == -1;
-	mem = isstore(op) || isload(op) || op == Ocall;
+	op = i ? i->op : Ocopy;
 	if (KBASE(k) == 1 && rtype(r0) == RCon) {
 		/* load floating points from memory
 		 * slots, they can't be used as
@@ -85,7 +84,7 @@ fixarg(Ref *r, int k, int op, Fn *fn)
 		a.offset.label = intern(buf);
 		fn->mem[fn->nmem-1] = a;
 	}
-	else if (!cpy && k == Kl && noimm(r0, fn)) {
+	else if (op != Ocopy && k == Kl && noimm(r0, fn)) {
 		/* load constants that do not fit in
 		 * a 32bit signed integer into a
 		 * long temporary
@@ -101,7 +100,8 @@ fixarg(Ref *r, int k, int op, Fn *fn)
 		r1 = newtmp("isel", Kl, fn);
 		emit(Oaddr, Kl, r1, SLOT(s), R);
 	}
-	else if (!mem && rtype(r0) == RCon
+	else if (!(isstore(op) && r == &i->arg[1])
+	&& !isload(op) && op != Ocall && rtype(r0) == RCon
 	&& fn->con[r0.val].type == CAddr) {
 		/* apple as does not support 32-bit
 		 * absolute addressing, use a rip-
@@ -168,7 +168,8 @@ static int
 selcmp(Ref arg[2], int k, Fn *fn)
 {
 	int swap;
-	Ref r, *iarg;
+	Ref r;
+	Ins *icmp;
 
 	swap = rtype(arg[0]) == RCon;
 	if (swap) {
@@ -177,21 +178,21 @@ selcmp(Ref arg[2], int k, Fn *fn)
 		arg[0] = r;
 	}
 	emit(Oxcmp, k, R, arg[1], arg[0]);
-	iarg = curi->arg;
+	icmp = curi;
 	if (rtype(arg[0]) == RCon) {
 		assert(k == Kl);
-		iarg[1] = newtmp("isel", k, fn);
-		emit(Ocopy, k, iarg[1], arg[0], R);
+		icmp->arg[1] = newtmp("isel", k, fn);
+		emit(Ocopy, k, icmp->arg[1], arg[0], R);
 	}
-	fixarg(&iarg[0], k, Oxcmp, fn);
-	fixarg(&iarg[1], k, Oxcmp, fn);
+	fixarg(&icmp->arg[0], k, icmp, fn);
+	fixarg(&icmp->arg[1], k, icmp, fn);
 	return swap;
 }
 
 static void
 sel(Ins i, ANum *an, Fn *fn)
 {
-	Ref r0, r1, *iarg;
+	Ref r0, r1;
 	int x, k, kc;
 	int64_t sz;
 	Ins *i0, *i1;
@@ -236,7 +237,7 @@ sel(Ins i, ANum *an, Fn *fn)
 			emit(Ocopy, k, TMP(RDX), CON_Z, R);
 		}
 		emit(Ocopy, k, TMP(RAX), i.arg[0], R);
-		fixarg(&curi->arg[0], k, Ocopy, fn);
+		fixarg(&curi->arg[0], k, curi, fn);
 		if (rtype(i.arg[1]) == RCon)
 			emit(Ocopy, k, r0, i.arg[1], R);
 		break;
@@ -290,9 +291,9 @@ sel(Ins i, ANum *an, Fn *fn)
 	case_OExt:
 Emit:
 		emiti(i);
-		iarg = curi->arg; /* fixarg() can change curi */
-		fixarg(&iarg[0], argcls(&i, 0), i.op, fn);
-		fixarg(&iarg[1], argcls(&i, 1), i.op, fn);
+		i1 = curi; /* fixarg() can change curi */
+		fixarg(&i1->arg[0], argcls(&i, 0), i1, fn);
+		fixarg(&i1->arg[1], argcls(&i, 1), i1, fn);
 		break;
 	case Oalloc:
 	case Oalloc+1:
@@ -604,7 +605,7 @@ amd64_isel(Fn *fn)
 			for (p=(*sb)->phi; p; p=p->link) {
 				for (a=0; p->blk[a] != b; a++)
 					assert(a+1 < p->narg);
-				fixarg(&p->arg[a], p->cls, -1, fn);
+				fixarg(&p->arg[a], p->cls, 0, fn);
 			}
 		memset(ainfo, 0, n * sizeof ainfo[0]);
 		anumber(ainfo, b, fn->con);

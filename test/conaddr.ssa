@@ -35,6 +35,13 @@ function l $f3(l %o) {
 }
 
 export
+function $f4() {
+@start
+	storel $p, $p
+	ret
+}
+
+export
 function $writeto0() {
 @start
 	storel 0, 0
@@ -45,13 +52,14 @@ function $writeto0() {
 # #include <stdlib.h>
 # #include <signal.h>
 # char a[] = "qbe rocks";
+# void *p;
 # int ok;
 # extern unsigned f0(long), f1(long), f2(long, long);
 # extern char *f3(long);
-# extern void writeto0();
+# extern void f4(), writeto0();
 # void h(int sig, siginfo_t *si, void *unused) {
 # 	ok += si->si_addr == 0;
-# 	exit(!(ok == 5));
+# 	exit(!(ok == 6));
 # }
 # int main() {
 # 	struct sigaction sa = {.sa_flags=SA_SIGINFO, .sa_sigaction=h};
@@ -60,6 +68,8 @@ function $writeto0() {
 # 	ok += f1((long)a-5) == 'o';
 # 	ok += f2(4, 2) == 's';
 # 	ok += *f3(0) == 'q';
+# 	f4();
+# 	ok += p == &p;
 # 	writeto0(); /* will segfault */
 # }
 # <<<
