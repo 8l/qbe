@@ -69,7 +69,6 @@ func(Fn *fn)
 	ssa(fn);
 	filluse(fn);
 	ssacheck(fn);
-	fillloop(fn);
 	fillalias(fn);
 	loadopt(fn);
 	filluse(fn);
@@ -83,6 +82,7 @@ func(Fn *fn)
 	T.isel(fn);
 	fillrpo(fn);
 	filllive(fn);
+	fillloop(fn);
 	fillcost(fn);
 	spill(fn);
 	rega(fn);
