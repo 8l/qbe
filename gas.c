@@ -8,7 +8,7 @@ gasemitdat(Dat *d, FILE *f)
 {
 	static int align;
 	static char *dtoa[] = {
-		[DAlign] = ".align",
+		[DAlign] = ".balign",
 		[DB] = "\t.byte",
 		[DH] = "\t.short",
 		[DW] = "\t.int",
@@ -24,7 +24,7 @@ gasemitdat(Dat *d, FILE *f)
 		break;
 	case DName:
 		if (!align)
-			fprintf(f, ".align 8\n");
+			fprintf(f, ".balign 8\n");
 		if (d->export)
 			fprintf(f, ".globl %s%s\n", gassym, d->u.str);
 		fprintf(f, "%s%s:\n", gassym, d->u.str);
@@ -98,7 +98,7 @@ gasemitfin(FILE *f)
 		for (b=stash, i=0; b; b=b->link, i++) {
 			if (b->size == sz) {
 				fprintf(f,
-					".align %d\n"
+					".balign %d\n"
 					"%sfp%d:",
 					sz, gasloc, i
 				);
