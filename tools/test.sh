@@ -2,11 +2,13 @@
 
 dir=`cd $(dirname "$0"); pwd`
 bin=$dir/../obj/qbe
+binref=$dir/../obj/qbe.ref
 
 tmp=/tmp/qbe.zzzz
 
 drv=$tmp.c
 asm=$tmp.s
+asmref=$tmp.ref.s
 exe=$tmp.exe
 out=$tmp.out
 
@@ -109,6 +111,11 @@ once() {
 		return 1
 	fi
 
+	if test -x $binref
+	then
+		$binref -o $asmref $t 2>/dev/null
+	fi
+
 	extract driver $t > $drv
 	extract output $t > $out
 
@@ -143,6 +150,14 @@ once() {
 	fi
 
 	echo "[ok]"
+
+	if test -f $asmref && ! cmp -s $asm $asmref
+	then
+		loc0=`wc -l $asm    | cut -d' ' -f1`
+		loc1=`wc -l $asmref | cut -d' ' -f1`
+		printf "    asm diff: %+d\n" $(($loc0 - $loc1))
+		return 0
+	fi
 }
 
 #trap cleanup TERM QUIT
