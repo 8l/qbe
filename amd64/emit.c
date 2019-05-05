@@ -537,7 +537,7 @@ amd64_emitfn(Fn *fn, FILE *f)
 	static int id0;
 	Blk *b, *s;
 	Ins *i, itmp;
-	int *r, c, o, n, lbl, ret;
+	int *r, c, o, n, lbl;
 	uint64_t fs;
 
 	fprintf(f, ".text\n");
@@ -566,7 +566,7 @@ amd64_emitfn(Fn *fn, FILE *f)
 			fs += 8;
 		}
 
-	for (ret=lbl=0, b=fn->start; b; b=b->link) {
+	for (lbl=0, b=fn->start; b; b=b->link) {
 		if (lbl || b->npred > 1)
 			fprintf(f, "%sbb%d:\n", gasloc, id0+b->id);
 		for (i=b->ins; i!=&b->ins[b->nins]; i++)
@@ -574,11 +574,21 @@ amd64_emitfn(Fn *fn, FILE *f)
 		lbl = 1;
 		switch (b->jmp.type) {
 		case Jret0:
-			if (b->link) {
-				ret++;
-				fprintf(f, "\tjmp %sbb%d\n",
-					gasloc, id0+fn->nblk);
-			}
+			if (fn->dynalloc)
+				fprintf(f,
+					"\tmovq %%rbp, %%rsp\n"
+					"\tsubq $%"PRIu64", %%rsp\n",
+					fs
+				);
+			for (r=&amd64_sysv_rclob[NCLR]; r>amd64_sysv_rclob;)
+				if (fn->reg & BIT(*--r)) {
+					itmp.arg[0] = TMP(*r);
+					emitf("popq %L0", &itmp, fn, f);
+				}
+			fprintf(f,
+				"\tleave\n"
+				"\tret\n"
+			);
 			break;
 		case Jjmp:
 		Jmp:
@@ -604,22 +614,5 @@ amd64_emitfn(Fn *fn, FILE *f)
 			die("unhandled jump %d", b->jmp.type);
 		}
 	}
-	if (ret)
-		fprintf(f, "%sbb%d:\n", gasloc, id0+fn->nblk);
-	if (fn->dynalloc)
-		fprintf(f,
-			"\tmovq %%rbp, %%rsp\n"
-			"\tsubq $%"PRIu64", %%rsp\n",
-			fs
-		);
-	for (r=&amd64_sysv_rclob[NCLR]; r>amd64_sysv_rclob;)
-		if (fn->reg & BIT(*--r)) {
-			itmp.arg[0] = TMP(*r);
-			emitf("popq %L0", &itmp, fn, f);
-		}
-	fprintf(f,
-		"\tleave\n"
-		"\tret\n"
-	);
-	id0 += fn->nblk + (ret>0);
+	id0 += fn->nblk;
 }
