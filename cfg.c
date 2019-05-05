@@ -297,12 +297,19 @@ simpljmp(Fn *fn)
 {
 
 	Blk **uf; /* union-find */
-	Blk *b;
+	Blk **p, *b, *ret;
 	int c;
 
+	ret = blknew();
+	ret->id = fn->nblk++;
+	ret->jmp.type = Jret0;
 	uf = emalloc(fn->nblk * sizeof uf[0]);
 	for (b=fn->start; b; b=b->link) {
 		assert(!b->phi);
+		if (b->jmp.type == Jret0) {
+			b->jmp.type = Jjmp;
+			b->s1 = ret;
+		}
 		if (b->nins == 0)
 		if (b->jmp.type == Jjmp) {
 			uffind(&b->s1, uf);
@@ -310,7 +317,7 @@ simpljmp(Fn *fn)
 				uf[b->id] = b->s1;
 		}
 	}
-	for (b=fn->start; b; b=b->link) {
+	for (p=&fn->start; (b=*p); p=&b->link) {
 		if (b->s1)
 			uffind(&b->s1, uf);
 		if (b->s2)
@@ -322,5 +329,6 @@ simpljmp(Fn *fn)
 			b->s2 = 0;
 		}
 	}
+	*p = ret;
 	free(uf);
 }

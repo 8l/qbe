@@ -417,10 +417,11 @@ doblk(Blk *b, RMap *cur)
 			}
 		for (r=0; r<nr; r++)
 			*ra[r] = ralloc(cur, ra[r]->val);
+		if (i->op == Ocopy && req(i->to, i->arg[0]))
+			curi++;
 
 		/* try to change the register of a hinted
 		 * temporary if rf is available */
-		x = 1;
 		if (rf != -1 && (t = cur->w[rf]) != 0)
 		if (!bshas(cur->b, rf) && *hint(t) == rf
 		&& (rt = rfree(cur, t)) != -1) {
