@@ -81,6 +81,7 @@ static struct {
 	{ Oextsw,  Ki, "sxtw %L=, %W0" },
 	{ Oextuw,  Ki, "mov %W=, %W0" },
 	{ Oexts,   Kd, "fcvt %=, %S0" },
+	{ Otruncd, Ks, "fcvt %=, %D0" },
 	{ Ocast,   Kw, "fmov %=, %S0" },
 	{ Ocast,   Kl, "fmov %=, %D0" },
 	{ Ocast,   Ks, "fmov %=, %W0" },
