@@ -382,7 +382,12 @@ arm64_emitfn(Fn *fn, FILE *out)
 			fprintf(e->f, "\tstr\tx%d, [sp, -8]!\n", n);
 	}
 
-	if (e->frame + 16 > 512)
+	if (e->frame + 16 <= 512)
+		fprintf(e->f,
+			"\tstp\tx29, x30, [sp, -%"PRIu64"]!\n",
+			e->frame + 16
+		);
+	else if (e->frame <= 4095)
 		fprintf(e->f,
 			"\tsub\tsp, sp, #%"PRIu64"\n"
 			"\tstp\tx29, x30, [sp, -16]!\n",
@@ -390,8 +395,10 @@ arm64_emitfn(Fn *fn, FILE *out)
 		);
 	else
 		fprintf(e->f,
-			"\tstp\tx29, x30, [sp, -%"PRIu64"]!\n",
-			e->frame + 16
+			"\tmov\tx16, #%"PRIu64"\n"
+			"\tsub\tsp, sp, x16\n"
+			"\tstp\tx29, x30, [sp, -16]!\n",
+			e->frame
 		);
 	fputs("\tadd\tx29, sp, 0\n", e->f);
 	for (o=e->frame+16, r=arm64_rclob; *r>=0; r++)
@@ -418,7 +425,12 @@ arm64_emitfn(Fn *fn, FILE *out)
 			o = e->frame + 16;
 			if (e->fn->vararg)
 				o += 192;
-			if (o > 504)
+			if (o <= 504)
+				fprintf(e->f,
+					"\tldp\tx29, x30, [sp], %"PRIu64"\n",
+					o
+				);
+			else if (o - 16 <= 4095)
 				fprintf(e->f,
 					"\tldp\tx29, x30, [sp], 16\n"
 					"\tadd\tsp, sp, #%"PRIu64"\n",
@@ -426,8 +438,10 @@ arm64_emitfn(Fn *fn, FILE *out)
 				);
 			else
 				fprintf(e->f,
-					"\tldp\tx29, x30, [sp], %"PRIu64"\n",
-					o
+					"\tldp\tx29, x30, [sp], 16\n"
+					"\tmov\tx16, #%"PRIu64"\n"
+					"\tadd\tsp, sp, x16\n",
+					o - 16
 				);
 			fprintf(e->f, "\tret\n");
 			break;
