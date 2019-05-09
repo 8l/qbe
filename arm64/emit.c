@@ -220,8 +220,17 @@ emitf(char *s, Ins *i, E *e)
 			c = *s++;
 			assert(c == '0' || c == '1');
 			r = i->arg[c - '0'];
-			assert(isreg(r) && "TODO emit non reg addresses");
-			fprintf(e->f, "[%s]", rname(r.val, Kl));
+			switch (rtype(r)) {
+			default:
+				die("todo (arm emit): unhandled ref");
+			case RTmp:
+				assert(isreg(r));
+				fprintf(e->f, "[%s]", rname(r.val, Kl));
+				break;
+			case RSlot:
+				fprintf(e->f, "[sp, %"PRIu64"]", slot(r.val, e));
+				break;
+			}
 			break;
 		}
 	}
