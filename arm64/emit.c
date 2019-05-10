@@ -218,8 +218,8 @@ emitf(char *s, Ins *i, E *e)
 			break;
 		case 'M':
 			c = *s++;
-			assert(c == '0' || c == '1');
-			r = i->arg[c - '0'];
+			assert(c == '0' || c == '1' || c == '=');
+			r = c == '=' ? i->to : i->arg[c - '0'];
 			switch (rtype(r)) {
 			default:
 				die("todo (arm emit): unhandled ref");
@@ -307,9 +307,26 @@ emitins(Ins *i, E *e)
 	case Ocopy:
 		if (req(i->to, i->arg[0]))
 			break;
-		if (rtype(i->arg[0]) != RCon)
+		if (rtype(i->to) == RSlot) {
+			if (rtype(i->arg[0]) == RSlot) {
+				emitf("ldr %?, %M0\n\tstr %?, %M=", i, e);
+			} else {
+				assert(isreg(i->arg[0]));
+				emitf("str %0, %M=", i, e);
+			}
+			break;
+		}
+		assert(isreg(i->to));
+		switch (rtype(i->arg[0])) {
+		case RCon:
+			loadcon(&e->fn->con[i->arg[0].val], i->to.val, i->cls, e->f);
+			break;
+		case RSlot:
+			emitf("ldr %=, %M0", i, e);
+			break;
+		default:
 			goto Table;
-		loadcon(&e->fn->con[i->arg[0].val], i->to.val, i->cls, e->f);
+		}
 		break;
 	case Oaddr:
 		assert(rtype(i->arg[0]) == RSlot);
