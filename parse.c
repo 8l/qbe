@@ -227,15 +227,20 @@ lex()
 		return Tfltd;
 	case '%':
 		t = Ttmp;
+		c = fgetc(inf);
 		goto Alpha;
 	case '@':
 		t = Tlbl;
+		c = fgetc(inf);
 		goto Alpha;
 	case '$':
 		t = Tglo;
+		if ((c = fgetc(inf)) == '"')
+			goto Quoted;
 		goto Alpha;
 	case ':':
 		t = Ttyp;
+		c = fgetc(inf);
 		goto Alpha;
 	case '#':
 		while ((c=fgetc(inf)) != '\n' && c != EOF)
@@ -251,23 +256,25 @@ lex()
 		return Tint;
 	}
 	if (c == '"') {
-		tokval.str = vnew(0, 1, Pfn);
+		t = Tstr;
+	Quoted:
+		tokval.str = vnew(2, 1, Pfn);
+		tokval.str[0] = c;
 		esc = 0;
-		for (i=0;; i++) {
+		for (i=1;; i++) {
 			c = fgetc(inf);
 			if (c == EOF)
 				err("unterminated string");
-			vgrow(&tokval.str, i+1);
+			vgrow(&tokval.str, i+2);
+			tokval.str[i] = c;
 			if (c == '"' && !esc) {
-				tokval.str[i] = 0;
-				return Tstr;
+				tokval.str[i+1] = 0;
+				return t;
 			}
 			esc = (c == '\\' && !esc);
-			tokval.str[i] = c;
 		}
 	}
-	if (0)
-Alpha:		c = fgetc(inf);
+Alpha:
 	if (!isalpha(c) && c != '.' && c != '_')
 		err("invalid character %c (%d)", c, c);
 	i = 0;

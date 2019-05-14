@@ -39,7 +39,7 @@ gasemitdat(Dat *d, FILE *f)
 		if (d->isstr) {
 			if (d->type != DB)
 				err("strings only supported for 'b' currently");
-			fprintf(f, "\t.ascii \"%s\"\n", d->u.str);
+			fprintf(f, "\t.ascii %s\n", d->u.str);
 		}
 		else if (d->isref) {
 			fprintf(f, "%s %s%s%+"PRId64"\n",

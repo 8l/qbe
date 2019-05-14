@@ -161,12 +161,13 @@ slot(int s, Fn *fn)
 static void
 emitcon(Con *con, FILE *f)
 {
-	char *p;
+	char *p, *l;
 
 	switch (con->type) {
 	case CAddr:
-		p = con->local ? gasloc : gassym;
-		fprintf(f, "%s%s", p, str(con->label));
+		l = str(con->label);
+		p = con->local ? gasloc : l[0] == '"' ? "" : gassym;
+		fprintf(f, "%s%s", p, l);
 		if (con->bits.i)
 			fprintf(f, "%+"PRId64, con->bits.i);
 		break;
@@ -539,15 +540,17 @@ amd64_emitfn(Fn *fn, FILE *f)
 	Ins *i, itmp;
 	int *r, c, o, n, lbl;
 	uint64_t fs;
+	char *p;
 
+	p = fn->name[0] == '"' ? "" : gassym;
 	fprintf(f, ".text\n");
 	if (fn->export)
-		fprintf(f, ".globl %s%s\n", gassym, fn->name);
+		fprintf(f, ".globl %s%s\n", p, fn->name);
 	fprintf(f,
 		"%s%s:\n"
 		"\tpushq %%rbp\n"
 		"\tmovq %%rsp, %%rbp\n",
-		gassym, fn->name
+		p, fn->name
 	);
 	fs = framesz(fn);
 	if (fs)
