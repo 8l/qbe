@@ -27,11 +27,11 @@ iscopy(Ins *i, Ref r, Fn *fn)
 	case Ocopy:
 		return 1;
 	case Omul:
-		return iscon(i->arg[0], 1, fn) || iscon(i->arg[1], 1, fn);
+		return iscon(i->arg[1], 1, fn);
 	case Odiv:
 		return iscon(i->arg[1], 1, fn);
 	case Oadd:
-		return iscon(i->arg[0], 0, fn) || iscon(i->arg[1], 0, fn);
+		return iscon(i->arg[1], 0, fn);
 	default:
 		break;
 	}
