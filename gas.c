@@ -14,6 +14,7 @@ gasemitdat(Dat *d, FILE *f)
 		[DW] = "\t.int",
 		[DL] = "\t.quad"
 	};
+	char *p;
 
 	switch (d->type) {
 	case DStart:
@@ -25,9 +26,10 @@ gasemitdat(Dat *d, FILE *f)
 	case DName:
 		if (!align)
 			fprintf(f, ".balign 8\n");
+		p = d->u.str[0] == '"' ? "" : gassym;
 		if (d->export)
-			fprintf(f, ".globl %s%s\n", gassym, d->u.str);
-		fprintf(f, "%s%s:\n", gassym, d->u.str);
+			fprintf(f, ".globl %s%s\n", p, d->u.str);
+		fprintf(f, "%s%s:\n", p, d->u.str);
 		break;
 	case DZ:
 		fprintf(f, "\t.fill %"PRId64",1,0\n", d->u.num);
@@ -42,8 +44,9 @@ gasemitdat(Dat *d, FILE *f)
 			fprintf(f, "\t.ascii %s\n", d->u.str);
 		}
 		else if (d->isref) {
+			p = d->u.ref.nam[0] == '"' ? "" : gassym;
 			fprintf(f, "%s %s%s%+"PRId64"\n",
-				dtoa[d->type], gassym, d->u.ref.nam,
+				dtoa[d->type], p, d->u.ref.nam,
 				d->u.ref.off);
 		}
 		else {
