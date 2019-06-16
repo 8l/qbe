@@ -363,11 +363,8 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 		else if (cr->type == CAddr)
 			return 1;
 	}
-	else if (cl->type == CAddr || cr->type == CAddr) {
-		if (Ocmpl <= op && op <= Ocmpl1)
-			return 1;
-		err("invalid address operand for '%s'", optab[op].name);
-	}
+	else if (cl->type == CAddr || cr->type == CAddr)
+		return 1;
 	switch (op) {
 	case Oadd:  x = l.u + r.u; break;
 	case Osub:  x = l.u - r.u; break;
