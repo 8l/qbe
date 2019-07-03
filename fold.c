@@ -343,7 +343,7 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 	if (op == Oadd) {
 		if (cl->type == CAddr) {
 			if (cr->type == CAddr)
-				err("undefined addition (addr + addr)");
+				return 1;
 			lab = cl->label;
 			typ = CAddr;
 		}
@@ -358,10 +358,10 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 				lab = cl->label;
 				typ = CAddr;
 			} else if (cl->label != cr->label)
-				err("undefined substraction (addr1 - addr2)");
+				return 1;
 		}
 		else if (cr->type == CAddr)
-			err("undefined substraction (num - addr)");
+			return 1;
 	}
 	else if (cl->type == CAddr || cr->type == CAddr) {
 		if (Ocmpl <= op && op <= Ocmpl1)
