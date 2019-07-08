@@ -33,7 +33,7 @@ fi
 
 $DIR/minic < $file          > /tmp/minic.ssa &&
 $QBE       < /tmp/minic.ssa > /tmp/minic.s   &&
-cc $flags /tmp/minic.s
+cc /tmp/minic.s $flags
 
 if test $? -ne 0
 then
