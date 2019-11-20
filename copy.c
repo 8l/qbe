@@ -68,16 +68,18 @@ phisimpl(Phi *p, Ref r, Ref *cpy, Use ***pstk, BSet *ts, BSet *as, Fn *fn)
 	uint nstk, a;
 	int t;
 	Ref r1;
+	Phi *p0;
 
 	bszero(ts);
 	bszero(as);
+	p0 = &(Phi){.narg = 0};
 	stk = *pstk;
 	nstk = 1;
 	stk[0] = &(Use){.type = UPhi, .u.phi = p};
 	while (nstk) {
 		u = stk[--nstk];
 		if (u->type == UIns && iscopy(u->u.ins, r, fn)) {
-			p = &(Phi){.narg = 0};
+			p = p0;
 			t = u->u.ins->to.val;
 		}
 		else if (u->type == UPhi) {
