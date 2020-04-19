@@ -206,8 +206,8 @@ struct Ins {
 
 struct Phi {
 	Ref to;
-	Ref arg[NPred];
-	Blk *blk[NPred];
+	Ref *arg;
+	Blk **blk;
 	uint narg;
 	int cls;
 	Phi *link;

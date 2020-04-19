@@ -330,6 +330,8 @@ def(Slice sl, bits msk, Blk *b, Ins *i, Loc *il)
 	p->to = r;
 	p->cls = sl.cls;
 	p->narg = b->npred;
+	p->arg = vnew(p->narg, sizeof p->arg[0], Pfn);
+	p->blk = vnew(p->narg, sizeof p->blk[0], Pfn);
 	for (np=0; np<b->npred; ++np) {
 		bp = b->pred[np];
 		if (!bp->s2

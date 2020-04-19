@@ -590,9 +590,13 @@ selvaarg(Fn *fn, Blk *b, Ins *i)
 	*b0->phi = (Phi){
 		.cls = Kl, .to = loc,
 		.narg = 2,
-		.blk = {bstk, breg},
-		.arg = {lstk, lreg},
+		.blk = vnew(2, sizeof b0->phi->blk[0], Pfn),
+		.arg = vnew(2, sizeof b0->phi->arg[0], Pfn),
 	};
+	b0->phi->blk[0] = bstk;
+	b0->phi->blk[1] = breg;
+	b0->phi->arg[0] = lstk;
+	b0->phi->arg[1] = lreg;
 	r0 = newtmp("abi", Kl, fn);
 	r1 = newtmp("abi", Kw, fn);
 	b->jmp.type = Jjnz;

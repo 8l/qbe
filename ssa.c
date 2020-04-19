@@ -181,6 +181,8 @@ phiins(Fn *fn)
 					p->cls = k;
 					p->to = TMP(t);
 					p->link = a->phi;
+					p->arg = vnew(0, sizeof p->arg[0], Pfn);
+					p->blk = vnew(0, sizeof p->blk[0], Pfn);
 					a->phi = p;
 					if (!bshas(defs, a->id))
 					if (!bshas(u, a->id)) {
@@ -294,8 +296,8 @@ renblk(Blk *b, Name **stk, Fn *fn)
 			t = p->to.val;
 			if ((t=fn->tmp[t].visit)) {
 				m = p->narg++;
-				if (m == NPred)
-					die("renblk, too many phi args");
+				vgrow(&p->arg, p->narg);
+				vgrow(&p->blk, p->narg);
 				p->arg[m] = getstk(t, b, stk);
 				p->blk[m] = b;
 			}

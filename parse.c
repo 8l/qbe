@@ -673,7 +673,9 @@ Ins:
 		phi = alloc(sizeof *phi);
 		phi->to = r;
 		phi->cls = k;
+		phi->arg = vnew(i, sizeof arg[0], Pfn);
 		memcpy(phi->arg, arg, i * sizeof arg[0]);
+		phi->blk = vnew(i, sizeof blk[0], Pfn);
 		memcpy(phi->blk, blk, i * sizeof blk[0]);
 		phi->narg = i;
 		*plink = phi;
