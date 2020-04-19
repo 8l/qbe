@@ -102,6 +102,8 @@ static char *kwmap[Ntok] = {
 };
 
 enum {
+	NPred = 63,
+
 	TMask = 16383, /* for temps hash */
 	BMask = 8191, /* for blocks hash */
 
