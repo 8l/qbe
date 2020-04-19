@@ -605,6 +605,7 @@ rega(Fn *fn)
 			if (x > 0 && !bshas(m->b, x)) {
 				pmadd(TMP(x), TMP(r), tmp[t].cls);
 				m->r[j] = x;
+				bsset(m->b, x);
 			}
 		}
 		curi = &insb[NIns];
