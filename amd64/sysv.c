@@ -467,10 +467,10 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 		}
 		r = rarg(a->cls[0], &ni, &ns);
 		if (i->op == Oparc) {
-			emit(Ocopy, Kl, a->ref[0], r, R);
+			emit(Ocopy, a->cls[0], a->ref[0], r, R);
 			if (a->size > 8) {
 				r = rarg(a->cls[1], &ni, &ns);
-				emit(Ocopy, Kl, a->ref[1], r, R);
+				emit(Ocopy, a->cls[1], a->ref[1], r, R);
 			}
 		} else
 			emit(Ocopy, i->cls, i->to, r, R);
