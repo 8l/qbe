@@ -749,9 +749,9 @@ single-precision floating point number `%f` into `%rs`.
     CALL := [%IDENT '=' ABITY] 'call' VAL '(' (ARG), ')'
 
     ARG :=
-        ABITY %IDENT  # Regular argument
-      | 'env' VAL     # Environment argument (first)
-      | '...'         # Variadic marker (last)
+        ABITY VAL  # Regular argument
+      | 'env' VAL  # Environment argument (first)
+      | '...'      # Variadic marker (last)
 
     ABITY := BASETY | :IDENT
 
