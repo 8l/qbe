@@ -19,7 +19,11 @@ gasemitdat(Dat *d, FILE *f)
 	switch (d->type) {
 	case DStart:
 		align = 0;
-		fprintf(f, ".data\n");
+		if (d->u.str) {
+			fprintf(f, ".section %s\n", d->u.str);
+		} else {
+			fprintf(f, ".data\n");
+		}
 		break;
 	case DEnd:
 		break;
