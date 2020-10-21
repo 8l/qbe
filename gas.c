@@ -122,4 +122,5 @@ gasemitfin(FILE *f)
 		stash = b->link;
 		free(b);
 	}
+	fprintf(f, ".section .note.GNU-stack,\"\",@progbits\n");
 }
