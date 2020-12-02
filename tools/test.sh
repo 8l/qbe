@@ -20,10 +20,15 @@ testcc() {
 init() {
 	case "$TARGET" in
 	arm64)
+		qemucmd=qemu-system-aarch64
+		if ! $qemucmd -version >/dev/null 2>&1
+		then
+			qemucmd=qemu-aarch64
+		fi
 		for p in aarch64-linux-musl aarch64-linux-gnu
 		do
 			cc=$p-gcc
-			qemu="qemu-aarch64 -L /usr/$p"
+			qemu="$qemucmd -L /usr/$p"
 			if
 				$cc -v >/dev/null 2>&1 &&
 				$qemu -version >/dev/null 2>&1 &&
