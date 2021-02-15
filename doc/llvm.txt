@@ -92,7 +92,7 @@ are a few things provided in QBE to consider.
 
     Because QBE makes a much lighter use of types, the
     IL is more readable and shorter.  It can of course be
-    argued back that the correctness of QBE is jeoparadized,
+    argued back that the correctness of QBE is jeopardized,
     but remember that, in practice, the large amount
     of casts necessary in LLVM IL is undermining the
     overall effectiveness of the type system.
