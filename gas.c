@@ -6,7 +6,7 @@ char *gasloc, *gassym;
 void
 gasemitdat(Dat *d, FILE *f)
 {
-	static int align;
+	static int aligned;
 	static char *dtoa[] = {
 		[DAlign] = ".balign",
 		[DB] = "\t.byte",
@@ -18,7 +18,7 @@ gasemitdat(Dat *d, FILE *f)
 
 	switch (d->type) {
 	case DStart:
-		align = 0;
+		aligned = 0;
 		if (d->u.str) {
 			fprintf(f, ".section %s\n", d->u.str);
 		} else {
@@ -28,7 +28,7 @@ gasemitdat(Dat *d, FILE *f)
 	case DEnd:
 		break;
 	case DName:
-		if (!align)
+		if (!aligned)
 			fprintf(f, ".balign 8\n");
 		p = d->u.str[0] == '"' ? "" : gassym;
 		if (d->export)
@@ -40,7 +40,7 @@ gasemitdat(Dat *d, FILE *f)
 		break;
 	default:
 		if (d->type == DAlign)
-			align = 1;
+			aligned = 1;
 
 		if (d->isstr) {
 			if (d->type != DB)
