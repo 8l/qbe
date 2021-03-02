@@ -27,7 +27,7 @@ init() {
 		fi
 		for p in aarch64-linux-musl aarch64-linux-gnu
 		do
-			cc=$p-gcc
+			cc="$p-gcc -no-pie"
 			qemu="$qemucmd -L /usr/$p"
 			if
 				$cc -v >/dev/null 2>&1 &&
