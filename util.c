@@ -246,13 +246,15 @@ void
 idup(Ins **pd, Ins *s, ulong n)
 {
 	*pd = alloc(n * sizeof(Ins));
-	memcpy(*pd, s, n * sizeof(Ins));
+	if (n)
+		memcpy(*pd, s, n * sizeof(Ins));
 }
 
 Ins *
 icpy(Ins *d, Ins *s, ulong n)
 {
-	memcpy(d, s, n * sizeof(Ins));
+	if (n)
+		memcpy(d, s, n * sizeof(Ins));
 	return d + n;
 }
 

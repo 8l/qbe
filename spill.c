@@ -173,11 +173,13 @@ limit(BSet *b, int k, BSet *f)
 		bsclr(b, t);
 		tarr[i++] = t;
 	}
-	if (!f)
-		qsort(tarr, nt, sizeof tarr[0], tcmp0);
-	else {
-		fst = f;
-		qsort(tarr, nt, sizeof tarr[0], tcmp1);
+	if (nt > 1) {
+		if (!f)
+			qsort(tarr, nt, sizeof tarr[0], tcmp0);
+		else {
+			fst = f;
+			qsort(tarr, nt, sizeof tarr[0], tcmp1);
+		}
 	}
 	for (i=0; i<k && i<nt; i++)
 		bsset(b, tarr[i]);
