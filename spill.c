@@ -397,7 +397,6 @@ spill(Fn *fn)
 		bscopy(b->out, v);
 
 		/* 2. process the block instructions */
-		r = v->t[0];
 		curi = &insb[NIns];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			i--;
@@ -469,7 +468,10 @@ spill(Fn *fn)
 			if (r)
 				sethint(v, r);
 		}
-		assert(r == T.rglob || b == fn->start);
+		if (b == fn->start)
+			assert(v->t[0] == (T.rglob | fn->reg));
+		else
+			assert(v->t[0] == T.rglob);
 
 		for (p=b->phi; p; p=p->link) {
 			assert(rtype(p->to) == RTmp);

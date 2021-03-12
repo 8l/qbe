@@ -427,6 +427,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 		fa = argsclass(i0, i1, ac, Opar, &aret, &env);
 	} else
 		fa = argsclass(i0, i1, ac, Opar, 0, &env);
+	fn->reg = amd64_sysv_argregs(CALL(fa), 0);
 
 	for (i=i0, a=ac; i<i1; i++, a++) {
 		if (i->op != Oparc || a->inmem)
