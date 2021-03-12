@@ -24,13 +24,13 @@ enum Asm {
 
 char debug['Z'+1] = {
 	['P'] = 0, /* parsing */
-	['A'] = 0, /* abi lowering */
-	['I'] = 0, /* instruction selection */
-	['L'] = 0, /* liveness */
 	['M'] = 0, /* memory optimization */
 	['N'] = 0, /* ssa construction */
 	['C'] = 0, /* copy elimination */
 	['F'] = 0, /* constant folding */
+	['A'] = 0, /* abi lowering */
+	['I'] = 0, /* instruction selection */
+	['L'] = 0, /* liveness */
 	['S'] = 0, /* spilling */
 	['R'] = 0, /* reg. allocation */
 };
