@@ -352,7 +352,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 		stkblob(i1->to, &cr, fn, ilp);
 		cty |= (cr.nfp << 2) | cr.ngp;
 		if (cr.class & Cptr) {
-			cty |= 1 << 13;
+			cty |= 1 << 13 | 1;
 			emit(Ocopy, Kw, R, TMP(R0), R);
 		} else {
 			sttmps(tmp, cr.cls, cr.nreg, i1->to, fn);
