@@ -23,12 +23,15 @@ init() {
 		for p in aarch64-linux-musl aarch64-linux-gnu
 		do
 			cc="$p-gcc -no-pie"
-			qemu="qemu-aarch64 -L /usr/$p"
+			qemu="qemu-aarch64"
 			if
 				$cc -v >/dev/null 2>&1 &&
-				$qemu -version >/dev/null 2>&1 &&
-				test -d /usr/$p
+				$qemu -version >/dev/null 2>&1
 			then
+				if sysroot=$($cc -print-sysroot) && test -n "$sysroot"
+				then
+					qemu="$qemu -L $sysroot"
+				fi
 				break
 			fi
 			cc=
