@@ -3,7 +3,7 @@
 int arm64_rsave[] = {
 	R0,  R1,  R2,  R3,  R4,  R5,  R6,  R7,
 	R8,  R9,  R10, R11, R12, R13, R14, R15,
-	IP0, IP1, R18,
+	IP0, IP1, R18, LR,
 	V0,  V1,  V2,  V3,  V4,  V5,  V6,  V7,
 	V16, V17, V18, V19, V20, V21, V22, V23,
 	V24, V25, V26, V27, V28, V29, V30,

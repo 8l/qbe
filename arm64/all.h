@@ -14,7 +14,7 @@ enum Arm64Reg {
 
 	NFPR = V30 - V0 + 1,
 	NGPR = SP - R0 + 1,
-	NGPS = R18 - R0 + 1,
+	NGPS = R18 - R0 + 1 /* LR */ + 1,
 	NFPS = (V7 - V0 + 1) + (V30 - V16 + 1),
 	NCLR = (R28 - R19 + 1) + (V15 - V8 + 1),
 };
