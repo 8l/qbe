@@ -92,14 +92,17 @@ cast(Ref *r, int cls, Loc *l)
 	cls0 = curf->tmp[r->val].cls;
 	if (cls0 == cls || (cls == Kw && cls0 == Kl))
 		return;
-	assert(!KWIDE(cls0) || KWIDE(cls));
-	if (KWIDE(cls) == KWIDE(cls0))
-		*r = iins(cls, Ocast, *r, R, l);
-	else {
-		assert(cls == Kl);
+	if (KWIDE(cls0) < KWIDE(cls)) {
 		if (cls0 == Ks)
 			*r = iins(Kw, Ocast, *r, R, l);
 		*r = iins(Kl, Oextuw, *r, R, l);
+		if (cls == Kd)
+			*r = iins(Kd, Ocast, *r, R, l);
+	} else {
+		if (cls0 == Kd && cls != Kl)
+			*r = iins(Kl, Ocast, *r, R, l);
+		if (cls0 != Kd || cls != Kw)
+			*r = iins(cls, Ocast, *r, R, l);
 	}
 }
 
