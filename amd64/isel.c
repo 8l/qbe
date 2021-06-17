@@ -383,9 +383,10 @@ seljmp(Blk *b, Fn *fn)
 		b->jmp.type = Jjf + Cine;
 	}
 	else if (iscmp(fi->op, &k, &c)) {
+		if (rtype(fi->arg[0]) == RCon)
+			c = cmpop(c);
 		if (t->nuse == 1) {
-			if (selcmp(fi->arg, k, fn))
-				c = cmpop(c);
+			selcmp(fi->arg, k, fn);
 			*fi = (Ins){.op = Onop};
 		}
 		b->jmp.type = Jjf + c;

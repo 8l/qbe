@@ -1,0 +1,17 @@
+# test cmp used in jnz as well as its result value
+
+export
+function w $test(w %c) {
+@start
+	%cmp =w cultw 1, %c
+	jnz %cmp, @yes, @no
+@yes
+	%cmp =w copy 1
+@no
+	ret %cmp
+}
+
+# >>> driver
+# int test(int);
+# int main(void) { return test(0); }
+# <<<
