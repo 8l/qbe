@@ -98,6 +98,8 @@ gasemitfin(FILE *f)
 	int sz, i;
 	double d;
 
+	fprintf(f, ".section .note.GNU-stack,\"\",@progbits\n");
+
 	if (!stash)
 		return;
 	fprintf(f, "/* floating point constants */\n.data\n");
@@ -126,5 +128,4 @@ gasemitfin(FILE *f)
 		stash = b->link;
 		free(b);
 	}
-	fprintf(f, ".section .note.GNU-stack,\"\",@progbits\n");
 }
