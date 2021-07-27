@@ -813,7 +813,7 @@ parsefn(int export)
 		rcls = 5;
 	if (next() != Tglo)
 		err("function name expected");
-	strcpy(curf->name, tokval.str);
+	strncpy(curf->name, tokval.str, NString-1);
 	curf->vararg = parserefl(0);
 	if (nextnl() != Tlbrace)
 		err("function body must start with {");
