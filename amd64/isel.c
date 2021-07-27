@@ -244,13 +244,18 @@ sel(Ins i, ANum *an, Fn *fn)
 	case Osar:
 	case Oshr:
 	case Oshl:
-		if (rtype(i.arg[1]) == RCon)
-			goto Emit;
 		r0 = i.arg[1];
+		if (rtype(r0) == RCon)
+			goto Emit;
+		if (fn->tmp[r0.val].slot != -1)
+			err("unlikely argument %%%s in %s",
+				fn->tmp[r0.val].name, optab[i.op].name);
 		i.arg[1] = TMP(RCX);
 		emit(Ocopy, Kw, R, TMP(RCX), R);
 		emiti(i);
+		i1 = curi;
 		emit(Ocopy, Kw, TMP(RCX), r0, R);
+		fixarg(&i1->arg[0], argcls(&i, 0), i1, fn);
 		break;
 	case Onop:
 		break;
@@ -336,7 +341,7 @@ Emit:
 		die("unknown instruction %s", optab[i.op].name);
 	}
 
-	while (i0 > curi && --i0) {
+	while (i0>curi && --i0) {
 		assert(rslot(i0->arg[0], fn) == -1);
 		assert(rslot(i0->arg[1], fn) == -1);
 	}
