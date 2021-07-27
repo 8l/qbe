@@ -184,6 +184,7 @@ regtoa(int reg, int sz)
 {
 	static char buf[6];
 
+	assert(reg <= XMM15);
 	if (reg >= XMM0) {
 		sprintf(buf, "xmm%d", reg-XMM0);
 		return buf;

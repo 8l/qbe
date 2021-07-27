@@ -147,7 +147,7 @@ seladdr(Ref *r, ANum *an, Fn *fn)
 			 * rewrite it or bail out if
 			 * impossible
 			 */
-			if (!req(a.index, R))
+			if (!req(a.index, R) || rtype(a.base) != RTmp)
 				return;
 			else {
 				a.index = a.base;
