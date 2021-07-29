@@ -362,19 +362,21 @@ getcon(int64_t val, Fn *fn)
 	return CON(c);
 }
 
-void
+int
 addcon(Con *c0, Con *c1)
 {
 	if (c0->type == CUndef)
 		*c0 = *c1;
 	else {
 		if (c1->type == CAddr) {
-			assert(c0->type != CAddr && "adding two addresses");
+			if (c0->type == CAddr)
+				return 0;
 			c0->type = CAddr;
 			c0->label = c1->label;
 		}
 		c0->bits.i += c1->bits.i;
 	}
+	return 1;
 }
 
 void

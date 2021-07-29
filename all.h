@@ -433,7 +433,7 @@ int phicls(int, Tmp *);
 Ref newtmp(char *, int, Fn *);
 void chuse(Ref, int, Fn *);
 Ref getcon(int64_t, Fn *);
-void addcon(Con *, Con *);
+int addcon(Con *, Con *);
 void blit(Ref, uint, Ref, uint, Fn *);
 void dumpts(BSet *, Tmp *, FILE *);
 

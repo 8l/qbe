@@ -512,7 +512,9 @@ amatch(Addr *a, Ref r, int n, ANum *ai, Fn *fn)
 	Ref al, ar;
 
 	if (rtype(r) == RCon) {
-		addcon(&a->offset, &fn->con[r.val]);
+		if (!addcon(&a->offset, &fn->con[r.val]))
+			err("unlikely sum of $%s and $%s",
+				str(a->offset.label), str(fn->con[r.val].label));
 		return 1;
 	}
 	assert(rtype(r) == RTmp);
