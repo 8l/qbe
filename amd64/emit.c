@@ -408,7 +408,7 @@ emitins(Ins i, Fn *fn, FILE *f)
 	case Osub:
 		/* we have to use the negation trick to handle
 		 * some 3-address subtractions */
-		if (req(i.to, i.arg[1])) {
+		if (req(i.to, i.arg[1]) && !req(i.arg[0], i.to)) {
 			if (KBASE(i.cls) == 0)
 				emitf("neg%k %=", &i, fn, f);
 			else
