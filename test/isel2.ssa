@@ -1,0 +1,108 @@
+# tests that NaN is handled properly by
+# floating point comparisons
+#
+# TODO: fix eq[123](NAN, NAN) on amd64
+
+export function w $lt(d %x, d %y) {
+@start
+	%r =w cltd %x, %y
+	ret %r
+}
+
+export function w $le(d %x, d %y) {
+@start
+	%r =w cled %x, %y
+	ret %r
+}
+
+export function w $gt(d %x, d %y) {
+@start
+	%r =w cgtd %x, %y
+	ret %r
+}
+
+export function w $ge(d %x, d %y) {
+@start
+	%r =w cged %x, %y
+	ret %r
+}
+
+export function w $eq1(d %x, d %y) {
+@start
+	%r =w ceqd %x, %y
+	ret %r
+}
+
+export function w $eq2(d %x, d %y) {
+@start
+	%r =w ceqd %x, %y
+	jnz %r, @true, @false
+@true
+	ret 1
+@false
+	ret 0
+}
+
+export function w $eq3(d %x, d %y) {
+@start
+	%r =w ceqd %x, %y
+	jnz %r, @true, @false
+@true
+	ret %r
+@false
+	ret 0
+}
+
+export function w $ne1(d %x, d %y) {
+@start
+	%r =w cned %x, %y
+	ret %r
+}
+
+export function w $ne2(d %x, d %y) {
+@start
+	%r =w cned %x, %y
+	jnz %r, @true, @false
+@true
+	ret 1
+@false
+	ret 0
+}
+
+export function w $ne3(d %x, d %y) {
+@start
+	%r =w cned %x, %y
+	jnz %r, @true, @false
+@true
+	ret %r
+@false
+	ret 0
+}
+
+# >>> driver
+# #include <math.h>
+# extern int lt(double, double);
+# extern int le(double, double);
+# extern int gt(double, double);
+# extern int ge(double, double);
+# extern int eq1(double, double);
+# extern int eq2(double, double);
+# extern int eq3(double, double);
+# extern int ne1(double, double);
+# extern int ne2(double, double);
+# extern int ne3(double, double);
+# int main(void) {
+# 	/*     LessThan     Equal        GreaterThan   Unordered */
+# 	return !lt(0, 1)  + lt(0, 0)   + lt(1, 0)    + lt(NAN, NAN)
+# 	     + !le(0, 1)  + !le(0, 0)  + le(1, 0)    + le(NAN, NAN)
+# 	     + gt(0, 1)   + gt(0, 0)   + !gt(1, 0)   + gt(NAN, NAN)
+# 	     + ge(0, 1)   + !ge(0, 0)  + !ge(1, 0)   + ge(NAN, NAN)
+# 	     + eq1(0, 1)  + !eq1(0, 0) + eq1(1, 0)   /*+ eq1(NAN, NAN)*/
+# 	     + eq2(0, 1)  + !eq2(0, 0) + eq2(1, 0)   /*+ eq2(NAN, NAN)*/
+# 	     + eq3(0, 1)  + !eq3(0, 0) + eq3(1, 0)   /*+ eq3(NAN, NAN)*/
+# 	     + !ne1(0, 1) + ne1(0, 0)  + !ne1(1, 0)  /*+ !ne1(NAN, NAN)*/
+# 	     + !ne2(0, 1) + ne2(0, 0)  + !ne2(1, 0)  /*+ !ne2(NAN, NAN)*/
+# 	     + !ne3(0, 1) + ne3(0, 0)  + !ne3(1, 0)  /*+ !ne3(NAN, NAN)*/
+# 	     ;
+# }
+# <<<

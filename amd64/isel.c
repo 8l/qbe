@@ -165,13 +165,25 @@ seladdr(Ref *r, ANum *an, Fn *fn)
 }
 
 static int
-selcmp(Ref arg[2], int k, Fn *fn)
+cmpswap(Ref arg[2], int op)
 {
-	int swap;
+	switch (op) {
+	case NCmpI+Cflt:
+	case NCmpI+Cfle:
+		return 1;
+	case NCmpI+Cfgt:
+	case NCmpI+Cfge:
+		return 0;
+	}
+	return rtype(arg[0]) == RCon;
+}
+
+static void
+selcmp(Ref arg[2], int k, int swap, Fn *fn)
+{
 	Ref r;
 	Ins *icmp;
 
-	swap = rtype(arg[0]) == RCon;
 	if (swap) {
 		r = arg[1];
 		arg[1] = arg[0];
@@ -180,20 +192,20 @@ selcmp(Ref arg[2], int k, Fn *fn)
 	emit(Oxcmp, k, R, arg[1], arg[0]);
 	icmp = curi;
 	if (rtype(arg[0]) == RCon) {
-		assert(k == Kl);
+		assert(k != Kw);
 		icmp->arg[1] = newtmp("isel", k, fn);
 		emit(Ocopy, k, icmp->arg[1], arg[0], R);
+		fixarg(&curi->arg[0], k, curi, fn);
 	}
 	fixarg(&icmp->arg[0], k, icmp, fn);
 	fixarg(&icmp->arg[1], k, icmp, fn);
-	return swap;
 }
 
 static void
 sel(Ins i, ANum *an, Fn *fn)
 {
 	Ref r0, r1;
-	int x, k, kc;
+	int x, k, kc, swap;
 	int64_t sz;
 	Ins *i0, *i1;
 
@@ -332,10 +344,11 @@ Emit:
 		if (isload(i.op))
 			goto case_Oload;
 		if (iscmp(i.op, &kc, &x)) {
+			swap = cmpswap(i.arg, x);
+			if (swap)
+				x = cmpop(x);
 			emit(Oflag+x, k, i.to, R, R);
-			i1 = curi;
-			if (selcmp(i.arg, kc, fn))
-				i1->op = Oflag + cmpop(x);
+			selcmp(i.arg, kc, swap, fn);
 			break;
 		}
 		die("unknown instruction %s", optab[i.op].name);
@@ -365,7 +378,7 @@ static void
 seljmp(Blk *b, Fn *fn)
 {
 	Ref r;
-	int c, k;
+	int c, k, swap;
 	Ins *fi;
 	Tmp *t;
 
@@ -384,14 +397,15 @@ seljmp(Blk *b, Fn *fn)
 	}
 	fi = flagi(b->ins, &b->ins[b->nins]);
 	if (!fi || !req(fi->to, r)) {
-		selcmp((Ref[2]){r, CON_Z}, Kw, fn); /* todo, long jnz */
+		selcmp((Ref[2]){r, CON_Z}, Kw, 0, fn); /* todo, long jnz */
 		b->jmp.type = Jjf + Cine;
 	}
 	else if (iscmp(fi->op, &k, &c)) {
-		if (rtype(fi->arg[0]) == RCon)
+		swap = cmpswap(fi->arg, c);
+		if (swap)
 			c = cmpop(c);
 		if (t->nuse == 1) {
-			selcmp(fi->arg, k, fn);
+			selcmp(fi->arg, k, swap, fn);
 			*fi = (Ins){.op = Onop};
 		}
 		b->jmp.type = Jjf + c;
