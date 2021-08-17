@@ -867,9 +867,9 @@ parsefields(Field *fld, Typ *ty, int t)
 		}
 		if (a > al)
 			al = a;
-		a = sz & (s-1);
+		a = (1 << a) - 1;
+		a = ((sz + a) & ~a) - sz;
 		if (a) {
-			a = s - a;
 			if (n < NField) {
 				/* padding */
 				fld[n].type = FPad;

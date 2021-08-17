@@ -1,0 +1,21 @@
+# test padding calculation with                                                                     
+# embedded struct                                                                                   
+                                                                                                    
+type :s1 = align 4 { w 3 }                                                                          
+type :s2 = align 4 { b 1, :s1 1 }                                                                   
+                                                                                                    
+export function :s2 $test() {                                                                       
+@start                                                                                              
+        ret $s                                                                                      
+}                                                                                                   
+                                                                                                    
+# >>> driver                                                                                        
+# struct s2 {                                                                                       
+#       char x;                                                                                     
+#       struct { int a[3]; } s1;                                                                    
+# } s = { .x = 123 };                                                                               
+# extern struct s2 test(void);                                                                      
+# int main(void) {                                                                                  
+#       return !(test().x == 123);                                                                  
+# }                                                                                                 
+# <<<                                                                                               
