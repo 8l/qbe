@@ -143,7 +143,7 @@ once() {
 	else
 		$qemu $exe a b c
 		ret=$?
-		reason="returned $RET"
+		reason="returned $ret"
 	fi
 
 	if test $ret -ne 0
