@@ -1,7 +1,5 @@
 # tests that NaN is handled properly by
 # floating point comparisons
-#
-# TODO: fix eq[123](NAN, NAN) on amd64
 
 export function w $lt(d %x, d %y) {
 @start
@@ -97,12 +95,12 @@ export function w $ne3(d %x, d %y) {
 # 	     + !le(0, 1)  + !le(0, 0)  + le(1, 0)    + le(NAN, NAN)
 # 	     + gt(0, 1)   + gt(0, 0)   + !gt(1, 0)   + gt(NAN, NAN)
 # 	     + ge(0, 1)   + !ge(0, 0)  + !ge(1, 0)   + ge(NAN, NAN)
-# 	     + eq1(0, 1)  + !eq1(0, 0) + eq1(1, 0)   /*+ eq1(NAN, NAN)*/
-# 	     + eq2(0, 1)  + !eq2(0, 0) + eq2(1, 0)   /*+ eq2(NAN, NAN)*/
-# 	     + eq3(0, 1)  + !eq3(0, 0) + eq3(1, 0)   /*+ eq3(NAN, NAN)*/
-# 	     + !ne1(0, 1) + ne1(0, 0)  + !ne1(1, 0)  /*+ !ne1(NAN, NAN)*/
-# 	     + !ne2(0, 1) + ne2(0, 0)  + !ne2(1, 0)  /*+ !ne2(NAN, NAN)*/
-# 	     + !ne3(0, 1) + ne3(0, 0)  + !ne3(1, 0)  /*+ !ne3(NAN, NAN)*/
+# 	     + eq1(0, 1)  + !eq1(0, 0) + eq1(1, 0)   + eq1(NAN, NAN)
+# 	     + eq2(0, 1)  + !eq2(0, 0) + eq2(1, 0)   + eq2(NAN, NAN)
+# 	     + eq3(0, 1)  + !eq3(0, 0) + eq3(1, 0)   + eq3(NAN, NAN)
+# 	     + !ne1(0, 1) + ne1(0, 0)  + !ne1(1, 0)  + !ne1(NAN, NAN)
+# 	     + !ne2(0, 1) + ne2(0, 0)  + !ne2(1, 0)  + !ne2(NAN, NAN)
+# 	     + !ne3(0, 1) + ne3(0, 0)  + !ne3(1, 0)  + !ne3(NAN, NAN)
 # 	     ;
 # }
 # <<<

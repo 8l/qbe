@@ -344,6 +344,26 @@ Emit:
 		if (isload(i.op))
 			goto case_Oload;
 		if (iscmp(i.op, &kc, &x)) {
+			switch (x) {
+			case NCmpI+Cfeq:
+				/* zf is set when operands are
+				 * unordered, so we may have to
+				 * check pf
+				 */
+				r0 = newtmp("isel", Kw, fn);
+				r1 = newtmp("isel", Kw, fn);
+				emit(Oand, Kw, i.to, r0, r1);
+				emit(Oflagfo, k, r1, R, R);
+				i.to = r0;
+				break;
+			case NCmpI+Cfne:
+				r0 = newtmp("isel", Kw, fn);
+				r1 = newtmp("isel", Kw, fn);
+				emit(Oor, Kw, i.to, r0, r1);
+				emit(Oflagfuo, k, r1, R, R);
+				i.to = r0;
+				break;
+			}
 			swap = cmpswap(i.arg, x);
 			if (swap)
 				x = cmpop(x);
@@ -388,7 +408,7 @@ seljmp(Blk *b, Fn *fn)
 	r = b->jmp.arg;
 	t = &fn->tmp[r.val];
 	b->jmp.arg = R;
-	assert(!req(r, R) && rtype(r) != RCon);
+	assert(rtype(r) == RTmp);
 	if (b->s1 == b->s2) {
 		chuse(r, -1, fn);
 		b->jmp.type = Jjmp;
@@ -400,7 +420,9 @@ seljmp(Blk *b, Fn *fn)
 		selcmp((Ref[2]){r, CON_Z}, Kw, 0, fn); /* todo, long jnz */
 		b->jmp.type = Jjf + Cine;
 	}
-	else if (iscmp(fi->op, &k, &c)) {
+	else if (iscmp(fi->op, &k, &c)
+	     && c != NCmpI+Cfeq /* see sel() */
+	     && c != NCmpI+Cfne) {
 		swap = cmpswap(fi->arg, c);
 		if (swap)
 			c = cmpop(c);
