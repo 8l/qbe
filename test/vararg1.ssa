@@ -13,13 +13,18 @@ function w $g(l %fmt, ...) {
 @start
 	%vp =l alloc8 32
 	vastart %vp
-	%r =w call $vprintf(l %fmt, l %vp)
+	%r =w call $print(l %fmt, l %vp)
 	ret %r
 }
 
 # >>> driver
+# #include <stdarg.h>
+# #include <stdio.h>
 # extern double f(int, ...);
 # extern int g(char *, ...);
+# int print(const char *fmt, va_list *ap) {
+# 	return vprintf(fmt, *ap);
+# }
 # int main() {
 # 	g("Hell%c %s %g!\n", 'o', "world", f(42, "x", 42.0));
 # }

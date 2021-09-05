@@ -34,7 +34,7 @@ export function $qbecall0(l %fmt, ...) {
 @start
 	%vp =l alloc8 32
 	vastart %vp
-	%r =w call $vprintf(l %fmt, l %vp)
+	%r =w call $print(l %fmt, l %vp)
 	ret
 }
 
@@ -74,7 +74,7 @@ export function $qbecall1(w %argw0, l %fmt, ...) {
 @start
 	%vp =l alloc8 32
 	vastart %vp
-	%r =w call $vprintf(l %fmt, l %vp)
+	%r =w call $print(l %fmt, l %vp)
 	ret
 }
 
@@ -114,7 +114,7 @@ export function $qbecall2(d %argd0, l %fmt, ...) {
 @start
 	%vp =l alloc8 32
 	vastart %vp
-	%r =w call $vprintf(l %fmt, l %vp)
+	%r =w call $print(l %fmt, l %vp)
 	ret
 }
 
@@ -154,7 +154,7 @@ export function $qbecall3(w %argw0, w %argw1, w %argw2, w %argw3, l %fmt, ...) {
 @start
 	%vp =l alloc8 32
 	vastart %vp
-	%r =w call $vprintf(l %fmt, l %vp)
+	%r =w call $print(l %fmt, l %vp)
 	ret
 }
 
@@ -194,7 +194,7 @@ export function $qbecall4(d %argd0, d %argd1, d %argd2, d %argd3, d %argd4, d %a
 @start
 	%vp =l alloc8 32
 	vastart %vp
-	%r =w call $vprintf(l %fmt, l %vp)
+	%r =w call $print(l %fmt, l %vp)
 	ret
 }
 
@@ -234,7 +234,7 @@ export function $qbecall5(w %argw0, w %argw1, w %argw2, w %argw3, w %argw4, d %a
 @start
 	%vp =l alloc8 32
 	vastart %vp
-	%r =w call $vprintf(l %fmt, l %vp)
+	%r =w call $print(l %fmt, l %vp)
 	ret
 }
 
@@ -274,11 +274,12 @@ export function $qbecall6(w %argw0, w %argw1, w %argw2, w %argw3, w %argw4, w %a
 @start
 	%vp =l alloc8 32
 	vastart %vp
-	%r =w call $vprintf(l %fmt, l %vp)
+	%r =w call $print(l %fmt, l %vp)
 	ret
 }
 
 # >>> driver
+# #include <stdarg.h>
 # #include <stdio.h>
 # extern void qbeprint0(char *, ...);
 # extern void qbecall0(char *, ...);
@@ -294,6 +295,9 @@ export function $qbecall6(w %argw0, w %argw1, w %argw2, w %argw3, w %argw4, w %a
 # extern void qbecall5(int argw0, int argw1, int argw2, int argw3, int argw4, double argd0, double argd1, double argd2, double argd3, double argd4, double argd5, double argd6, char *, ...);
 # extern void qbeprint6(int argw0, int argw1, int argw2, int argw3, int argw4, int argw5, int argw6, int argw7, int argw8, int argw9, double argd0, double argd1, double argd2, double argd3, double argd4, double argd5, double argd6, double argd7, double argd8, double argd9, char *, ...);
 # extern void qbecall6(int argw0, int argw1, int argw2, int argw3, int argw4, int argw5, int argw6, int argw7, int argw8, int argw9, double argd0, double argd1, double argd2, double argd3, double argd4, double argd5, double argd6, double argd7, double argd8, double argd9, char *, ...);
+# int print(const char *fmt, va_list *ap) {
+# 	return vprintf(fmt, *ap);
+# }
 # int main() {
 # 	puts("# (0 int, 0 double)");
 # 	qbeprint0("%d \n", 3);
