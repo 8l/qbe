@@ -19,14 +19,14 @@ export function $qbeprint0(l %fmt, ...) {
 	jnz %isg, @casef, @cased
 @casef
 	%dbl =d vaarg %vp
-	call $printf(l %fmtdbl, d %dbl, ...)
+	%r =w call $printf(l %fmtdbl, d %dbl, ...)
 	jmp @loop
 @cased
 	%int =w vaarg %vp
-	call $printf(l %fmtint, w %int, ...)
+	%r =w call $printf(l %fmtint, w %int, ...)
 	jmp @loop
 @end
-	call $puts(l %emptys)
+	%r =w call $puts(l %emptys)
 	ret
 }
 
@@ -34,7 +34,7 @@ export function $qbecall0(l %fmt, ...) {
 @start
 	%vp =l alloc8 32
 	vastart %vp
-	call $vprintf(l %fmt, l %vp)
+	%r =w call $vprintf(l %fmt, l %vp)
 	ret
 }
 
@@ -59,14 +59,14 @@ export function $qbeprint1(w %argw0, l %fmt, ...) {
 	jnz %isg, @casef, @cased
 @casef
 	%dbl =d vaarg %vp
-	call $printf(l %fmtdbl, d %dbl, ...)
+	%r =w call $printf(l %fmtdbl, d %dbl, ...)
 	jmp @loop
 @cased
 	%int =w vaarg %vp
-	call $printf(l %fmtint, w %int, ...)
+	%r =w call $printf(l %fmtint, w %int, ...)
 	jmp @loop
 @end
-	call $puts(l %emptys)
+	%r =w call $puts(l %emptys)
 	ret
 }
 
@@ -74,7 +74,7 @@ export function $qbecall1(w %argw0, l %fmt, ...) {
 @start
 	%vp =l alloc8 32
 	vastart %vp
-	call $vprintf(l %fmt, l %vp)
+	%r =w call $vprintf(l %fmt, l %vp)
 	ret
 }
 
@@ -99,14 +99,14 @@ export function $qbeprint2(d %argd0, l %fmt, ...) {
 	jnz %isg, @casef, @cased
 @casef
 	%dbl =d vaarg %vp
-	call $printf(l %fmtdbl, d %dbl, ...)
+	%r =w call $printf(l %fmtdbl, d %dbl, ...)
 	jmp @loop
 @cased
 	%int =w vaarg %vp
-	call $printf(l %fmtint, w %int, ...)
+	%r =w call $printf(l %fmtint, w %int, ...)
 	jmp @loop
 @end
-	call $puts(l %emptys)
+	%r =w call $puts(l %emptys)
 	ret
 }
 
@@ -114,7 +114,7 @@ export function $qbecall2(d %argd0, l %fmt, ...) {
 @start
 	%vp =l alloc8 32
 	vastart %vp
-	call $vprintf(l %fmt, l %vp)
+	%r =w call $vprintf(l %fmt, l %vp)
 	ret
 }
 
@@ -139,14 +139,14 @@ export function $qbeprint3(w %argw0, w %argw1, w %argw2, w %argw3, l %fmt, ...) 
 	jnz %isg, @casef, @cased
 @casef
 	%dbl =d vaarg %vp
-	call $printf(l %fmtdbl, d %dbl, ...)
+	%r =w call $printf(l %fmtdbl, d %dbl, ...)
 	jmp @loop
 @cased
 	%int =w vaarg %vp
-	call $printf(l %fmtint, w %int, ...)
+	%r =w call $printf(l %fmtint, w %int, ...)
 	jmp @loop
 @end
-	call $puts(l %emptys)
+	%r =w call $puts(l %emptys)
 	ret
 }
 
@@ -154,7 +154,7 @@ export function $qbecall3(w %argw0, w %argw1, w %argw2, w %argw3, l %fmt, ...) {
 @start
 	%vp =l alloc8 32
 	vastart %vp
-	call $vprintf(l %fmt, l %vp)
+	%r =w call $vprintf(l %fmt, l %vp)
 	ret
 }
 
@@ -179,14 +179,14 @@ export function $qbeprint4(d %argd0, d %argd1, d %argd2, d %argd3, d %argd4, d %
 	jnz %isg, @casef, @cased
 @casef
 	%dbl =d vaarg %vp
-	call $printf(l %fmtdbl, d %dbl, ...)
+	%r =w call $printf(l %fmtdbl, d %dbl, ...)
 	jmp @loop
 @cased
 	%int =w vaarg %vp
-	call $printf(l %fmtint, w %int, ...)
+	%r =w call $printf(l %fmtint, w %int, ...)
 	jmp @loop
 @end
-	call $puts(l %emptys)
+	%r =w call $puts(l %emptys)
 	ret
 }
 
@@ -194,7 +194,7 @@ export function $qbecall4(d %argd0, d %argd1, d %argd2, d %argd3, d %argd4, d %a
 @start
 	%vp =l alloc8 32
 	vastart %vp
-	call $vprintf(l %fmt, l %vp)
+	%r =w call $vprintf(l %fmt, l %vp)
 	ret
 }
 
@@ -219,14 +219,14 @@ export function $qbeprint5(w %argw0, w %argw1, w %argw2, w %argw3, w %argw4, d %
 	jnz %isg, @casef, @cased
 @casef
 	%dbl =d vaarg %vp
-	call $printf(l %fmtdbl, d %dbl, ...)
+	%r =w call $printf(l %fmtdbl, d %dbl, ...)
 	jmp @loop
 @cased
 	%int =w vaarg %vp
-	call $printf(l %fmtint, w %int, ...)
+	%r =w call $printf(l %fmtint, w %int, ...)
 	jmp @loop
 @end
-	call $puts(l %emptys)
+	%r =w call $puts(l %emptys)
 	ret
 }
 
@@ -234,7 +234,7 @@ export function $qbecall5(w %argw0, w %argw1, w %argw2, w %argw3, w %argw4, d %a
 @start
 	%vp =l alloc8 32
 	vastart %vp
-	call $vprintf(l %fmt, l %vp)
+	%r =w call $vprintf(l %fmt, l %vp)
 	ret
 }
 
@@ -259,14 +259,14 @@ export function $qbeprint6(w %argw0, w %argw1, w %argw2, w %argw3, w %argw4, w %
 	jnz %isg, @casef, @cased
 @casef
 	%dbl =d vaarg %vp
-	call $printf(l %fmtdbl, d %dbl, ...)
+	%r =w call $printf(l %fmtdbl, d %dbl, ...)
 	jmp @loop
 @cased
 	%int =w vaarg %vp
-	call $printf(l %fmtint, w %int, ...)
+	%r =w call $printf(l %fmtint, w %int, ...)
 	jmp @loop
 @end
-	call $puts(l %emptys)
+	%r =w call $puts(l %emptys)
 	ret
 }
 
@@ -274,7 +274,7 @@ export function $qbecall6(w %argw0, w %argw1, w %argw2, w %argw3, w %argw4, w %a
 @start
 	%vp =l alloc8 32
 	vastart %vp
-	call $vprintf(l %fmt, l %vp)
+	%r =w call $vprintf(l %fmt, l %vp)
 	ret
 }
 
