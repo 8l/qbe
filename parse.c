@@ -633,7 +633,9 @@ DoOp:
 			arg[1] = R;
 		goto Ins;
 	}
-	if (op >= Tloadw && op <= Tloadd)
+	if (op == Tloadw)
+		op = Oloadsw;
+	if (op >= Tloadl && op <= Tloadd)
 		op = Oload;
 	if (op == Talloc1 || op == Talloc2)
 		op = Oalloc;
