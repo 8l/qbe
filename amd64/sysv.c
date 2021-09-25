@@ -4,6 +4,7 @@ typedef struct AClass AClass;
 typedef struct RAlloc RAlloc;
 
 struct AClass {
+	Typ *type;
 	int inmem;
 	int align;
 	uint size;
@@ -72,6 +73,7 @@ typclass(AClass *a, Typ *t)
 		al = 8;
 	sz = (sz + al-1) & -al;
 
+	a->type = t;
 	a->size = sz;
 	a->align = t->align;
 
@@ -125,7 +127,7 @@ selret(Blk *b, Fn *fn)
 		if (aret.inmem) {
 			assert(rtype(fn->retr) == RTmp);
 			emit(Ocopy, Kl, TMP(RAX), fn->retr, R);
-			blit(fn->retr, 0, r0, aret.size, fn);
+			blit(fn->retr, 0, r0, aret.type->size, fn);
 			ca = 1;
 		} else {
 			ca = retr(reg, &aret);
@@ -338,6 +340,10 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 			emit(Ocopy, Kl, i1->to, TMP(RAX), R);
 			ca += 1;
 		} else {
+			/* todo, may read out of bounds.
+			 * gcc did this up until 5.2, but
+			 * this should still be fixed.
+			 */
 			if (aret.size > 8) {
 				r = newtmp("abi", Kl, fn);
 				aret.ref[1] = newtmp("abi", aret.cls[1], fn);
@@ -407,7 +413,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 		if (i->op == Oargc) {
 			if (a->align == 4)
 				off += off & 15;
-			blit(r, off, i->arg[1], a->size, fn);
+			blit(r, off, i->arg[1], a->type->size, fn);
 		} else {
 			r1 = newtmp("abi", Kl, fn);
 			emit(Ostorel, 0, R, i->arg[0], r1);

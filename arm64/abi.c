@@ -144,6 +144,7 @@ sttmps(Ref tmp[], int cls[], uint nreg, Ref mem, Fn *fn)
 	}
 }
 
+/* todo, may read out of bounds */
 static void
 ldregs(int reg[], int cls[], int n, Ref mem, Fn *fn)
 {
