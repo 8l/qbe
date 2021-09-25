@@ -384,7 +384,7 @@ blit(Ref rdst, uint doff, Ref rsrc, uint sz, Fn *fn)
 {
 	struct { int st, ld, cls, size; } *p, tbl[] = {
 		{ Ostorel, Oload,   Kl, 8 },
-		{ Ostorew, Oload,   Kw, 8 },
+		{ Ostorew, Oload,   Kw, 4 },
 		{ Ostoreh, Oloaduh, Kw, 2 },
 		{ Ostoreb, Oloadub, Kw, 1 }
 	};
