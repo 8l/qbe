@@ -155,6 +155,12 @@ slot(int t)
 	return SLOT(s);
 }
 
+/* restricts b to hold at most k
+ * temporaries, preferring those
+ * present in f (if given), then
+ * those with the largest spill
+ * cost
+ */
 static void
 limit(BSet *b, int k, BSet *f)
 {
@@ -187,8 +193,14 @@ limit(BSet *b, int k, BSet *f)
 		slot(tarr[i]);
 }
 
+/* spills temporaries to fit the
+ * target limits using the same
+ * preferences as limit(); assumes
+ * that k1 gprs and k2 fprs are
+ * currently in use
+ */
 static void
-limit2(BSet *b1, int k1, int k2, BSet *fst)
+limit2(BSet *b1, int k1, int k2, BSet *f)
 {
 	BSet b2[1];
 
@@ -196,8 +208,8 @@ limit2(BSet *b1, int k1, int k2, BSet *fst)
 	bscopy(b2, b1);
 	bsinter(b1, mask[0]);
 	bsinter(b2, mask[1]);
-	limit(b1, T.ngpr - k1, fst);
-	limit(b2, T.nfpr - k2, fst);
+	limit(b1, T.ngpr - k1, f);
+	limit(b2, T.nfpr - k2, f);
 	bsunion(b1, b2);
 }
 
@@ -210,6 +222,9 @@ sethint(BSet *u, bits r)
 		tmp[phicls(t, tmp)].hint.m |= r;
 }
 
+/* reloads temporaries in u that are
+ * not in v from their slots
+ */
 static void
 reloads(BSet *u, BSet *v)
 {
