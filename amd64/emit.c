@@ -555,7 +555,7 @@ amd64_emitfn(Fn *fn, FILE *f)
 	);
 	fs = framesz(fn);
 	if (fs)
-		fprintf(f, "\tsub $%"PRIu64", %%rsp\n", fs);
+		fprintf(f, "\tsubq $%"PRIu64", %%rsp\n", fs);
 	if (fn->vararg) {
 		o = -176;
 		for (r=amd64_sysv_rsave; r<&amd64_sysv_rsave[6]; r++, o+=8)
