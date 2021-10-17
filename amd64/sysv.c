@@ -203,7 +203,7 @@ argsclass(Ins *i0, Ins *i1, AClass *ac, int op, AClass *aret, Ref *env)
 			break;
 		}
 
-	return ((6-nint) << 4) | ((8-nsse) << 8);
+	return (!req(R, *env) << 12) | ((6-nint) << 4) | ((8-nsse) << 8);
 }
 
 int amd64_sysv_rsave[] = {
@@ -362,7 +362,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 	varc = i1->op == Ovacall;
 	if (varc && envc)
 		err("sysv abi does not support variadic env calls");
-	ca |= (varc | envc) << 12;
+	ca |= varc << 12; /* envc set in argsclass() */
 	emit(Ocall, i1->cls, R, i1->arg[0], CALL(ca));
 	if (envc)
 		emit(Ocopy, Kl, TMP(RAX), env, R);
@@ -373,7 +373,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 	if (ra && aret.inmem)
 		emit(Ocopy, Kl, rarg(Kl, &ni, &ns), ra->i.to, R); /* pass hidden argument */
 	for (i=i0, a=ac; i<i1; i++, a++) {
-		if (a->inmem)
+		if (a->inmem || i->op == Oarge)
 			continue;
 		r1 = rarg(a->cls[0], &ni, &ns);
 		if (i->op == Oargc) {
@@ -466,6 +466,8 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 			s += 2;
 			continue;
 		}
+		if (i->op == Opare)
+			continue;
 		r = rarg(a->cls[0], &ni, &ns);
 		if (i->op == Oparc) {
 			emit(Ocopy, a->cls[0], a->ref[0], r, R);
