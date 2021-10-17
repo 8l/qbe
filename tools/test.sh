@@ -22,7 +22,7 @@ init() {
 	arm64)
 		for p in aarch64-linux-musl aarch64-linux-gnu
 		do
-			cc="$p-gcc -no-pie"
+			cc="$p-gcc -no-pie -static"
 			qemu="qemu-aarch64"
 			if
 				$cc -v >/dev/null 2>&1 &&
