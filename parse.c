@@ -450,25 +450,44 @@ parsecls(int *tyn)
 static int
 parserefl(int arg)
 {
-	int k, ty, env, hasenv;
+	int k, ty, env, hasenv, vararg;
 	Ref r;
 
 	hasenv = 0;
+	vararg = 0;
 	expect(Tlparen);
-	while (peek() != Trparen && peek() != Tdots) {
+	while (peek() != Trparen) {
 		if (curi - insb >= NIns)
 			err("too many instructions (1)");
-		env = peek() == Tenv;
-		if (env) {
+		if (!arg && vararg)
+			err("no parameters allowed after '...'");
+		switch (peek()) {
+		case Tdots:
+			if (vararg)
+				err("only one '...' allowed");
+			vararg = 1;
+			if (arg) {
+				*curi = (Ins){.op = Oargv};
+				curi++;
+			}
+			next();
+			goto Next;
+		case Tenv:
+			if (hasenv)
+				err("only one environment allowed");
+			hasenv = 1;
+			env = 1;
 			next();
 			k = Kl;
-		} else
+			break;
+		default:
+			env = 0;
 			k = parsecls(&ty);
+			break;
+		}
 		r = parseref();
 		if (req(r, R))
 			err("invalid argument");
-		if (hasenv && env)
-			err("only one environment allowed");
 		if (!arg && rtype(r) != RTmp)
 			err("invalid function parameter");
 		if (k == 4)
@@ -487,16 +506,13 @@ parserefl(int arg)
 			else
 				*curi = (Ins){Opar, k, r, {R}};
 		curi++;
-		hasenv |= env;
+	Next:
 		if (peek() == Trparen)
 			break;
 		expect(Tcomma);
 	}
-	if (next() == Tdots) {
-		expect(Trparen);
-		return 1;
-	}
-	return 0;
+	expect(Trparen);
+	return vararg;
 }
 
 static Blk *
@@ -621,10 +637,8 @@ DoOp:
 	}
 	if (op == Tcall) {
 		arg[0] = parseref();
-		if (parserefl(1))
-			op = Ovacall;
-		else
-			op = Ocall;
+		parserefl(1);
+		op = Ocall;
 		expect(Tnl);
 		if (k == 4) {
 			k = Kl;

@@ -255,6 +255,10 @@ argsclass(Ins *i0, Ins *i1, Class *carg, Ref *env)
 		case Oarge:
 			*env = i->arg[0];
 			break;
+		case Oargv:
+			break;
+		default:
+			die("unreachable");
 		}
 
 	return ((gp-gpreg) << 5) | ((fp-fpreg) << 9);
@@ -371,10 +375,11 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 		}
 	}
 
+	emit(Ocall, 0, R, i1->arg[0], CALL(cty));
+
 	envc = !req(R, env);
 	if (envc)
 		die("todo (arm abi): env calls");
-	emit(Ocall, 0, R, i1->arg[0], CALL(cty));
 
 	if (cty & (1 << 13))
 		/* struct return argument */
@@ -383,9 +388,9 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 	for (i=i0, c=ca; i<i1; i++, c++) {
 		if ((c->class & Cstk) != 0)
 			continue;
-		if (i->op != Oargc)
+		if (i->op == Oarg)
 			emit(Ocopy, *c->cls, TMP(*c->reg), i->arg[0], R);
-		else
+		if (i->op == Oargc)
 			ldregs(c->reg, c->cls, c->nreg, i->arg[1], fn);
 	}
 
@@ -393,11 +398,12 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 	for (i=i0, c=ca; i<i1; i++, c++) {
 		if ((c->class & Cstk) == 0)
 			continue;
-		if (i->op != Oargc) {
+		if (i->op == Oarg) {
 			r = newtmp("abi", Kl, fn);
 			emit(Ostorel, 0, R, i->arg[0], r);
 			emit(Oadd, Kl, r, TMP(SP), getcon(off, fn));
-		} else
+		}
+		if (i->op == Oargc)
 			blit(TMP(SP), off, i->arg[1], c->size, fn);
 		off += c->size;
 	}
@@ -675,7 +681,6 @@ arm64_abi(Fn *fn)
 				emiti(*i);
 				break;
 			case Ocall:
-			case Ovacall:
 				for (i0=i; i0>b->ins; i0--)
 					if (!isarg((i0-1)->op))
 						break;

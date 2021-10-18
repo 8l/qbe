@@ -13,8 +13,8 @@ function $f(:hfa3 %h1, :hfa3 %h2, d %d1, :hfa3 %h3, d %d2) {
         call $phfa3(:hfa3 %h1)
         call $phfa3(:hfa3 %h2)
         call $phfa3(:hfa3 %h3)
-        call $printf(l $dfmt, d %d1, ...)
-        call $printf(l $dfmt, d %d2, ...)
+        call $printf(l $dfmt, ..., d %d1)
+        call $printf(l $dfmt, ..., d %d2)
         ret
 }
 

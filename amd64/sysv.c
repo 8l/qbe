@@ -153,7 +153,7 @@ selret(Blk *b, Fn *fn)
 static int
 argsclass(Ins *i0, Ins *i1, AClass *ac, int op, AClass *aret, Ref *env)
 {
-	int nint, ni, nsse, ns, n, *pn;
+	int varc, envc, nint, ni, nsse, ns, n, *pn;
 	AClass *a;
 	Ins *i;
 
@@ -162,6 +162,8 @@ argsclass(Ins *i0, Ins *i1, AClass *ac, int op, AClass *aret, Ref *env)
 	else
 		nint = 6;
 	nsse = 8;
+	varc = 0;
+	envc = 0;
 	for (i=i0, a=ac; i<i1; i++, a++)
 		switch (i->op - op + Oarg) {
 		case Oarg:
@@ -196,14 +198,23 @@ argsclass(Ins *i0, Ins *i1, AClass *ac, int op, AClass *aret, Ref *env)
 				a->inmem = 1;
 			break;
 		case Oarge:
+			envc = 1;
 			if (op == Opar)
 				*env = i->to;
 			else
 				*env = i->arg[0];
 			break;
+		case Oargv:
+			varc = 1;
+			break;
+		default:
+			die("unreachable");
 		}
 
-	return (!req(R, *env) << 12) | ((6-nint) << 4) | ((8-nsse) << 8);
+	if (varc && envc)
+		err("sysv abi does not support variadic env calls");
+
+	return ((varc|envc) << 12) | ((6-nint) << 4) | ((8-nsse) << 8);
 }
 
 int amd64_sysv_rsave[] = {
@@ -290,7 +301,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 {
 	Ins *i;
 	AClass *ac, *a, aret;
-	int ca, ni, ns, al, varc, envc;
+	int ca, ni, ns, al;
 	uint stk, off;
 	Ref r, r1, r2, reg[2], env;
 	RAlloc *ra;
@@ -358,22 +369,20 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 			ca += 1 << 2;
 		}
 	}
-	envc = !req(R, env);
-	varc = i1->op == Ovacall;
-	if (varc && envc)
-		err("sysv abi does not support variadic env calls");
-	ca |= varc << 12; /* envc set in argsclass() */
+
 	emit(Ocall, i1->cls, R, i1->arg[0], CALL(ca));
-	if (envc)
+
+	if (!req(R, env))
 		emit(Ocopy, Kl, TMP(RAX), env, R);
-	if (varc)
+	else if ((ca >> 12) & 1) /* vararg call */
 		emit(Ocopy, Kw, TMP(RAX), getcon((ca >> 8) & 15, fn), R);
 
 	ni = ns = 0;
 	if (ra && aret.inmem)
 		emit(Ocopy, Kl, rarg(Kl, &ni, &ns), ra->i.to, R); /* pass hidden argument */
+
 	for (i=i0, a=ac; i<i1; i++, a++) {
-		if (a->inmem || i->op == Oarge)
+		if (i->op >= Oarge || a->inmem)
 			continue;
 		r1 = rarg(a->cls[0], &ni, &ns);
 		if (i->op == Oargc) {
@@ -393,7 +402,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, RAlloc **rap)
 
 	r = newtmp("abi", Kl, fn);
 	for (i=i0, a=ac, off=0; i<i1; i++, a++) {
-		if (!a->inmem)
+		if (i->op >= Oarge || !a->inmem)
 			continue;
 		if (i->op == Oargc) {
 			if (a->align == 4)
@@ -676,7 +685,6 @@ amd64_sysv_abi(Fn *fn)
 				emiti(*i);
 				break;
 			case Ocall:
-			case Ovacall:
 				for (i0=i; i0>b->ins; i0--)
 					if (!isarg((i0-1)->op))
 						break;

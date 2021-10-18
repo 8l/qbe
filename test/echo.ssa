@@ -20,7 +20,7 @@ function w $main(w %argc, l %argv) {
 @loop2
 	%sep =w phi @last 10, @nolast 32
 	%arg =l loadl %av
-	%r =w call $printf(l %fmt, l %arg, w %sep, ...)
+	%r =w call $printf(l %fmt, ..., l %arg, w %sep)
 	%av1 =l add %av, 8
 	%ac1 =w sub %ac, 1
 	jmp @loop

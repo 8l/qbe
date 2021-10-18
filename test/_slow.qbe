@@ -3408,7 +3408,7 @@ function $transparent_crc(l %.1, l %.3, w %.5) {
 	%.9 =l copy $.Lstring.93
 	%.10 =l loadl %.4
 	%.11 =l loadl %.2
-	%.12 =w call $printf(l %.9, l %.10, l %.11, ...)
+	%.12 =w call $printf(l %.9, ..., l %.10, l %.11)
 @if_false.679
 	%.13 =l loadl $crc32_context
 	%.14 =l loadl %.2
@@ -3461,7 +3461,7 @@ function $transparent_crc_bytes(l %.1, w %.3, l %.5, w %.7) {
 	%.28 =l loadl $crc32_context
 	%.29 =l copy 4294967295
 	%.30 =l xor %.28, %.29
-	%.31 =w call $printf(l %.26, l %.27, l %.30, ...)
+	%.31 =w call $printf(l %.26, ..., l %.27, l %.30)
 @if_false.687
 	ret
 }
@@ -3480,7 +3480,7 @@ function $platform_main_end(l %.1, w %.3) {
 @if_true.690
 	%.8 =l copy $.Lstring.97
 	%.9 =l loadl %.2
-	%.10 =w call $printf(l %.8, l %.9, ...)
+	%.10 =w call $printf(l %.8, ..., l %.9)
 @if_false.691
 	ret
 }
@@ -35219,7 +35219,7 @@ function w $main(w %.1, l %.3) {
 	%.53 =w loadsw %.5
 	%.54 =w loadsw %.6
 	%.55 =w loadsw %.7
-	%.56 =w call $printf(l %.52, w %.53, w %.54, w %.55, ...)
+	%.56 =w call $printf(l %.52, ..., w %.53, w %.54, w %.55)
 @if_false.1519
 @for_cont.1516
 	%.57 =w loadsw %.7
@@ -35338,7 +35338,7 @@ function w $main(w %.1, l %.3) {
 @if_true.1524
 	%.138 =l copy $.Lstring.129
 	%.139 =w loadsw %.5
-	%.140 =w call $printf(l %.138, w %.139, ...)
+	%.140 =w call $printf(l %.138, ..., w %.139)
 @if_false.1525
 @for_cont.1522
 	%.141 =w loadsw %.5

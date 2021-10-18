@@ -137,8 +137,8 @@ O(pare,    T(e,x,e,e, e,x,e,e), 0) X(0, 0, 0)
 O(arg,     T(w,l,s,d, x,x,x,x), 0) X(0, 0, 0)
 O(argc,    T(e,x,e,e, e,l,e,e), 0) X(0, 0, 0)
 O(arge,    T(e,l,e,e, e,x,e,e), 0) X(0, 0, 0)
+O(argv,    T(x,x,x,x, x,x,x,x), 0) X(0, 0, 0)
 O(call,    T(m,m,m,m, x,x,x,x), 0) X(0, 0, 0)
-O(vacall,  T(m,m,m,m, x,x,x,x), 0) X(0, 0, 0)
 
 /* Flags Setting */
 O(flagieq,  T(x,x,e,e, x,x,e,e), 0) X(0, 0, 1)

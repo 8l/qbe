@@ -25,41 +25,41 @@ export
 function $test() {
 @start
 	%r1 =:st1 call $t1()
-	%i1 =w call $printf(l $fmt1, l %r1, ...)
+	%i1 =w call $printf(l $fmt1, ..., l %r1)
 
 	%r2 =:st2 call $t2()
 	%w2 =w loadw %r2
-	%i2 =w call $printf(l $fmt2, w %w2, ...)
+	%i2 =w call $printf(l $fmt2, ..., w %w2)
 
 	%r3 =:st3 call $t3()
 	%s3 =s loads %r3
 	%r34 =l add %r3, 4
 	%w3 =w loadw %r34
 	%p3 =d exts %s3
-	%i3 =w call $printf(l $fmt3, d %p3, w %w3, ...)
+	%i3 =w call $printf(l $fmt3, ..., d %p3, w %w3)
 
 	%r4 =:st4 call $t4()
 	%w4 =w loadw %r4
 	%r48 =l add 8, %r4
 	%d4 =d loadd %r48
-	%i4 =w call $printf(l $fmt4, w %w4, d %d4, ...)
+	%i4 =w call $printf(l $fmt4, ..., w %w4, d %d4)
 
 	%r5 =:st5 call $t5()
 	%s5 =s loads %r5
 	%d5 =d exts %s5
 	%r58 =l add %r5, 8
 	%l5 =l loadl %r58
-	%i5 =w call $printf(l $fmt5, d %d5, l %l5, ...)
+	%i5 =w call $printf(l $fmt5, ..., d %d5, l %l5)
 
 	%r6 =:st6 call $t6()
-	%i6 =w call $printf(l $fmt6, l %r6, ...)
+	%i6 =w call $printf(l $fmt6, ..., l %r6)
 
 	%r7 =:st7 call $t7()
 	%s7 =s loads %r7
 	%d71 =d exts %s7
 	%r78 =l add %r7, 8
 	%d72 =d loadd %r78
-	%i7 =w call $printf(l $fmt7, d %d71, d %d72, ...)
+	%i7 =w call $printf(l $fmt7, ..., d %d71, d %d72)
 
 	%r8 =:st8 call $t8()
 	%r84 =l add 4, %r8
@@ -69,14 +69,14 @@ function $test() {
 	%w82 =w loadw %r84
 	%w83 =w loadw %r88
 	%w84 =w loadw %r812
-	%i8 =w call $printf(l $fmt8, w %w81, w %w82, w %w83, w %w84, ...)
+	%i8 =w call $printf(l $fmt8, ..., w %w81, w %w82, w %w83, w %w84)
 
 	%r9 =:st9 call $t9()
 	%r94 =l add 4, %r9
 	%w9 =w loadw %r9
 	%s9 =s loads %r94
 	%d9 =d exts %s9
-	%i9 =w call $printf(l $fmt9, w %w9, d %d9, ...)
+	%i9 =w call $printf(l $fmt9, ..., w %w9, d %d9)
 
 	ret
 }
