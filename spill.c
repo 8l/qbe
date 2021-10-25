@@ -428,6 +428,7 @@ spill(Fn *fn)
 				else {
 					/* make sure we have a reg
 					 * for the result */
+					assert(t >= Tmp0 && "dead reg");
 					bsset(v, t);
 					bsset(w, t);
 				}
@@ -476,7 +477,10 @@ spill(Fn *fn)
 			if (!req(i->to, R)) {
 				t = i->to.val;
 				store(i->to, tmp[t].slot);
-				bsclr(v, t);
+				if (t >= Tmp0)
+					/* in case i->to was a
+					 * dead temporary */
+					bsclr(v, t);
 			}
 			emiti(*i);
 			r = v->t[0]; /* Tmp0 is NBit */

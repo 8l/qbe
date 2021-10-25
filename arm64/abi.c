@@ -448,6 +448,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 		if (cr.class & Cptr) {
 			fn->retr = newtmp("abi", Kl, fn);
 			emit(Ocopy, Kl, fn->retr, TMP(R8), R);
+			fn->reg |= BIT(R8);
 		}
 	}
 
