@@ -137,7 +137,7 @@ once() {
 
 	if test -s $out
 	then
-		$qemu $exe a b c | diff - $out
+		$qemu $exe a b c | diff -u - $out
 		ret=$?
 		reason="output"
 	else
