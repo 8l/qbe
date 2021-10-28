@@ -1,0 +1,233 @@
+export function $chacha20_rounds_qbe(l %out, l %in) {
+@start
+	%t0 =w loadw %in
+	%in =l add %in, 4
+	%t1 =w loadw %in
+	%in =l add %in, 4
+	%t2 =w loadw %in
+	%in =l add %in, 4
+	%t3 =w loadw %in
+	%in =l add %in, 4
+	%t4 =w loadw %in
+	%in =l add %in, 4
+	%t5 =w loadw %in
+	%in =l add %in, 4
+	%t6 =w loadw %in
+	%in =l add %in, 4
+	%t7 =w loadw %in
+	%in =l add %in, 4
+	%t8 =w loadw %in
+	%in =l add %in, 4
+	%t9 =w loadw %in
+	%in =l add %in, 4
+	%t10 =w loadw %in
+	%in =l add %in, 4
+	%t11 =w loadw %in
+	%in =l add %in, 4
+	%t12 =w loadw %in
+	%in =l add %in, 4
+	%t13 =w loadw %in
+	%in =l add %in, 4
+	%t14 =w loadw %in
+	%in =l add %in, 4
+	%t15 =w loadw %in
+	%in =l add %in, 4
+	%counter =w copy 10
+@loop
+	%t0 =w add %t0, %t4
+	%t12 =w xor %t12, %t0
+	%rotl32_a =w shl %t12, 16
+	%rotl32_b =w shr %t12, 16
+	%t12 =w xor %rotl32_a, %rotl32_b
+	%t8 =w add %t8, %t12
+	%t4 =w xor %t4, %t8
+	%rotl32_a =w shl %t4, 12
+	%rotl32_b =w shr %t4, 20
+	%t4 =w xor %rotl32_a, %rotl32_b
+	%t0 =w add %t0, %t4
+	%t12 =w xor %t12, %t0
+	%rotl32_a =w shl %t12, 8
+	%rotl32_b =w shr %t12, 24
+	%t12 =w xor %rotl32_a, %rotl32_b
+	%t8 =w add %t8, %t12
+	%t4 =w xor %t4, %t8
+	%rotl32_a =w shl %t4, 7
+	%rotl32_b =w shr %t4, 25
+	%t4 =w xor %rotl32_a, %rotl32_b
+	%t1 =w add %t1, %t5
+	%t13 =w xor %t13, %t1
+	%rotl32_a =w shl %t13, 16
+	%rotl32_b =w shr %t13, 16
+	%t13 =w xor %rotl32_a, %rotl32_b
+	%t9 =w add %t9, %t13
+	%t5 =w xor %t5, %t9
+	%rotl32_a =w shl %t5, 12
+	%rotl32_b =w shr %t5, 20
+	%t5 =w xor %rotl32_a, %rotl32_b
+	%t1 =w add %t1, %t5
+	%t13 =w xor %t13, %t1
+	%rotl32_a =w shl %t13, 8
+	%rotl32_b =w shr %t13, 24
+	%t13 =w xor %rotl32_a, %rotl32_b
+	%t9 =w add %t9, %t13
+	%t5 =w xor %t5, %t9
+	%rotl32_a =w shl %t5, 7
+	%rotl32_b =w shr %t5, 25
+	%t5 =w xor %rotl32_a, %rotl32_b
+	%t2 =w add %t2, %t6
+	%t14 =w xor %t14, %t2
+	%rotl32_a =w shl %t14, 16
+	%rotl32_b =w shr %t14, 16
+	%t14 =w xor %rotl32_a, %rotl32_b
+	%t10 =w add %t10, %t14
+	%t6 =w xor %t6, %t10
+	%rotl32_a =w shl %t6, 12
+	%rotl32_b =w shr %t6, 20
+	%t6 =w xor %rotl32_a, %rotl32_b
+	%t2 =w add %t2, %t6
+	%t14 =w xor %t14, %t2
+	%rotl32_a =w shl %t14, 8
+	%rotl32_b =w shr %t14, 24
+	%t14 =w xor %rotl32_a, %rotl32_b
+	%t10 =w add %t10, %t14
+	%t6 =w xor %t6, %t10
+	%rotl32_a =w shl %t6, 7
+	%rotl32_b =w shr %t6, 25
+	%t6 =w xor %rotl32_a, %rotl32_b
+	%t3 =w add %t3, %t7
+	%t15 =w xor %t15, %t3
+	%rotl32_a =w shl %t15, 16
+	%rotl32_b =w shr %t15, 16
+	%t15 =w xor %rotl32_a, %rotl32_b
+	%t11 =w add %t11, %t15
+	%t7 =w xor %t7, %t11
+	%rotl32_a =w shl %t7, 12
+	%rotl32_b =w shr %t7, 20
+	%t7 =w xor %rotl32_a, %rotl32_b
+	%t3 =w add %t3, %t7
+	%t15 =w xor %t15, %t3
+	%rotl32_a =w shl %t15, 8
+	%rotl32_b =w shr %t15, 24
+	%t15 =w xor %rotl32_a, %rotl32_b
+	%t11 =w add %t11, %t15
+	%t7 =w xor %t7, %t11
+	%rotl32_a =w shl %t7, 7
+	%rotl32_b =w shr %t7, 25
+	%t7 =w xor %rotl32_a, %rotl32_b
+	%t0 =w add %t0, %t5
+	%t15 =w xor %t15, %t0
+	%rotl32_a =w shl %t15, 16
+	%rotl32_b =w shr %t15, 16
+	%t15 =w xor %rotl32_a, %rotl32_b
+	%t10 =w add %t10, %t15
+	%t5 =w xor %t5, %t10
+	%rotl32_a =w shl %t5, 12
+	%rotl32_b =w shr %t5, 20
+	%t5 =w xor %rotl32_a, %rotl32_b
+	%t0 =w add %t0, %t5
+	%t15 =w xor %t15, %t0
+	%rotl32_a =w shl %t15, 8
+	%rotl32_b =w shr %t15, 24
+	%t15 =w xor %rotl32_a, %rotl32_b
+	%t10 =w add %t10, %t15
+	%t5 =w xor %t5, %t10
+	%rotl32_a =w shl %t5, 7
+	%rotl32_b =w shr %t5, 25
+	%t5 =w xor %rotl32_a, %rotl32_b
+	%t1 =w add %t1, %t6
+	%t12 =w xor %t12, %t1
+	%rotl32_a =w shl %t12, 16
+	%rotl32_b =w shr %t12, 16
+	%t12 =w xor %rotl32_a, %rotl32_b
+	%t11 =w add %t11, %t12
+	%t6 =w xor %t6, %t11
+	%rotl32_a =w shl %t6, 12
+	%rotl32_b =w shr %t6, 20
+	%t6 =w xor %rotl32_a, %rotl32_b
+	%t1 =w add %t1, %t6
+	%t12 =w xor %t12, %t1
+	%rotl32_a =w shl %t12, 8
+	%rotl32_b =w shr %t12, 24
+	%t12 =w xor %rotl32_a, %rotl32_b
+	%t11 =w add %t11, %t12
+	%t6 =w xor %t6, %t11
+	%rotl32_a =w shl %t6, 7
+	%rotl32_b =w shr %t6, 25
+	%t6 =w xor %rotl32_a, %rotl32_b
+	%t2 =w add %t2, %t7
+	%t13 =w xor %t13, %t2
+	%rotl32_a =w shl %t13, 16
+	%rotl32_b =w shr %t13, 16
+	%t13 =w xor %rotl32_a, %rotl32_b
+	%t8 =w add %t8, %t13
+	%t7 =w xor %t7, %t8
+	%rotl32_a =w shl %t7, 12
+	%rotl32_b =w shr %t7, 20
+	%t7 =w xor %rotl32_a, %rotl32_b
+	%t2 =w add %t2, %t7
+	%t13 =w xor %t13, %t2
+	%rotl32_a =w shl %t13, 8
+	%rotl32_b =w shr %t13, 24
+	%t13 =w xor %rotl32_a, %rotl32_b
+	%t8 =w add %t8, %t13
+	%t7 =w xor %t7, %t8
+	%rotl32_a =w shl %t7, 7
+	%rotl32_b =w shr %t7, 25
+	%t7 =w xor %rotl32_a, %rotl32_b
+	%t3 =w add %t3, %t4
+	%t14 =w xor %t14, %t3
+	%rotl32_a =w shl %t14, 16
+	%rotl32_b =w shr %t14, 16
+	%t14 =w xor %rotl32_a, %rotl32_b
+	%t9 =w add %t9, %t14
+	%t4 =w xor %t4, %t9
+	%rotl32_a =w shl %t4, 12
+	%rotl32_b =w shr %t4, 20
+	%t4 =w xor %rotl32_a, %rotl32_b
+	%t3 =w add %t3, %t4
+	%t14 =w xor %t14, %t3
+	%rotl32_a =w shl %t14, 8
+	%rotl32_b =w shr %t14, 24
+	%t14 =w xor %rotl32_a, %rotl32_b
+	%t9 =w add %t9, %t14
+	%t4 =w xor %t4, %t9
+	%rotl32_a =w shl %t4, 7
+	%rotl32_b =w shr %t4, 25
+	%t4 =w xor %rotl32_a, %rotl32_b
+	%counter =w sub %counter, 10
+	jnz %counter, @loop, @done
+@done
+	storew %t0, %out
+	%out =l add %out, 4
+	storew %t1, %out
+	%out =l add %out, 4
+	storew %t2, %out
+	%out =l add %out, 4
+	storew %t3, %out
+	%out =l add %out, 4
+	storew %t4, %out
+	%out =l add %out, 4
+	storew %t5, %out
+	%out =l add %out, 4
+	storew %t6, %out
+	%out =l add %out, 4
+	storew %t7, %out
+	%out =l add %out, 4
+	storew %t8, %out
+	%out =l add %out, 4
+	storew %t9, %out
+	%out =l add %out, 4
+	storew %t10, %out
+	%out =l add %out, 4
+	storew %t11, %out
+	%out =l add %out, 4
+	storew %t12, %out
+	%out =l add %out, 4
+	storew %t13, %out
+	%out =l add %out, 4
+	storew %t14, %out
+	%out =l add %out, 4
+	storew %t15, %out
+	%out =l add %out, 4
+	ret
+}
