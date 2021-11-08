@@ -312,12 +312,14 @@ stkblob(Ref r, Class *c, Fn *fn, Insl **ilp)
 {
 	Insl *il;
 	int al;
+	uint64_t sz;
 
 	il = alloc(sizeof *il);
 	al = c->t->align - 2; /* NAlign == 3 */
 	if (al < 0)
 		al = 0;
-	il->i = (Ins){Oalloc+al, Kl, r, {getcon(c->t->size, fn)}};
+	sz = c->class & Cptr ? c->t->size : c->size;
+	il->i = (Ins){Oalloc+al, Kl, r, {getcon(sz, fn)}};
 	il->link = *ilp;
 	*ilp = il;
 }
