@@ -381,7 +381,6 @@ static Ref
 parseref()
 {
 	Con c;
-	int i;
 
 	memset(&c, 0, sizeof c);
 	switch (next()) {
@@ -405,14 +404,7 @@ parseref()
 		c.type = CAddr;
 		c.label = intern(tokval.str);
 	Look:
-		for (i=0; i<curf->ncon; i++)
-			if (curf->con[i].type == c.type
-			&& curf->con[i].bits.i == c.bits.i
-			&& curf->con[i].label == c.label)
-				return CON(i);
-		vgrow(&curf->con, ++curf->ncon);
-		curf->con[i] = c;
-		return CON(i);
+		return newcon(&c, curf);
 	default:
 		return R;
 	}

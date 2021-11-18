@@ -496,7 +496,7 @@ foldflt(Con *res, int op, int w, Con *cl, Con *cr)
 static int
 opfold(int op, int cls, Con *cl, Con *cr, Fn *fn)
 {
-	int nc;
+	Ref r;
 	Con c;
 
 	if ((op == Odiv || op == Oudiv
@@ -507,13 +507,7 @@ opfold(int op, int cls, Con *cl, Con *cr, Fn *fn)
 			return Bot;
 	} else
 		foldflt(&c, op, cls == Kd, cl, cr);
-	if (c.type == CBits)
-		nc = getcon(c.bits.i, fn).val;
-	else {
-		nc = fn->ncon;
-		vgrow(&fn->con, ++fn->ncon);
-	}
+	r = newcon(&c, fn);
 	assert(!(cls == Ks || cls == Kd) || c.flt);
-	fn->con[nc] = c;
-	return nc;
+	return r.val;
 }

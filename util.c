@@ -350,6 +350,25 @@ chuse(Ref r, int du, Fn *fn)
 }
 
 Ref
+newcon(Con *c0, Fn *fn)
+{
+	Con *c1;
+	int i;
+
+	for (i=0; i<fn->ncon; i++) {
+		c1 = &fn->con[i];
+		if (c0->type == c1->type
+		&& c0->bits.i == c1->bits.i
+		&& c0->label == c1->label
+		&& c0->local == c1->local)
+			return CON(i);
+	}
+	vgrow(&fn->con, ++fn->ncon);
+	fn->con[i] = *c0;
+	return CON(i);
+}
+
+Ref
 getcon(int64_t val, Fn *fn)
 {
 	int c;

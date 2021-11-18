@@ -118,7 +118,8 @@ load(Slice sl, bits msk, Loc *l)
 {
 	Alias *a;
 	Ref r, r1;
-	int ld, cls, all, c;
+	int ld, cls, all;
+	Con c;
 
 	ld = (int[]){
 		[1] = Oloadub,
@@ -151,13 +152,11 @@ load(Slice sl, bits msk, Loc *l)
 			break;
 		case ACon:
 		case ASym:
-			c = curf->ncon++;
-			vgrow(&curf->con, curf->ncon);
-			curf->con[c].type = CAddr;
-			curf->con[c].label = a->label;
-			curf->con[c].bits.i = a->offset;
-			curf->con[c].local = 0;
-			r = CON(c);
+			c.type = CAddr;
+			c.label = a->label;
+			c.bits.i = a->offset;
+			c.local = 0;
+			r = newcon(&c, curf);
 			break;
 		}
 	}

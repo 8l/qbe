@@ -117,12 +117,9 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 		m = &fn->mem[r0.val];
 		if (req(m->base, R))
 		if (m->offset.type == CAddr) {
-			n = fn->ncon;
-			vgrow(&fn->con, ++fn->ncon);
-			fn->con[n] = m->offset;
-			m->offset.type = CUndef;
 			r0 = newtmp("isel", Kl, fn);
-			emit(Oaddr, Kl, r0, CON(n), R);
+			emit(Oaddr, Kl, r0, newcon(&m->offset, fn), R);
+			m->offset.type = CUndef;
 			m->base = r0;
 		}
 	}
