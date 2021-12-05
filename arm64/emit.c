@@ -228,7 +228,7 @@ emitf(char *s, Ins *i, E *e)
 				fprintf(e->f, "[%s]", rname(r.val, Kl));
 				break;
 			case RSlot:
-				fprintf(e->f, "[sp, %"PRIu64"]", slot(r.val, e));
+				fprintf(e->f, "[x29, %"PRIu64"]", slot(r.val, e));
 				break;
 			}
 			break;
@@ -276,6 +276,26 @@ loadcon(Con *c, int r, int k, FILE *f)
 	}
 }
 
+static void emitins(Ins *, E *);
+
+static void
+fixarg(Ref *pr, E *e)
+{
+	Ins *i;
+	Ref r;
+	uint64_t s;
+
+	r = *pr;
+	if (rtype(r) == RSlot) {
+		s = slot(r.val, e);
+		if (s > 32760) {
+			i = &(Ins){Oaddr, Kl, TMP(IP0), {r}};
+			emitins(i, e);
+			*pr = TMP(IP0);
+		}
+	}
+}
+
 static void
 emitins(Ins *i, E *e)
 {
@@ -285,6 +305,10 @@ emitins(Ins *i, E *e)
 
 	switch (i->op) {
 	default:
+		if (isload(i->op))
+			fixarg(&i->arg[0], e);
+		if (isstore(i->op))
+			fixarg(&i->arg[1], e);
 	Table:
 		/* most instructions are just pulled out of
 		 * the table omap[], some special cases are
@@ -409,9 +433,9 @@ arm64_emitfn(Fn *fn, FILE *out)
 	#undef X
 	};
 	static int id0;
-	int n, c, lbl, *r;
+	int s, n, c, lbl, *r;
 	uint64_t o;
-	Blk *b, *s;
+	Blk *b, *t;
 	Ins *i;
 	E *e;
 
@@ -457,28 +481,13 @@ arm64_emitfn(Fn *fn, FILE *out)
 			e->frame & 0xFFFF, e->frame >> 16
 		);
 	fputs("\tadd\tx29, sp, 0\n", e->f);
-	for (o=e->frame+16, r=arm64_rclob; *r>=0; r++)
+	s = (e->frame - e->padding) / 4;
+	for (r=arm64_rclob; *r>=0; r++)
 		if (e->fn->reg & BIT(*r)) {
-			if (o <= 32760)
-				fprintf(e->f,
-					"\tstr\t%s, [sp, %"PRIu64"]\n",
-					rname(*r, Kx), o -= 8
-				);
-			else if (o <= 65535)
-				fprintf(e->f,
-					"\tmov\tx16, #%"PRIu64"\n"
-					"\tstr\t%s, [sp, x16]\n",
-					o -= 8, rname(*r, Kx)
-				);
-			else {
-				o -= 8;
-				fprintf(e->f,
-					"\tmov\tx16, #%"PRIu64"\n"
-					"\tmovk\tx16, #%"PRIu64", lsl #16\n"
-					"\tstr\t%s, [sp, x16]\n",
-					o & 0xFFFF, o >> 16, rname(*r, Kx)
-				);
-			}
+			s -= 2;
+			i = &(Ins){.arg = {TMP(*r), SLOT(s)}};
+			i->op = *r >= V0 ? Ostored : Ostorel;
+			emitins(i, e);
 		}
 
 	for (lbl=0, b=e->fn->start; b; b=b->link) {
@@ -489,28 +498,13 @@ arm64_emitfn(Fn *fn, FILE *out)
 		lbl = 1;
 		switch (b->jmp.type) {
 		case Jret0:
-			for (o=e->frame+16, r=arm64_rclob; *r>=0; r++)
+			s = (e->frame - e->padding) / 4;
+			for (r=arm64_rclob; *r>=0; r++)
 				if (e->fn->reg & BIT(*r)) {
-					if (o <= 32760)
-						fprintf(e->f,
-							"\tldr\t%s, [sp, %"PRIu64"]\n",
-							rname(*r, Kx), o -= 8
-						);
-					else if (o <= 65535)
-						fprintf(e->f,
-							"\tmov\tx16, #%"PRIu64"\n"
-							"\tldr\t%s, [sp, x16]\n",
-							o -= 8, rname(*r, Kx)
-						);
-					else {
-						o -= 8;
-						fprintf(e->f,
-							"\tmov\tx16, #%"PRIu64"\n"
-							"\tmovk\tx16, #%"PRIu64", lsl #16\n"
-							"\tldr\t%s, [sp, x16]\n",
-							o & 0xFFFF, o >> 16, rname(*r, Kx)
-						);
-					}
+					s -= 2;
+					i = &(Ins){Oload, 0, TMP(*r), {SLOT(s)}};
+					i->cls = *r >= V0 ? Kd : Kl;
+					emitins(i, e);
 				}
 			o = e->frame + 16;
 			if (e->fn->vararg)
@@ -555,9 +549,9 @@ arm64_emitfn(Fn *fn, FILE *out)
 			if (c < 0 || c > NCmp)
 				die("unhandled jump %d", b->jmp.type);
 			if (b->link == b->s2) {
-				s = b->s1;
+				t = b->s1;
 				b->s1 = b->s2;
-				b->s2 = s;
+				b->s2 = t;
 			} else
 				c = cmpneg(c);
 			fprintf(e->f, "\tb%s\t.L%d\n", ctoa[c], id0+b->s2->id);
