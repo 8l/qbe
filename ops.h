@@ -15,6 +15,7 @@
 /* Arithmetic and Bits */
 O(add,     T(w,l,s,d, w,l,s,d), 1) X(2, 1, 0)
 O(sub,     T(w,l,s,d, w,l,s,d), 1) X(2, 1, 0)
+O(neg,     T(w,l,s,d, x,x,x,x), 1) X(1, 1, 0)
 O(div,     T(w,l,s,d, w,l,s,d), 1) X(0, 0, 0)
 O(rem,     T(w,l,e,e, w,l,e,e), 1) X(0, 0, 0)
 O(udiv,    T(w,l,e,e, w,l,e,e), 1) X(0, 0, 0)

@@ -8,7 +8,7 @@
 
 char *tok[] = {
 
-	"add", "sub", "div", "rem", "udiv", "urem", "mul",
+	"add", "sub", "neg", "div", "rem", "udiv", "urem", "mul",
 	"and", "or", "xor", "sar", "shr", "shl", "stored",
 	"stores", "storel", "storew", "storeh", "storeb",
 	"load", "loadsw", "loaduw", "loadsh", "loaduh",

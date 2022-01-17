@@ -365,6 +365,7 @@ emitins(Ins i, Fn *fn, FILE *f)
 	Ref r;
 	int64_t val;
 	int o, t0;
+	Ins ineg;
 
 	switch (i.op) {
 	default:
@@ -376,7 +377,7 @@ emitins(Ins i, Fn *fn, FILE *f)
 			/* this linear search should really be a binary
 			 * search */
 			if (omap[o].op == NOp)
-				die("no match for %s(%d)",
+				die("no match for %s(%c)",
 					optab[i.op].name, "wlsd"[i.cls]);
 			if (omap[o].op == i.op)
 			if (omap[o].cls == i.cls
@@ -409,20 +410,26 @@ emitins(Ins i, Fn *fn, FILE *f)
 		/* we have to use the negation trick to handle
 		 * some 3-address subtractions */
 		if (req(i.to, i.arg[1]) && !req(i.arg[0], i.to)) {
-			if (KBASE(i.cls) == 0)
-				emitf("neg%k %=", &i, fn, f);
-			else
-				fprintf(f,
-					"\txorp%c %sfp%d(%%rip), %%%s\n",
-					"xxsd"[i.cls],
-					gasloc,
-					gasstash(negmask[i.cls], 16),
-					regtoa(i.to.val, SLong)
-				);
+			ineg = (Ins){Oneg, i.cls, i.to, {i.to}};
+			emitins(ineg, fn, f);
 			emitf("add%k %0, %=", &i, fn, f);
 			break;
 		}
 		goto Table;
+	case Oneg:
+		if (!req(i.to, i.arg[0]))
+			emitf("mov%k %0, %=", &i, fn, f);
+		if (KBASE(i.cls) == 0)
+			emitf("neg%k %=", &i, fn, f);
+		else
+			fprintf(f,
+				"\txorp%c %sfp%d(%%rip), %%%s\n",
+				"xxsd"[i.cls],
+				gasloc,
+				gasstash(negmask[i.cls], 16),
+				regtoa(i.to.val, SLong)
+			);
+		break;
 	case Odiv:
 		/* use xmm15 to adjust the instruction when the
 		 * conversion to 2-address in emitf() would fail */

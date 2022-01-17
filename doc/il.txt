@@ -524,6 +524,7 @@ return type used is long, the argument must be of type double.
 ~~~~~~~~~~~~~~~~~~~~~
 
   * `add`, `sub`, `div`, `mul` -- `T(T,T)`
+  * `neg` -- `T(T)`
   * `udiv`, `rem`, `urem` -- `I(I,I)`
   * `or`, `xor`, `and` -- `I(I,I)`
   * `sar`, `shr`, `shl` -- `I(I,ww)`

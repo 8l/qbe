@@ -290,6 +290,7 @@ sel(Ins i, ANum *an, Fn *fn)
 	case Ocopy:
 	case Oadd:
 	case Osub:
+	case Oneg:
 	case Omul:
 	case Oand:
 	case Oor:
