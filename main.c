@@ -126,8 +126,13 @@ main(int ac, char *av[])
 				}
 			break;
 		case 'o':
-			if (strcmp(optarg, "-") != 0)
+			if (strcmp(optarg, "-") != 0) {
 				outf = fopen(optarg, "w");
+				if (!outf) {
+					fprintf(stderr, "cannot open '%s'\n", optarg);
+					exit(1);
+				}
+			}
 			break;
 		case 't':
 			for (tm=tmap;; tm++) {
