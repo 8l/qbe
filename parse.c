@@ -113,7 +113,7 @@ enum {
 	M = 23,
 };
 
-static char lexh[1 << (32-M)];
+static uchar lexh[1 << (32-M)];
 static FILE *inf;
 static char *inpath;
 static int thead;
@@ -161,7 +161,7 @@ lexinit()
 	for (i=0; i<NPubOp; ++i)
 		if (optab[i].name)
 			kwmap[i] = optab[i].name;
-	assert(Ntok <= CHAR_MAX);
+	assert(Ntok <= UCHAR_MAX);
 	for (i=0; i<Ntok; ++i)
 		if (kwmap[i]) {
 			h = hash(kwmap[i])*K >> M;
