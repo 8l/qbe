@@ -72,36 +72,36 @@ function l $dtol(d %f) {
 
 
 # >>> driver
-# #include<limits.h>
-#
+# #include <limits.h>
+# 
 # extern float fneg(float);
 # extern double ftrunc(double);
-#
+# 
 # extern float wtos(unsigned int);
 # extern double wtod(unsigned int);
 # extern float ltos(long long unsigned int);
 # extern double ltod(long long unsigned int);
-#
+# 
 # extern unsigned int stow(float);
 # extern unsigned int dtow(double);
 # extern unsigned long long stol(float);
 # extern unsigned long long dtol(double);
-#
+# 
 # unsigned long long iin[] = { 0, 1, 16, 234987, 427386245, 0x7fff0000,
 # 	0xffff0000, 23602938196141, 72259248152500195, 9589010795705032704ull,
 # 	0xdcf5fbe299d0148aull, 0xffffffff00000000ull, -1 };
-#
+# 
 # double fin[] = { 0.17346516197824458, 442.0760005466251, 4342856.879893436,
 # 	98547543006.49626, 236003043787688.3, 9.499222733527032e+18,
 # 	1.1936266170755652e+19 };
-#
+# 
 # int main() {
 # 	int i;
-#
+# 
 # 	if (fneg(1.23f) != -1.23f)  return 1;
 # 	if (ftrunc(3.1415) != 3.0)  return 2;
 # 	if (ftrunc(-1.234) != -1.0) return 3;
-#
+# 
 # 	for (i=0; i<sizeof(iin)/sizeof(iin[0]); i++) {
 # 		if (wtos(iin[i]) != (float) (unsigned int)iin[i])
 # 			return 4;
@@ -111,7 +111,7 @@ function l $dtol(d %f) {
 # 			return 6;
 # 		if (ltod(iin[i]) != (double)iin[i])
 # 			return 7;
-#	}
+# 	}
 # 	for (i=0; i<sizeof(fin)/sizeof(fin[0]); i++) {
 # 		if (stol((float)fin[i]) != (unsigned long long)(float)fin[i])
 # 			return 8;
