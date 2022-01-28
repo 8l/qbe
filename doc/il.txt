@@ -696,7 +696,9 @@ or convert a floating point into an integer and vice versa.
   * `exts` -- `d(s)`
   * `truncd` -- `s(d)`
   * `stosi` -- `I(ss)`
+  * `stoui` -- `I(ss)`
   * `dtosi` -- `I(dd)`
+  * `dtoui` -- `I(dd)`
   * `swtof` -- `F(ww)`
   * `uwtof` -- `F(ww)`
   * `sltof` -- `F(ll)`
@@ -716,12 +718,12 @@ argument of `truncd` cannot be represented as a
 single-precision floating point, it is truncated towards
 zero.
 
-Converting between signed integers and floating points is
-done using `stosi` (single to signed integer), `dtosi`
-(double to signed integer), `swtof` (signed word to float),
-`uwtof` (unsigned word to float), `sltof` (signed long
-to float) and `ultof` (unsigned long to float).  Conversion
-from unsigned types is not yet supported.
+Converting between signed integers and floating points is done
+using `stosi` (single to signed integer), `stoui` (single to
+unsigned integer`, `dtosi` (double to signed integer), `dtoui`
+(double to unsigned integer), `swtof` (signed word to float),
+`uwtof` (unsigned word to float), `sltof` (signed long to
+float) and `ultof` (unsigned long to float).
 
 Because of <@ Subtyping >, there is no need to have an
 instruction to lower the precision of an integer temporary.
@@ -984,6 +986,7 @@ instructions unless you know exactly what you are doing.
   * <@ Conversions >:
 
       * `dtosi`
+      * `dtoui`
       * `exts`
       * `extsb`
       * `extsh`
@@ -994,6 +997,7 @@ instructions unless you know exactly what you are doing.
       * `sltof`
       * `ultof`
       * `stosi`
+      * `stoui`
       * `swtof`
       * `uwtof`
       * `truncd`

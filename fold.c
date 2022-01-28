@@ -387,7 +387,9 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 	case Oextsw: x = (int32_t)l.u;  break;
 	case Oextuw: x = (uint32_t)l.u; break;
 	case Ostosi: x = w ? (int64_t)cl->bits.s : (int32_t)cl->bits.s; break;
+	case Ostoui: x = w ? (uint64_t)cl->bits.s : (uint32_t)cl->bits.s; break;
 	case Odtosi: x = w ? (int64_t)cl->bits.d : (int32_t)cl->bits.d; break;
+	case Odtoui: x = w ? (uint64_t)cl->bits.d : (uint32_t)cl->bits.d; break;
 	case Ocast:
 		x = l.u;
 		if (cl->type == CAddr) {

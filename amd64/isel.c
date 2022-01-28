@@ -307,6 +307,32 @@ sel(Ins i, ANum *an, Fn *fn)
 		emit(Oand, Kl, tmp[0], i.arg[0], getcon(1, fn));
 		fixarg(&curi->arg[0], Kl, curi, fn);
 		break;
+	case Ostoui:
+		i.op = Ostosi;
+		r0 = newtmp("ftou", Ks, fn);
+		goto Oftoui;
+	case Odtoui:
+		i.op = Odtosi;
+		r0 = newtmp("ftou", Kd, fn);
+	Oftoui:
+		if (k == Kw) {
+			goto Emit;
+		}
+		for (j=0; j<4; j++)
+			tmp[j] = newtmp("ftou", Kl, fn);
+		emit(Oor, Kl, i.to, tmp[0], tmp[3]);
+		emit(Oand, Kl, tmp[3], tmp[2], tmp[1]);
+		emit(i.op, Kl, tmp[2], r0, R);
+		if (i.op == Ostosi)
+			emit(Oadd, Ks, r0, getcon(0xdf000000, fn), i.arg[0]);
+		else
+			emit(Oadd, Kd, r0, getcon(0xc3e0000000000000, fn), i.arg[0]);
+		i1 = curi;
+		fixarg(&i1->arg[0], i.op == Ostosi ? Ks : Kd, i1, fn);
+		fixarg(&i1->arg[1], i.op == Ostosi ? Ks : Kd, i1, fn);
+		emit(Osar, Kl, tmp[1], tmp[0], getcon(63, fn));
+		emit(i.op, Kl, tmp[0], i.arg[0], R);
+		fixarg(&curi->arg[0], Kl, curi, fn);
 	case Onop:
 		break;
 	case Ostored:
