@@ -111,9 +111,9 @@ main(int ac, char *av[])
 	struct TMap *tm;
 	FILE *inf, *hf;
 	char *f, *sep;
-	int c, asm;
+	int c, asmmode;
 
-	asm = Defasm;
+	asmmode = Defasm;
 	T = Deftgt;
 	outf = stdout;
 	while ((c = getopt(ac, av, "hd:o:G:t:")) != -1)
@@ -148,9 +148,9 @@ main(int ac, char *av[])
 			break;
 		case 'G':
 			if (strcmp(optarg, "e") == 0)
-				asm = Gaself;
+				asmmode = Gaself;
 			else if (strcmp(optarg, "m") == 0)
-				asm = Gasmacho;
+				asmmode = Gasmacho;
 			else {
 				fprintf(stderr, "unknown gas flavor '%s'\n", optarg);
 				exit(1);
@@ -172,7 +172,7 @@ main(int ac, char *av[])
 			exit(c != 'h');
 		}
 
-	switch (asm) {
+	switch (asmmode) {
 	case Gaself:
 		gasloc = ".L";
 		gassym = "";
@@ -200,7 +200,7 @@ main(int ac, char *av[])
 
 	if (!dbg) {
 		gasemitfin(outf);
-		if (asm == Gaself)
+		if (asmmode == Gaself)
 			fprintf(outf, ".section .note.GNU-stack,\"\",@progbits\n");
 	}
 
