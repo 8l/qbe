@@ -469,7 +469,9 @@ foldflt(Con *res, int op, int w, Con *cl, Con *cr)
 		case Odiv: xd = ld / rd; break;
 		case Omul: xd = ld * rd; break;
 		case Oswtof: xd = (int32_t)cl->bits.i; break;
+		case Ouwtof: xd = (uint32_t)cl->bits.i; break;
 		case Osltof: xd = (int64_t)cl->bits.i; break;
+		case Oultof: xd = (uint64_t)cl->bits.i; break;
 		case Oexts: xd = cl->bits.s; break;
 		case Ocast: xd = ld; break;
 		default: die("unreachable");
@@ -486,7 +488,9 @@ foldflt(Con *res, int op, int w, Con *cl, Con *cr)
 		case Odiv: xs = ls / rs; break;
 		case Omul: xs = ls * rs; break;
 		case Oswtof: xs = (int32_t)cl->bits.i; break;
+		case Ouwtof: xs = (uint32_t)cl->bits.i; break;
 		case Osltof: xs = (int64_t)cl->bits.i; break;
+		case Oultof: xs = (uint64_t)cl->bits.i; break;
 		case Otruncd: xs = cl->bits.d; break;
 		case Ocast: xs = ls; break;
 		default: die("unreachable");

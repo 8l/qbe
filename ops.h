@@ -98,7 +98,9 @@ O(truncd,  T(e,e,d,e, e,e,x,e), 1) X(0, 0, 1)
 O(stosi,   T(s,s,e,e, x,x,e,e), 1) X(0, 0, 1)
 O(dtosi,   T(d,d,e,e, x,x,e,e), 1) X(0, 0, 1)
 O(swtof,   T(e,e,w,w, e,e,x,x), 1) X(0, 0, 1)
+O(uwtof,   T(e,e,w,w, e,e,x,x), 1) X(0, 0, 1)
 O(sltof,   T(e,e,l,l, e,e,x,x), 1) X(0, 0, 1)
+O(ultof,   T(e,e,l,l, e,e,x,x), 1) X(0, 0, 1)
 O(cast,    T(s,d,w,l, x,x,x,x), 1) X(0, 0, 1)
 
 /* Stack Allocation */

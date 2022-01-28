@@ -91,7 +91,9 @@ static struct {
 	{ Ostosi,  Ka, "fcvtzs %=, %S0" },
 	{ Odtosi,  Ka, "fcvtzs %=, %D0" },
 	{ Oswtof,  Ka, "scvtf %=, %W0" },
+	{ Ouwtof,  Ka, "ucvtf %=, %W0" },
 	{ Osltof,  Ka, "scvtf %=, %L0" },
+	{ Oultof,  Ka, "ucvtf %=, %L0" },
 	{ Ocall,   Kw, "blr %L0" },
 
 	{ Oacmp,   Ki, "cmp %0, %1" },
