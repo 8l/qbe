@@ -305,9 +305,10 @@ fixarg(Ref *pr, E *e)
 static void
 emitins(Ins *i, E *e)
 {
-	int o;
 	char *rn;
 	uint64_t s;
+	int o;
+	Ref r;
 
 	switch (i->op) {
 	default:
@@ -338,18 +339,16 @@ emitins(Ins *i, E *e)
 		if (req(i->to, i->arg[0]))
 			break;
 		if (rtype(i->to) == RSlot) {
-			switch (rtype(i->arg[0])) {
-			case RSlot:
-				emitf("ldr %?, %M0\n\tstr %?, %M=", i, e);
-				break;
-			case RCon:
-				loadcon(&e->fn->con[i->arg[0].val], R18, i->cls, e->f);
-				emitf("str %?, %M=", i, e);
-				break;
-			default:
-				assert(isreg(i->arg[0]));
-				emitf("str %0, %M=", i, e);
+			r = i->to;
+			if (!isreg(i->arg[0])) {
+				i->to = TMP(R18);
+				emitins(i, e);
+				i->arg[0] = i->to;
 			}
+			i->op = Ostorew + i->cls;
+			i->cls = Kw;
+			i->arg[1] = r;
+			emitins(i, e);
 			break;
 		}
 		assert(isreg(i->to));
@@ -358,9 +357,11 @@ emitins(Ins *i, E *e)
 			loadcon(&e->fn->con[i->arg[0].val], i->to.val, i->cls, e->f);
 			break;
 		case RSlot:
-			emitf("ldr %=, %M0", i, e);
+			i->op = Oload;
+			emitins(i, e);
 			break;
 		default:
+			assert(i->to.val != R18);
 			goto Table;
 		}
 		break;
