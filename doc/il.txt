@@ -15,14 +15,15 @@
       * <@ Simple Types >
       * <@ Subtyping >
   3. <@ Constants >
-  4. <@ Definitions >
+  4. <@ Linkage >
+  5. <@ Definitions >
       * <@ Aggregate Types >
       * <@ Data >
       * <@ Functions >
-  5. <@ Control >
+  6. <@ Control >
       * <@ Blocks >
       * <@ Jumps >
-  6. <@ Instructions >
+  7. <@ Instructions >
       * <@ Arithmetic and Bits >
       * <@ Memory >
       * <@ Comparisons >
@@ -31,7 +32,7 @@
       * <@ Call >
       * <@ Variadic >
       * <@ Phi >
-  7. <@ Instructions Index >
+  8. <@ Instructions Index >
 
 - 1. Basic Concepts
 -------------------
@@ -196,7 +197,46 @@ Global symbols can also be used directly as constants;
 they will be resolved and turned into actual numeric
 constants by the linker.
 
-- 4. Definitions
+- 4. Linkage
+------------
+
+    `bnf
+    LINKAGE :=
+        'extern'
+      | 'section' SECNAME
+      | 'section' SECNAME SECFLAGS
+
+    SECNAME  := '"' .... '"'
+    SECFLAGS := '"' .... '"'
+
+Function and data definitions (see below) can specify
+linkage information to be passed to the assembler and
+eventually to the linker.
+
+The `extern` linkage flag marks the defined item as
+visible outside the current file's scope.  If absent,
+the symbol can only be referred to locally.  Functions
+compiled by QBE and called from C need to have extern
+linkage.
+
+A `section` flag can be specified to tell the linker to
+put the defined item in a certain section.  The use of
+the section flag is platform dependent and we refer the
+user to the documentation of their assembler and linker
+for relevant information.
+
+    export section ".bss"
+    data $zerobuf = { z 1024 }
+
+Example uses of the section flag include adding function
+pointers to a global initialization list, or storing a
+zeroed object in the BSS section, as depicted above.
+
+The section and extern linkage flags should each appear
+at most once in a definition.  If multiple occurrences
+are present, QBE is free to use any.
+
+- 5. Definitions
 ----------------
 
 Definitions are the essential components of an IL file.
@@ -254,7 +294,7 @@ their size between curly braces.
 
     `bnf
     DATADEF :=
-        ['export'] 'data' $IDENT '=' ['align' NUMBER]
+        LINKAGE* 'data' $IDENT '=' ['align' NUMBER]
         '{'
             ( EXTTY DATAITEM+
             | 'z'   NUMBER ),
@@ -266,8 +306,9 @@ their size between curly braces.
       |  CONST               # Constant
 
 Data definitions express objects that will be emitted in the
-compiled file.  They can be local to the file or exported
-with global visibility to the whole program.
+compiled file.  Their visibility and location in the compiled
+artifact are controlled with linkage flags described in the
+<@ Linkage > section.
 
 They define a global identifier (starting with the sigil
 `$`), that will contain a pointer to the object specified
@@ -311,7 +352,7 @@ Here are various examples of data definitions.
 
     `bnf
     FUNCDEF :=
-        ['export'] 'function' [ABITY] $IDENT '(' (PARAM), ')'
+        LINKAGE* 'function' [ABITY] $IDENT '(' (PARAM), ')'
         '{'
            BLOCK+
         '}'
@@ -384,7 +425,7 @@ is provided in the call instructions.
 The syntax and semantics for the body of functions
 are described in the <@ Control > section.
 
-- 5. Control
+- 6. Control
 ------------
 
 The IL represents programs as textual transcriptions of
@@ -465,7 +506,7 @@ the following list.
     prototype.  If the function prototype does not specify
     a return type, no return value can be used.
 
-- 6. Instructions
+- 7. Instructions
 -----------------
 
 Instructions are the smallest piece of code in the IL, they
@@ -903,7 +944,7 @@ assumes that if a variable is defined by a phi it respects
 all the SSA invariants.  So it is critical to not use phi
 instructions unless you know exactly what you are doing.
 
-- 7. Instructions Index
+- 8. Instructions Index
 -----------------------
 
   * <@ Arithmetic and Bits >:

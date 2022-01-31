@@ -446,13 +446,9 @@ arm64_emitfn(Fn *fn, FILE *out)
 	Ins *i;
 	E *e;
 
+	gasemitlnk(fn->name, &fn->lnk, ".text", out);
 	e = &(E){.f = out, .fn = fn};
 	framelayout(e);
-
-	fprintf(e->f, ".text\n");
-	if (e->fn->export)
-		fprintf(e->f, ".globl %s\n", e->fn->name);
-	fprintf(e->f, "%s:\n", e->fn->name);
 
 	if (e->fn->vararg) {
 		for (n=7; n>=0; n--)

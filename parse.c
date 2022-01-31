@@ -792,7 +792,7 @@ typecheck(Fn *fn)
 }
 
 static Fn *
-parsefn(int export)
+parsefn(Lnk *lnk)
 {
 	Blk *b;
 	int i;
@@ -812,7 +812,7 @@ parsefn(int export)
 		else
 			newtmp(0, Kl, curf);
 	curf->con[0].type = CBits;
-	curf->export = export;
+	curf->lnk = *lnk;
 	blink = &curf->start;
 	curf->retty = Kx;
 	if (peek() != Tglo)
@@ -973,7 +973,7 @@ parsedatref(Dat *d)
 	int t;
 
 	d->isref = 1;
-	d->u.ref.nam = tokval.str;
+	d->u.ref.name = tokval.str;
 	d->u.ref.off = 0;
 	t = peek();
 	if (t == Tplus) {
@@ -992,7 +992,7 @@ parsedatstr(Dat *d)
 }
 
 static void
-parsedat(void cb(Dat *), int export)
+parsedat(void cb(Dat *), Lnk *lnk)
 {
 	char name[NString] = {0};
 	int t;
@@ -1002,28 +1002,16 @@ parsedat(void cb(Dat *), int export)
 		err("data name, then = expected");
 	strncpy(name, tokval.str, NString-1);
 	t = nextnl();
-	d.u.str = 0;
-	if (t == Tsection) {
-		if (nextnl() != Tstr)
-			err("section \"name\" expected");
-		d.u.str = tokval.str;
-		t = nextnl();
-	}
-	d.type = DStart;
-	cb(&d);
+	lnk->align = 8;
 	if (t == Talign) {
 		if (nextnl() != Tint)
 			err("alignment expected");
-		d.type = DAlign;
-		d.u.num = tokval.num;
-		d.isstr = 0;
-		d.isref = 0;
-		cb(&d);
+		lnk->align = tokval.num;
 		t = nextnl();
 	}
-	d.type = DName;
-	d.u.str = name;
-	d.export = export;
+	d.type = DStart;
+	d.u.start.name = name;
+	d.u.start.lnk = lnk;
 	cb(&d);
 
 	if (t != Tlbrace)
@@ -1070,10 +1058,38 @@ Done:
 	cb(&d);
 }
 
+static int
+parselnk(Lnk *lnk)
+{
+	int t, haslnk;
+
+	for (haslnk=0;; haslnk=1)
+		switch ((t=nextnl())) {
+		case Texport:
+			lnk->export = 1;
+			break;
+		case Tsection:
+			if (next() != Tstr)
+				err("section \"name\" expected");
+			lnk->sec = tokval.str;
+			if (peek() == Tstr) {
+				next();
+				lnk->secf = tokval.str;
+			}
+			break;
+		default:
+			if (haslnk)
+			if (t != Tdata)
+			if (t != Tfunc)
+				err("only data and function have linkage");
+			return t;
+		}
+}
+
 void
 parse(FILE *f, char *path, void data(Dat *), void func(Fn *))
 {
-	int t, export;
+	Lnk lnk;
 
 	lexinit();
 	inf = f;
@@ -1083,25 +1099,16 @@ parse(FILE *f, char *path, void data(Dat *), void func(Fn *))
 	ntyp = 0;
 	typ = vnew(0, sizeof typ[0], Pheap);
 	for (;;) {
-		export = 0;
-		switch (nextnl()) {
+		lnk = (Lnk){0};
+		switch (parselnk(&lnk)) {
 		default:
 			err("top-level definition expected");
-		case Texport:
-			export = 1;
-			t = nextnl();
-			if (t == Tfunc) {
 		case Tfunc:
-				func(parsefn(export));
-				break;
-			}
-			else if (t == Tdata) {
+			func(parsefn(&lnk));
+			break;
 		case Tdata:
-				parsedat(data, export);
-				break;
-			}
-			else
-				err("export can only qualify data and function");
+			parsedat(data, &lnk);
+			break;
 		case Ttype:
 			parsetyp();
 			break;
@@ -1198,7 +1205,7 @@ printfn(Fn *fn, FILE *f)
 	Ins *i;
 	uint n;
 
-	if (fn->export)
+	if (fn->lnk.export)
 		fprintf(f, "export ");
 	fprintf(f, "function $%s() {\n", fn->name);
 	for (b=fn->start; b; b=b->link) {

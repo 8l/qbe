@@ -4,11 +4,30 @@
 char *gasloc, *gassym;
 
 void
+gasemitlnk(char *n, Lnk *l, char *s, FILE *f)
+{
+	char *p;
+
+	if (l->sec) {
+		fprintf(f, ".section %s", l->sec);
+		if (l->secf)
+			fprintf(f, ", %s", l->secf);
+	} else {
+		fputs(s, f);
+	}
+	fputc('\n', f);
+	if (l->align)
+		fprintf(f, ".balign %d\n", l->align);
+	p = n[0] == '"' ? "" : gassym;
+	if (l->export)
+		fprintf(f, ".globl %s%s\n", p, n);
+	fprintf(f, "%s%s:\n", p, n);
+}
+
+void
 gasemitdat(Dat *d, FILE *f)
 {
-	static int aligned;
 	static char *dtoa[] = {
-		[DAlign] = ".balign",
 		[DB] = "\t.byte",
 		[DH] = "\t.short",
 		[DW] = "\t.int",
@@ -18,39 +37,26 @@ gasemitdat(Dat *d, FILE *f)
 
 	switch (d->type) {
 	case DStart:
-		aligned = 0;
-		if (d->u.str) {
-			fprintf(f, ".section %s\n", d->u.str);
-		} else {
-			fprintf(f, ".data\n");
-		}
+		gasemitlnk(
+			d->u.start.name,
+			d->u.start.lnk,
+			".data", f);
 		break;
 	case DEnd:
-		break;
-	case DName:
-		if (!aligned)
-			fprintf(f, ".balign 8\n");
-		p = d->u.str[0] == '"' ? "" : gassym;
-		if (d->export)
-			fprintf(f, ".globl %s%s\n", p, d->u.str);
-		fprintf(f, "%s%s:\n", p, d->u.str);
 		break;
 	case DZ:
 		fprintf(f, "\t.fill %"PRId64",1,0\n", d->u.num);
 		break;
 	default:
-		if (d->type == DAlign)
-			aligned = 1;
-
 		if (d->isstr) {
 			if (d->type != DB)
 				err("strings only supported for 'b' currently");
 			fprintf(f, "\t.ascii %s\n", d->u.str);
 		}
 		else if (d->isref) {
-			p = d->u.ref.nam[0] == '"' ? "" : gassym;
+			p = d->u.ref.name[0] == '"' ? "" : gassym;
 			fprintf(f, "%s %s%s%+"PRId64"\n",
-				dtoa[d->type], p, d->u.ref.nam,
+				dtoa[d->type], p, d->u.ref.name,
 				d->u.ref.off);
 		}
 		else {

@@ -28,6 +28,7 @@ typedef struct Fn Fn;
 typedef struct Typ Typ;
 typedef struct Field Field;
 typedef struct Dat Dat;
+typedef struct Lnk Lnk;
 typedef struct Target Target;
 
 enum {
@@ -327,6 +328,13 @@ struct Addr { /* amd64 addressing */
 	int scale;
 };
 
+struct Lnk {
+	char export;
+	char align;
+	char *sec;
+	char *secf;
+};
+
 struct Fn {
 	Blk *start;
 	Tmp *tmp;
@@ -341,10 +349,10 @@ struct Fn {
 	Blk **rpo;
 	bits reg;
 	int slot;
-	char export;
 	char vararg;
 	char dynalloc;
 	char name[NString];
+	Lnk lnk;
 };
 
 struct Typ {
@@ -373,8 +381,6 @@ struct Dat {
 	enum {
 		DStart,
 		DEnd,
-		DName,
-		DAlign,
 		DB,
 		DH,
 		DW,
@@ -387,13 +393,16 @@ struct Dat {
 		float flts;
 		char *str;
 		struct {
-			char *nam;
+			char *name;
 			int64_t off;
 		} ref;
+		struct {
+			char *name;
+			Lnk *lnk;
+		} start;
 	} u;
 	char isref;
 	char isstr;
-	char export;
 };
 
 /* main.c */
@@ -516,6 +525,7 @@ void rega(Fn *);
 /* gas.c */
 extern char *gasloc;
 extern char *gassym;
+void gasemitlnk(char *, Lnk *, char *, FILE *);
 void gasemitdat(Dat *, FILE *);
 int gasstash(void *, int);
 void gasemitfin(FILE *);

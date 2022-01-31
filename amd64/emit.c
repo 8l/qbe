@@ -548,18 +548,9 @@ amd64_emitfn(Fn *fn, FILE *f)
 	Ins *i, itmp;
 	int *r, c, o, n, lbl;
 	uint64_t fs;
-	char *p;
 
-	p = fn->name[0] == '"' ? "" : gassym;
-	fprintf(f, ".text\n");
-	if (fn->export)
-		fprintf(f, ".globl %s%s\n", p, fn->name);
-	fprintf(f,
-		"%s%s:\n"
-		"\tpushq %%rbp\n"
-		"\tmovq %%rsp, %%rbp\n",
-		p, fn->name
-	);
+	gasemitlnk(fn->name, &fn->lnk, ".text", f);
+	fputs("\tpushq %rbp\n\tmovq %rsp, %rbp\n", f);
 	fs = framesz(fn);
 	if (fs)
 		fprintf(f, "\tsubq $%"PRIu64", %%rsp\n", fs);
