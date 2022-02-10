@@ -1010,8 +1010,8 @@ parsedat(void cb(Dat *), Lnk *lnk)
 		t = nextnl();
 	}
 	d.type = DStart;
-	d.u.start.name = name;
-	d.u.start.lnk = lnk;
+	d.name = name;
+	d.lnk = lnk;
 	cb(&d);
 
 	if (t != Tlbrace)

@@ -33,21 +33,32 @@ gasemitdat(Dat *d, FILE *f)
 		[DW] = "\t.int",
 		[DL] = "\t.quad"
 	};
+	static int64_t zero;
 	char *p;
 
 	switch (d->type) {
 	case DStart:
-		gasemitlnk(
-			d->u.start.name,
-			d->u.start.lnk,
-			".data", f);
+		zero = 0;
 		break;
 	case DEnd:
+		if (zero != -1) {
+			gasemitlnk(d->name, d->lnk, ".bss", f);
+			fprintf(f, "\t.fill %"PRId64",1,0\n", zero);
+		}
 		break;
 	case DZ:
-		fprintf(f, "\t.fill %"PRId64",1,0\n", d->u.num);
+		if (zero != -1)
+			zero += d->u.num;
+		else
+			fprintf(f, "\t.fill %"PRId64",1,0\n", d->u.num);
 		break;
 	default:
+		if (zero != -1) {
+			gasemitlnk(d->name, d->lnk, ".data", f);
+			if (zero > 0)
+				fprintf(f, "\t.fill %"PRId64",1,0\n", zero);
+			zero = -1;
+		}
 		if (d->isstr) {
 			if (d->type != DB)
 				err("strings only supported for 'b' currently");

@@ -387,6 +387,8 @@ struct Dat {
 		DL,
 		DZ
 	} type;
+	char *name;
+	Lnk *lnk;
 	union {
 		int64_t num;
 		double fltd;
@@ -396,10 +398,6 @@ struct Dat {
 			char *name;
 			int64_t off;
 		} ref;
-		struct {
-			char *name;
-			Lnk *lnk;
-		} start;
 	} u;
 	char isref;
 	char isstr;
