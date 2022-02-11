@@ -224,12 +224,15 @@ the section flag is platform dependent and we refer the
 user to the documentation of their assembler and linker
 for relevant information.
 
-    export section ".bss"
-    data $zerobuf = { z 1024 }
+    section ".init_array"
+    data $.init.f = { l $f }
 
-Example uses of the section flag include adding function
-pointers to a global initialization list, or storing a
-zeroed object in the BSS section, as depicted above.
+The section flag can be used to add function pointers to
+a global initialization list, as depicted above.  Note
+that some platforms provide a BSS section that can be
+used to minimize the footprint of uniformly zeroed data.
+When this section is available, QBE will automatically
+make use of it and no section flag is required.
 
 The section and export linkage flags should each appear
 at most once in a definition.  If multiple occurrences
@@ -244,7 +247,7 @@ data, and functions.  Aggregate types are never exported
 and do not compile to any code.  Data and function
 definitions have file scope and are mutually recursive
 (even across IL files).  Their visibility can be controlled
-using the `export` keyword.
+using linkage flags.
 
 ~ Aggregate Types
 ~~~~~~~~~~~~~~~~~
