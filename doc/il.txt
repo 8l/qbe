@@ -202,7 +202,7 @@ constants by the linker.
 
     `bnf
     LINKAGE :=
-        'extern'
+        'export'
       | 'section' SECNAME
       | 'section' SECNAME SECFLAGS
 
@@ -213,11 +213,10 @@ Function and data definitions (see below) can specify
 linkage information to be passed to the assembler and
 eventually to the linker.
 
-The `extern` linkage flag marks the defined item as
+The `export` linkage flag marks the defined item as
 visible outside the current file's scope.  If absent,
 the symbol can only be referred to locally.  Functions
-compiled by QBE and called from C need to have extern
-linkage.
+compiled by QBE and called from C need to be exported.
 
 A `section` flag can be specified to tell the linker to
 put the defined item in a certain section.  The use of
@@ -232,7 +231,7 @@ Example uses of the section flag include adding function
 pointers to a global initialization list, or storing a
 zeroed object in the BSS section, as depicted above.
 
-The section and extern linkage flags should each appear
+The section and export linkage flags should each appear
 at most once in a definition.  If multiple occurrences
 are present, QBE is free to use any.
 
