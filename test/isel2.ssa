@@ -77,6 +77,18 @@ export function w $ne3(d %x, d %y) {
 	ret 0
 }
 
+export function w $o(d %x, d %y) {
+@start
+	%r =w cod %x, %y
+	ret %r
+}
+
+export function w $uo(d %x, d %y) {
+@start
+	%r =w cuod %x, %y
+	ret %r
+}
+
 # >>> driver
 # #include <math.h>
 # extern int lt(double, double);
@@ -89,6 +101,8 @@ export function w $ne3(d %x, d %y) {
 # extern int ne1(double, double);
 # extern int ne2(double, double);
 # extern int ne3(double, double);
+# extern int o(double, double);
+# extern int uo(double, double);
 # int main(void) {
 # 	/*     LessThan     Equal        GreaterThan   Unordered */
 # 	return !lt(0, 1)  + lt(0, 0)   + lt(1, 0)    + lt(NAN, NAN)
@@ -101,6 +115,8 @@ export function w $ne3(d %x, d %y) {
 # 	     + !ne1(0, 1) + ne1(0, 0)  + !ne1(1, 0)  + !ne1(NAN, NAN)
 # 	     + !ne2(0, 1) + ne2(0, 0)  + !ne2(1, 0)  + !ne2(NAN, NAN)
 # 	     + !ne3(0, 1) + ne3(0, 0)  + !ne3(1, 0)  + !ne3(NAN, NAN)
+# 	     + !o(0, 1)   + !o(0, 0)   + !o(1, 0)    + o(NAN, NAN)
+# 	     + uo(0, 1)   + uo(0, 0)   + uo(1, 0)    + !uo(NAN, NAN)
 # 	     ;
 # }
 # <<<
