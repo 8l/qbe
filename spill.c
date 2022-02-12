@@ -412,6 +412,20 @@ spill(Fn *fn)
 		bscopy(b->out, v);
 
 		/* 2. process the block instructions */
+		if (rtype(b->jmp.arg) == RTmp) {
+			t = b->jmp.arg.val;
+			assert(KBASE(tmp[t].cls) == 0);
+			lvarg[0] = bshas(v, t);
+			bsset(v, t);
+			bscopy(u, v);
+			limit2(v, 0, 0, NULL);
+			if (!bshas(v, t)) {
+				if (!lvarg[0])
+					bsclr(u, t);
+				b->jmp.arg = slot(t);
+			}
+			reloads(u, v);
+		}
 		curi = &insb[NIns];
 		for (i=&b->ins[b->nins]; i!=b->ins;) {
 			i--;
