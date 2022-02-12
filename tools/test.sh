@@ -43,6 +43,30 @@ init() {
 		fi
 		bin="$bin -t arm64"
 		;;
+	rv64)
+		for p in riscv64-linux-musl riscv64-linux-gnu
+		do
+			cc="$p-gcc -no-pie"
+			qemu="qemu-riscv64"
+			if
+				$cc -v >/dev/null 2>&1 &&
+				$qemu -version >/dev/null 2>&1
+			then
+				if sysroot=$($cc -print-sysroot) && test -n "$sysroot"
+				then
+					qemu="$qemu -L $sysroot"
+				fi
+				break
+			fi
+			cc=
+		done
+		if test -z "$cc"
+		then
+			echo "Cannot find riscv64 compiler or qemu."
+			exit 1
+		fi
+		bin="$bin -t rv64"
+		;;
 	"")
 		case `uname` in
 		*Darwin*)

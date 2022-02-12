@@ -179,7 +179,7 @@ enum {
 #define isarg(o) INRANGE(o, Oarg, Oargv)
 #define isret(j) INRANGE(j, Jret0, Jretc)
 
-enum Class {
+enum {
 	Kx = -1, /* "top" class (see usecheck() and clsmerge()) */
 	Kw,
 	Kl,

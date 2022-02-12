@@ -1,0 +1,20 @@
+=========
+RISC-V 64
+=========
+
+- Known issues
+--------------
+
+ABI with structs containing floats is not yet supported.
+
+- Possible improvements
+-----------------------
+
+rv64_isel() could turn compare used only with jnz into b{lt,ge}[u].
+
+- Helpful links
+---------------
+
+RISC-V spec: https://github.com/riscv/riscv-isa-manual/releases/latest/download/riscv-spec.pdf
+ASM manual: https://github.com/riscv-non-isa/riscv-asm-manual/blob/master/riscv-asm.md
+psABI: https://github.com/riscv-non-isa/riscv-elf-psabi-doc/blob/master/riscv-elf.adoc
