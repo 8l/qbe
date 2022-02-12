@@ -298,7 +298,6 @@ simpljmp(Fn *fn)
 
 	Blk **uf; /* union-find */
 	Blk **p, *b, *ret;
-	int c;
 
 	ret = blknew();
 	ret->id = fn->nblk++;
@@ -322,9 +321,7 @@ simpljmp(Fn *fn)
 			uffind(&b->s1, uf);
 		if (b->s2)
 			uffind(&b->s2, uf);
-		c = b->jmp.type - Jjf;
-		if (0 <= c && c <= NCmp)
-		if (b->s1 == b->s2) {
+		if (b->s1 && b->s1 == b->s2) {
 			b->jmp.type = Jjmp;
 			b->s2 = 0;
 		}
