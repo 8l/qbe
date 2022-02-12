@@ -359,9 +359,10 @@ doblk(Blk *b, RMap *cur)
 	Mem *m;
 	Ref *ra[4];
 
-	assert(rtype(b->jmp.arg) != RTmp);
 	for (r=0; bsiter(b->out, &r) && r<Tmp0; r++)
 		radd(cur, r, r);
+	if (rtype(b->jmp.arg) == RTmp)
+		b->jmp.arg = ralloc(cur, b->jmp.arg.val);
 	curi = &insb[NIns];
 	for (i1=&b->ins[b->nins]; i1!=b->ins;) {
 		emiti(*--i1);
