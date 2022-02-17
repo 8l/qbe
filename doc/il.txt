@@ -751,7 +751,7 @@ Extending the precision of a temporary is done using the
 `ext` family of instructions.  Because QBE types do not
 precise the signedness (like in LLVM), extension instructions
 exist to sign-extend and zero-extend a value.  For example,
-`extsb` takes a word argument and sign-extend the 8
+`extsb` takes a word argument and sign-extends the 8
 least-significant bits to a full word or long, depending on
 the return type.
 
@@ -763,7 +763,7 @@ zero.
 
 Converting between signed integers and floating points is done
 using `stosi` (single to signed integer), `stoui` (single to
-unsigned integer`, `dtosi` (double to signed integer), `dtoui`
+unsigned integer, `dtosi` (double to signed integer), `dtoui`
 (double to unsigned integer), `swtof` (signed word to float),
 `uwtof` (unsigned word to float), `sltof` (signed long to
 float) and `ultof` (unsigned long to float).
