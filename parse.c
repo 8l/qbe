@@ -1047,7 +1047,7 @@ parsedat(void cb(Dat *), Lnk *lnk)
 				err("constant literal expected");
 			cb(&d);
 			t = nextnl();
-		} while (t == Tint || t == Tflts || t == Tfltd);
+		} while (t == Tint || t == Tflts || t == Tfltd || t == Tstr);
 		if (t == Trbrace)
 			break;
 		if (t != Tcomma)
