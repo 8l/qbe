@@ -377,9 +377,9 @@ foldint(Con *res, int op, int w, Con *cl, Con *cr)
 	case Oand:  x = l.u & r.u; break;
 	case Oor:   x = l.u | r.u; break;
 	case Oxor:  x = l.u ^ r.u; break;
-	case Osar:  x = (w ? l.s : (int32_t)l.s) >> (r.u & 63); break;
-	case Oshr:  x = (w ? l.u : (uint32_t)l.u) >> (r.u & 63); break;
-	case Oshl:  x = l.u << (r.u & 63); break;
+	case Osar:  x = (w ? l.s : (int32_t)l.s) >> (r.u & (31|w<<5)); break;
+	case Oshr:  x = (w ? l.u : (uint32_t)l.u) >> (r.u & (31|w<<5)); break;
+	case Oshl:  x = l.u << (r.u & (31|w<<5)); break;
 	case Oextsb: x = (int8_t)l.u;   break;
 	case Oextub: x = (uint8_t)l.u;  break;
 	case Oextsh: x = (int16_t)l.u;  break;
