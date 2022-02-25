@@ -956,6 +956,7 @@ instructions unless you know exactly what you are doing.
       * `and`
       * `div`
       * `mul`
+      * `neg`
       * `or`
       * `rem`
       * `sar`
