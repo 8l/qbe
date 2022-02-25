@@ -117,6 +117,7 @@ typclass(Class *c, Typ *t, int *gp, int *fp)
 	c->size = sz;
 
 	/* TODO: float */
+	(void)fp;
 
 	for (n=0; n<sz/8; n++, c->ngp++) {
 		c->reg[n] = *gp++;
@@ -222,17 +223,17 @@ argsclass(Ins *i0, Ins *i1, Class *carg, Ref *env, int retptr)
 		switch (i->op) {
 		case Opar:
 		case Oarg:
-			c->cls[0] = i->cls;
+			*c->cls = i->cls;
 			c->size = 8;
 			/* variadic float args are passed in int regs */
 			if (!vararg && KBASE(i->cls) == 1 && nfp > 0) {
 				nfp--;
-				c->reg[0] = *fp++;
+				*c->reg = *fp++;
 			} else if (ngp > 0) {
 				if (KBASE(i->cls) == 1)
 					c->class |= Cfpint;
 				ngp--;
-				c->reg[0] = *gp++;
+				*c->reg = *gp++;
 			} else {
 				c->class |= Cstk1;
 			}
@@ -246,8 +247,8 @@ argsclass(Ins *i0, Ins *i1, Class *carg, Ref *env, int retptr)
 			typclass(c, &typ[i->arg[0].val], gp, fp);
 			if (c->class & Cptr) {
 				c->ngp = 1;
-				c->reg[0] = *gp;
-				c->cls[0] = Kl;
+				*c->reg = *gp;
+				*c->cls = Kl;
 			}
 			if (c->ngp <= ngp && c->nfp <= nfp) {
 				ngp -= c->ngp;
@@ -353,7 +354,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 
 	envc = !req(R, env);
 	if (envc)
-		die("todo (rv64 abi): env calls");
+		die("todo: env calls");
 	emit(Ocall, 0, R, i1->arg[0], CALL(cty));
 
 	if (cr.class & Cptr)
@@ -369,16 +370,18 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 		} else if (c->class & Cfpint) {
 			k = KWIDE(*c->cls) ? Kl : Kw;
 			r = newtmp("abi", k, fn);
-			emit(Ocopy, k, TMP(c->reg[0]), r, R);
-			c->reg[0] = r.val;
+			emit(Ocopy, k, TMP(*c->reg), r, R);
+			*c->reg = r.val;
 		} else {
 			emit(Ocopy, *c->cls, TMP(*c->reg), i->arg[0], R);
 		}
 	}
 
 	for (i=i0, c=ca; i<i1; i++, c++) {
-		if (c->class & Cfpint)
-			emit(Ocast, KWIDE(*c->cls) ? Kl : Kw, TMP(*c->reg), i->arg[0], R);
+		if (c->class & Cfpint) {
+			k = KWIDE(*c->cls) ? Kl : Kw;
+			emit(Ocast, k, TMP(*c->reg), i->arg[0], R);
+		}
 		if (c->class & Cptr)
 			blit(i->arg[0], 0, i->arg[1], c->t->size, fn);
 	}
@@ -391,7 +394,6 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 		if (i->op == Oargv || (c->class & Cstk) == 0)
 			continue;
 		if (i->op != Oargc) {
-			r1 = newtmp("abi", Kl, fn);
 			/* w arguments are stored sign-extended
 			 * to 64-bits
 			 *
@@ -400,7 +402,8 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 			 * stack position since the ABI says the
 			 * upper bits are undefined
 			 */
-			emit(i->cls == Kw ? Ostorel : Ostorew+i->cls, 0, R, i->arg[0], r1);
+			r1 = newtmp("abi", Kl, fn);
+			emit(Ostorew+i->cls, Kw, R, i->arg[0], r1);
 			if (i->cls == Kw) {
 				/* TODO: we only need this sign extension
 				 * for subtyped l temporaries passed as w
@@ -410,6 +413,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 				 * since by that point we have forgotten
 				 * the original argument type
 				 */
+				curi->op = Ostorel;
 				curi->arg[0] = newtmp("abi", Kl, fn);
 				emit(Oextsw, Kl, curi->arg[0], i->arg[0], R);
 			}
@@ -472,15 +476,15 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 				}
 			}
 		} else if (c->class & Cstk1) {
-			emit(Oload, c->cls[0], i->to, SLOT(-s), R);
+			emit(Oload, *c->cls, i->to, SLOT(-s), R);
 			s++;
 		} else {
-			emit(Ocopy, c->cls[0], i->to, TMP(c->reg[0]), R);
+			emit(Ocopy, *c->cls, i->to, TMP(*c->reg), R);
 		}
 	}
 
 	if (!req(R, env))
-		die("todo (rv64 abi): env calls");
+		die("todo: env calls");
 
 	return (Params){
 		.stk = s,

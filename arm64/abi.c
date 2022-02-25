@@ -1,6 +1,6 @@
 #include "all.h"
 
-typedef struct Class_ Class;
+typedef struct Class Class;
 typedef struct Insl Insl;
 typedef struct Params Params;
 
@@ -9,7 +9,7 @@ enum {
 	Cptr = 2, /* replaced by a pointer */
 };
 
-struct Class_ {
+struct Class {
 	char class;
 	char ishfa;
 	struct {
@@ -213,16 +213,16 @@ argsclass(Ins *i0, Ins *i1, Class *carg, Ref *env)
 		switch (i->op) {
 		case Opar:
 		case Oarg:
-			c->cls[0] = i->cls;
+			*c->cls = i->cls;
 			c->size = 8;
 			if (KBASE(i->cls) == 0 && ngp > 0) {
 				ngp--;
-				c->reg[0] = *gp++;
+				*c->reg = *gp++;
 				break;
 			}
 			if (KBASE(i->cls) == 1 && nfp > 0) {
 				nfp--;
-				c->reg[0] = *fp++;
+				*c->reg = *fp++;
 				break;
 			}
 			c->class |= Cstk;
@@ -233,8 +233,8 @@ argsclass(Ins *i0, Ins *i1, Class *carg, Ref *env)
 			if (c->class & Cptr) {
 				if (ngp > 0) {
 					ngp--;
-					c->reg[0] = *gp++;
-					c->cls[0] = Kl;
+					*c->reg = *gp++;
+					*c->cls = Kl;
 					break;
 				}
 			} else if (c->ngp <= ngp) {
@@ -382,7 +382,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 
 	envc = !req(R, env);
 	if (envc)
-		die("todo (arm abi): env calls");
+		die("todo: env calls");
 
 	if (cty & (1 << 13))
 		/* struct return argument */
@@ -479,7 +479,7 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	}
 
 	if (!req(R, env))
-		die("todo (arm abi): env calls");
+		die("todo: env calls");
 
 	return (Params){
 		.nstk = s - 2,
