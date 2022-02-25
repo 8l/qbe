@@ -3,8 +3,11 @@
 static int
 memarg(Ref *r, int op, Ins *i)
 {
-	return ((isload(op) || op == Ocall) && r == &i->arg[0])
-	|| (isstore(op) && r == &i->arg[1]);
+	if (isload(op) || op == Ocall)
+		return r == &i->arg[0];
+	if (isstore(op))
+		return r == &i->arg[1];
+	return 0;
 }
 
 static int
@@ -28,8 +31,8 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
 		c = &fn->con[r0.val];
 		if (c->type == CAddr && memarg(r, op, i))
 			break;
-		if (c->type == CBits && immarg(r, op, i)
-		&& -2048 <= c->bits.i && c->bits.i < 2048)
+		if (c->type == CBits && immarg(r, op, i))
+		if (-2048 <= c->bits.i && c->bits.i < 2048)
 			break;
 		r1 = newtmp("isel", k, fn);
 		if (KBASE(k) == 1) {
@@ -131,7 +134,7 @@ selcmp(Ins i, int k, int op, Fn *fn)
 		break;
 	case NCmpI+Cfuo:
 		negate(&i.to, fn);
-		/* fallthrough */
+		/* fall through */
 	case NCmpI+Cfo:
 		r0 = newtmp("isel", i.cls, fn);
 		r1 = newtmp("isel", i.cls, fn);
