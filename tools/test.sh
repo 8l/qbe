@@ -46,7 +46,7 @@ init() {
 	rv64)
 		for p in riscv64-linux-musl riscv64-linux-gnu
 		do
-			cc="$p-gcc -no-pie"
+			cc="$p-gcc -no-pie -static"
 			qemu="qemu-riscv64"
 			if
 				$cc -v >/dev/null 2>&1 &&
