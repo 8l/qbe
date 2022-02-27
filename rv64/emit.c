@@ -104,11 +104,13 @@ static char *rname[] = {
 	[T6] = "t6",
 	[T0] = "t0", "t1", "t2", "t3", "t4", "t5",
 	[A0] = "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7",
-	[S1] = "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11",
-
-	[FT0] = "ft0", "ft1", "ft2", "ft3", "ft4", "ft5", "ft6", "ft7", "ft8", "ft9", "ft10", "ft11",
+	[S1] = "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8",
+	       "s9", "s10", "s11",
+	[FT0] = "ft0", "ft1", "ft2", "ft3", "ft4", "ft5", "ft6", "ft7",
+	        "ft8", "ft9", "ft10", "ft11",
 	[FA0] = "fa0", "fa1", "fa2", "fa3", "fa4", "fa5", "fa6", "fa7",
-	[FS0] = "fs0", "fs1", "fs2", "fs3", "fs4", "fs5", "fs6", "fs7", "fs8", "fs9", "fs10", "fs11",
+	[FS0] = "fs0", "fs1", "fs2", "fs3", "fs4", "fs5", "fs6", "fs7",
+	        "fs8", "fs9", "fs10", "fs11",
 };
 
 static int64_t
@@ -184,7 +186,7 @@ emitf(char *s, Ins *i, Fn *fn, FILE *f)
 			case RCon:
 				pc = &fn->con[r.val];
 				assert(pc->type == CBits);
-				assert(pc->bits.i >= -2048 && pc->bits.i <= 2047);
+				assert(pc->bits.i >= -2048 && pc->bits.i < 2048);
 				fprintf(f, "%d", (int)pc->bits.i);
 				break;
 			}
@@ -414,37 +416,50 @@ rv64_emitfn(Fn *fn, FILE *f)
 	gasemitlnk(fn->name, &fn->lnk, ".text", f);
 
 	if (fn->vararg) {
-		/* TODO: only need space for registers unused by named arguments */
+		/* TODO: only need space for registers
+		 * unused by named arguments
+		 */
 		fprintf(f, "\tadd sp, sp, -64\n");
-		for (r = A0; r <= A7; r++)
-			fprintf(f, "\tsd %s, %d(sp)\n", rname[r], 8 * (r - A0));
+		for (r=A0; r<=A7; r++)
+			fprintf(f,
+				"\tsd %s, %d(sp)\n",
+				rname[r], 8 * (r - A0)
+			);
 	}
 	fprintf(f, "\tsd fp, -16(sp)\n");
 	fprintf(f, "\tsd ra, -8(sp)\n");
 	fprintf(f, "\tadd fp, sp, -16\n");
 
 	frame = (16 + 4 * fn->slot + 15) & ~15;
-	for (pr = rv64_rclob; *pr>=0; pr++) {
+	for (pr=rv64_rclob; *pr>=0; pr++) {
 		if (fn->reg & BIT(*pr))
 			frame += 8;
 	}
 	frame = (frame + 15) & ~15;
 
 	if (frame <= 2048)
-		fprintf(f, "\tadd sp, sp, -%d\n", frame);
+		fprintf(f,
+			"\tadd sp, sp, -%d\n",
+			frame
+		);
 	else
 		fprintf(f,
 			"\tli t6, %d\n"
 			"\tsub sp, sp, t6\n",
-			frame);
-	for (pr = rv64_rclob, off = 0; *pr >= 0; pr++) {
+			frame
+		);
+	for (pr=rv64_rclob, off=0; *pr>=0; pr++) {
 		if (fn->reg & BIT(*pr)) {
-			fprintf(f, "\t%s %s, %d(sp)\n", *pr < FT0 ? "sd" : "fsd", rname[*pr], off);
+			fprintf(f,
+				"\t%s %s, %d(sp)\n",
+				*pr < FT0 ? "sd" : "fsd",
+				rname[*pr], off
+			);
 			off += 8;
 		}
 	}
 
-	for (lbl = 0, b = fn->start; b; b=b->link) {
+	for (lbl=0, b=fn->start; b; b=b->link) {
 		if (lbl || b->npred > 1)
 			fprintf(f, ".L%d:\n", id0+b->id);
 		for (i=b->ins; i!=&b->ins[b->nins]; i++)
@@ -454,16 +469,24 @@ rv64_emitfn(Fn *fn, FILE *f)
 		case Jret0:
 			if (fn->dynalloc) {
 				if (frame - 16 <= 2048)
-					fprintf(f, "\tadd sp, fp, -%d\n", frame - 16);
+					fprintf(f,
+						"\tadd sp, fp, -%d\n",
+						frame - 16
+					);
 				else
 					fprintf(f,
 						"\tli t6, %d\n"
-						"\tsub sp, sp, t6\n",
-						frame - 16);
+						"\tsub sp, fp, t6\n",
+						frame - 16
+					);
 			}
-			for (pr = rv64_rclob, off = 0; *pr >= 0; pr++) {
+			for (pr=rv64_rclob, off=0; *pr>=0; pr++) {
 				if (fn->reg & BIT(*pr)) {
-					fprintf(f, "\t%s %s, %d(sp)\n", *pr < FT0 ? "ld" : "fld", rname[*pr], off);
+					fprintf(f,
+						"\t%s %s, %d(sp)\n",
+						*pr < FT0 ? "ld" : "fld",
+						rname[*pr], off
+					);
 					off += 8;
 				}
 			}
@@ -491,7 +514,12 @@ rv64_emitfn(Fn *fn, FILE *f)
 				neg = 1;
 			}
 			assert(isreg(b->jmp.arg));
-			fprintf(f, "\tb%sz %s, .L%d\n", neg ? "ne" : "eq", rname[b->jmp.arg.val], id0+b->s2->id);
+			fprintf(f,
+				"\tb%sz %s, .L%d\n",
+				neg ? "ne" : "eq",
+				rname[b->jmp.arg.val],
+				id0+b->s2->id
+			);
 			goto Jmp;
 		}
 	}
