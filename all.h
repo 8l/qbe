@@ -357,7 +357,8 @@ struct Fn {
 
 struct Typ {
 	char name[NString];
-	int dark;
+	char isdark;
+	char isunion;
 	int align;
 	uint64_t size;
 	uint nunion;

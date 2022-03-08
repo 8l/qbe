@@ -77,7 +77,7 @@ typclass(AClass *a, Typ *t)
 	a->size = sz;
 	a->align = t->align;
 
-	if (t->dark || sz > 16 || sz == 0) {
+	if (t->isdark || sz > 16 || sz == 0) {
 		/* large or unaligned structures are
 		 * required to be passed in memory
 		 */

@@ -925,7 +925,8 @@ parsetyp()
 	 */
 	vgrow(&typ, ntyp+1);
 	ty = &typ[ntyp++];
-	ty->dark = 0;
+	ty->isdark = 0;
+	ty->isunion = 0;
 	ty->align = -1;
 	ty->size = 0;
 	if (nextnl() != Ttyp ||  nextnl() != Teq)
@@ -944,7 +945,7 @@ parsetyp()
 		err("type body must start with {");
 	t = nextnl();
 	if (t == Tint) {
-		ty->dark = 1;
+		ty->isdark = 1;
 		ty->size = tokval.num;
 		if (ty->align == -1)
 			err("dark types need alignment");
@@ -954,7 +955,8 @@ parsetyp()
 	}
 	n = 0;
 	ty->fields = vnew(1, sizeof ty->fields[0], Pheap);
-	if (t == Tlbrace)
+	if (t == Tlbrace) {
+		ty->isunion = 1;
 		do {
 			if (t != Tlbrace)
 				err("invalid union member");
@@ -962,7 +964,7 @@ parsetyp()
 			parsefields(ty->fields[n++], ty, nextnl());
 			t = nextnl();
 		} while (t != Trbrace);
-	else
+	} else
 		parsefields(ty->fields[n++], ty, t);
 	ty->nunion = n;
 }
