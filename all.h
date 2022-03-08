@@ -441,7 +441,8 @@ void chuse(Ref, int, Fn *);
 Ref newcon(Con *, Fn *);
 Ref getcon(int64_t, Fn *);
 int addcon(Con *, Con *);
-void blit(Ref, uint, Ref, uint, Fn *);
+void blit(Ref, uint, Ref, uint, uint, Fn *);
+void blit0(Ref, Ref, uint, Fn *);
 void dumpts(BSet *, Tmp *, FILE *);
 
 void bsinit(BSet *, uint);

@@ -185,7 +185,7 @@ selret(Blk *b, Fn *fn)
 		cty = (cr.nfp << 2) | cr.ngp;
 		if (cr.class & Cptr) {
 			assert(rtype(fn->retr) == RTmp);
-			blit(fn->retr, 0, r, cr.t->size, fn);
+			blit0(fn->retr, r, cr.t->size, fn);
 		} else {
 			ldregs(cr.reg, cr.cls, cr.nreg, r, fn);
 		}
@@ -383,7 +383,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 			emit(Ocast, k, TMP(*c->reg), i->arg[0], R);
 		}
 		if (c->class & Cptr)
-			blit(i->arg[0], 0, i->arg[1], c->t->size, fn);
+			blit0(i->arg[0], i->arg[1], c->t->size, fn);
 	}
 
 	if (!stk)
@@ -419,7 +419,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 			}
 			emit(Oadd, Kl, r1, r, getcon(off, fn));
 		} else
-			blit(r, off, i->arg[1], c->t->size, fn);
+			blit(r, off, i->arg[1], 0, c->t->size, fn);
 		off += c->size;
 	}
 	emit(Osalloc, Kl, r, getcon(stk, fn), R);

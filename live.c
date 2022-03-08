@@ -103,7 +103,7 @@ Again:
 			if (!req(i->to, R)) {
 				assert(rtype(i->to) == RTmp);
 				t = i->to.val;
-				if (bshas(b->in, i->to.val))
+				if (bshas(b->in, t))
 					nlv[KBASE(f->tmp[t].cls)]--;
 				bsset(b->gen, t);
 				bsclr(b->in, t);

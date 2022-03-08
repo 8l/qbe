@@ -181,7 +181,7 @@ selret(Blk *b, Fn *fn)
 		cty = (cr.nfp << 2) | cr.ngp;
 		if (cr.class & Cptr) {
 			assert(rtype(fn->retr) == RTmp);
-			blit(fn->retr, 0, r, cr.t->size, fn);
+			blit0(fn->retr, r, cr.t->size, fn);
 		} else
 			ldregs(cr.reg, cr.cls, cr.nreg, r, fn);
 	} else {
@@ -359,6 +359,10 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 		stkblob(i1->to, &cr, fn, ilp);
 		cty |= (cr.nfp << 2) | cr.ngp;
 		if (cr.class & Cptr) {
+			/* spill & rega expect calls to be
+			 * followed by copies from regs,
+			 * so we emit a dummy
+			 */
 			cty |= 1 << 13 | 1;
 			emit(Ocopy, Kw, R, TMP(R0), R);
 		} else {
@@ -407,7 +411,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 			emit(Oadd, Kl, r, TMP(SP), getcon(off, fn));
 		}
 		if (i->op == Oargc)
-			blit(TMP(SP), off, i->arg[1], c->size, fn);
+			blit(TMP(SP), off, i->arg[1], 0, c->size, fn);
 		off += c->size;
 	}
 	if (stk)
@@ -415,7 +419,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 
 	for (i=i0, c=ca; i<i1; i++, c++)
 		if (c->class & Cptr)
-			blit(i->arg[0], 0, i->arg[1], c->t->size, fn);
+			blit0(i->arg[0], i->arg[1], c->t->size, fn);
 }
 
 static Params
