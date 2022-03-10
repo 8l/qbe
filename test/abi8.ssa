@@ -1,0 +1,257 @@
+# riscv64 ABI stress
+# see tools/abi8.py
+
+type :fi1 = { h, s }   # in a gp & fp pair
+type :fi2 = { s, w }   # ditto
+type :uw = { { w } }
+type :fi3 = { s, :uw } # in a single gp reg
+type :ss = { s, s }    # in two fp regs
+type :sd = { s, d }    # ditto
+type :ww = { w, w }    # in a single gp reg
+type :lb = { l, b }    # in two gp regs
+type :big = { b 17 }   # by reference
+
+data $ctoqbestr = { b "c->qbe(%d)", b 0 }
+data $emptystr = { b 0 }
+
+export
+function $qfn0(s %p0, s %p1, s %p2, s %p3, s %p4, s %p5, s %p6, s %p7, s %p8) {
+@start
+	%r0 =w call $printf(l $ctoqbestr, w 0)
+	call $ps(s %p8)
+	%r1 =w call $puts(l $emptystr)
+	ret
+}
+export
+function $qfn1(w %p0, s %p1, :fi1 %p2) {
+@start
+	%r0 =w call $printf(l $ctoqbestr, w 1)
+	call $pw(w %p0)
+	call $ps(s %p1)
+	call $pfi1(l %p2)
+	%r1 =w call $puts(l $emptystr)
+	ret
+}
+export
+function $qfn2(w %p0, :fi2 %p1, s %p2) {
+@start
+	%r0 =w call $printf(l $ctoqbestr, w 2)
+	call $pw(w %p0)
+	call $pfi2(l %p1)
+	call $ps(s %p2)
+	%r1 =w call $puts(l $emptystr)
+	ret
+}
+export
+function $qfn3(w %p0, s %p1, :fi3 %p2) {
+@start
+	%r0 =w call $printf(l $ctoqbestr, w 3)
+	call $pw(w %p0)
+	call $ps(s %p1)
+	call $pfi3(l %p2)
+	%r1 =w call $puts(l $emptystr)
+	ret
+}
+export
+function $qfn4(:ss %p0) {
+@start
+	%r0 =w call $printf(l $ctoqbestr, w 4)
+	call $pss(l %p0)
+	%r1 =w call $puts(l $emptystr)
+	ret
+}
+export
+function $qfn5(d %p0, d %p1, d %p2, d %p3, d %p4, d %p5, d %p6, :ss %p7, s %p8, l %p9) {
+@start
+	%r0 =w call $printf(l $ctoqbestr, w 5)
+	call $pss(l %p7)
+	call $ps(s %p8)
+	call $pl(l %p9)
+	%r1 =w call $puts(l $emptystr)
+	ret
+}
+export
+function $qfn6(:lb %p0) {
+@start
+	%r0 =w call $printf(l $ctoqbestr, w 6)
+	call $plb(l %p0)
+	%r1 =w call $puts(l $emptystr)
+	ret
+}
+export
+function $qfn7(w %p0, w %p1, w %p2, w %p3, w %p4, w %p5, w %p6, :lb %p7) {
+@start
+	%r0 =w call $printf(l $ctoqbestr, w 7)
+	call $plb(l %p7)
+	%r1 =w call $puts(l $emptystr)
+	ret
+}
+export
+function $qfn8(w %p0, w %p1, w %p2, w %p3, w %p4, w %p5, w %p6, w %p7, :lb %p8) {
+@start
+	%r0 =w call $printf(l $ctoqbestr, w 8)
+	call $plb(l %p8)
+	%r1 =w call $puts(l $emptystr)
+	ret
+}
+export
+function $qfn9(:big %p0) {
+@start
+	%r0 =w call $printf(l $ctoqbestr, w 9)
+	call $pbig(l %p0)
+	%r1 =w call $puts(l $emptystr)
+	ret
+}
+export
+function $qfn10(w %p0, w %p1, w %p2, w %p3, w %p4, w %p5, w %p6, w %p7, :big %p8, s %p9, l %p10) {
+@start
+	%r0 =w call $printf(l $ctoqbestr, w 10)
+	call $pbig(l %p8)
+	call $ps(s %p9)
+	call $pl(l %p10)
+	%r1 =w call $puts(l $emptystr)
+	ret
+}
+
+export
+function w $main() {
+@start
+
+	call $cfn0(s 0, s 0, s 0, s 0, s 0, s 0, s 0, s 0, s s_9.9)
+	call $cfn1(w 1, s s_2.2, :fi1 $fi1)
+	call $cfn2(w 1, :fi2 $fi2, s s_3.3)
+	call $cfn3(w 1, s s_2.2, :fi3 $fi3)
+	call $cfn4(:ss $ss)
+	call $cfn5(d 0, d 0, d 0, d 0, d 0, d 0, d 0, :ss $ss, s s_9.9, l 10)
+	call $cfn6(:lb $lb)
+	call $cfn7(w 0, w 0, w 0, w 0, w 0, w 0, w 0, :lb $lb)
+	call $cfn8(w 0, w 0, w 0, w 0, w 0, w 0, w 0, w 0, :lb $lb)
+	call $cfn9(:big $big)
+	call $cfn10(w 0, w 0, w 0, w 0, w 0, w 0, w 0, w 0, :big $big, s s_10.10, l 11)
+
+	ret 0
+}
+
+# >>> driver
+# #include <stdio.h>
+# typedef struct { short h; float s; } Sfi1;
+# typedef struct { float s; int w; } Sfi2;
+# typedef struct { float s; union { int w; } u; } Sfi3;
+# typedef struct { float s0, s1; } Sss;
+# typedef struct { float s; double d; } Ssd;
+# typedef struct { int w0, w1; } Sww;
+# typedef struct { long l; char b; } Slb;
+# typedef struct { char b[17]; } Sbig;
+# Sfi1 zfi1, fi1 = { -123, 4.56 };
+# Sfi2 zfi2, fi2 = { 1.23, 456 };
+# Sfi3 zfi3, fi3 = { 3.45, 567 };
+# Sss zss, ss = { 1.23, 45.6 };
+# Ssd zsd, sd = { 2.34, 5.67 };
+# Sww zww, ww = { -123, -456 };
+# Slb zlb, lb = { 123, 'z' };
+# Sbig zbig, big = { "abcdefhijklmnopqr" };
+# void pfi1(Sfi1 *s) { printf(" { %d, %g }", s->h, s->s); }
+# void pfi2(Sfi2 *s) { printf(" { %g, %d }", s->s, s->w); }
+# void pfi3(Sfi3 *s) { printf(" { %g, %d }", s->s, s->u.w); }
+# void pss(Sss *s) { printf(" { %g, %g }", s->s0, s->s1); }
+# void psd(Ssd *s) { printf(" { %g, %g }", s->s, s->d); }
+# void pww(Sww *s) { printf(" { %d, %d }", s->w0, s->w1); }
+# void plb(Slb *s) { printf(" { %ld, '%c' }", s->l, s->b); }
+# void pbig(Sbig *s) { printf(" \"%.17s\"", s->b); }
+# void pw(int w) { printf(" %d", w); }
+# void pl(long l) { printf(" %ld", l); }
+# void ps(float s) { printf(" %g", s); }
+# void pd(double d) { printf(" %g", d); }
+# /* --------------------------- */
+# extern void qfn0(float, float, float, float, float, float, float, float, float);
+# void cfn0(float p0, float p1, float p2, float p3, float p4, float p5, float p6, float p7, float p8) {
+# 	printf("qbe->c(%d)", 0);
+# 	ps(p8); puts("");
+# 	qfn0(p0, p1, p2, p3, p4, p5, p6, p7, p8);
+# }
+# extern void qfn1(int, float, Sfi1);
+# void cfn1(int p0, float p1, Sfi1 p2) {
+# 	printf("qbe->c(%d)", 1);
+# 	pw(p0); ps(p1); pfi1(&p2); puts("");
+# 	qfn1(p0, p1, p2);
+# }
+# extern void qfn2(int, Sfi2, float);
+# void cfn2(int p0, Sfi2 p1, float p2) {
+# 	printf("qbe->c(%d)", 2);
+# 	pw(p0); pfi2(&p1); ps(p2); puts("");
+# 	qfn2(p0, p1, p2);
+# }
+# extern void qfn3(int, float, Sfi3);
+# void cfn3(int p0, float p1, Sfi3 p2) {
+# 	printf("qbe->c(%d)", 3);
+# 	pw(p0); ps(p1); pfi3(&p2); puts("");
+# 	qfn3(p0, p1, p2);
+# }
+# extern void qfn4(Sss);
+# void cfn4(Sss p0) {
+# 	printf("qbe->c(%d)", 4);
+# 	pss(&p0); puts("");
+# 	qfn4(p0);
+# }
+# extern void qfn5(double, double, double, double, double, double, double, Sss, float, long);
+# void cfn5(double p0, double p1, double p2, double p3, double p4, double p5, double p6, Sss p7, float p8, long p9) {
+# 	printf("qbe->c(%d)", 5);
+# 	pss(&p7); ps(p8); pl(p9); puts("");
+# 	qfn5(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9);
+# }
+# extern void qfn6(Slb);
+# void cfn6(Slb p0) {
+# 	printf("qbe->c(%d)", 6);
+# 	plb(&p0); puts("");
+# 	qfn6(p0);
+# }
+# extern void qfn7(int, int, int, int, int, int, int, Slb);
+# void cfn7(int p0, int p1, int p2, int p3, int p4, int p5, int p6, Slb p7) {
+# 	printf("qbe->c(%d)", 7);
+# 	plb(&p7); puts("");
+# 	qfn7(p0, p1, p2, p3, p4, p5, p6, p7);
+# }
+# extern void qfn8(int, int, int, int, int, int, int, int, Slb);
+# void cfn8(int p0, int p1, int p2, int p3, int p4, int p5, int p6, int p7, Slb p8) {
+# 	printf("qbe->c(%d)", 8);
+# 	plb(&p8); puts("");
+# 	qfn8(p0, p1, p2, p3, p4, p5, p6, p7, p8);
+# }
+# extern void qfn9(Sbig);
+# void cfn9(Sbig p0) {
+# 	printf("qbe->c(%d)", 9);
+# 	pbig(&p0); puts("");
+# 	qfn9(p0);
+# }
+# extern void qfn10(int, int, int, int, int, int, int, int, Sbig, float, long);
+# void cfn10(int p0, int p1, int p2, int p3, int p4, int p5, int p6, int p7, Sbig p8, float p9, long p10) {
+# 	printf("qbe->c(%d)", 10);
+# 	pbig(&p8); ps(p9); pl(p10); puts("");
+# 	qfn10(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);
+# }
+# <<<
+
+# >>> output
+# qbe->c(0) 9.9
+# c->qbe(0) 9.9
+# qbe->c(1) 1 2.2 { -123, 4.56 }
+# c->qbe(1) 1 2.2 { -123, 4.56 }
+# qbe->c(2) 1 { 1.23, 456 } 3.3
+# c->qbe(2) 1 { 1.23, 456 } 3.3
+# qbe->c(3) 1 2.2 { 3.45, 567 }
+# c->qbe(3) 1 2.2 { 3.45, 567 }
+# qbe->c(4) { 1.23, 45.6 }
+# c->qbe(4) { 1.23, 45.6 }
+# qbe->c(5) { 1.23, 45.6 } 9.9 10
+# c->qbe(5) { 1.23, 45.6 } 9.9 10
+# qbe->c(6) { 123, 'z' }
+# c->qbe(6) { 123, 'z' }
+# qbe->c(7) { 123, 'z' }
+# c->qbe(7) { 123, 'z' }
+# qbe->c(8) { 123, 'z' }
+# c->qbe(8) { 123, 'z' }
+# qbe->c(9) "abcdefhijklmnopqr"
+# c->qbe(9) "abcdefhijklmnopqr"
+# qbe->c(10) "abcdefhijklmnopqr" 10.1 11
+# c->qbe(10) "abcdefhijklmnopqr" 10.1 11
+# <<<
