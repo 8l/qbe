@@ -10,6 +10,8 @@ type :st7 = { s, d }
 type :st8 = { w 4 }
 type :un9 = { { b } { s } }
 type :st9 = { w, :un9 }
+type :sta = { b, s }
+type :stb = { b, b, s }
 
 data $fmt1 = { b "t1: %s\n", b 0 }
 data $fmt2 = { b "t2: %d\n", b 0 }
@@ -20,6 +22,8 @@ data $fmt6 = { b "t6: %s\n", b 0 }
 data $fmt7 = { b "t7: %f %f\n", b 0 }
 data $fmt8 = { b "t8: %d %d %d %d\n", b 0 }
 data $fmt9 = { b "t9: %d %f\n", b 0 }
+data $fmta = { b "ta: %d %f\n", b 0 }
+data $fmtb = { b "tb: %d %d %f\n", b 0 }
 
 export
 function $test() {
@@ -78,12 +82,27 @@ function $test() {
 	%d9 =d exts %s9
 	%i9 =w call $printf(l $fmt9, ..., w %w9, d %d9)
 
+	%ra =:sta call $ta()
+	%ra4 =l add 4, %ra
+	%wa =w loadsb %ra
+	%sa =s loads %ra4
+	%da =d exts %sa
+	%ia =w call $printf(l $fmta, ..., w %wa, d %da)
+
+	%rb =:stb call $tb()
+	%rb1 =l add 1, %rb
+	%rb4 =l add 4, %rb
+	%w0b =w loadsb %rb
+	%w1b =w loadsb %rb1
+	%sb =s loads %rb4
+	%db =d exts %sb
+	%ib =w call $printf(l $fmtb, ..., w %w0b, w %w1b, d %db)
+
 	ret
 }
 
 
 # >>> driver
-# #include <stdio.h>
 # typedef struct { char t[17]; } st1;
 # typedef struct { int i; } st2;
 # typedef struct { float f; int i; } st3;
@@ -93,6 +112,8 @@ function $test() {
 # typedef struct { float f; double d; } st7;
 # typedef struct { int i[4]; } st8;
 # typedef struct { int i; union { char c; float f; } u; } st9;
+# typedef struct { char c; float f; } sta;
+# typedef struct { char c0, c1; float f; } stb;
 # extern void test(void);
 # st1 t1() { return (st1){"abcdefghijklmnop"}; }
 # st2 t2() { return (st2){2}; }
@@ -103,6 +124,8 @@ function $test() {
 # st7 t7() { return (st7){7.77,77.7}; }
 # st8 t8() { return (st8){-8,88,-888,8888}; }
 # st9 t9() { return (st9){9,{.f=9.9}}; }
+# sta ta() { return (sta){-10,10.1}; }
+# stb tb() { return (stb){-1,11,11.11}; }
 # int main() { test(); return 0; }
 # <<<
 
@@ -116,4 +139,6 @@ function $test() {
 # t7: 7.770000 77.700000
 # t8: -8 88 -888 8888
 # t9: 9 9.900000
+# ta: -10 10.100000
+# tb: -1 11 11.110000
 # <<<
