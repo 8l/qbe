@@ -100,6 +100,9 @@ typclass(Class *c, Typ *t, int *gp, int *fp)
 		 * memory */
 		c->class |= Cptr;
 		c->size = 8;
+		c->ngp = 1;
+		*c->reg = *gp;
+		*c->cls = Kl;
 		return;
 	}
 
@@ -230,14 +233,7 @@ argsclass(Ins *i0, Ins *i1, Class *carg, Ref *env)
 		case Oparc:
 		case Oargc:
 			typclass(c, &typ[i->arg[0].val], gp, fp);
-			if (c->class & Cptr) {
-				if (ngp > 0) {
-					ngp--;
-					*c->reg = *gp++;
-					*c->cls = Kl;
-					break;
-				}
-			} else if (c->ngp <= ngp) {
+			if (c->ngp <= ngp) {
 				if (c->nfp <= nfp) {
 					ngp -= c->ngp;
 					nfp -= c->nfp;
