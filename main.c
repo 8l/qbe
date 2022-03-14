@@ -19,11 +19,6 @@ static struct TMap {
 	{ 0, 0 }
 };
 
-enum Asm {
-	Gasmacho,
-	Gaself,
-};
-
 char debug['Z'+1] = {
 	['P'] = 0, /* parsing */
 	['M'] = 0, /* memory optimization */
@@ -101,6 +96,7 @@ func(Fn *fn)
 			fn->rpo[n]->link = fn->rpo[n+1];
 	if (!dbg) {
 		T.emitfn(fn, outf);
+		gasemitfntail(fn->name, outf);
 		fprintf(outf, "/* end function %s */\n\n", fn->name);
 	} else
 		fprintf(stderr, "\n");
@@ -174,16 +170,7 @@ main(int ac, char *av[])
 			exit(c != 'h');
 		}
 
-	switch (asmmode) {
-	case Gaself:
-		gasloc = ".L";
-		gassym = "";
-		break;
-	case Gasmacho:
-		gasloc = "L";
-		gassym = "_";
-		break;
-	}
+	gasinit(asmmode);
 
 	do {
 		f = av[optind];

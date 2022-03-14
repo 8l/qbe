@@ -2,6 +2,23 @@
 
 
 char *gasloc, *gassym;
+static int gasasm;
+
+void
+gasinit(enum Asm asmmode)
+{
+	gasasm = asmmode;
+	switch (gasasm) {
+	case Gaself:
+		gasloc = ".L";
+		gassym = "";
+		break;
+	case Gasmacho:
+		gasloc = "L";
+		gassym = "_";
+		break;
+	}
+}
 
 void
 gasemitlnk(char *n, Lnk *l, char *s, FILE *f)
@@ -22,6 +39,15 @@ gasemitlnk(char *n, Lnk *l, char *s, FILE *f)
 	if (l->export)
 		fprintf(f, ".globl %s%s\n", p, n);
 	fprintf(f, "%s%s:\n", p, n);
+}
+
+void
+gasemitfntail(char *fn, FILE *f)
+{
+	if (gasasm == Gaself) {
+		fprintf(f, ".type %s, @function\n", fn);
+		fprintf(f, ".size %s, .-%s\n", fn, fn);
+	}
 }
 
 void
