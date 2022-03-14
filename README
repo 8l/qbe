@@ -5,7 +5,8 @@ minic/  An example C frontend for QBE.
 tools/  Miscellaneous tools (testing).
 test/   Tests.
 amd64/
-arm64/  Architecture-specific code.
+arm64/
+rv64/   Architecture-specific code.
 
 The LICENSE file applies to all files distributed.
 
