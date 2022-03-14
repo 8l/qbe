@@ -163,6 +163,12 @@ sel(Ins i, Fn *fn)
 	Ins *i0;
 	int ck, cc;
 
+	if (INRANGE(i.op, Oalloc, Oalloc1)) {
+		i0 = curi - 1;
+		salloc(i.to, i.arg[0], fn);
+		fixarg(&i0->arg[0], Kl, 0, fn);
+		return;
+	}
 	if (iscmp(i.op, &ck, &cc)) {
 		emit(Oflag, i.cls, i.to, R, R);
 		i0 = curi;
@@ -170,7 +176,9 @@ sel(Ins i, Fn *fn)
 			i0->op += cmpop(cc);
 		else
 			i0->op += cc;
-	} else if (i.op != Onop) {
+		return;
+	}
+	if (i.op != Onop) {
 		emiti(i);
 		iarg = curi->arg; /* fixarg() can change curi */
 		fixarg(&iarg[0], argcls(&i, 0), 0, fn);

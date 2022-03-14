@@ -444,6 +444,7 @@ Ref getcon(int64_t, Fn *);
 int addcon(Con *, Con *);
 void blit(Ref, uint, Ref, uint, uint, Fn *);
 void blit0(Ref, Ref, uint, Fn *);
+void salloc(Ref, Ref, Fn *);
 void dumpts(BSet *, Tmp *, FILE *);
 
 void bsinit(BSet *, uint);

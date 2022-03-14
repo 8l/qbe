@@ -429,6 +429,36 @@ blit0(Ref rdst, Ref rsrc, uint sz, Fn *fn)
 }
 
 void
+salloc(Ref rt, Ref rs, Fn *fn)
+{
+	Ref r0, r1;
+	int64_t sz;
+
+	/* we need to make sure
+	 * the stack remains aligned
+	 * (rsp = 0) mod 16
+	 */
+	fn->dynalloc = 1;
+	if (rtype(rs) == RCon) {
+		sz = fn->con[rs.val].bits.i;
+		if (sz < 0 || sz >= INT_MAX-15)
+			err("invalid alloc size %"PRId64, sz);
+		sz = (sz + 15)  & -16;
+		emit(Osalloc, Kl, rt, getcon(sz, fn), R);
+	} else {
+		/* r0 = (r + 15) & -16 */
+		r0 = newtmp("isel", Kl, fn);
+		r1 = newtmp("isel", Kl, fn);
+		emit(Osalloc, Kl, rt, r0, R);
+		emit(Oand, Kl, r0, r1, getcon(-16, fn));
+		emit(Oadd, Kl, r1, rs, getcon(15, fn));
+		if (fn->tmp[rs.val].slot != -1)
+			err("unlikely alloc argument %%%s for %%%s",
+				fn->tmp[rs.val].name, fn->tmp[rt.val].name);
+	}
+}
+
+void
 bsinit(BSet *bs, uint n)
 {
 	n = (n + NBit-1) / NBit;

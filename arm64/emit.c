@@ -385,6 +385,11 @@ emitins(Ins *i, E *e)
 				rn, s & 0xFFFF, rn, s >> 16, rn, rn
 			);
 		break;
+	case Osalloc:
+		emitf("sub sp, sp, %0", i, e);
+		if (!req(i->to, R))
+			emitf("mov %=, sp", i, e);
+		break;
 	}
 }
 
@@ -483,7 +488,7 @@ arm64_emitfn(Fn *fn, FILE *out)
 			"\tstp\tx29, x30, [sp, -16]!\n",
 			e->frame & 0xFFFF, e->frame >> 16
 		);
-	fputs("\tadd\tx29, sp, 0\n", e->f);
+	fputs("\tmov\tx29, sp\n", e->f);
 	s = (e->frame - e->padding) / 4;
 	for (r=arm64_rclob; *r>=0; r++)
 		if (e->fn->reg & BIT(*r)) {
@@ -509,6 +514,8 @@ arm64_emitfn(Fn *fn, FILE *out)
 					i->cls = *r >= V0 ? Kd : Kl;
 					emitins(i, e);
 				}
+			if (e->fn->dynalloc)
+				fputs("\tmov sp, x29\n", e->f);
 			o = e->frame + 16;
 			if (e->fn->vararg)
 				o += 192;

@@ -203,7 +203,6 @@ sel(Ins i, ANum *an, Fn *fn)
 {
 	Ref r0, r1, tmp[7];
 	int x, j, k, kc, sh, swap;
-	int64_t sz;
 	Ins *i0, *i1;
 
 	if (rtype(i.to) == RTmp)
@@ -375,31 +374,10 @@ Emit:
 		fixarg(&i1->arg[0], argcls(&i, 0), i1, fn);
 		fixarg(&i1->arg[1], argcls(&i, 1), i1, fn);
 		break;
-	case Oalloc:
-	case Oalloc+1:
-	case Oalloc+2: /* == Oalloc1 */
-		/* we need to make sure
-		 * the stack remains aligned
-		 * (rsp = 0) mod 16
-		 */
-		fn->dynalloc = 1;
-		if (rtype(i.arg[0]) == RCon) {
-			sz = fn->con[i.arg[0].val].bits.i;
-			if (sz < 0 || sz >= INT_MAX-15)
-				err("invalid alloc size %"PRId64, sz);
-			sz = (sz + 15)  & -16;
-			emit(Osalloc, Kl, i.to, getcon(sz, fn), R);
-		} else {
-			/* r0 = (i.arg[0] + 15) & -16 */
-			r0 = newtmp("isel", Kl, fn);
-			r1 = newtmp("isel", Kl, fn);
-			emit(Osalloc, Kl, i.to, r0, R);
-			emit(Oand, Kl, r0, r1, getcon(-16, fn));
-			emit(Oadd, Kl, r1, i.arg[0], getcon(15, fn));
-			if (fn->tmp[i.arg[0].val].slot != -1)
-				err("unlikely argument %%%s in %s",
-					fn->tmp[i.arg[0].val].name, optab[i.op].name);
-		}
+	case Oalloc4:
+	case Oalloc8:
+	case Oalloc16:
+		salloc(i.to, i.arg[0], fn);
 		break;
 	default:
 		if (isext(i.op))

@@ -174,46 +174,20 @@ selcmp(Ins i, int k, int op, Fn *fn)
 static void
 sel(Ins i, Fn *fn)
 {
-	Ref r0, r1;
 	Ins *i0;
 	int ck, cc;
-	int64_t sz;
 
-	switch (i.op) {
-	case Onop:
-		break;
-	case Oalloc4:
-	case Oalloc8:
-	case Oalloc16:
-		/* we need to make sure
-		 * the stack remains aligned
-		 * (rsp = 0) mod 16
-		 */
-		fn->dynalloc = 1;
-		if (rtype(i.arg[0]) == RCon) {
-			sz = fn->con[i.arg[0].val].bits.i;
-			if (sz < 0)
-				err("invalid alloc size %"PRId64, sz);
-			sz = (sz + 15) & -16;
-			emit(Osalloc, Kl, i.to, getcon(sz, fn), R);
-			fixarg(&curi->arg[0], Kl, curi, fn);
-		} else {
-			/* r0 = (i.arg[0] + 15) & -16 */
-			r0 = newtmp("isel", Kl, fn);
-			r1 = newtmp("isel", Kl, fn);
-			emit(Osalloc, Kl, i.to, r0, R);
-			emit(Oand, Kl, r0, r1, getcon(-16, fn));
-			emit(Oadd, Kl, r1, i.arg[0], getcon(15, fn));
-			if (fn->tmp[i.arg[0].val].slot != -1)
-				err("unlikely argument %%%s in %s",
-					fn->tmp[i.arg[0].val].name, optab[i.op].name);
-		}
-		break;
-	default:
-		if (iscmp(i.op, &ck, &cc)) {
-			selcmp(i, ck, cc, fn);
-			break;
-		}
+	if (INRANGE(i.op, Oalloc, Oalloc1)) {
+		i0 = curi - 1;
+		salloc(i.to, i.arg[0], fn);
+		fixarg(&i0->arg[0], Kl, i0, fn);
+		return;
+	}
+	if (iscmp(i.op, &ck, &cc)) {
+		selcmp(i, ck, cc, fn);
+		return;
+	}
+	if (i.op != Onop) {
 		emiti(i);
 		i0 = curi; /* fixarg() can change curi */
 		fixarg(&i0->arg[0], argcls(&i, 0), i0, fn);
