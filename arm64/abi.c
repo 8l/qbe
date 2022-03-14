@@ -397,6 +397,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 			ldregs(c->reg, c->cls, c->nreg, i->arg[1], fn);
 	}
 
+	/* populate the stack */
 	off = 0;
 	for (i=i0, c=ca; i<i1; i++, c++) {
 		if ((c->class & Cstk) == 0)
@@ -456,9 +457,9 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	}
 
 	t = tmp;
-	for (i=i0, c=ca, s=2; i<i1; i++, c++) {
-		if (i->op == Oparc
-		&& (c->class & Cptr) == 0) {
+	s = 2;
+	for (i=i0, c=ca; i<i1; i++, c++)
+		if (i->op == Oparc && !(c->class & Cptr)) {
 			if (c->class & Cstk) {
 				fn->tmp[i->to.val].slot = -s;
 				s += c->size / 8;
@@ -468,15 +469,11 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 					emit(Ocopy, c->cls[n], *t++, r, R);
 				}
 		} else if (c->class & Cstk) {
-			r = newtmp("abi", Kl, fn);
-			emit(Oload, *c->cls, i->to, r, R);
-			emit(Oaddr, Kl, r, SLOT(-s), R);
+			emit(Oload, *c->cls, i->to, SLOT(-s), R);
 			s++;
 		} else {
-			r = TMP(*c->reg);
-			emit(Ocopy, *c->cls, i->to, r, R);
+			emit(Ocopy, *c->cls, i->to, TMP(*c->reg), R);
 		}
-	}
 
 	if (!req(R, env))
 		die("todo: env calls");

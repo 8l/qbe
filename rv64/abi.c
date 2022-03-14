@@ -425,17 +425,20 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 	if (!stk)
 		return;
 
+	/* populate the stack */
+	off = 0;
 	r = newtmp("abi", Kl, fn);
-	for (i=i0, c=ca, off=0; i<i1; i++, c++) {
+	for (i=i0, c=ca; i<i1; i++, c++) {
 		if (i->op == Oargv || !(c->class & Cstk))
 			continue;
 		if (i->op == Oarg) {
 			r1 = newtmp("abi", Kl, fn);
 			emit(Ostorew+i->cls, Kw, R, i->arg[0], r1);
 			if (i->cls == Kw) {
-				/* TODO: we only need this sign extension
-				 * for subtyped l temporaries passed as w
-				 * arguments (see rv64/isel.c:fixarg)
+				/* TODO: we only need this sign
+				 * extension for l temps passed
+				 * as w arguments
+				 * (see rv64/isel.c:fixarg)
 				 */
 				curi->op = Ostorel;
 				curi->arg[0] = newtmp("abi", Kl, fn);
@@ -530,8 +533,9 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 		} else if (c->class & Cstk1) {
 			emit(Oload, *c->cls, i->to, SLOT(-s), R);
 			s++;
-		} else
+		} else {
 			emit(Ocopy, *c->cls, i->to, TMP(*c->reg), R);
+		}
 
 	return (Params){
 		.stk = s,
