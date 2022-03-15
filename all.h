@@ -40,6 +40,7 @@ enum {
 };
 
 struct Target {
+	char name[8];
 	int gpr0;   /* first general purpose reg */
 	int ngpr;
 	int fpr0;   /* first floating point reg */

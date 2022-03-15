@@ -33,6 +33,7 @@ rv64_memargs(int op)
 }
 
 Target T_rv64 = {
+	.name = "rv64",
 	.gpr0 = T0,
 	.ngpr = NGPR,
 	.fpr0 = FT0,
