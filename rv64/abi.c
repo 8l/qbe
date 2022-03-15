@@ -307,8 +307,8 @@ argsclass(Ins *i0, Ins *i1, Class *carg, int retptr)
 			break;
 		case Opare:
 		case Oarge:
-			*c->cls = Kl;
 			*c->reg = T5;
+			*c->cls = Kl;
 			envc = 1;
 			break;
 		}
