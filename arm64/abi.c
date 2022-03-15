@@ -41,13 +41,15 @@ static int fpreg[12] = {V0, V1, V2, V3, V4, V5, V6, V7};
 
 /* layout of call's second argument (RCall)
  *
- *  29   13    9    5   2  0
- *  |0.00|x|xxxx|xxxx|xxx|xx|                  range
- *        |    |    |   |  ` gp regs returned (0..2)
- *        |    |    |   ` fp regs returned    (0..4)
- *        |    |    ` gp regs passed          (0..8)
- *        |     ` fp regs passed              (0..8)
- *        ` is x8 used                        (0..1)
+ *         13
+ *  29   14 |    9    5   2  0
+ *  |0.00|x|x|xxxx|xxxx|xxx|xx|                  range
+ *        | |    |    |   |  ` gp regs returned (0..2)
+ *        | |    |    |   ` fp regs returned    (0..4)
+ *        | |    |    ` gp regs passed          (0..8)
+ *        | |     ` fp regs passed              (0..8)
+ *        | ` indirect result register x8 used  (0..1)
+ *        ` env pointer passed in x9            (0..1)
  */
 
 static int
@@ -202,12 +204,13 @@ selret(Blk *b, Fn *fn)
 }
 
 static int
-argsclass(Ins *i0, Ins *i1, Class *carg, Ref *env)
+argsclass(Ins *i0, Ins *i1, Class *carg)
 {
-	int ngp, nfp, *gp, *fp;
+	int envc, ngp, nfp, *gp, *fp;
 	Class *c;
 	Ins *i;
 
+	envc = 0;
 	gp = gpreg;
 	fp = fpreg;
 	ngp = 8;
@@ -247,10 +250,10 @@ argsclass(Ins *i0, Ins *i1, Class *carg, Ref *env)
 			c->class |= Cstk;
 			break;
 		case Opare:
-			*env = i->to;
-			break;
 		case Oarge:
-			*env = i->arg[0];
+			*c->reg = R9;
+			*c->cls = Kl;
+			envc = 1;
 			break;
 		case Oargv:
 			break;
@@ -258,7 +261,7 @@ argsclass(Ins *i0, Ins *i1, Class *carg, Ref *env)
 			die("unreachable");
 		}
 
-	return ((gp-gpreg) << 5) | ((fp-fpreg) << 9);
+	return envc << 14 | (gp-gpreg) << 5 | (fp-fpreg) << 9;
 }
 
 bits
@@ -286,14 +289,15 @@ bits
 arm64_argregs(Ref r, int p[2])
 {
 	bits b;
-	int ngp, nfp, x8;
+	int ngp, nfp, x8, x9;
 
 	assert(rtype(r) == RCall);
 	ngp = (r.val >> 5) & 15;
 	nfp = (r.val >> 9) & 15;
 	x8 = (r.val >> 13) & 1;
+	x9 = (r.val >> 14) & 1;
 	if (p) {
-		p[0] = ngp + x8;
+		p[0] = ngp + x8 + x9;
 		p[1] = nfp;
 	}
 	b = 0;
@@ -301,7 +305,7 @@ arm64_argregs(Ref r, int p[2])
 		b |= BIT(R0+ngp);
 	while (nfp--)
 		b |= BIT(V0+nfp);
-	return b | ((bits)x8 << R8);
+	return b | ((bits)x8 << R8) | ((bits)x9 << R9);
 }
 
 static void
@@ -326,14 +330,13 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 {
 	Ins *i;
 	Class *ca, *c, cr;
-	int cty, envc;
+	int cty;
 	uint n;
 	uint64_t stk, off;
-	Ref r, rstk, env, tmp[4];
+	Ref r, rstk, tmp[4];
 
-	env = R;
 	ca = alloc((i1-i0) * sizeof ca[0]);
-	cty = argsclass(i0, i1, ca, &env);
+	cty = argsclass(i0, i1, ca);
 
 	stk = 0;
 	for (i=i0, c=ca; i<i1; i++, c++) {
@@ -380,10 +383,6 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 
 	emit(Ocall, 0, R, i1->arg[0], CALL(cty));
 
-	envc = !req(R, env);
-	if (envc)
-		die("todo: env calls");
-
 	if (cty & (1 << 13))
 		/* struct return argument */
 		emit(Ocopy, Kl, TMP(R8), i1->to, R);
@@ -391,7 +390,7 @@ selcall(Fn *fn, Ins *i0, Ins *i1, Insl **ilp)
 	for (i=i0, c=ca; i<i1; i++, c++) {
 		if ((c->class & Cstk) != 0)
 			continue;
-		if (i->op == Oarg)
+		if (i->op == Oarg || i->op == Oarge)
 			emit(Ocopy, *c->cls, TMP(*c->reg), i->arg[0], R);
 		if (i->op == Oargc)
 			ldregs(c->reg, c->cls, c->nreg, i->arg[1], fn);
@@ -426,13 +425,12 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 	Insl *il;
 	Ins *i;
 	int n, s, cty;
-	Ref r, env, tmp[16], *t;
+	Ref r, tmp[16], *t;
 
-	env = R;
 	ca = alloc((i1-i0) * sizeof ca[0]);
 	curi = &insb[NIns];
 
-	cty = argsclass(i0, i1, ca, &env);
+	cty = argsclass(i0, i1, ca);
 	fn->reg = arm64_argregs(CALL(cty), 0);
 
 	il = 0;
@@ -474,9 +472,6 @@ selpar(Fn *fn, Ins *i0, Ins *i1)
 		} else {
 			emit(Ocopy, *c->cls, i->to, TMP(*c->reg), R);
 		}
-
-	if (!req(R, env))
-		die("todo: env calls");
 
 	return (Params){
 		.nstk = s - 2,
