@@ -83,6 +83,7 @@ init() {
 			testcc "$cc" || cc="cc"
 			;;
 		esac
+		TARGET=`$bin -t?`
 		;;
 	*)
 		echo "Unknown target '$TARGET'."
