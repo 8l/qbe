@@ -82,7 +82,7 @@ rv64_argregs(Ref r, int p[2])
 	nfp = (r.val >> 8) & 15;
 	t5 = (r.val >> 12) & 1;
 	if (p) {
-		p[0] = ngp;
+		p[0] = ngp + t5;
 		p[1] = nfp;
 	}
 	b = 0;
