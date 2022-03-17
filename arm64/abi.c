@@ -183,12 +183,14 @@ selret(Blk *b, Fn *fn)
 
 	if (j == Jretc) {
 		typclass(&cr, &typ[fn->retty], gpreg, fpreg);
-		cty = (cr.nfp << 2) | cr.ngp;
 		if (cr.class & Cptr) {
 			assert(rtype(fn->retr) == RTmp);
 			blit0(fn->retr, r, cr.t->size, fn);
-		} else
+			cty = 0;
+		} else {
 			ldregs(cr.reg, cr.cls, cr.nreg, r, fn);
+			cty = (cr.nfp << 2) | cr.ngp;
+		}
 	} else {
 		k = j - Jretw;
 		if (KBASE(k) == 0) {
